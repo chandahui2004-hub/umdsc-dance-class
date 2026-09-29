@@ -7,7 +7,7 @@ export class AppError extends Error {
     public retryable: boolean = false,
     public latest?: unknown
   ) {
-    super(message);
+    super(`${code}: ${message}`);
     this.name = 'AppError';
     Object.setPrototypeOf(this, AppError.prototype);
   }
