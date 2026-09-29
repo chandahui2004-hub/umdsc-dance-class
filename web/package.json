@@ -1,0 +1,41 @@
+{
+  "name": "@umdsc/web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5173",
+    "build": "tsc -b && vite build",
+    "test": "vitest run",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "@fontsource/pixelify-sans": "^5.1.1",
+    "@fontsource/press-start-2p": "^5.1.1",
+    "@fontsource/vt323": "^5.1.1",
+    "@tailwindcss/vite": "^4.0.9",
+    "@tanstack/react-query": "^5.66.9",
+    "@umdsc/shared": "*",
+    "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
+    "idb-keyval": "^6.2.1",
+    "pixelarticons": "^1.8.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.2.0",
+    "tailwindcss": "^4.0.9"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.1",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.2.0",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "fake-indexeddb": "^6.0.0",
+    "jsdom": "^26.0.0",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.0",
+    "vitest": "^3.0.7"
+  }
+}
