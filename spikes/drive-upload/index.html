@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>UMDSC Drive Upload Spike (Task 2)</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #f0f0f0; }
+    button { padding: 10px 16px; margin: 5px; font-size: 14px; cursor: pointer; }
+    #log { background: #111; color: #39ff14; padding: 15px; border-radius: 4px; min-height: 200px; white-space: pre-wrap; word-break: break-all; }
+    video { max-width: 480px; display: block; margin-top: 15px; border: 2px solid #333; }
+    .card { background: white; padding: 15px; margin-bottom: 15px; border: 1px solid #ccc; }
+  </style>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js" async defer></script>
+</head>
+<body>
+  <h2>UMDSC Drive Upload & Playback Spike (Task 2)</h2>
+  
+  <div class="card">
+    <p><strong>Config:</strong></p>
+    <ul>
+      <li>Client ID: <code>764158079871-o23bv9038hk864dosf87ls9gkhcpc65f.apps.googleusercontent.com</code></li>
+      <li>App ID: <code>764158079871</code></li>
+      <li>Scope: <code>https://www.googleapis.com/auth/drive.file</code></li>
+      <li>Test Video Folder: <code>1_tr8IiPBvY36c1UQ5PTF9yKpZ-neMiZ6</code></li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Steps</h3>
+    <div>
+      <button id="btnAuth">1. Sign In (Google OAuth)</button>
+      <button id="btnPick">2. Pick Folder</button>
+    </div>
+    <div style="margin-top: 10px;">
+      <label>Choose small MP4 file: <input type="file" id="videoFile" accept="video/mp4,video/*"></label><br><br>
+      <button id="btnUpload">3. Create Subfolder + Resumable Upload + Set Anyone Reader</button>
+    </div>
+    <div style="margin-top: 10px;">
+      <button id="btnPlay">4. Play Stream via API Key</button>
+    </div>
+    <video id="videoPlayer" controls playsinline style="display:none;"></video>
+  </div>
+
+  <div class="card">
+    <h3>Execution Log</h3>
+    <pre id="log">Ready. Click "1. Sign In" to start.</pre>
+  </div>
+
+  <script>
+    const CLIENT_ID = '764158079871-o23bv9038hk864dosf87ls9gkhcpc65f.apps.googleusercontent.com';
+    const APP_ID = '764158079871';
+    const API_KEY = 'AIzaSyDaudiyWQ3MnU8aOz8TcAAvOwplQm8fJZc';
+    const TEST_VIDEO_FOLDER_ID = '1_tr8IiPBvY36c1UQ5PTF9yKpZ-neMiZ6';
+    const SCOPE = 'https://www.googleapis.com/auth/drive.file';
+
+    let accessToken = null;
+    let pickedFolderId = null;
+    let uploadedFileId = null;
+    let pickerApiLoaded = false;
+
+    function log(msg) {
+      console.log(msg);
+      const el = document.getElementById('log');
+      el.textContent += '\n[' + new Date().toLocaleTimeString() + '] ' + msg;
+    }
+
+    window.addEventListener('load', () => {
+      gapi.load('picker', () => {
+        pickerApiLoaded = true;
+        log('Google Picker API loaded.');
+      });
+    });
+
+    // Step 1: Sign in
+    document.getElementById('btnAuth').addEventListener('click', () => {
+      try {
+        const tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: CLIENT_ID,
+          scope: SCOPE,
+          callback: (response) => {
+            if (response.error) {
+              log('Auth error: ' + JSON.stringify(response));
+              return;
+            }
+            accessToken = response.access_token;
+            log('Auth successful! Access token obtained (expires in ' + response.expires_in + 's).');
+          }
+        });
+        tokenClient.requestAccessToken();
+      } catch (err) {
+        log('Error starting auth: ' + err.message);
+      }
+    });
+
+    // Step 2: Pick folder
+    document.getElementById('btnPick').addEventListener('click', () => {
+      if (!accessToken) {
+        log('ERROR: Please sign in first.');
+        return;
+      }
+      if (!pickerApiLoaded) {
+        log('ERROR: Picker API not ready yet. Please wait a second.');
+        return;
+      }
+
+      try {
+        const view = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+          .setSelectFolderEnabled(true)
+          .setIncludeFolders(true)
+          .setParent(TEST_VIDEO_FOLDER_ID);
+
+        const picker = new google.picker.PickerBuilder()
+          .addView(view)
+          .setOAuthToken(accessToken)
+          .setDeveloperKey(API_KEY)
+          .setAppId(APP_ID)
+          .setCallback((data) => {
+            if (data.action === google.picker.Action.PICKED) {
+              const doc = data.docs[0];
+              pickedFolderId = doc.id;
+              log('Folder picked: ' + doc.name + ' (ID: ' + pickedFolderId + ')');
+            } else if (data.action === google.picker.Action.CANCEL) {
+              log('Picker cancelled.');
+            }
+          })
+          .build();
+        picker.setVisible(true);
+      } catch (err) {
+        log('Error showing picker: ' + err.message);
+      }
+    });
+
+    // Step 3: Create subfolder + upload + share
+    document.getElementById('btnUpload').addEventListener('click', async () => {
+      if (!accessToken) {
+        log('ERROR: Please sign in first.');
+        return;
+      }
+      const targetParentId = pickedFolderId || TEST_VIDEO_FOLDER_ID;
+      log('Target parent folder ID: ' + targetParentId);
+
+      const fileInput = document.getElementById('videoFile');
+      if (!fileInput.files || fileInput.files.length === 0) {
+        log('ERROR: Please choose a small MP4 file first.');
+        return;
+      }
+      const file = fileInput.files[0];
+      log('Selected file: ' + file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)');
+
+      try {
+        // 3a. Create subfolder
+        log('Creating subfolder "spike-test"...');
+        const folderCreateRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + accessToken,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: 'spike-test-' + Date.now(),
+            mimeType: 'application/vnd.google-apps.folder',
+            parents: [targetParentId]
+          })
+        });
+
+        if (!folderCreateRes.ok) {
+          const errText = await folderCreateRes.text();
+          log('Subfolder creation FAILED (' + folderCreateRes.status + '): ' + errText);
+          return;
+        }
+        const folderData = await folderCreateRes.json();
+        const subfolderId = folderData.id;
+        log('Subfolder created successfully! (ID: ' + subfolderId + ')');
+
+        // 3b. Resumable upload
+        log('Starting resumable upload into subfolder...');
+        const initRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + accessToken,
+            'Content-Type': 'application/json; charset=UTF-8',
+            'X-Upload-Content-Type': file.type || 'video/mp4',
+            'X-Upload-Content-Length': file.size.toString()
+          },
+          body: JSON.stringify({
+            name: file.name,
+            parents: [subfolderId]
+          })
+        });
+
+        if (!initRes.ok) {
+          const errText = await initRes.text();
+          log('Resumable session init FAILED (' + initRes.status + '): ' + errText);
+          return;
+        }
+
+        const sessionUri = initRes.headers.get('Location');
+        if (!sessionUri) {
+          log('ERROR: No Location header in resumable session response.');
+          return;
+        }
+        log('Resumable upload session created. Uploading chunks...');
+
+        const uploadRes = await fetch(sessionUri, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': file.type || 'video/mp4'
+          },
+          body: file
+        });
+
+        if (!uploadRes.ok) {
+          const errText = await uploadRes.text();
+          log('File upload FAILED (' + uploadRes.status + '): ' + errText);
+          return;
+        }
+
+        const uploadedFileData = await uploadRes.json();
+        uploadedFileId = uploadedFileData.id;
+        log('Upload COMPLETE! File ID: ' + uploadedFileId);
+
+        // 3c. Set anyone reader
+        log('Setting "Anyone with the link can view" permission...');
+        const permRes = await fetch('https://www.googleapis.com/drive/v3/files/' + uploadedFileId + '/permissions', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + accessToken,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            type: 'anyone',
+            role: 'reader'
+          })
+        });
+
+        if (!permRes.ok) {
+          const errText = await permRes.text();
+          log('Permission set FAILED (' + permRes.status + '): ' + errText);
+          return;
+        }
+        log('Permissions updated successfully! Anyone can view.');
+        log('READY for Step 4 (Play stream).');
+      } catch (err) {
+        log('Exception in Step 3: ' + err.message);
+      }
+    });
+
+    // Step 4: Play
+    document.getElementById('btnPlay').addEventListener('click', () => {
+      if (!uploadedFileId) {
+        log('ERROR: No uploaded file yet. Complete Step 3 first.');
+        return;
+      }
+      const streamUrl = 'https://www.googleapis.com/drive/v3/files/' + uploadedFileId + '?alt=media&key=' + API_KEY;
+      log('Setting video stream URL: ' + streamUrl);
+
+      const video = document.getElementById('videoPlayer');
+      video.style.display = 'block';
+      video.src = streamUrl;
+      video.onerror = (e) => {
+        log('Video playback ERROR: ' + (video.error ? video.error.message || video.error.code : 'unknown'));
+      };
+      video.onloadeddata = () => {
+        log('Video loaded data successfully! Duration: ' + video.duration.toFixed(2) + 's');
+      };
+      video.onplaying = () => {
+        log('Video is PLAYING successfully!');
+      };
+      video.play().catch(e => {
+        log('video.play() rejected (autoplay policy?): ' + e.message + ' (Use video controls)');
+      });
+    });
+  </script>
+</body>
+</html>

@@ -33,6 +33,15 @@ These links are entered through the website's Settings / first-run setup, **not 
 ## Dance styles (seed)
 Locking · Popping · Hip Hop · Latin
 
+## Spike result (Task 2)
+- **Status:** PASS
+- **Scope used:** `https://www.googleapis.com/auth/drive.file`
+- **Subfolder creation:** PASS (Created subfolder ID `1mhm6MpAu924zqMSIrhYjAYtZgZvY5Eet` inside parent folder `1_tr8IiPBvY36c1UQ5PTF9yKpZ-neMiZ6`)
+- **Resumable upload:** PASS (Uploaded ~171MB MP4 file ID `1KjJb3LclWUGrQPbu5oOcywyhwFh9qqt_`)
+- **Permission update:** PASS (Set `anyone`/`reader` on uploaded file)
+- **Direct playback:** PASS (Streamed via Drive API key URL, video duration 79.97s, played successfully)
+
 ## Still to fill in
 - Apps Script web app URL (`VITE_API_URL`): created in the backend phase.
 - Cloudflare Pages URL: created at go-live.
+
