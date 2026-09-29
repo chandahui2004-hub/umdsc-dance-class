@@ -48,6 +48,9 @@ export class FakeSheet implements SheetPort {
   protectRowWarningOnly(row1: number): void {
     this.protectedRows.push(row1);
   }
+  getDataRange(): Cell[][] {
+    return this.getDisplayValues();
+  }
 }
 
 export class FakeSpreadsheet implements SpreadsheetPort {
@@ -61,6 +64,10 @@ export class FakeSpreadsheet implements SpreadsheetPort {
 
   sheet(name: string): SheetPort | null {
     return this.sheetsMap.get(name) || null;
+  }
+
+  getSheet(name: string): SheetPort | null {
+    return this.sheet(name);
   }
 
   addSheet(name: string, headers: string[] = []): SheetPort {

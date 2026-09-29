@@ -15,6 +15,8 @@ import { getSettingsRoutes } from './features/settings';
 import { getMasterDataRoutes } from './features/masterData';
 import { getAccessRoutes } from './features/access';
 import { getSessionRoutes } from './features/sessions';
+import { getMemberRoutes } from './features/members';
+import { getAttendanceRoutes } from './features/attendance';
 
 export interface AuthInfo {
   claims: TokenClaims;
@@ -43,6 +45,8 @@ registerRoutes(getSettingsRoutes());
 registerRoutes(getMasterDataRoutes());
 registerRoutes(getAccessRoutes());
 registerRoutes(getSessionRoutes());
+registerRoutes(getMemberRoutes());
+registerRoutes(getAttendanceRoutes());
 
 export function handleRequest(
   req: ApiRequest,
