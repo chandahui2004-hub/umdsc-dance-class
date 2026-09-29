@@ -11,6 +11,9 @@ import { can } from './logic/permissions';
 import { withScriptLock } from './db/lock';
 import { getSetupRoutes } from './features/setup';
 import { getAuthRoutes } from './features/auth';
+import { getSettingsRoutes } from './features/settings';
+import { getMasterDataRoutes } from './features/masterData';
+import { getAccessRoutes } from './features/access';
 
 export interface AuthInfo {
   claims: TokenClaims;
@@ -32,9 +35,12 @@ export function registerRoutes(routes: Record<string, Route>): void {
   }
 }
 
-// Register built-in setup and auth routes
+// Register built-in routes
 registerRoutes(getSetupRoutes());
 registerRoutes(getAuthRoutes());
+registerRoutes(getSettingsRoutes());
+registerRoutes(getMasterDataRoutes());
+registerRoutes(getAccessRoutes());
 
 export function handleRequest(
   req: ApiRequest,

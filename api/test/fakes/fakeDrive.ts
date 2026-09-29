@@ -46,7 +46,7 @@ export class FakeDrive implements DrivePort {
   }
 
   createSpreadsheet(name: string, folderId: string): SpreadsheetPort {
-    const id = newId('ss');
+    const id = '1' + newId('ss') + newId('drive');
     const ss = new FakeSpreadsheet(id, name);
     this.spreadsheets.set(id, ss);
     this.items.set(id, { id, kind: 'spreadsheet', name, parentId: folderId, canEdit: true });
@@ -54,9 +54,16 @@ export class FakeDrive implements DrivePort {
   }
 
   createFolder(parentId: string, name: string): string {
-    const id = newId('fld');
+    const id = '1' + newId('fld') + newId('folder');
     this.items.set(id, { id, kind: 'folder', name, parentId, canEdit: true });
     return id;
+  }
+
+  setAccess(id: string, canEdit: boolean): void {
+    const item = this.items.get(id);
+    if (item) {
+      item.canEdit = canEdit;
+    }
   }
 
   findChildFolder(parentId: string, name: string): string | null {

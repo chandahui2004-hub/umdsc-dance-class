@@ -146,7 +146,7 @@ const defaultCodecs = {
   styles: {
     toCells: (r: DanceStyle) => ({
       ...r,
-      aliases: (r.aliases || []).join(','),
+      aliases: Array.isArray(r.aliases) ? r.aliases.join(',') : String(r.aliases || ''),
       defaultWeekday: r.defaultWeekday !== null ? r.defaultWeekday : '',
       active: r.active ? 'TRUE' : 'FALSE'
     }),
