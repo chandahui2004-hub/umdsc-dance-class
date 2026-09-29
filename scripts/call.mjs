@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
+import { Writable } from 'node:stream';
 
 function getApiUrl() {
   const envLocalPath = path.resolve('web/.env.local');
@@ -20,29 +21,35 @@ function getApiUrl() {
 
 function promptHidden(query) {
   return new Promise((resolve) => {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
-    const stdin = process.openStdin();
-    process.stdin.on('data', (char) => {
-      char = char + '';
-      switch (char) {
-        case '\n':
-        case '\r':
-        case '\u0004':
-          stdin.pause();
-          break;
-        default:
-          process.stdout.write('\x1B[2K\x1B[200D' + query + '*'.repeat(rl.line.length));
-          break;
+    let muted = false;
+    const mutableStdout = new Writable({
+      write(chunk, encoding, callback) {
+        if (!muted) {
+          process.stdout.write(chunk, encoding);
+        } else {
+          const str = chunk.toString();
+          if (str.includes('\n') || str.includes('\r')) {
+            process.stdout.write('\n');
+          } else {
+            process.stdout.write('*');
+          }
+        }
+        callback();
       }
     });
-    rl.question(query, (value) => {
-      rl.history = rl.history.slice(1);
+
+    process.stdout.write(query);
+    muted = true;
+
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: mutableStdout,
+      terminal: process.stdin.isTTY || false
+    });
+
+    rl.question('', (val) => {
       rl.close();
-      console.log();
-      resolve(value);
+      resolve(val.trim());
     });
   });
 }
@@ -55,7 +62,7 @@ function promptText(query) {
     });
     rl.question(query, (value) => {
       rl.close();
-      resolve(value);
+      resolve(value.trim());
     });
   });
 }
@@ -97,6 +104,13 @@ async function main() {
       adminDisplayName,
       adminPassword
     };
+  }
+
+  if (action === 'auth.adminLogin' && !payload) {
+    console.log('--- UMDSC Admin Login ---');
+    const username = (await promptText('Enter Admin Username: ')).trim();
+    const password = (await promptHidden('Enter Admin Password: ')).trim();
+    payload = { username, password };
   }
 
   const body = {
