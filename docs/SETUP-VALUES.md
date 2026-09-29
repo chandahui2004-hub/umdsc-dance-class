@@ -41,7 +41,13 @@ Locking · Popping · Hip Hop · Latin
 - **Permission update:** PASS (Set `anyone`/`reader` on uploaded file)
 - **Direct playback:** PASS (Streamed via Drive API key URL, video duration 79.97s, played successfully)
 
+## Backend API (Apps Script)
+- **Script ID:** `1f3p4D-1zClfrSUmoa6g5zgw95c-MgTVQ8j0jKv7j1hVE1yNINQ5qw6iL`
+- **Deployment ID:** `AKfycbz3zfWHdcl_3GuDsCf_ysLpH4XDNyklC87L9HuKpUVvhKrF-BU1M-QCf0PjPePAwwxIHA`
+- **API URL (`VITE_API_URL`):** `https://script.google.com/macros/s/AKfycbz3zfWHdcl_3GuDsCf_ysLpH4XDNyklC87L9HuKpUVvhKrF-BU1M-QCf0PjPePAwwxIHA/exec`
+- **Redeploy command (URL never changes):** `npx clasp update-deployment AKfycbz3zfWHdcl_3GuDsCf_ysLpH4XDNyklC87L9HuKpUVvhKrF-BU1M-QCf0PjPePAwwxIHA`
+
 ## Still to fill in
-- Apps Script web app URL (`VITE_API_URL`): created in the backend phase.
 - Cloudflare Pages URL: created at go-live.
+
 

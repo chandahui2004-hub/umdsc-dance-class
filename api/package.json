@@ -1,0 +1,20 @@
+{
+  "name": "@umdsc/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "vitest run",
+    "push": "npm run build && clasp push -f"
+  },
+  "devDependencies": {
+    "@google/clasp": "^3.0.0",
+    "@types/google-apps-script": "^1.0.89",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.0.0"
+  },
+  "dependencies": {
+    "@umdsc/shared": "*"
+  }
+}
