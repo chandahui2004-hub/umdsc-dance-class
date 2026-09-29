@@ -46,6 +46,12 @@ Locking · Popping · Hip Hop · Latin
 - **Deployment ID:** `AKfycbz3zfWHdcl_3GuDsCf_ysLpH4XDNyklC87L9HuKpUVvhKrF-BU1M-QCf0PjPePAwwxIHA`
 - **API URL (`VITE_API_URL`):** `https://script.google.com/macros/s/AKfycbz3zfWHdcl_3GuDsCf_ysLpH4XDNyklC87L9HuKpUVvhKrF-BU1M-QCf0PjPePAwwxIHA/exec`
 - **Redeploy command (URL never changes):** `npx clasp update-deployment AKfycbz3zfWHdcl_3GuDsCf_ysLpH4XDNyklC87L9HuKpUVvhKrF-BU1M-QCf0PjPePAwwxIHA`
+## Deployment verification (Task 9)
+- **Status:** PASS
+- **Setup Initialization:** `setup.init` executed successfully, created `UMDSC_System` spreadsheet in DB folder `10rrxr82U3sSX16i8AksvFbMeWmsLxgST`.
+- **Schema verification:** Verified all 10 schema tabs exist and `DanceStyles` seeded with 4 rows.
+- **Setup status:** `setup.status` confirmed `{"initialized": true}`.
+- **Admin authentication:** Admin login verified.
 
 ## Still to fill in
 - Cloudflare Pages URL: created at go-live.
