@@ -96,9 +96,27 @@ export function nameSimilarity(a: string, b: string): number {
   const maxLenSorted = Math.max(sortedA.length, sortedB.length, 1);
   const sortedLevSim = 1 - levenshtein(sortedA, sortedB) / maxLenSorted;
 
+  const setA = new Set(tokensA);
   const setB = new Set(tokensB);
-  const commonCount = tokensA.filter(t => setB.has(t)).length;
-  const tokenSetRatio = (2 * commonCount) / (tokensA.length + tokensB.length);
 
-  return Math.max(levSim, sortedLevSim, tokenSetRatio);
+  const intersection = tokensA.filter(t => setB.has(t)).sort();
+  const diffA = tokensA.filter(t => !setB.has(t)).sort();
+  const diffB = tokensB.filter(t => !setA.has(t)).sort();
+
+  const s0 = intersection.join(' ');
+  const s1 = [...intersection, ...diffA].join(' ');
+  const s2 = [...intersection, ...diffB].join(' ');
+
+  let tokenSetSim = 0;
+  if (s0) {
+    const sim = (x: string, y: string) => {
+      if (!x && !y) return 1.0;
+      if (!x || !y) return 0.0;
+      const maxLen = Math.max(x.length, y.length);
+      return 1 - levenshtein(x, y) / maxLen;
+    };
+    tokenSetSim = Math.max(sim(s0, s1), sim(s0, s2), sim(s1, s2));
+  }
+
+  return Math.max(levSim, sortedLevSim, tokenSetSim);
 }

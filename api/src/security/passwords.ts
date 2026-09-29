@@ -20,18 +20,20 @@ export function hashPassword(password: string, salt: string, iterations: number,
 
 export function verifyPassword(
   password: string,
-  stored: { hash: string; salt: string; iterations: number },
+  stored: { hash?: string; passwordHash?: string; salt: string; iterations: number },
   hmac: Hmac
 ): boolean {
+  const hash = stored.hash || stored.passwordHash || '';
+  if (!hash) return false;
   const computed = hashPassword(password, stored.salt, stored.iterations, hmac);
 
-  if (computed.length !== stored.hash.length) {
+  if (computed.length !== hash.length) {
     return false;
   }
 
   let diff = 0;
   for (let i = 0; i < computed.length; i++) {
-    diff |= computed.charCodeAt(i) ^ stored.hash.charCodeAt(i);
+    diff |= computed.charCodeAt(i) ^ hash.charCodeAt(i);
   }
 
   return diff === 0;
