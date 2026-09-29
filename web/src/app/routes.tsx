@@ -8,6 +8,7 @@ import { RequireRole } from './guards';
 import { TitleScreen } from '../features/auth/TitleScreen';
 import { AdminLogin } from '../features/auth/AdminLogin';
 import { SetupPage } from '../features/setup/SetupPage';
+import { MembersPage } from '../features/members/MembersPage';
 import { useBootstrap } from '../features/auth/useBootstrap';
 import { session } from '../lib/session';
 import { PixelButton } from '../components/ui/PixelButton';
@@ -192,12 +193,25 @@ export const AppRoutes: React.FC = () => {
                     </div>
                   }
                 />
+                <Route path="members" element={<MembersPage />} />
                 <Route
                   path="more"
                   element={
-                    <div>
+                    <div className="space-y-4">
                       <h1 className="font-display text-xl mb-4">More</h1>
-                      <p className="font-body text-base">Members, Import & Settings</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <a
+                          href="/admin/members"
+                          className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] block hover:bg-[var(--c-bg)]"
+                        >
+                          <h2 className="font-display text-sm text-[var(--c-ink)] mb-1">
+                            REGISTERED DANCERS
+                          </h2>
+                          <p className="font-body text-xs text-[var(--c-darkgrey)]">
+                            View member roster, contact info, styles, and export CSV
+                          </p>
+                        </a>
+                      </div>
                     </div>
                   }
                 />
