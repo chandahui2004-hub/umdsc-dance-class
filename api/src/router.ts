@@ -17,6 +17,7 @@ import { getAccessRoutes } from './features/access';
 import { getSessionRoutes } from './features/sessions';
 import { getMemberRoutes } from './features/members';
 import { getAttendanceRoutes } from './features/attendance';
+import { getVideoRoutes } from './features/videos';
 
 export interface AuthInfo {
   claims: TokenClaims;
@@ -47,6 +48,7 @@ registerRoutes(getAccessRoutes());
 registerRoutes(getSessionRoutes());
 registerRoutes(getMemberRoutes());
 registerRoutes(getAttendanceRoutes());
+registerRoutes(getVideoRoutes());
 
 export function handleRequest(
   req: ApiRequest,
