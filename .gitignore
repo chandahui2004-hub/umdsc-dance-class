@@ -1,0 +1,9 @@
+node_modules
+dist
+.env.local
+reference/
+*.xlsx
+.clasprc.json
+playwright-report
+test-results
+.superpowers/

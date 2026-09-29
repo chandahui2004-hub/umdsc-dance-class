@@ -1,0 +1,12 @@
+{
+  "inherits": [
+    {
+      "path": "C:/Users/user/Downloads/UMDSC Design/agent-skills-for-develop-website/skills.json"
+    }
+  ],
+  "entries": [
+    {
+      "path": ".agents/skills"
+    }
+  ]
+}

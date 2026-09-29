@@ -1,0 +1,13 @@
+{
+  "name": "umdsc-dance-class-system",
+  "private": true,
+  "workspaces": [
+    "shared",
+    "api",
+    "web"
+  ],
+  "scripts": {
+    "test": "npm test -ws --if-present",
+    "build": "npm run build -ws --if-present"
+  }
+}
