@@ -7,3 +7,4 @@ reference/
 playwright-report
 test-results
 .superpowers/
+.admin-token

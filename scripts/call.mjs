@@ -106,6 +106,14 @@ async function main() {
     };
   }
 
+  let token = process.env.TOKEN || process.env.ADMIN_TOKEN;
+  const tokenFilePath = path.resolve('.admin-token');
+  if (!token && fs.existsSync(tokenFilePath)) {
+    try {
+      token = fs.readFileSync(tokenFilePath, 'utf8').trim();
+    } catch {}
+  }
+
   if (action === 'auth.adminLogin' && !payload) {
     console.log('--- UMDSC Admin Login ---');
     const username = (await promptText('Enter Admin Username: ')).trim();
@@ -113,8 +121,41 @@ async function main() {
     payload = { username, password };
   }
 
+  const publicActions = new Set([
+    'setup.init',
+    'setup.status',
+    'auth.adminLogin',
+    'auth.dancerLogin',
+    'ping'
+  ]);
+
+  if (!publicActions.has(action) && !token) {
+    console.log('--- Authentication Required ---');
+    console.log('No token found. Please log in as Admin:');
+    const username = (await promptText('Enter Admin Username: ')).trim();
+    const password = (await promptHidden('Enter Admin Password: ')).trim();
+
+    const loginRes = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'auth.adminLogin', payload: { username, password } }),
+      redirect: 'follow'
+    });
+    const loginJson = await loginRes.json();
+    if (!loginJson.ok) {
+      console.error('Login failed:', loginJson.error?.message || 'Unknown error');
+      process.exit(1);
+    }
+    token = loginJson.data.token;
+    try {
+      fs.writeFileSync(tokenFilePath, token, 'utf8');
+      console.log('Authenticated successfully (token saved to .admin-token).');
+    } catch {}
+  }
+
   const body = {
     action,
+    token,
     payload
   };
 
@@ -131,6 +172,11 @@ async function main() {
     const text = await res.text();
     try {
       const json = JSON.parse(text);
+      if (action === 'auth.adminLogin' && json.ok && json.data?.token) {
+        try {
+          fs.writeFileSync(tokenFilePath, json.data.token, 'utf8');
+        } catch {}
+      }
       console.log(JSON.stringify(json, null, 2));
     } catch {
       console.log(text);

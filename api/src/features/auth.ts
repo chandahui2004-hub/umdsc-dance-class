@@ -6,6 +6,7 @@ import { verifyPassword } from '../security/passwords';
 import { signToken } from '../security/tokens';
 import { resolvePermissions } from '../logic/permissions';
 import { TokenClaims, PermissionCode } from '@umdsc/shared';
+import { getAdminBootstrap, getDancerBootstrap } from './bootstrap';
 
 export function getAuthRoutes(): Record<string, Route> {
   return {
@@ -58,19 +59,12 @@ export function getAuthRoutes(): Record<string, Route> {
 
         const token = signToken(claims, (ctx as any)._secrets?.tokenSecret, hmac);
 
-        const bootstrap = {
-          profile: {
-            username: admin.username,
-            displayName: admin.displayName,
-            perms
-          },
-          styles: [],
-          instructors: [],
-          sessions: [],
-          roles: [],
-          months: [],
-          settings: {}
-        };
+        const bootstrap = getAdminBootstrap(
+          ctx,
+          admin.username,
+          admin.displayName,
+          perms
+        );
 
         return { token, claims, bootstrap };
       }
@@ -152,21 +146,7 @@ export function getAuthRoutes(): Record<string, Route> {
         const hmac = (ctx as any)._secrets?.hmac;
         const token = signToken(claims, (ctx as any)._secrets?.tokenSecret, hmac);
 
-        const bootstrap = {
-          profile: {
-            matricKey,
-            fullName: dancer.fullName,
-            months: dancer.months,
-            perms
-          },
-          styles: [],
-          instructors: [],
-          sessions: [],
-          attendance: [],
-          videos: [],
-          music: [],
-          sections: []
-        };
+        const bootstrap = getDancerBootstrap(ctx, matricKey, perms);
 
         return { token, claims, bootstrap };
       }

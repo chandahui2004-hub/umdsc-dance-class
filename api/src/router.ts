@@ -19,6 +19,7 @@ import { getMemberRoutes } from './features/members';
 import { getAttendanceRoutes } from './features/attendance';
 import { getVideoRoutes } from './features/videos';
 import { getMusicRoutes } from './features/music';
+import { getBootstrapRoutes } from './features/bootstrap';
 
 export interface AuthInfo {
   claims: TokenClaims;
@@ -51,6 +52,7 @@ registerRoutes(getMemberRoutes());
 registerRoutes(getAttendanceRoutes());
 registerRoutes(getVideoRoutes());
 registerRoutes(getMusicRoutes());
+registerRoutes(getBootstrapRoutes());
 
 export function handleRequest(
   req: ApiRequest,
