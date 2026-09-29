@@ -1,9 +1,16 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useLayout } from './useLayout';
 import { PhoneShell } from './PhoneShell';
 import { DesktopShell } from './DesktopShell';
 import { TabDef } from '../components/ui/TabBar';
+import { RequireRole } from './guards';
+import { TitleScreen } from '../features/auth/TitleScreen';
+import { AdminLogin } from '../features/auth/AdminLogin';
+import { SetupPage } from '../features/setup/SetupPage';
+import { useBootstrap } from '../features/auth/useBootstrap';
+import { session } from '../lib/session';
+import { PixelButton } from '../components/ui/PixelButton';
 
 // Pixel art icon SVG helpers
 const CalendarIcon = () => (
@@ -18,77 +25,213 @@ const AttendanceIcon = () => (
   </svg>
 );
 
-const VideoIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
-  </svg>
-);
-
 const MusicIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
     <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
   </svg>
 );
 
-const DEFAULT_TABS: TabDef[] = [
-  { id: 'calendar', label: 'Calendar', icon: <CalendarIcon />, path: '/' },
-  { id: 'attendance', label: 'Attendance', icon: <AttendanceIcon />, path: '/attendance' },
-  { id: 'videos', label: 'Videos', icon: <VideoIcon />, path: '/videos' },
-  { id: 'studio', label: 'Studio', icon: <MusicIcon />, path: '/studio' }
+const UserIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+  </svg>
+);
+
+const VideoIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
+  </svg>
+);
+
+const MoreIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+  </svg>
+);
+
+const DANCER_TABS: TabDef[] = [
+  { id: 'calendar', label: 'Home', icon: <CalendarIcon />, path: '/' },
+  { id: 'studio', label: 'Studio', icon: <MusicIcon />, path: '/studio' },
+  { id: 'me', label: 'Me', icon: <UserIcon />, path: '/me' }
 ];
 
-export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const ADMIN_TABS: TabDef[] = [
+  { id: 'today', label: 'Today', icon: <CalendarIcon />, path: '/admin/today' },
+  { id: 'calendar', label: 'Calendar', icon: <CalendarIcon />, path: '/admin/calendar' },
+  { id: 'attendance', label: 'Attendance', icon: <AttendanceIcon />, path: '/admin/attendance' },
+  { id: 'media', label: 'Media', icon: <VideoIcon />, path: '/admin/media' },
+  { id: 'more', label: 'More', icon: <MoreIcon />, path: '/admin/more' }
+];
+
+export const ShellLayout: React.FC<{ tabs: TabDef[]; children: React.ReactNode }> = ({
+  tabs,
+  children
+}) => {
   const layout = useLayout();
-
   if (layout === 'desktop') {
-    return <DesktopShell nav={DEFAULT_TABS}>{children}</DesktopShell>;
+    return <DesktopShell nav={tabs}>{children}</DesktopShell>;
   }
+  return <PhoneShell tabs={tabs}>{children}</PhoneShell>;
+};
 
-  return <PhoneShell tabs={DEFAULT_TABS}>{children}</PhoneShell>;
+// Dancer Pages
+const DancerHomePage: React.FC = () => {
+  const { data: bootstrap, isLoading } = useBootstrap('dancer');
+  const dancerName = bootstrap?.profile?.fullName || session.get()?.claims.name || '';
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-1">
+        <h1 className="font-display text-xl md:text-2xl text-[var(--c-ink)]">
+          Calendar
+        </h1>
+        {dancerName && (
+          <p className="font-display text-xs text-[var(--c-orange)] tracking-wide">
+            {dancerName}
+          </p>
+        )}
+      </div>
+
+      {isLoading && !bootstrap ? (
+        <p className="font-body text-sm text-[var(--c-darkgrey)]">Loading calendar data...</p>
+      ) : (
+        <div className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] p-4 shadow-[4px_4px_0_var(--c-ink)]">
+          <p className="font-body text-base text-[var(--c-ink)]">
+            Welcome to your dance schedule. Select a class date to see videos and music.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const DancerMePage: React.FC = () => {
+  const navigate = useNavigate();
+  const current = session.get();
+
+  const handleLogout = () => {
+    session.clear();
+    navigate('/login', { replace: true });
+  };
+
+  return (
+    <div className="space-y-4">
+      <h1 className="font-display text-xl text-[var(--c-ink)]">My Profile</h1>
+      <div className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] p-4 space-y-3">
+        <p className="font-body text-base">
+          <strong>Name:</strong> {current?.claims.name}
+        </p>
+        <p className="font-body text-base">
+          <strong>Matric:</strong> {current?.claims.sub}
+        </p>
+        <div className="pt-2">
+          <PixelButton variant="danger" size="md" onClick={handleLogout}>
+            LOGOUT
+          </PixelButton>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Admin Pages
+const AdminTodayPage: React.FC = () => {
+  const { data: bootstrap } = useBootstrap('admin');
+  const adminName = bootstrap?.profile?.displayName || session.get()?.claims.name || 'Admin';
+
+  return (
+    <div className="space-y-4">
+      <h1 className="font-display text-xl md:text-2xl text-[var(--c-ink)]">Today</h1>
+      <div className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] p-4 shadow-[4px_4px_0_var(--c-ink)]">
+        <p className="font-body text-base">Welcome, {adminName}. Today&apos;s scheduled classes.</p>
+      </div>
+    </div>
+  );
 };
 
 export const AppRoutes: React.FC = () => {
   return (
-    <AppLayout>
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <div className="font-display text-sm">
-              <h1 className="text-xl mb-4">Calendar</h1>
-              <p className="font-body text-base">UMDSC Dance Class Calendar</p>
-            </div>
-          }
-        />
-        <Route
-          path="/attendance"
-          element={
-            <div className="font-display text-sm">
-              <h1 className="text-xl mb-4">Attendance</h1>
-              <p className="font-body text-base">Monthly Attendance Tracker</p>
-            </div>
-          }
-        />
-        <Route
-          path="/videos"
-          element={
-            <div className="font-display text-sm">
-              <h1 className="text-xl mb-4">Videos</h1>
-              <p className="font-body text-base">Class Routine Videos</p>
-            </div>
-          }
-        />
-        <Route
-          path="/studio"
-          element={
-            <div className="font-display text-sm">
-              <h1 className="text-xl mb-4">Music Studio</h1>
-              <p className="font-body text-base">DanceCue Practice Studio</p>
-            </div>
-          }
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </AppLayout>
+    <Routes>
+      {/* Public / Auth routes without shell */}
+      <Route path="/login" element={<TitleScreen />} />
+      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/setup" element={<SetupPage />} />
+
+      {/* Admin routes with Admin Shell */}
+      <Route
+        path="/admin/*"
+        element={
+          <RequireRole role="admin">
+            <ShellLayout tabs={ADMIN_TABS}>
+              <Routes>
+                <Route path="today" element={<AdminTodayPage />} />
+                <Route
+                  path="calendar"
+                  element={
+                    <div>
+                      <h1 className="font-display text-xl mb-4">Calendar</h1>
+                      <p className="font-body text-base">Master Calendar & Class Scheduling</p>
+                    </div>
+                  }
+                />
+                <Route
+                  path="attendance"
+                  element={
+                    <div>
+                      <h1 className="font-display text-xl mb-4">Attendance</h1>
+                      <p className="font-body text-base">Attendance Tracker</p>
+                    </div>
+                  }
+                />
+                <Route
+                  path="media"
+                  element={
+                    <div>
+                      <h1 className="font-display text-xl mb-4">Media</h1>
+                      <p className="font-body text-base">Videos & Music Management</p>
+                    </div>
+                  }
+                />
+                <Route
+                  path="more"
+                  element={
+                    <div>
+                      <h1 className="font-display text-xl mb-4">More</h1>
+                      <p className="font-body text-base">Members, Import & Settings</p>
+                    </div>
+                  }
+                />
+                <Route path="*" element={<Navigate to="/admin/today" replace />} />
+              </Routes>
+            </ShellLayout>
+          </RequireRole>
+        }
+      />
+
+      {/* Dancer routes with Dancer Shell */}
+      <Route
+        path="/*"
+        element={
+          <RequireRole role="dancer">
+            <ShellLayout tabs={DANCER_TABS}>
+              <Routes>
+                <Route path="/" element={<DancerHomePage />} />
+                <Route
+                  path="studio"
+                  element={
+                    <div>
+                      <h1 className="font-display text-xl mb-4">Music Studio</h1>
+                      <p className="font-body text-base">DanceCue Practice Studio</p>
+                    </div>
+                  }
+                />
+                <Route path="me" element={<DancerMePage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </ShellLayout>
+          </RequireRole>
+        }
+      />
+    </Routes>
   );
 };

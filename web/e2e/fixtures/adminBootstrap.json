@@ -1,0 +1,52 @@
+{
+  "profile": {
+    "username": "admin",
+    "displayName": "Club Admin",
+    "perms": {
+      "calendar.view": "*",
+      "attendance.view.all": "*",
+      "attendance.edit": "*",
+      "sessions.edit": "*",
+      "styles.edit": "*",
+      "instructors.edit": "*",
+      "members.view": "*",
+      "members.import": "*",
+      "videos.view": "*",
+      "videos.upload": "*",
+      "videos.edit": "*",
+      "music.view": "*",
+      "music.edit": "*",
+      "sections.edit": "*",
+      "settings.edit": "*",
+      "admins.manage": "*",
+      "roles.manage": "*",
+      "export.download": "*"
+    }
+  },
+  "styles": [
+    {
+      "id": "style-hiphop",
+      "name": "Hip Hop",
+      "aliases": ["hiphop"],
+      "colorKey": "orange",
+      "defaultWeekday": 4,
+      "defaultStart": "20:00",
+      "defaultEnd": "22:00",
+      "defaultInstructorId": "inst-1",
+      "defaultVenue": "Dance Room 1",
+      "attendanceFolderId": "f-att-1",
+      "videoFolderId": "f-vid-1",
+      "version": 1,
+      "updatedBy": "admin",
+      "updatedAt": "2026-10-01T00:00:00.000Z",
+      "active": true
+    }
+  ],
+  "instructors": [],
+  "sessions": [],
+  "roles": [],
+  "months": ["2026-10"],
+  "settings": {
+    "clubName": "UMDSC Dance Club"
+  }
+}

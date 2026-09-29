@@ -87,7 +87,7 @@ export async function call<T>(
   payload?: unknown,
   opts?: { opId?: string; sinceVersion?: number; retries?: number }
 ): Promise<{ data: T; dataVersion: number }> {
-  const apiUrl = (import.meta.env.VITE_API_URL as string) || '';
+  const apiUrl = (import.meta.env.VITE_API_URL as string) || '/api';
   const maxRetries = opts?.retries ?? 4;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {

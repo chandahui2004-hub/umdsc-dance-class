@@ -1,6 +1,25 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Responsive Shell Layout', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        'umdsc:session',
+        JSON.stringify({
+          token: 'mock-dancer-tok',
+          claims: {
+            sub: '17201234',
+            role: 'dancer',
+            name: 'Sarah',
+            exp: Math.floor(Date.now() / 1000) + 36000,
+            pv: 1,
+            perms: { 'calendar.view': '*' }
+          }
+        })
+      );
+    });
+  });
+
   test('mobile viewport (390x844): bottom tab bar is visible and sidebar is hidden', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'mobile', 'Only for mobile project');
 
