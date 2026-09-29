@@ -56,7 +56,12 @@ export function can(perms: PermMap, code: PermissionCode, styleId?: string): boo
   if (granted === '*') return true;
 
   if (Array.isArray(granted)) {
-    if (!styleId) return false;
+    if (!styleId) {
+      if (code.endsWith('.view') || code === 'calendar.view' || code === 'attendance.view.all') {
+        return granted.length > 0;
+      }
+      return false;
+    }
     return granted.includes(styleId);
   }
 
