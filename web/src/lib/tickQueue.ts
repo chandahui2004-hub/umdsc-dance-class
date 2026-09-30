@@ -1,10 +1,9 @@
 import { get, set } from 'idb-keyval';
 import { api, newOpId } from './api';
-import type { Month } from '@umdsc/shared';
 
 export interface Tick {
   opId: string;
-  month: Month;
+  eventId: string;
   styleId: string;
   sessionId: string;
   memberId: string;
@@ -14,16 +13,19 @@ export interface Tick {
 
 export interface TickQueueDeps {
   send: (
-    month: Month,
+    eventId: string,
     styleId: string,
-    marks: Omit<Tick, 'month' | 'styleId' | 'queuedAt'>[]
+    marks: Omit<Tick, 'eventId' | 'styleId' | 'queuedAt'>[]
   ) => Promise<{ applied: string[] }>;
   now?: () => number;
   storeKey?: string;
 }
 
+/** v2: ticks are keyed by event; month-based ticks saved under the old key are ignored. */
+export const TICK_STORE_KEY = 'umdsc:ticks:v2';
+
 export function createTickQueue(deps: TickQueueDeps) {
-  const storeKey = deps.storeKey || 'umdsc:ticks';
+  const storeKey = deps.storeKey || TICK_STORE_KEY;
   const getNow = deps.now || (() => Date.now());
 
   let items: Tick[] = [];
@@ -65,7 +67,7 @@ export function createTickQueue(deps: TickQueueDeps) {
   const enqueue = (t: Omit<Tick, 'opId' | 'queuedAt'>) => {
     const existingIndex = items.findIndex(
       (item) =>
-        item.month === t.month &&
+        item.eventId === t.eventId &&
         item.styleId === t.styleId &&
         item.sessionId === t.sessionId &&
         item.memberId === t.memberId
@@ -93,21 +95,21 @@ export function createTickQueue(deps: TickQueueDeps) {
     isFlushing = true;
 
     try {
-      // Group by month and styleId
+      // Group by event and styleId
       const groups = new Map<string, Tick[]>();
       for (const item of items) {
-        const key = `${item.month}:${item.styleId}`;
+        const key = `${item.eventId}:${item.styleId}`;
         const group = groups.get(key) || [];
         group.push(item);
         groups.set(key, group);
       }
 
       for (const [, groupTicks] of groups) {
-        // Send batch of <= 50 per (month, styleId)
+        // Send batch of <= 50 per (eventId, styleId)
         const batch = groupTicks.slice(0, 50);
         if (batch.length === 0) continue;
 
-        const { month, styleId } = batch[0];
+        const { eventId, styleId } = batch[0];
         const marksToSend = batch.map(({ opId, sessionId, memberId, present }) => ({
           opId,
           sessionId,
@@ -116,7 +118,7 @@ export function createTickQueue(deps: TickQueueDeps) {
         }));
 
         try {
-          const res = await deps.send(month, styleId, marksToSend);
+          const res = await deps.send(eventId, styleId, marksToSend);
           const appliedSet = new Set(res.applied);
           items = items.filter((x) => !appliedSet.has(x.opId));
         } catch {
@@ -168,9 +170,9 @@ export function createTickQueue(deps: TickQueueDeps) {
 }
 
 export const attendanceQueue = createTickQueue({
-  send: async (month, styleId, marks) => {
+  send: async (eventId, styleId, marks) => {
     const res = await api.post<{ applied: string[]; version: number }>('attendance.mark', {
-      month,
+      eventId,
       styleId,
       marks
     });
