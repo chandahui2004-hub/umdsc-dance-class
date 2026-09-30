@@ -59,3 +59,15 @@
     animation: none !important;
   }
 }
+
+/* Minimum Text Size (min 5px across all screens) */
+html, body {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+.text-min-5px,
+.min-text-5px {
+  min-font-size: 5px;
+  font-size: max(5px, inherit);
+}

@@ -27,6 +27,7 @@
   --font-display: 'Press Start 2P', monospace;
   --font-body: 'Pixelify Sans', sans-serif;
   --font-mono: 'VT323', monospace;
+  --min-font-size: 5px;
 
   /* Spacing Scale */
   --sp-xs: 4px;
@@ -45,6 +46,7 @@
 }
 
 @theme {
+  --text-micro: 5px;
   --color-bg: var(--c-bg);
   --color-ink: var(--c-ink);
   --color-panel: var(--c-panel);

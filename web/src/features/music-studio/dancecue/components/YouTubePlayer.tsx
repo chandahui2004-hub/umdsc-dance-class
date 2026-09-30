@@ -1,0 +1,245 @@
+// Ported from DanceCue by JzeAnson (https://github.com/JzeAnson/DanceCue), used with permission.
+
+import { useEffect, useRef, useState } from "react";
+
+export type YouTubePlayerHandle = {
+  cueVideoById: (videoId: string) => void;
+  destroy: () => void;
+  getCurrentTime: () => number;
+  getDuration: () => number;
+  getPlaybackRate: () => number;
+  loadVideoById: (videoId: string) => void;
+  pauseVideo: () => void;
+  playVideo: () => void;
+  seekTo: (seconds: number, allowSeekAhead: boolean) => void;
+  setPlaybackRate: (speed: number) => void;
+};
+
+type YouTubePlayerConstructor = new (
+  element: HTMLElement,
+  options: {
+    events: {
+      onError: (event: { data: number }) => void;
+      onReady: (event: { target: YouTubePlayerHandle }) => void;
+      onStateChange: (event: { data: number }) => void;
+    };
+    height: string;
+    playerVars: Record<string, number>;
+    videoId?: string;
+    width: string;
+  },
+) => YouTubePlayerHandle;
+
+declare global {
+  interface Window {
+    YT?: {
+      Player: YouTubePlayerConstructor;
+    };
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
+
+type YouTubePlayerProps = {
+  isVisible: boolean;
+  onReady: (player: YouTubePlayerHandle) => void;
+  onStateChange: (state: number) => void;
+  videoId: string | null;
+};
+
+const youtubePlayerStates = {
+  cued: 5,
+  ended: 0,
+  paused: 2,
+  playing: 1,
+};
+
+let apiReadyPromise: Promise<void> | null = null;
+
+function loadYouTubeApi() {
+  if (window.YT?.Player) {
+    return Promise.resolve();
+  }
+
+  apiReadyPromise ??= new Promise<void>((resolve) => {
+    const previousReadyHandler = window.onYouTubeIframeAPIReady;
+
+    window.onYouTubeIframeAPIReady = () => {
+      previousReadyHandler?.();
+      resolve();
+    };
+
+    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+      const script = document.createElement("script");
+      script.src = "https://www.youtube.com/iframe_api";
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  });
+
+  return apiReadyPromise;
+}
+
+export function YouTubePlayer({
+  isVisible,
+  onReady,
+  onStateChange,
+  videoId,
+}: YouTubePlayerProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const latestVideoIdRef = useRef(videoId);
+  const playerRef = useRef<YouTubePlayerHandle | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isApiLoading, setIsApiLoading] = useState(false);
+
+  useEffect(() => {
+    latestVideoIdRef.current = videoId;
+  }, [videoId]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    setIsApiLoading(true);
+    setErrorMessage("");
+
+    void loadYouTubeApi().then(() => {
+      if (!isMounted || !containerRef.current || playerRef.current || !window.YT?.Player) {
+        return;
+      }
+
+      playerRef.current = new window.YT.Player(containerRef.current, {
+        height: "200",
+        width: "200",
+        videoId: videoId ?? undefined,
+        playerVars: {
+          modestbranding: 1,
+          playsinline: 1,
+          rel: 0,
+        },
+        events: {
+          onReady: (event) => {
+            setIsApiLoading(false);
+            setErrorMessage("");
+            onReady(event.target);
+
+            if (latestVideoIdRef.current) {
+              event.target.cueVideoById(latestVideoIdRef.current);
+            }
+          },
+          onError: () => {
+            setIsApiLoading(false);
+            setErrorMessage("This YouTube link cannot be played here.");
+          },
+          onStateChange: (event) => {
+            if (
+              event.data === youtubePlayerStates.cued ||
+              event.data === youtubePlayerStates.playing ||
+              event.data === youtubePlayerStates.paused ||
+              event.data === youtubePlayerStates.ended
+            ) {
+              setIsApiLoading(false);
+              setErrorMessage("");
+            }
+
+            onStateChange(event.data);
+          },
+        },
+      });
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [onReady, onStateChange, videoId]);
+
+  useEffect(() => {
+    if (!videoId || !isApiLoading) {
+      return;
+    }
+
+    const retryTimeoutId = window.setTimeout(() => {
+      playerRef.current?.cueVideoById(videoId);
+    }, 20000);
+
+    const failedTimeoutId = window.setTimeout(() => {
+      setIsApiLoading(false);
+      setErrorMessage("Still loading. Check your internet connection, ad blocker, or try another link.");
+    }, 60000);
+
+    return () => {
+      window.clearTimeout(retryTimeoutId);
+      window.clearTimeout(failedTimeoutId);
+    };
+  }, [isApiLoading, videoId]);
+
+  useEffect(() => {
+    if (videoId && playerRef.current) {
+      setIsApiLoading(true);
+      setErrorMessage("");
+      playerRef.current.cueVideoById(videoId);
+    }
+  }, [videoId]);
+
+  useEffect(() => {
+    if (!videoId || !isApiLoading) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      const duration = playerRef.current?.getDuration() ?? 0;
+
+      if (duration > 0) {
+        setIsApiLoading(false);
+        setErrorMessage("");
+      }
+    }, 500);
+
+    return () => window.clearInterval(intervalId);
+  }, [isApiLoading, videoId]);
+
+  const statusMessage = errorMessage
+    ? errorMessage
+    : isApiLoading
+      ? "Loading YouTube audio..."
+      : "YouTube audio ready";
+
+  return (
+    <>
+      <div
+        className="pointer-events-none fixed left-0 top-0 h-[200px] w-[200px] overflow-hidden opacity-0"
+        aria-hidden="true"
+      >
+        <div ref={containerRef} className="h-[200px] w-[200px]" />
+      </div>
+      {isVisible ? (
+        <section
+          className="rounded-3xl border border-white/10 bg-black/25 px-4 py-3 shadow-lg shadow-black/20"
+          aria-label="YouTube audio status"
+          role={errorMessage ? "alert" : "status"}
+        >
+          <div className="flex items-center gap-3">
+            {isApiLoading && !errorMessage ? (
+              <span
+                className="size-3 shrink-0 animate-pulse rounded-full bg-cyan-200 shadow-[0_0_16px_rgba(103,232,249,0.8)]"
+                aria-hidden="true"
+              />
+            ) : (
+              <span
+                className={`size-3 shrink-0 rounded-full ${
+                  errorMessage ? "bg-rose-300" : "bg-emerald-300"
+                }`}
+                aria-hidden="true"
+              />
+            )}
+            <p
+              className={`text-xs font-bold ${
+                errorMessage ? "text-rose-200" : "text-zinc-300"
+              }`}
+            >
+              {statusMessage}
+            </p>
+          </div>
+        </section>
+      ) : null}
+    </>
+  );
+}

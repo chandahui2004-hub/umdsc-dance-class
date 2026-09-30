@@ -22,6 +22,7 @@ import { EventsPage } from '../features/events/EventsPage';
 import { EventWizard } from '../features/events/EventWizard';
 import { DancerHome } from '../features/calendar/DancerHome';
 import { MePage } from '../features/me/MePage';
+import { StudioPage } from '../features/music-studio/StudioPage';
 import { EventPicker } from '../components/ui/EventPicker';
 import { useEventAutoSync } from '../lib/useEventAutoSync';
 
@@ -242,15 +243,7 @@ export const AppRoutes: React.FC = () => {
             <ShellLayout tabs={DANCER_TABS}>
               <Routes>
                 <Route path="/" element={<DancerHome />} />
-                <Route
-                  path="studio"
-                  element={
-                    <div>
-                      <h1 className="font-display text-xl mb-4">Music Studio</h1>
-                      <p className="font-body text-base">DanceCue Practice Studio</p>
-                    </div>
-                  }
-                />
+                <Route path="studio" element={<StudioPage />} />
                 <Route path="me" element={<MePage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
