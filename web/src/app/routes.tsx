@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useLayout } from './useLayout';
 import { PhoneShell } from './PhoneShell';
 import { DesktopShell } from './DesktopShell';
@@ -20,9 +20,8 @@ import { AttendancePage } from '../features/attendance/AttendancePage';
 import { MediaPage } from '../features/media/MediaPage';
 import { EventsPage } from '../features/events/EventsPage';
 import { EventWizard } from '../features/events/EventWizard';
-import { useBootstrap } from '../features/auth/useBootstrap';
-import { session } from '../lib/session';
-import { PixelButton } from '../components/ui/PixelButton';
+import { DancerHome } from '../features/calendar/DancerHome';
+import { MePage } from '../features/me/MePage';
 import { EventPicker } from '../components/ui/EventPicker';
 import { useEventAutoSync } from '../lib/useEventAutoSync';
 
@@ -112,65 +111,6 @@ const AdminShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 };
 
-// Dancer Pages
-const DancerHomePage: React.FC = () => {
-  const { data: bootstrap, isLoading } = useBootstrap('dancer');
-  const dancerName = bootstrap?.profile?.fullName || session.get()?.claims.name || '';
-
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-display text-xl md:text-2xl text-[var(--c-ink)]">
-          Calendar
-        </h1>
-        {dancerName && (
-          <p className="font-display text-xs text-[var(--c-orange)] tracking-wide">
-            {dancerName}
-          </p>
-        )}
-      </div>
-
-      {isLoading && !bootstrap ? (
-        <p className="font-body text-sm text-[var(--c-darkgrey)]">Loading calendar data...</p>
-      ) : (
-        <div className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] p-4 shadow-[4px_4px_0_var(--c-ink)]">
-          <p className="font-body text-base text-[var(--c-ink)]">
-            Welcome to your dance schedule. Select a class date to see videos and music.
-          </p>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const DancerMePage: React.FC = () => {
-  const navigate = useNavigate();
-  const current = session.get();
-
-  const handleLogout = () => {
-    session.clear();
-    navigate('/login', { replace: true });
-  };
-
-  return (
-    <div className="space-y-4">
-      <h1 className="font-display text-xl text-[var(--c-ink)]">My Profile</h1>
-      <div className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] p-4 space-y-3">
-        <p className="font-body text-base">
-          <strong>Name:</strong> {current?.claims.name}
-        </p>
-        <p className="font-body text-base">
-          <strong>Matric:</strong> {current?.claims.sub}
-        </p>
-        <div className="pt-2">
-          <PixelButton variant="danger" size="md" onClick={handleLogout}>
-            LOGOUT
-          </PixelButton>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -301,7 +241,7 @@ export const AppRoutes: React.FC = () => {
           <RequireRole role="dancer">
             <ShellLayout tabs={DANCER_TABS}>
               <Routes>
-                <Route path="/" element={<DancerHomePage />} />
+                <Route path="/" element={<DancerHome />} />
                 <Route
                   path="studio"
                   element={
@@ -311,7 +251,7 @@ export const AppRoutes: React.FC = () => {
                     </div>
                   }
                 />
-                <Route path="me" element={<DancerMePage />} />
+                <Route path="me" element={<MePage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </ShellLayout>

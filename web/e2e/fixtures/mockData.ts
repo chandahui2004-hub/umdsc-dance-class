@@ -4,6 +4,7 @@ export const dancerBootstrap: DancerBootstrap = {
   profile: {
     matricKey: '17201234',
     fullName: 'SARAH BINTI AHMAD',
+    eventIds: ['evt-oct'],
     months: ['2026-10'],
     perms: {
       'calendar.view': '*',
@@ -12,6 +13,17 @@ export const dancerBootstrap: DancerBootstrap = {
       'music.view': '*'
     }
   },
+  events: [
+    {
+      id: 'evt-oct',
+      name: 'OCT MONTHLY CLASS',
+      type: 'monthly' as const,
+      startDate: '2026-10-01',
+      endDate: '2026-10-31',
+      status: 'active' as const,
+      styleIds: ['style-hiphop']
+    }
+  ],
   styles: [
     {
       id: 'style-hiphop',

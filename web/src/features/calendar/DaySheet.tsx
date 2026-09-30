@@ -1,0 +1,74 @@
+import React from 'react';
+import type { ISODate, ClassSession, DanceStyle, Instructor, VideoItem, MusicItem } from '@umdsc/shared';
+import { Sheet } from '../../components/ui/Sheet';
+import { ClassCard } from './ClassCard';
+import { formatDayLabel } from '../../lib/time';
+
+export interface DaySheetProps {
+  isOpen: boolean;
+  onClose: () => void;
+  date: ISODate | null;
+  sessions: ClassSession[];
+  styles: DanceStyle[];
+  instructors: Instructor[];
+  videos: VideoItem[];
+  music: MusicItem[];
+  attendance: { sessionId: string; present: boolean }[];
+}
+
+export const DaySheet: React.FC<DaySheetProps> = ({
+  isOpen,
+  onClose,
+  date,
+  sessions,
+  styles,
+  instructors,
+  videos,
+  music,
+  attendance
+}) => {
+  if (!date) return null;
+
+  const daySessions = sessions
+    .filter((s) => s.date === date)
+    .sort((a, b) => a.start.localeCompare(b.start) || a.seq - b.seq);
+
+  const formattedTitle = formatDayLabel(date).toUpperCase();
+
+  return (
+    <Sheet isOpen={isOpen} onClose={onClose} title={formattedTitle}>
+      <div className="space-y-4">
+        {daySessions.length === 0 ? (
+          <div className="p-6 text-center bg-[var(--c-bg)] border-2 border-dashed border-[var(--c-ink)] space-y-2">
+            <p className="font-display text-xs text-[var(--c-darkgrey)]">
+              NO CLASSES SCHEDULED FOR THIS DAY
+            </p>
+            <p className="font-body text-xs text-[var(--c-darkgrey)]">
+              Tap another highlighted calendar day to see class details and videos.
+            </p>
+          </div>
+        ) : (
+          daySessions.map((session) => {
+            const style = styles.find((st) => st.id === session.styleId);
+            const instructor = instructors.find((i) => i.id === session.instructorId);
+            const att = attendance.find((a) => a.sessionId === session.id);
+            const classVideos = videos.filter((v) => v.sessionId === session.id);
+            const classMusic = music.filter((m) => m.sessionId === session.id);
+
+            return (
+              <ClassCard
+                key={session.id}
+                session={session}
+                style={style}
+                instructor={instructor}
+                attendancePresent={att?.present}
+                videos={classVideos}
+                music={classMusic}
+              />
+            );
+          })
+        )}
+      </div>
+    </Sheet>
+  );
+};
