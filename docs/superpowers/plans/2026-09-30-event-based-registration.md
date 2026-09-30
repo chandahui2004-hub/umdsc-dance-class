@@ -734,8 +734,8 @@ A mechanical but wide change. After this task no API code reads or writes `month
 - Modify: `docs/SETUP-VALUES.md` (deployment version); `docs/superpowers/plans/2026-09-28-umdsc-dance-class-system.md` (a note at Tasks 27–31: "dancer calendar uses an event switcher instead of a month switcher — see the 2026-09-30 event spec")
 - Test: whole suite
 
-- [ ] **Step 1:** `npm test -w api`, `npm test -w web`, `npm run build -w web`, and `npx playwright test --workers=1` (from `web/`). Expected: all pass. Paste the summaries.
-- [ ] **Step 2:** Run `requesting-code-review` on branch `feat/events` against `main`. Fix confirmed findings (`receiving-code-review`).
+- [x] **Step 1:** `npm test -w api`, `npm test -w web`, `npm run build -w web`, and `npx playwright test --workers=1` (from `web/`). Expected: all pass. Paste the summaries.
+- [x] **Step 2:** Run `requesting-code-review` on branch `feat/events` against `main`. Fix confirmed findings (`receiving-code-review`).
 - [ ] **Step 3: 🧑 OWNER ACTION:** approve deploying. Then, from `api/`:
   - `npm run build`
   - `npx clasp push -f`
