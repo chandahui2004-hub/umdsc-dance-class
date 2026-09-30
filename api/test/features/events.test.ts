@@ -141,6 +141,85 @@ describe('Feature: events (features/events)', () => {
     expect(all.ok && (all.data as any[]).map(e => e.name)).toEqual(['B', 'A', 'OLD']);
   });
 
+  describe('editing', () => {
+    let event: any;
+    const fresh = () => ctx.db.events.get(event.id)!;
+    const update = (fields: any) => call('events.update', { id: event.id, version: fresh().version, ...fields });
+
+    beforeEach(() => {
+      const res = call('events.create', createPayload());
+      event = res.ok ? (res.data as any).event : null;
+    });
+
+    it('rename renames the drive folder', () => {
+      const res = update({ name: 'OCT MONTHLY CLASS 2026' });
+      expect(res.ok).toBe(true);
+      expect(fresh().nameKey).toBe('oct monthly class 2026');
+      expect(drive.nameOf(fresh().folderId)).toBe('OCT MONTHLY CLASS 2026');
+    });
+
+    it('date change blocked by classes outside range, lists them', () => {
+      const res = update({ endDate: '2026-10-10' });
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.error.message).toBe('VALIDATION: These classes are outside the new dates: 2026-10-13 Popping #2');
+      expect(fresh().endDate).toBe('2026-10-31');
+    });
+
+    it('end date change updates lastEventEnd', () => {
+      expect(update({ endDate: '2026-11-30' }).ok).toBe(true);
+      expect(ctx.db.memberIndex.find(m => m.matricKey === '22001111')[0].lastEventEnd).toBe('2026-11-30');
+      expect(update({ endDate: '2026-10-20' }).ok).toBe(true);
+      expect(ctx.db.memberIndex.find(m => m.matricKey === '22001111')[0].lastEventEnd).toBe('2026-10-20');
+    });
+
+    it('removing a style keeps its sheet; adding a style creates one', () => {
+      ctx.db.styles.insert(
+        { id: 'st_latin', name: 'Latin', aliases: ['latin'], colorKey: 'pink', defaultWeekday: null, defaultStart: '20:00', defaultEnd: '22:00',
+          defaultInstructorId: '', defaultVenue: '', attendanceFolderId: '', videoFolderId: '' } as any,
+        'system',
+        ctx.now()
+      );
+      const hh = ctx.db.attendanceSheets.find(a => a.eventId === event.id && a.styleId === 'st_hiphop')[0];
+
+      expect(update({ styleIds: ['st_popping', 'st_latin'] }).ok).toBe(true);
+
+      expect(fresh().styleIds).toEqual(['st_popping', 'st_latin']);
+      expect(ctx.db.attendanceSheets.get(hh.id)!.active).toBe(true);
+      expect(drive.info(hh.spreadsheetId).exists).toBe(true);
+      expect(ctx.db.attendanceSheets.find(a => a.eventId === event.id && a.styleId === 'st_latin' && a.active).length).toBe(1);
+    });
+
+    it('replacing the form link makes the next sync re-read', () => {
+      const other = seedSourceSheet(ctx, [HEADERS, ['2026-10-02', 'Chong', '22003333', '', '', 'Popping']]);
+      expect(update({ sheetUrl: `https://docs.google.com/spreadsheets/d/${other}/edit` }).ok).toBe(true);
+      expect(fresh().sourceSheetId).toBe(other);
+      expect(fresh().sourceRowCount).toBe(0);
+    });
+
+    it('archive then unarchive', () => {
+      expect(call('events.archive', { id: event.id, version: fresh().version }).ok).toBe(true);
+      expect(fresh().status).toBe('archived');
+      expect(call('events.unarchive', { id: event.id, version: fresh().version }).ok).toBe(true);
+      expect(fresh().status).toBe('active');
+    });
+
+    it('recreate folder moves sheets into a new folder', () => {
+      const oldFolder = fresh().folderId;
+      (drive as any).items.delete(oldFolder);
+
+      const res = call('events.recreateFolder', { id: event.id });
+
+      expect(res.ok).toBe(true);
+      const folder = fresh().folderId;
+      expect(folder).not.toBe(oldFolder);
+      expect(drive.parentOf(folder)).toBe(master);
+      expect(drive.parentOf(fresh().membersSpreadsheetId)).toBe(folder);
+      for (const a of ctx.db.attendanceSheets.find(x => x.eventId === event.id)) {
+        expect(drive.parentOf(a.spreadsheetId)).toBe(folder);
+      }
+    });
+  });
+
   it('preview reports detected styles and unknown classes', () => {
     const res = call('events.previewSource', { sheetUrl: sourceUrl });
     expect(res.ok).toBe(true);

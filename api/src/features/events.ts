@@ -1,13 +1,51 @@
 import { Route } from '../router';
 import { AppError } from '../errors';
-import { EventType } from '@umdsc/shared';
-import { validateEventFields, eventNameKey } from '../logic/events';
+import { EventItem, EventStatus, EventType } from '@umdsc/shared';
+import { Ctx } from '../ports';
+import { validateEventFields, eventNameKey, classesOutsideRange } from '../logic/events';
 import { validateLink } from '../logic/linkValidation';
 import { logAudit } from '../logic/audit';
 import { previewSource, openSourceTab } from './eventSource';
-import { ensureEventFolder, ensureMembersSheet } from './eventSheets';
+import { ensureEventFolder, ensureMembersSheet, ensureEventSheets } from './eventSheets';
+import { getEvent, readEventMembers } from './eventMembers';
 import { importEventMembers } from './eventImport';
 import { assertSchemaReady } from './reset';
+
+function statusRoute(status: EventStatus): Route {
+  return {
+    perm: 'members.import',
+    write: true,
+    bumpsData: true,
+    handler: (ctx, auth, payload: any) => {
+      const { id, version } = payload || {};
+      if (!id || version === undefined) {
+        throw new AppError('VALIDATION', 'id and version are required');
+      }
+      const actor = auth?.claims.sub || 'system';
+      const updated = ctx.db.events.update(String(id), Number(version), { status }, actor, ctx.now());
+      logAudit(ctx, actor, status === 'archived' ? 'events.archive' : 'events.unarchive', updated.id, updated.name);
+      return updated;
+    }
+  };
+}
+
+/** Recomputes lastEventEnd (latest end date among each member's events) in one write. */
+function recalculateLastEventEnd(ctx: Ctx, event: EventItem): void {
+  const matricKeys = new Set(readEventMembers(ctx, event).map(m => m.matricKey));
+  const endDates = new Map(ctx.db.events.find(e => e.active).map(e => [e.id, e.endDate]));
+  const rows = ctx.db.memberIndex
+    .find(m => m.active && matricKeys.has(m.matricKey))
+    .map(m => ({
+      matricKey: m.matricKey,
+      nameKey: m.nameKey,
+      fullName: m.fullName,
+      eventIds: m.eventIds,
+      lastEventEnd: m.eventIds.map(id => endDates.get(id) || '').reduce((a, b) => (b > a ? b : a), '')
+    }));
+  if (rows.length > 0) {
+    ctx.db.memberIndex.upsertMany('matricKey', rows, 'system', ctx.now());
+  }
+}
 
 interface SessionInput {
   styleId: string;
@@ -35,6 +73,102 @@ export function getEventRoutes(): Record<string, Route> {
       perm: 'members.import',
       write: false,
       handler: (ctx, auth, payload: any) => previewSource(ctx, String(payload?.sheetUrl || ''))
+    },
+
+    'events.update': {
+      perm: 'members.import',
+      write: true,
+      bumpsData: true,
+      handler: (ctx, auth, payload: any) => {
+        const { id, version } = payload || {};
+        if (!id || version === undefined) {
+          throw new AppError('VALIDATION', 'id and version are required');
+        }
+        const existing = getEvent(ctx, id);
+        if (existing.version !== Number(version)) {
+          throw new AppError('VERSION_CONFLICT', 'Event has been modified by another user', false, existing);
+        }
+
+        const next = {
+          name: payload.name !== undefined ? String(payload.name).trim() : existing.name,
+          type: (payload.type !== undefined ? payload.type : existing.type) as EventType,
+          startDate: payload.startDate !== undefined ? String(payload.startDate) : existing.startDate,
+          endDate: payload.endDate !== undefined ? String(payload.endDate) : existing.endDate,
+          styleIds: Array.isArray(payload.styleIds) ? payload.styleIds : existing.styleIds
+        };
+        validateEventFields(
+          next,
+          ctx.db.events.find(e => e.active).map(e => ({ id: e.id, nameKey: e.nameKey })),
+          existing.id
+        );
+
+        const outside = classesOutsideRange(
+          ctx.db.sessions.find(s => s.eventId === existing.id),
+          next.startDate,
+          next.endDate
+        );
+        if (outside.length > 0) {
+          const styleName = (styleId: string) => ctx.db.styles.find(s => s.id === styleId)[0]?.name || styleId;
+          throw new AppError(
+            'VALIDATION',
+            `These classes are outside the new dates: ${outside
+              .sort((a, b) => a.date.localeCompare(b.date))
+              .map(s => `${s.date} ${styleName(s.styleId)} #${s.seq}`)
+              .join(', ')}`
+          );
+        }
+
+        const patch: any = { ...next, nameKey: eventNameKey(next.name) };
+        if (payload.columnMap !== undefined) patch.columnMapJson = JSON.stringify(payload.columnMap || {});
+        if (payload.classIndex !== undefined) patch.classIndex = Number(payload.classIndex);
+        if (payload.sheetUrl !== undefined) {
+          const sourceSheetId = validateLink(ctx, String(payload.sheetUrl), 'spreadsheet');
+          if (sourceSheetId !== existing.sourceSheetId) {
+            patch.sourceSheetId = sourceSheetId;
+            patch.sourceTab = openSourceTab(ctx, sourceSheetId).tab;
+            patch.sourceRowCount = 0;
+            patch.sourceLastRowHash = '';
+          }
+        }
+
+        const actor = auth?.claims.sub || 'system';
+        const updated = ctx.db.events.update(existing.id, existing.version, patch, actor, ctx.now());
+
+        if (next.name !== existing.name) {
+          if (existing.folderId && ctx.drive.info(existing.folderId).exists) {
+            ctx.drive.renameFolder(existing.folderId, next.name);
+          }
+          if (existing.videoFolderId && ctx.drive.info(existing.videoFolderId).exists) {
+            ctx.drive.renameFolder(existing.videoFolderId, next.name);
+          }
+        }
+        if (next.endDate !== existing.endDate) {
+          recalculateLastEventEnd(ctx, updated);
+        }
+        if (next.styleIds.some((s: string) => !existing.styleIds.includes(s))) {
+          ensureEventSheets(ctx, updated);
+        }
+
+        logAudit(ctx, actor, 'events.update', updated.id, updated.name);
+        return ctx.db.events.get(updated.id);
+      }
+    },
+
+    'events.archive': statusRoute('archived'),
+    'events.unarchive': statusRoute('active'),
+
+    'events.recreateFolder': {
+      perm: 'members.import',
+      write: true,
+      bumpsData: true,
+      handler: (ctx, auth, payload: any) => {
+        const event = getEvent(ctx, String(payload?.id || ''));
+        const folderId = ensureEventFolder(ctx, event);
+        ensureMembersSheet(ctx, ctx.db.events.get(event.id)!, folderId);
+        ensureEventSheets(ctx, ctx.db.events.get(event.id)!);
+        logAudit(ctx, auth?.claims.sub || 'system', 'events.recreateFolder', event.id, folderId);
+        return ctx.db.events.get(event.id);
+      }
     },
 
     'events.create': {
