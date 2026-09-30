@@ -58,7 +58,8 @@ export interface DancerBootstrap { profile: { matricKey: string; fullName: strin
 export interface AdminBootstrap { profile: { username: string; displayName: string; perms: PermMap }; styles: DanceStyle[];
   instructors: Instructor[]; sessions: ClassSession[]; roles: Role[]; months: Month[]; settings: Record<string,string> }
 export interface AttendanceGrid { month: Month; styleId: string; version: number; sessions: ClassSession[];
-  members: { memberId: string; fullName: string; matric: string }[]; present: Record<string, string[]> } // memberId -> sessionIds
+  members: { memberId: string; fullName: string; matric: string }[]; present: Record<string, string[]>;
+  spreadsheetId?: string; folderId?: string; masterFolderId?: string } // memberId -> sessionIds
 export interface LoginResult<B> { token: string; claims: TokenClaims; bootstrap: B }
 
 // Type aliases for UI convenience

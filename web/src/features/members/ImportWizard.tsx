@@ -5,8 +5,14 @@ import { api, errorMessage } from '../../lib/api';
 import { Panel } from '../../components/ui/Panel';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { Field } from '../../components/ui/Field';
-import { todayKL, addMonths, getMonthsRange } from '../../lib/time';
-import type { DanceStyle, Month } from '@umdsc/shared';
+import {
+  todayKL,
+  addMonths,
+  getMonthsRange,
+  monthGrid,
+  formatDayLabel
+} from '../../lib/time';
+import type { DanceStyle, Month, ISODate } from '@umdsc/shared';
 
 interface PreviewData {
   headers: string[];
@@ -26,23 +32,27 @@ interface MonthImportResult {
   attendanceSheets: { styleId: string; spreadsheetId: string }[];
 }
 
-const MONTH_NAMES = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-];
-
 export const ImportWizard: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
-  // Month selection & advance scheduling range state
-  const currentMonth = todayKL().slice(0, 7);
-  const [rangeMode, setRangeMode] = useState<'single' | 'range'>('single');
-  const [startMonth, setStartMonth] = useState<Month>(currentMonth);
-  const [endMonth, setEndMonth] = useState<Month>(addMonths(currentMonth, 1));
-  const [calendarYear, setCalendarYear] = useState<number>(parseInt(currentMonth.split('-')[0], 10));
+  // Day-level and Month selection state
+  const currentDay = todayKL();
+  const currentMonth = currentDay.slice(0, 7) as Month;
+  const [rangeMode, setRangeMode] = useState<'single' | 'range'>('range');
+  const [viewMonth, setViewMonth] = useState<Month>(currentMonth);
+  const [startDate, setStartDate] = useState<ISODate>(currentDay);
+  const [endDate, setEndDate] = useState<ISODate>(() => {
+    const [y, m] = currentMonth.split('-').map(Number);
+    const lastDayNum = new Date(y, m, 0).getDate();
+    return `${currentMonth}-${String(lastDayNum).padStart(2, '0')}`;
+  });
+
+  // Effective start and end bounds
+  const effectiveStart = startDate <= endDate ? startDate : endDate;
+  const effectiveEnd = startDate <= endDate ? endDate : startDate;
 
   // Sheet link and errors
   const [sheetUrl, setSheetUrl] = useState('');
@@ -61,13 +71,24 @@ export const ImportWizard: React.FC = () => {
   const [quickStyleName, setQuickStyleName] = useState<string | null>(null);
   const [quickStyleColor, setQuickStyleColor] = useState('green');
 
-  // Compute selected months range
+  // Compute selected months range and total days
   const targetMonths: Month[] = useMemo(() => {
     if (rangeMode === 'single') {
-      return [startMonth];
+      return [effectiveStart.slice(0, 7) as Month];
     }
-    return getMonthsRange(startMonth, endMonth);
-  }, [rangeMode, startMonth, endMonth]);
+    const startM = effectiveStart.slice(0, 7) as Month;
+    const endM = effectiveEnd.slice(0, 7) as Month;
+    return getMonthsRange(startM, endM);
+  }, [rangeMode, effectiveStart, effectiveEnd]);
+
+  const totalDays = useMemo(() => {
+    if (rangeMode === 'single') return 1;
+    const d1 = new Date(effectiveStart).getTime();
+    const d2 = new Date(effectiveEnd).getTime();
+    return Math.max(1, Math.round((d2 - d1) / (1000 * 3600 * 24)) + 1);
+  }, [rangeMode, effectiveStart, effectiveEnd]);
+
+  const weeks = useMemo(() => monthGrid(viewMonth), [viewMonth]);
 
   const { data: styles = [] } = useQuery<DanceStyle[]>({
     queryKey: ['styles'],
@@ -82,7 +103,7 @@ export const ImportWizard: React.FC = () => {
       setStep1Error(null);
       const res = await api.post<PreviewData>('members.previewImport', {
         sheetUrl: sheetUrl.trim(),
-        month: startMonth
+        month: targetMonths[0]
       });
       return res.data;
     },
@@ -161,21 +182,50 @@ export const ImportWizard: React.FC = () => {
     }
   });
 
-  const handleMonthTileClick = (mStr: Month) => {
+  const handleDayClick = (d: ISODate) => {
     if (rangeMode === 'single') {
-      setStartMonth(mStr);
+      setStartDate(d);
+      setEndDate(d);
     } else {
-      if (!startMonth || (startMonth && endMonth && startMonth !== endMonth)) {
-        setStartMonth(mStr);
-        setEndMonth(mStr);
-      } else {
-        if (mStr < startMonth) {
-          setStartMonth(mStr);
+      if (startDate === endDate) {
+        if (d < startDate) {
+          setStartDate(d);
         } else {
-          setEndMonth(mStr);
+          setEndDate(d);
         }
+      } else {
+        setStartDate(d);
+        setEndDate(d);
       }
     }
+  };
+
+  const handlePresetCurrentMonth = () => {
+    const [y, m] = viewMonth.split('-').map(Number);
+    const lastDayNum = new Date(y, m, 0).getDate();
+    setStartDate(`${viewMonth}-01`);
+    setEndDate(`${viewMonth}-${String(lastDayNum).padStart(2, '0')}`);
+    setRangeMode('range');
+  };
+
+  const handlePresetNextMonth = () => {
+    const nextM = addMonths(viewMonth, 1);
+    const [y, m] = nextM.split('-').map(Number);
+    const lastDayNum = new Date(y, m, 0).getDate();
+    setViewMonth(nextM);
+    setStartDate(`${nextM}-01`);
+    setEndDate(`${nextM}-${String(lastDayNum).padStart(2, '0')}`);
+    setRangeMode('range');
+  };
+
+  const handlePresetFourWeeks = () => {
+    const start = currentDay;
+    const d = new Date(start);
+    d.setDate(d.getDate() + 27);
+    const end = d.toISOString().slice(0, 10);
+    setStartDate(start);
+    setEndDate(end);
+    setRangeMode('range');
   };
 
   const FIELD_LABELS: Record<string, string> = {
@@ -243,9 +293,12 @@ export const ImportWizard: React.FC = () => {
         ))}
       </div>
 
-      {/* STEP 1: Interactive Month Range Calendar & Link */}
+      {/* STEP 1: Interactive Day-Level Range Calendar & Link */}
       {step === 1 && (
-        <Panel title="STEP 1: SELECT MONTH RANGE & GOOGLE SHEET LINK" className="px-corners space-y-5">
+        <Panel
+          title="STEP 1: SELECT REGISTRATION DAY RANGE & GOOGLE SHEET LINK"
+          className="px-corners space-y-5"
+        >
           {step1Error && (
             <div
               role="alert"
@@ -255,104 +308,216 @@ export const ImportWizard: React.FC = () => {
             </div>
           )}
 
-          {/* Advance Setup Mode Selection */}
-          <div className="space-y-2">
-            <span className="font-display text-xs text-[var(--c-ink)] uppercase">
-              Registration Planning Mode:
-            </span>
+          {/* Mode & Quick Presets Header */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+            <div className="space-y-1">
+              <span className="font-display text-xs text-[var(--c-ink)] uppercase">
+                Date Range Mode:
+              </span>
+              <div className="flex flex-wrap gap-2">
+                <PixelButton
+                  size="md"
+                  variant={rangeMode === 'range' ? 'primary' : 'secondary'}
+                  onClick={() => setRangeMode('range')}
+                >
+                  DAY RANGE (START TO END)
+                </PixelButton>
+                <PixelButton
+                  size="md"
+                  variant={rangeMode === 'single' ? 'primary' : 'secondary'}
+                  onClick={() => {
+                    setRangeMode('single');
+                    setEndDate(startDate);
+                  }}
+                >
+                  SINGLE DAY
+                </PixelButton>
+              </div>
+            </div>
+
             <div className="flex flex-wrap gap-2">
               <PixelButton
                 size="md"
-                variant={rangeMode === 'single' ? 'primary' : 'secondary'}
-                onClick={() => setRangeMode('single')}
+                variant="secondary"
+                onClick={handlePresetCurrentMonth}
               >
-                SINGLE MONTH
+                THIS MONTH (1ST - END)
               </PixelButton>
               <PixelButton
                 size="md"
-                variant={rangeMode === 'range' ? 'primary' : 'secondary'}
-                onClick={() => setRangeMode('range')}
+                variant="secondary"
+                onClick={handlePresetNextMonth}
               >
-                MONTH RANGE (ADVANCE FUTURE SETUP)
+                NEXT MONTH (1ST - END)
+              </PixelButton>
+              <PixelButton
+                size="md"
+                variant="secondary"
+                onClick={handlePresetFourWeeks}
+              >
+                4 WEEKS (28 DAYS)
               </PixelButton>
             </div>
           </div>
 
-          {/* Interactive Month Picker Calendar */}
+          {/* Day-Level Interactive Calendar */}
           <div className="bg-[var(--c-bg)] border-4 border-[var(--c-ink)] p-4 shadow-[2px_2px_0_var(--c-ink)] space-y-4">
             <div className="flex justify-between items-center pb-2 border-b-2 border-[var(--c-ink)]">
               <h3 className="font-display text-xs text-[var(--c-navy)] uppercase tracking-wider">
-                {rangeMode === 'single' ? 'SELECT REGISTRATION MONTH' : 'SELECT ADVANCE MONTH RANGE (START TO END)'}
+                {rangeMode === 'single'
+                  ? 'CLICK A DAY TO SELECT'
+                  : 'CLICK START DAY THEN END DAY TO SET RANGE'}
               </h3>
+
+              {/* Month Navigation */}
               <div className="flex items-center gap-2 font-display text-xs">
                 <PixelButton
                   size="md"
                   variant="secondary"
-                  onClick={() => setCalendarYear((y) => y - 1)}
+                  onClick={() => setViewMonth((m) => addMonths(m, -1))}
                 >
                   &lt;
                 </PixelButton>
-                <span className="px-2 font-bold">{calendarYear}</span>
+                <span className="px-3 py-1 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] font-mono text-sm font-bold min-w-[100px] text-center">
+                  {viewMonth}
+                </span>
                 <PixelButton
                   size="md"
                   variant="secondary"
-                  onClick={() => setCalendarYear((y) => y + 1)}
+                  onClick={() => setViewMonth((m) => addMonths(m, 1))}
                 >
                   &gt;
                 </PixelButton>
-              </div>
-            </div>
-
-            {/* 12 Months Grid */}
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-              {MONTH_NAMES.map((nameStr, mIdx) => {
-                const mNum = String(mIdx + 1).padStart(2, '0');
-                const mStr = `${calendarYear}-${mNum}`;
-                const isSelected = targetMonths.includes(mStr);
-                const isStart = mStr === startMonth;
-                const isEnd = mStr === endMonth && rangeMode === 'range';
-                const isCurrent = mStr === currentMonth;
-
-                return (
-                  <button
-                    key={mStr}
-                    type="button"
-                    aria-label={`${nameStr} ${calendarYear}`}
-                    onClick={() => handleMonthTileClick(mStr)}
-                    className={`min-h-[50px] p-2 border-2 border-[var(--c-ink)] flex flex-col items-center justify-center font-display text-xs cursor-pointer transition-none select-none ${
-                      isStart || isEnd
-                        ? 'bg-[var(--c-orange)] text-[var(--c-ink)] font-bold shadow-[2px_2px_0_var(--c-ink)]'
-                        : isSelected
-                        ? 'bg-[var(--c-yellow)] text-[var(--c-ink)] font-bold'
-                        : isCurrent
-                        ? 'bg-[var(--c-peach)] hover:bg-[var(--c-yellow)]'
-                        : 'bg-[var(--c-panel)] hover:bg-[var(--c-bg)]'
-                    }`}
+                {viewMonth !== currentMonth && (
+                  <PixelButton
+                    size="md"
+                    variant="secondary"
+                    onClick={() => setViewMonth(currentMonth)}
                   >
-                    <span>{nameStr}</span>
-                    <span className="font-mono text-[10px] text-[var(--c-darkgrey)]">
-                      {calendarYear}
-                    </span>
-                  </button>
-                );
-              })}
+                    TODAY
+                  </PixelButton>
+                )}
+              </div>
             </div>
 
-            {/* Selected Range Display Banner */}
-            <div className="p-3 border-2 border-[var(--c-ink)] bg-[var(--c-panel)] flex flex-col sm:flex-row sm:items-center justify-between gap-2 font-mono text-xs">
-              <div>
-                <span className="font-bold text-[var(--c-ink)] uppercase">Selected Target: </span>
-                <span className="font-bold text-[var(--c-navy)]">
-                  {rangeMode === 'single' ? startMonth : `${startMonth} → ${endMonth}`}
-                </span>
-                <span className="ml-2 px-2 py-0.5 border border-[var(--c-ink)] bg-[var(--c-green)] font-bold">
-                  {targetMonths.length} {targetMonths.length === 1 ? 'Month' : 'Months'} Selected
-                </span>
+            {/* Days of Week Header */}
+            <div className="grid grid-cols-7 gap-1 text-center font-display text-[11px] text-[var(--c-darkgrey)] border-b border-[var(--c-ink)] pb-1">
+              <span>MON</span>
+              <span>TUE</span>
+              <span>WED</span>
+              <span>THU</span>
+              <span>FRI</span>
+              <span className="text-[var(--c-navy)]">SAT</span>
+              <span className="text-[var(--c-navy)]">SUN</span>
+            </div>
+
+            {/* Interactive Day Grid */}
+            <div className="space-y-1">
+              {weeks.map((week, wIdx) => (
+                <div key={wIdx} className="grid grid-cols-7 gap-1">
+                  {week.map((d) => {
+                    const dayNum = parseInt(d.slice(8), 10);
+                    const isCurrentViewMonth = d.slice(0, 7) === viewMonth;
+                    const isToday = d === currentDay;
+                    const isStart = d === effectiveStart;
+                    const isEnd = d === effectiveEnd;
+                    const isInRange =
+                      rangeMode === 'range' && d > effectiveStart && d < effectiveEnd;
+
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => handleDayClick(d)}
+                        className={`min-h-[48px] p-1.5 border-2 border-[var(--c-ink)] flex flex-col justify-between cursor-pointer select-none transition-none text-left ${
+                          isStart || isEnd
+                            ? 'bg-[var(--c-orange)] text-[var(--c-ink)] font-bold shadow-[2px_2px_0_var(--c-ink)] ring-2 ring-[var(--c-ink)] z-10'
+                            : isInRange
+                            ? 'bg-[var(--c-yellow)] text-[var(--c-ink)] font-bold'
+                            : isCurrentViewMonth
+                            ? 'bg-[var(--c-panel)] text-[var(--c-ink)] hover:bg-[var(--c-bg)]'
+                            : 'bg-[var(--c-bg)] text-[var(--c-grey)] hover:bg-[var(--c-panel)]'
+                        }`}
+                      >
+                        <div className="flex justify-between items-center w-full">
+                          <span className="font-mono text-xs font-bold">{dayNum}</span>
+                          {isToday && (
+                            <span className="px-1 bg-[var(--c-green)] text-[var(--c-ink)] text-[9px] font-display font-bold">
+                              TODAY
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex justify-between items-center text-[10px] font-mono opacity-75">
+                          <span>{d.slice(5)}</span>
+                          {isStart && <span className="font-display text-[9px]">START</span>}
+                          {isEnd && !isStart && <span className="font-display text-[9px]">END</span>}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+
+            {/* Selected Range Display Banner & Manual Date Inputs */}
+            <div className="p-3 border-2 border-[var(--c-ink)] bg-[var(--c-panel)] space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 font-mono text-xs">
+                <div>
+                  <span className="font-bold text-[var(--c-ink)] uppercase">Selected Date Range: </span>
+                  <span className="font-bold text-[var(--c-navy)]">
+                    {effectiveStart} ({formatDayLabel(effectiveStart)})
+                    {rangeMode === 'range' &&
+                      effectiveStart !== effectiveEnd &&
+                      ` → ${effectiveEnd} (${formatDayLabel(effectiveEnd)})`}
+                  </span>
+                  <span className="ml-2 px-2 py-0.5 border border-[var(--c-ink)] bg-[var(--c-green)] font-bold">
+                    {totalDays} {totalDays === 1 ? 'Day' : 'Days'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 font-display text-xs">
+                  <span className="text-[var(--c-ink)]">COVERED MONTHS:</span>
+                  <span className="px-2 py-0.5 bg-[var(--c-orange)] text-[var(--c-ink)] font-bold border border-[var(--c-ink)]">
+                    {targetMonths.join(', ')} ({targetMonths.length} {targetMonths.length === 1 ? 'Month' : 'Months'})
+                  </span>
+                </div>
               </div>
-              <div className="text-[var(--c-darkgrey)] italic">
-                {targetMonths.some((m) => m > currentMonth)
-                  ? 'Future months included for advance class setup'
-                  : 'Current period'}
+
+              {/* Exact Date Pickers */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-[var(--c-ink)]">
+                <div>
+                  <label className="font-display text-[10px] text-[var(--c-ink)] uppercase block mb-1">
+                    Start Day:
+                  </label>
+                  <input
+                    type="date"
+                    value={effectiveStart}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setStartDate(e.target.value);
+                        setViewMonth(e.target.value.slice(0, 7) as Month);
+                      }
+                    }}
+                    className="w-full min-h-[40px] px-2 bg-[var(--c-bg)] border-2 border-[var(--c-ink)] font-mono text-xs text-[var(--c-ink)]"
+                  />
+                </div>
+                {rangeMode === 'range' && (
+                  <div>
+                    <label className="font-display text-[10px] text-[var(--c-ink)] uppercase block mb-1">
+                      End Day:
+                    </label>
+                    <input
+                      type="date"
+                      value={effectiveEnd}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          setEndDate(e.target.value);
+                          setViewMonth(e.target.value.slice(0, 7) as Month);
+                        }
+                      }}
+                      className="w-full min-h-[40px] px-2 bg-[var(--c-bg)] border-2 border-[var(--c-ink)] font-mono text-xs text-[var(--c-ink)]"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -382,7 +547,7 @@ export const ImportWizard: React.FC = () => {
                 id="import-month"
                 aria-label="Registration Month"
                 type="text"
-                value={startMonth}
+                value={targetMonths[0] || effectiveStart.slice(0, 7)}
                 readOnly
               />
             </Field>

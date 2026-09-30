@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '../../lib/api';
-import { todayKL, addMonths } from '../../lib/time';
+import { todayKL, addMonths, formatDayLabel } from '../../lib/time';
 import { streamUrl, openInDriveUrl } from '../../lib/google/driveUrls';
 import { Panel } from '../../components/ui/Panel';
 import { PixelButton } from '../../components/ui/PixelButton';
@@ -58,7 +58,7 @@ export const MediaPage: React.FC = () => {
   }, [month, styleId, setSearchParams]);
 
   // Fetch sessions for this style & month
-  const { data: sessions = [] } = useQuery<ClassSession[]>({
+  const { data: rawSessions = [] } = useQuery<ClassSession[]>({
     queryKey: ['sessions', styleId, month],
     queryFn: async () => {
       if (!styleId || !month) return [];
@@ -70,6 +70,22 @@ export const MediaPage: React.FC = () => {
     },
     enabled: Boolean(styleId && month)
   });
+
+  const sessions = useMemo(
+    () => [...rawSessions].sort((a, b) => a.seq - b.seq),
+    [rawSessions]
+  );
+
+  // Default selectedSessionId to first session if not selected
+  useEffect(() => {
+    if (sessions.length > 0) {
+      if (!selectedSessionId || !sessions.some((s) => s.id === selectedSessionId)) {
+        setSelectedSessionId(sessions[0].id);
+      }
+    } else {
+      setSelectedSessionId('');
+    }
+  }, [sessions, selectedSessionId]);
 
   // Fetch videos
   const { data: videos = [] } = useQuery<Video[]>({
@@ -99,6 +115,26 @@ export const MediaPage: React.FC = () => {
     enabled: Boolean(styleId && month)
   });
 
+  // Generate 4 Classes mutation
+  const generateSessionsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.post<ClassSession[]>('sessions.generate', {
+        styleId,
+        month
+      });
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      if (data && data.length > 0) {
+        setSelectedSessionId(data[0].id);
+      }
+    },
+    onError: (err) => {
+      alert(errorMessage(err));
+    }
+  });
+
   // Delete Video mutation
   const deleteVideoMutation = useMutation({
     mutationFn: async ({ id, version }: { id: string; version: number }) => {
@@ -125,6 +161,11 @@ export const MediaPage: React.FC = () => {
     }
   });
 
+  const selectedSession = useMemo(
+    () => sessions.find((s) => s.id === selectedSessionId) || sessions[0] || null,
+    [sessions, selectedSessionId]
+  );
+
   const filteredVideos = useMemo(() => {
     if (!selectedSessionId) return videos;
     return videos.filter((v) => v.sessionId === selectedSessionId);
@@ -144,7 +185,7 @@ export const MediaPage: React.FC = () => {
             Media Management
           </h1>
           <p className="font-body text-base text-[var(--c-darkgrey)] mt-1">
-            Upload class recap videos, scan Google Drive folders, and manage dance music tracks.
+            Upload class recap videos, scan Google Drive folders, and manage dance music tracks for each class.
           </p>
         </div>
 
@@ -238,73 +279,181 @@ export const MediaPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Zero sessions banner */}
-      {sessions.length === 0 && (
-        <div className="p-4 bg-[var(--c-peach)] border-4 border-[var(--c-orange)] shadow-[4px_4px_0_var(--c-ink)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <div>
-            <h3 className="font-display text-xs text-[var(--c-ink)] font-bold">
-              NO CLASSES SCHEDULED FOR {activeStyle?.name.toUpperCase()} IN {month}
-            </h3>
-            <p className="font-body text-sm text-[var(--c-darkgrey)] mt-1">
-              Class recap videos are organized by class session. You can generate or schedule sessions with 1 click in the Calendar!
-            </p>
+      {/* 4-CLASS SESSIONS SECTION (Class 1 to 4) */}
+      <Panel
+        title={`CLASSES FOR ${activeStyle?.name.toUpperCase() || 'STYLE'} (${month})`}
+        className="px-corners bg-[var(--c-panel)] space-y-4"
+      >
+        {sessions.length === 0 ? (
+          <div className="p-6 bg-[var(--c-peach)] border-2 border-[var(--c-orange)] shadow-[2px_2px_0_var(--c-ink)] space-y-3">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div>
+                <h3 className="font-display text-xs text-[var(--c-ink)] font-bold">
+                  NO CLASSES SCHEDULED FOR {activeStyle?.name.toUpperCase()} IN {month}
+                </h3>
+                <p className="font-body text-sm text-[var(--c-darkgrey)] mt-1">
+                  Each month typically has 4 weekly classes. Click below to automatically generate all 4 classes for {month} based on {activeStyle?.name}&apos;s default schedule.
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <PixelButton
+                  size="md"
+                  variant="primary"
+                  disabled={generateSessionsMutation.isPending || !activeStyle}
+                  onClick={() => generateSessionsMutation.mutate()}
+                >
+                  {generateSessionsMutation.isPending
+                    ? 'GENERATING 4 CLASSES...'
+                    : '⚡ AUTO-GENERATE 4 CLASSES'}
+                </PixelButton>
+                <PixelButton
+                  size="md"
+                  variant="secondary"
+                  onClick={() => navigate(`/admin/calendar?month=${month}`)}
+                >
+                  OPEN CALENDAR
+                </PixelButton>
+              </div>
+            </div>
+
+            {/* Empty 4-Slot Preview Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 opacity-60">
+              {[1, 2, 3, 4].map((num) => (
+                <div
+                  key={num}
+                  className="p-3 border-2 border-dashed border-[var(--c-ink)] bg-[var(--c-bg)] text-center space-y-1"
+                >
+                  <span className="font-display text-xs text-[var(--c-darkgrey)] block">
+                    CLASS {num}
+                  </span>
+                  <span className="font-mono text-[11px] text-[var(--c-darkgrey)]">
+                    Not scheduled yet
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
-          <PixelButton
-            size="md"
-            variant="primary"
-            onClick={() => navigate(`/admin/calendar?month=${month}`)}
-          >
-            SCHEDULE IN CALENDAR
-          </PixelButton>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex justify-between items-center pb-1">
+              <span className="font-display text-xs text-[var(--c-ink)] uppercase">
+                Select a class to view & upload media:
+              </span>
+              <PixelButton
+                size="md"
+                variant="secondary"
+                onClick={() => navigate(`/admin/calendar?month=${month}`)}
+              >
+                EDIT SCHEDULE IN CALENDAR
+              </PixelButton>
+            </div>
+
+            {/* 4 Interactive Class Session Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {sessions.map((sess) => {
+                const isSelected = selectedSession?.id === sess.id;
+                const sessVideos = videos.filter((v) => v.sessionId === sess.id);
+                const sessMusic = musicList.filter((m) => m.sessionId === sess.id);
+
+                return (
+                  <button
+                    key={sess.id}
+                    type="button"
+                    onClick={() => setSelectedSessionId(sess.id)}
+                    className={`p-3 border-4 border-[var(--c-ink)] text-left cursor-pointer transition-none select-none ${
+                      isSelected
+                        ? 'bg-[var(--c-orange)] text-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)]'
+                        : 'bg-[var(--c-bg)] text-[var(--c-ink)] hover:bg-[var(--c-panel)] shadow-[2px_2px_0_var(--c-ink)]'
+                    }`}
+                  >
+                    <div className="flex justify-between items-center border-b-2 border-[var(--c-ink)] pb-1 mb-2">
+                      <span className="font-display text-xs font-bold">
+                        CLASS #{sess.seq}
+                      </span>
+                      <span className="font-mono text-[11px] font-bold">
+                        {sess.date.slice(5)}
+                      </span>
+                    </div>
+
+                    <div className="font-body text-xs font-bold truncate">
+                      {formatDayLabel(sess.date)}
+                    </div>
+                    <div className="font-mono text-[11px] text-[var(--c-darkgrey)]">
+                      {sess.start} - {sess.end}
+                    </div>
+
+                    <div className="mt-3 pt-2 border-t border-[var(--c-ink)] flex items-center justify-between text-[11px] font-mono">
+                      <span
+                        className={`px-1.5 py-0.5 border border-[var(--c-ink)] font-bold ${
+                          sessVideos.length > 0
+                            ? 'bg-[var(--c-green)] text-[var(--c-ink)]'
+                            : 'bg-[var(--c-panel)] text-[var(--c-darkgrey)]'
+                        }`}
+                      >
+                        {sessVideos.length > 0 ? '✓ RECAP' : 'NO VIDEO'}
+                      </span>
+                      <span className="text-[var(--c-navy)] font-bold">
+                        {sessMusic.length} {sessMusic.length === 1 ? 'Track' : 'Tracks'}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </Panel>
+
+      {/* Selected Class Media Detail View */}
+      {selectedSession && (
+        <div className="p-3 bg-[var(--c-navy)] text-[var(--c-bg)] border-2 border-[var(--c-ink)] font-display text-xs flex justify-between items-center">
+          <span>
+            VIEWING MEDIA FOR: CLASS #{selectedSession.seq} ({formatDayLabel(selectedSession.date)})
+          </span>
+          <span className="font-mono text-xs">
+            {selectedSession.start} - {selectedSession.end} {selectedSession.venue ? `@ ${selectedSession.venue}` : ''}
+          </span>
         </div>
       )}
 
-      {/* Session Filter Bar */}
-      {sessions.length > 0 && (
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b-2 border-[var(--c-ink)]">
-          <button
-            type="button"
-            onClick={() => setSelectedSessionId('')}
-            className={`min-h-[40px] px-3 border-2 border-[var(--c-ink)] font-display text-xs cursor-pointer select-none whitespace-nowrap ${
-              !selectedSessionId
-                ? 'bg-[var(--c-orange)] text-[var(--c-ink)] font-bold shadow-[2px_2px_0_var(--c-ink)]'
-                : 'bg-[var(--c-panel)] text-[var(--c-ink)] hover:bg-[var(--c-bg)]'
-            }`}
-          >
-            ALL SESSIONS ({videos.length} videos)
-          </button>
-          {sessions.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => setSelectedSessionId(s.id)}
-              className={`min-h-[40px] px-3 border-2 border-[var(--c-ink)] font-display text-xs cursor-pointer select-none whitespace-nowrap ${
-                selectedSessionId === s.id
-                  ? 'bg-[var(--c-orange)] text-[var(--c-ink)] font-bold shadow-[2px_2px_0_var(--c-ink)]'
-                  : 'bg-[var(--c-panel)] text-[var(--c-ink)] hover:bg-[var(--c-bg)]'
-              }`}
-            >
-              #{s.seq} {s.date.slice(5)}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Main Grid: Videos and Music */}
+      {/* Main Grid: Videos and Music for Selected Class */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Videos Section */}
         <Panel
           title={`CLASS RECAP VIDEOS (${filteredVideos.length})`}
           className="px-corners bg-[var(--c-panel)] space-y-4"
         >
+          <div className="flex justify-between items-center pb-2 border-b-2 border-[var(--c-ink)]">
+            <span className="font-display text-xs text-[var(--c-ink)]">
+              {selectedSession ? `Class #${selectedSession.seq} Recap` : 'All Recaps'}
+            </span>
+            <PixelButton
+              size="md"
+              variant="primary"
+              onClick={() => setShowUploadVideo(true)}
+              disabled={!activeStyle}
+            >
+              + ADD RECAP {selectedSession ? `FOR CLASS #${selectedSession.seq}` : ''}
+            </PixelButton>
+          </div>
+
           {filteredVideos.length === 0 ? (
-            <div className="p-8 text-center border-2 border-[var(--c-ink)] bg-[var(--c-bg)]">
+            <div className="p-8 text-center border-2 border-[var(--c-ink)] bg-[var(--c-bg)] space-y-2">
               <p className="font-display text-xs text-[var(--c-darkgrey)]">
-                NO RECAP VIDEOS UPLOADED YET
+                NO RECAP VIDEO FOR THIS CLASS YET
               </p>
-              <p className="font-body text-xs text-[var(--c-darkgrey)] mt-1">
-                Upload recap videos or scan your Drive folder to link them.
+              <p className="font-body text-xs text-[var(--c-darkgrey)]">
+                Upload your class routine video so dancers can practise at home.
               </p>
+              <PixelButton
+                size="md"
+                variant="primary"
+                onClick={() => setShowUploadVideo(true)}
+                disabled={!activeStyle}
+              >
+                ADD RECAP NOW
+              </PixelButton>
             </div>
           ) : (
             <div className="space-y-4">
@@ -375,14 +524,56 @@ export const MediaPage: React.FC = () => {
           title={`PRACTICE MUSIC (${filteredMusic.length})`}
           className="px-corners bg-[var(--c-panel)] space-y-4"
         >
+          <div className="flex justify-between items-center pb-2 border-b-2 border-[var(--c-ink)]">
+            <span className="font-display text-xs text-[var(--c-ink)]">
+              {selectedSession ? `Class #${selectedSession.seq} Tracks` : 'All Tracks'}
+            </span>
+            <div className="flex gap-2">
+              <PixelButton
+                size="md"
+                variant="secondary"
+                onClick={() => setShowAddMusic(true)}
+                disabled={!activeStyle}
+              >
+                + YOUTUBE
+              </PixelButton>
+              <PixelButton
+                size="md"
+                variant="secondary"
+                onClick={() => setShowUploadMp3(true)}
+                disabled={!activeStyle}
+              >
+                + MP3
+              </PixelButton>
+            </div>
+          </div>
+
           {filteredMusic.length === 0 ? (
-            <div className="p-8 text-center border-2 border-[var(--c-ink)] bg-[var(--c-bg)]">
+            <div className="p-8 text-center border-2 border-[var(--c-ink)] bg-[var(--c-bg)] space-y-2">
               <p className="font-display text-xs text-[var(--c-darkgrey)]">
                 NO MUSIC TRACKS ADDED YET
               </p>
-              <p className="font-body text-xs text-[var(--c-darkgrey)] mt-1">
+              <p className="font-body text-xs text-[var(--c-darkgrey)]">
                 Add YouTube audio links or upload MP3s for Studio practice.
               </p>
+              <div className="flex justify-center gap-2 pt-1">
+                <PixelButton
+                  size="md"
+                  variant="primary"
+                  onClick={() => setShowAddMusic(true)}
+                  disabled={!activeStyle}
+                >
+                  ADD YOUTUBE MUSIC
+                </PixelButton>
+                <PixelButton
+                  size="md"
+                  variant="secondary"
+                  onClick={() => setShowUploadMp3(true)}
+                  disabled={!activeStyle}
+                >
+                  UPLOAD MP3
+                </PixelButton>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">

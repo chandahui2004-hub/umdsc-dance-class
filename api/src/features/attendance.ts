@@ -68,7 +68,15 @@ export function attendanceEnsureSheets(
   const result: { styleId: string; spreadsheetId: string }[] = [];
 
   for (const style of styles) {
-    const folderId = style.attendanceFolderId || fallbackFolder;
+    let folderId = style.attendanceFolderId;
+    if (!folderId) {
+      const existing = ctx.drive.findChildFolder(fallbackFolder, style.name);
+      if (existing) {
+        folderId = existing;
+      } else {
+        folderId = ctx.drive.createFolder(fallbackFolder, style.name);
+      }
+    }
     const styleSessions = sessions.filter(s => s.styleId === style.id).sort((a, b) => a.seq - b.seq);
     const styleMembers = members.filter(m => m.styleIds.includes(style.id));
 
@@ -199,6 +207,10 @@ export function getAttendanceRoutes(): Record<string, Route> {
           }
         }
 
+        const defaultFolder = ctx.db.settings.find(
+          s => s.key === 'defaultAttendanceFolderId' && s.active
+        )[0]?.value;
+
         const rec = ctx.db.attendanceSheets.find(
           s => s.month === month && s.styleId === styleId && s.active
         )[0];
@@ -214,7 +226,8 @@ export function getAttendanceRoutes(): Record<string, Route> {
             version: curVer,
             sessions,
             members: [],
-            present: {}
+            present: {},
+            masterFolderId: defaultFolder
           };
         }
 
@@ -227,7 +240,10 @@ export function getAttendanceRoutes(): Record<string, Route> {
             version: curVer,
             sessions,
             members: [],
-            present: {}
+            present: {},
+            spreadsheetId: rec.spreadsheetId,
+            folderId: rec.folderId,
+            masterFolderId: defaultFolder
           };
         }
 
@@ -239,7 +255,10 @@ export function getAttendanceRoutes(): Record<string, Route> {
             version: curVer,
             sessions,
             members: [],
-            present: {}
+            present: {},
+            spreadsheetId: rec.spreadsheetId,
+            folderId: rec.folderId,
+            masterFolderId: defaultFolder
           };
         }
 
@@ -280,7 +299,10 @@ export function getAttendanceRoutes(): Record<string, Route> {
           version: curVer,
           sessions,
           members,
-          present
+          present,
+          spreadsheetId: rec.spreadsheetId,
+          folderId: rec.folderId,
+          masterFolderId: defaultFolder
         };
 
         ctx.cache.put(`att:${month}:${styleId}:${curVer}`, JSON.stringify(grid), 60);
@@ -427,6 +449,20 @@ export function getAttendanceRoutes(): Record<string, Route> {
         const base64 = ctx.drive.exportXlsxBase64(rec.spreadsheetId);
 
         return { fileName, base64 };
+      }
+    },
+
+    'attendance.ensureSheets': {
+      perm: 'attendance.mark',
+      write: true,
+      bumpsData: true,
+      handler: (ctx, auth, payload: any) => {
+        const { month } = payload || {};
+        if (!month) {
+          throw new AppError('VALIDATION', 'month is required');
+        }
+        const sheets = attendanceEnsureSheets(ctx, month);
+        return { sheets };
       }
     }
   };

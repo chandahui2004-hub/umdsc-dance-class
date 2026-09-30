@@ -172,15 +172,17 @@ test.describe('Admin Members Import Wizard', () => {
 
     await page.goto('/admin/members/import');
 
-    // Switch to Range Mode
-    await page.getByRole('button', { name: /MONTH RANGE/i }).click();
+    // Switch to Day Range Mode
+    await page.getByRole('button', { name: /DAY RANGE/i }).click();
 
-    // Select October and November tiles
-    await page.getByRole('button', { name: 'Oct 2026' }).click();
-    await page.getByRole('button', { name: 'Nov 2026' }).click();
+    // Fill Start Day and End Day spanning October to November
+    const startInput = page.locator('input[type="date"]').first();
+    await startInput.fill('2026-10-01');
+    const endInput = page.locator('input[type="date"]').nth(1);
+    await endInput.fill('2026-11-28');
 
     // Verify 2 months selected is displayed
-    await expect(page.getByText('2 Months Selected')).toBeVisible();
+    await expect(page.getByText(/2 Months/i)).toBeVisible();
 
     // Fill Google Sheet URL and Preview
     await page.getByLabel(/Google Sheet Link/i).fill('https://docs.google.com/spreadsheets/d/test-sheet-id/edit');
