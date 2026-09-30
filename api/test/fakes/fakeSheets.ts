@@ -54,6 +54,26 @@ export class FakeSheet implements SheetPort {
   getDataRange(): Cell[][] {
     return this.getDisplayValues();
   }
+
+  lastRowValues(): { lastRow: number; values: string[] } {
+    const lastRow = this.rows.length;
+    if (lastRow === 0) return { lastRow: 0, values: [] };
+    return { lastRow, values: this.rows[lastRow - 1].map(c => String(c ?? '')) };
+  }
+
+  clearBody(): void {
+    this.writeCalls++;
+    this.rows = this.rows.slice(0, 1);
+  }
+
+  setHeaderRow(headers: string[]): void {
+    this.writeCalls++;
+    const width = Math.max(headers.length, this.rows[0]?.length || 0);
+    const row: Cell[] = [];
+    for (let i = 0; i < width; i++) row.push(headers[i] ?? '');
+    if (this.rows.length === 0) this.rows.push(row);
+    else this.rows[0] = row;
+  }
 }
 
 export class FakeSpreadsheet implements SpreadsheetPort {
@@ -83,5 +103,13 @@ export class FakeSpreadsheet implements SpreadsheetPort {
 
   setName(name: string): void {
     this.name = name;
+  }
+
+  firstSheet(): SheetPort | null {
+    return this.sheetsMap.values().next().value || null;
+  }
+
+  removeSheet(name: string): void {
+    this.sheetsMap.delete(name);
   }
 }

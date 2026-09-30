@@ -86,6 +86,25 @@ export class FakeDrive implements DrivePort {
     return this.items.get(id)?.parentId;
   }
 
+  nameOf(id: string): string | undefined {
+    return this.items.get(id)?.name;
+  }
+
+  renameFolder(folderId: string, name: string): void {
+    const item = this.items.get(folderId);
+    if (item) item.name = name;
+  }
+
+  copySpreadsheet(id: string, name: string, folderId: string): string {
+    const source = this.openSpreadsheet(id) as FakeSpreadsheet;
+    const copy = this.createSpreadsheet(name, folderId) as FakeSpreadsheet;
+    for (const [tab, sheet] of source.sheetsMap) {
+      const rows = sheet.getDisplayValues();
+      copy.addSheet(tab, []).setValues(1, 1, rows.length ? rows : [[]]);
+    }
+    return copy.id;
+  }
+
   listFilesRecursive(folderId: string): DriveFileInfo[] {
     const results: DriveFileInfo[] = [];
     const collect = (pId: string) => {

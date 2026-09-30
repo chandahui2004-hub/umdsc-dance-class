@@ -12,6 +12,12 @@ export interface SheetPort {
   setPlainTextColumns(col1s: number[]): void;
   hideRow(row1: number): void;
   protectRowWarningOnly(row1: number): void;
+  /** One cheap read: the last used row number and that row's display values. */
+  lastRowValues(): { lastRow: number; values: string[] };
+  /** Removes every row below the header. */
+  clearBody(): void;
+  /** Replaces row 1 and blanks any header cells to the right of `headers`. */
+  setHeaderRow(headers: string[]): void;
 }
 
 export interface SpreadsheetPort {
@@ -22,6 +28,7 @@ export interface SpreadsheetPort {
   addSheet(name: string, headers: string[]): SheetPort;
   setName(name: string): void;
   firstSheet?(): SheetPort | null;
+  removeSheet(name: string): void;
 }
 
 export interface DriveItemInfo {
@@ -49,6 +56,9 @@ export interface DrivePort {
   findChildFolder(parentId: string, name: string): string | null;
   /** Moves the file into folderId unless it is already there. */
   moveToFolder(fileId: string, folderId: string): void;
+  renameFolder(folderId: string, name: string): void;
+  /** Copies a spreadsheet into folderId and returns the copy's id. */
+  copySpreadsheet(id: string, name: string, folderId: string): string;
   listFilesRecursive(folderId: string): DriveFileInfo[];
   setAnyoneReader(fileId: string): void;
   exportXlsxBase64(spreadsheetId: string): string;

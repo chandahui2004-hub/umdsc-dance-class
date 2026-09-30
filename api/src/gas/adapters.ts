@@ -60,6 +60,27 @@ export class GasSheetAdapter implements SheetPort {
     const protection = this.sheet.getRange(row1, 1, 1, this.sheet.getMaxColumns()).protect();
     protection.setWarningOnly(true);
   }
+
+  lastRowValues(): { lastRow: number; values: string[] } {
+    const lastRow = this.sheet.getLastRow();
+    const lastCol = this.sheet.getLastColumn();
+    if (lastRow === 0 || lastCol === 0) return { lastRow: 0, values: [] };
+    return { lastRow, values: this.sheet.getRange(lastRow, 1, 1, lastCol).getDisplayValues()[0] };
+  }
+
+  clearBody(): void {
+    const lastRow = this.sheet.getLastRow();
+    if (lastRow > 1) {
+      this.sheet.deleteRows(2, lastRow - 1);
+    }
+  }
+
+  setHeaderRow(headers: string[]): void {
+    const width = Math.max(headers.length, this.sheet.getLastColumn(), 1);
+    const row: string[] = [];
+    for (let i = 0; i < width; i++) row.push(headers[i] ?? '');
+    this.sheet.getRange(1, 1, 1, width).setValues([row]);
+  }
 }
 
 export class GasSpreadsheetAdapter implements SpreadsheetPort {
@@ -100,6 +121,11 @@ export class GasSpreadsheetAdapter implements SpreadsheetPort {
   firstSheet(): SheetPort | null {
     const sheets = this.ss.getSheets();
     return sheets.length > 0 ? new GasSheetAdapter(sheets[0]) : null;
+  }
+
+  removeSheet(name: string): void {
+    const s = this.ss.getSheetByName(name);
+    if (s) this.ss.deleteSheet(s);
   }
 }
 
@@ -165,6 +191,14 @@ export class GasDriveAdapter implements DrivePort {
       if (parents.next().getId() === folderId) return;
     }
     file.moveTo(DriveApp.getFolderById(folderId));
+  }
+
+  renameFolder(folderId: string, name: string): void {
+    DriveApp.getFolderById(folderId).setName(name);
+  }
+
+  copySpreadsheet(id: string, name: string, folderId: string): string {
+    return DriveApp.getFileById(id).makeCopy(name, DriveApp.getFolderById(folderId)).getId();
   }
 
   listFilesRecursive(folderId: string): DriveFileInfo[] {
