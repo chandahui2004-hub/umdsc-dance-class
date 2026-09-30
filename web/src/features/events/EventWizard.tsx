@@ -10,6 +10,8 @@ import { EventDraft, emptyDraft, draftFromEvent, pruneSchedule } from './eventDr
 import { FormLinkStep } from './steps/FormLinkStep';
 import { EventDetailsStep } from './steps/EventDetailsStep';
 import { StylesStep } from './steps/StylesStep';
+import { ScheduleStep } from './steps/ScheduleStep';
+import { ReviewStep } from './steps/ReviewStep';
 
 export interface StepProps {
   draft: EventDraft;
@@ -92,7 +94,8 @@ export const EventWizard: React.FC = () => {
           {step === 0 && <FormLinkStep {...props} />}
           {step === 1 && <EventDetailsStep {...props} />}
           {step === 2 && <StylesStep {...props} />}
-          {step >= 3 && <p className="font-body text-base">Schedule and review come next.</p>}
+          {step === 3 && <ScheduleStep {...props} />}
+          {step === 4 && <ReviewStep {...props} />}
         </Panel>
       )}
     </div>

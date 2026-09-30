@@ -1,11 +1,14 @@
 import type { ClassSession, EventItem, EventType, ISODate, SourcePreview } from '@umdsc/shared';
 
 export interface ScheduledClass {
+  /** Set for classes that already exist (edit mode). */
+  id?: string;
   seq: number;
   date: ISODate;
   start: string;
   end: string;
   venue?: string;
+  status?: ClassSession['status'];
 }
 
 /** Everything the event wizard collects before it creates or updates an event. */
@@ -47,7 +50,15 @@ export function draftFromEvent(e: EventItem, sessions: ClassSession[]): EventDra
 
   const schedule: Record<string, ScheduledClass[]> = {};
   for (const s of [...sessions].sort((a, b) => a.date.localeCompare(b.date) || a.seq - b.seq)) {
-    (schedule[s.styleId] ||= []).push({ seq: s.seq, date: s.date, start: s.start, end: s.end, venue: s.venue });
+    (schedule[s.styleId] ||= []).push({
+      id: s.id,
+      seq: s.seq,
+      date: s.date,
+      start: s.start,
+      end: s.end,
+      venue: s.venue,
+      status: s.status
+    });
   }
 
   return {
@@ -74,6 +85,11 @@ export function pruneSchedule(d: EventDraft): EventDraft {
       .map((c, i) => ({ ...c, seq: i + 1 }));
   }
   return { ...d, schedule };
+}
+
+/** Classes to send to the server, one list across all styles. */
+export function flattenSchedule(d: EventDraft): (ScheduledClass & { styleId: string })[] {
+  return d.styleIds.flatMap(styleId => (d.schedule[styleId] || []).map(c => ({ ...c, styleId })));
 }
 
 function nameKey(name: string): string {

@@ -9,7 +9,6 @@ import { TitleScreen } from '../features/auth/TitleScreen';
 import { AdminLogin } from '../features/auth/AdminLogin';
 import { SetupPage } from '../features/setup/SetupPage';
 import { MembersPage } from '../features/members/MembersPage';
-import { ImportWizard } from '../features/members/ImportWizard';
 import { TodayPage } from '../features/classes/TodayPage';
 import { ClassesPage } from '../features/classes/ClassesPage';
 import { StylesPage } from '../features/masterdata/StylesPage';
@@ -188,7 +187,6 @@ export const AppRoutes: React.FC = () => {
                 <Route path="events" element={<EventsPage />} />
                 <Route path="events/new" element={<EventWizard />} />
                 <Route path="events/:id/edit" element={<EventWizard />} />
-                <Route path="members/import" element={<ImportWizard />} />
                 <Route path="members" element={<MembersPage />} />
                 <Route path="styles" element={<StylesPage />} />
                 <Route path="instructors" element={<InstructorsPage />} />
@@ -202,14 +200,14 @@ export const AppRoutes: React.FC = () => {
                       <h1 className="font-display text-xl mb-4">More</h1>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <a
-                          href="/admin/members/import"
+                          href="/admin/events/new"
                           className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] block hover:bg-[var(--c-bg)]"
                         >
                           <h2 className="font-display text-sm text-[var(--c-ink)] mb-1">
-                            IMPORT REGISTRATIONS
+                            NEW EVENT
                           </h2>
                           <p className="font-body text-xs text-[var(--c-darkgrey)]">
-                            Import monthly Google Form response sheet & generate attendance
+                            Set up a monthly class, trial class or workshop from its registration form
                           </p>
                         </a>
                         <a
