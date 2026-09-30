@@ -5,6 +5,8 @@ import { Panel } from '../../components/ui/Panel';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { Field } from '../../components/ui/Field';
 import { Spinner } from '../../components/ui/Spinner';
+import { ResetTestDataPanel } from './ResetTestDataPanel';
+import { RetentionPanel } from './RetentionPanel';
 
 interface LinkHistoryItem {
   id: string;
@@ -81,6 +83,9 @@ export const SettingsPage: React.FC = () => {
           Configure Google Drive folders, system links, and view link update history.
         </p>
       </div>
+
+      <ResetTestDataPanel />
+      <RetentionPanel />
 
       {/* Permissions & Service Account Banner */}
       <div className="bg-[var(--c-peach)] border-4 border-[var(--c-ink)] p-4 shadow-[4px_4px_0_var(--c-ink)] space-y-2">
