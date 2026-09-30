@@ -21,6 +21,7 @@ import { getVideoRoutes } from './features/videos';
 import { getMusicRoutes } from './features/music';
 import { getBootstrapRoutes } from './features/bootstrap';
 import { getResetRoutes } from './features/reset';
+import { getEventRoutes } from './features/events';
 
 export interface AuthInfo {
   claims: TokenClaims;
@@ -55,6 +56,7 @@ registerRoutes(getVideoRoutes());
 registerRoutes(getMusicRoutes());
 registerRoutes(getBootstrapRoutes());
 registerRoutes(getResetRoutes());
+registerRoutes(getEventRoutes());
 
 export function handleRequest(
   req: ApiRequest,
