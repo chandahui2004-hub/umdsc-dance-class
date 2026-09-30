@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ensureFolderPath } from './driveFolders';
+import { ensureFolderPath, ensureClassFolder } from './driveFolders';
 
 describe('ensureFolderPath', () => {
   beforeEach(() => {
@@ -71,5 +71,52 @@ describe('ensureFolderPath', () => {
         name: '2026-10-08 Popping Class 1'
       })
     );
+  });
+});
+
+describe('ensureClassFolder', () => {
+  /** A tiny fake of Drive's files.list / files.create, keyed by parent id. */
+  function fakeDrive(folders: Record<string, { id: string; name: string }[]>) {
+    let n = 1;
+    const created: { name: string; parent: string }[] = [];
+    globalThis.fetch = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        const body = JSON.parse(init.body as string);
+        const id = `new-${n++}`;
+        (folders[body.parents[0]] ||= []).push({ id, name: body.name });
+        created.push({ name: body.name, parent: body.parents[0] });
+        return { ok: true, status: 200, json: async () => ({ id }) } as unknown as Response;
+      }
+      const q = new URL(url).searchParams.get('q') || '';
+      const parent = q.match(/'([^']+)' in parents/)?.[1] || '';
+      const name = q.match(/name='([^']+)'/)?.[1] || '';
+      return { ok: true, status: 200, json: async () => ({ files: (folders[parent] || []).filter(f => f.name === name) }) } as unknown as Response;
+    }) as any;
+    return created;
+  }
+
+  const target = {
+    videoMasterFolderId: 'video-master',
+    eventFolderId: '',
+    eventFolderName: 'OCT MONTHLY CLASS',
+    classFolderName: '2026-10-08 Popping Class 1',
+    musicFolderName: 'Music'
+  };
+
+  it('reuses eventFolderId and creates only the class folder', async () => {
+    const created = fakeDrive({ 'evt-folder': [] });
+    const result = await ensureClassFolder('tok', { ...target, eventFolderId: 'evt-folder' }, 'video');
+    expect(result.eventFolderId).toBe('evt-folder');
+    expect(created).toEqual([{ name: '2026-10-08 Popping Class 1', parent: 'evt-folder' }]);
+    expect(result.classFolderId).toBe('new-1');
+    expect(result.musicFolderId).toBeUndefined();
+  });
+
+  it('creates event folder under video master when eventFolderId is blank, and Music for audio', async () => {
+    const created = fakeDrive({ 'video-master': [] });
+    const result = await ensureClassFolder('tok', target, 'mp3');
+    expect(created.map(c => c.name)).toEqual(['OCT MONTHLY CLASS', '2026-10-08 Popping Class 1', 'Music']);
+    expect(created[0].parent).toBe('video-master');
+    expect(result).toEqual({ eventFolderId: 'new-1', classFolderId: 'new-2', musicFolderId: 'new-3' });
   });
 });

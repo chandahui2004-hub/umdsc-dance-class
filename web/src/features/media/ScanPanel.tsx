@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '../../lib/api';
 import { Panel } from '../../components/ui/Panel';
 import { PixelButton } from '../../components/ui/PixelButton';
-import type { ClassSession, DanceStyle, Month } from '@umdsc/shared';
+import type { ClassSession, DanceStyle } from '@umdsc/shared';
 
 interface ScanItem {
   fileId: string;
@@ -16,7 +16,8 @@ interface ScanItem {
 
 interface ScanPanelProps {
   style: DanceStyle;
-  month: Month;
+  eventId: string;
+  eventName: string;
   sessions: ClassSession[];
   onClose: () => void;
   onSuccess: () => void;
@@ -24,7 +25,8 @@ interface ScanPanelProps {
 
 export const ScanPanel: React.FC<ScanPanelProps> = ({
   style,
-  month,
+  eventId,
+  eventName,
   sessions,
   onClose,
   onSuccess
@@ -38,11 +40,11 @@ export const ScanPanel: React.FC<ScanPanelProps> = ({
     error,
     refetch
   } = useQuery<ScanItem[]>({
-    queryKey: ['videos.scan', style.id, month],
+    queryKey: ['videos.scan', style.id, eventId],
     queryFn: async () => {
       const res = await api.post<ScanItem[]>('videos.scan', {
         styleId: style.id,
-        month
+        eventId
       });
       return res.data;
     }
@@ -74,7 +76,7 @@ export const ScanPanel: React.FC<ScanPanelProps> = ({
     <div className="fixed inset-0 bg-[var(--c-ink)]/60 z-50 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl max-h-[90vh] flex flex-col">
         <Panel
-          title={`SCAN FOLDER: ${style.name} (${month})`}
+          title={`SCAN FOLDER: ${style.name} (${eventName})`}
           className="px-corners bg-[var(--c-panel)] flex-1 overflow-y-auto space-y-4"
         >
           <p className="font-body text-sm text-[var(--c-darkgrey)]">

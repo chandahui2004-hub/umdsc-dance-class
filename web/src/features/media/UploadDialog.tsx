@@ -3,16 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { api, errorMessage } from '../../lib/api';
 import { getAccessToken } from '../../lib/google/gis';
 import { pickFolder, hasPickerGrant } from '../../lib/google/picker';
-import { ensureFolderPath } from '../../lib/google/driveFolders';
+import { ensureClassFolder, ClassFolderTarget } from '../../lib/google/driveFolders';
 import { uploadResumable, makePublic, videoFormatWarning } from '../../lib/google/resumableUpload';
 import { Panel } from '../../components/ui/Panel';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { Field } from '../../components/ui/Field';
-import type { ClassSession, DanceStyle, Month } from '@umdsc/shared';
+import type { ClassSession, DanceStyle } from '@umdsc/shared';
 
 interface UploadDialogProps {
   type: 'video' | 'mp3';
-  month: Month;
+  eventId: string;
+  eventName: string;
   style: DanceStyle;
   sessions: ClassSession[];
   initialSessionId?: string | null;
@@ -22,7 +23,8 @@ interface UploadDialogProps {
 
 export const UploadDialog: React.FC<UploadDialogProps> = ({
   type,
-  month,
+  eventId,
+  eventName,
   style,
   sessions,
   initialSessionId,
@@ -77,33 +79,26 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
 
       // 2. Fetch target folder details from API
       setUploadStatus('Resolving Google Drive destination folder...');
-      const targetRes = await api.post<{
-        rootFolderId: string;
-        monthFolderName: string;
-        classFolderName: string;
-        musicFolderName: string;
-      }>('videos.targetFolder', { sessionId: selectedSessionId });
+      const target = (await api.post<ClassFolderTarget>('videos.targetFolder', { sessionId: selectedSessionId })).data;
+      if (!target.videoMasterFolderId && !target.eventFolderId) {
+        throw new Error('Set the video master folder on the Events page first.');
+      }
 
-      const { rootFolderId, monthFolderName, classFolderName, musicFolderName } = targetRes.data;
-
-      // 3. Check picker grant if rootFolderId is configured
-      if (rootFolderId && !hasPickerGrant(rootFolderId)) {
+      // 3. One-time Picker grant on the video master folder (drive.file scope)
+      const grantFolder = target.eventFolderId || target.videoMasterFolderId;
+      if (!hasPickerGrant(grantFolder)) {
         setUploadStatus('Authorizing folder access via Google Picker...');
         try {
-          await pickFolder(token, rootFolderId);
+          await pickFolder(token, grantFolder);
         } catch {
-          // If picker cancelled or fails, continue with rootFolderId
+          // If picker cancelled or fails, continue and let Drive report access problems
         }
       }
 
-      // 4. Ensure folder path exists
+      // 4. Video master › event › class (› Music)
       setUploadStatus('Ensuring Drive subfolders exist...');
-      const pathNames =
-        type === 'mp3'
-          ? [monthFolderName, classFolderName, musicFolderName]
-          : [monthFolderName, classFolderName];
-
-      const parentFolderId = await ensureFolderPath(token, rootFolderId, pathNames);
+      const folders = await ensureClassFolder(token, target, type);
+      const parentFolderId = folders.musicFolderId || folders.classFolderId;
 
       // 5. Perform Resumable Upload
       setUploadStatus('Uploading file to Google Drive...');
@@ -128,12 +123,13 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
         await api.post('videos.register', {
           driveFileId: uploaded.id,
           sessionId: selectedSessionId,
-          title: file.name
+          title: file.name,
+          eventFolderId: folders.eventFolderId
         });
       } else {
         await api.post('music.create', {
           styleId: style.id,
-          month,
+          eventId,
           sessionId: selectedSessionId,
           title: file.name,
           sourceType: 'mp3',
@@ -172,18 +168,18 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
           {sessions.length === 0 ? (
             <div className="p-4 bg-[var(--c-peach)] border-2 border-[var(--c-orange)] space-y-3">
               <h4 className="font-display text-xs text-[var(--c-ink)] font-bold">
-                NO CLASS SESSIONS SCHEDULED IN {month}
+                NO CLASSES IN {eventName.toUpperCase()} FOR {style.name.toUpperCase()}
               </h4>
               <p className="font-body text-sm text-[var(--c-darkgrey)]">
-                Media files are organized inside each class&apos;s folder. Please generate or add class sessions for {style.name} in the Calendar first.
+                Media files are organized inside each class&apos;s folder. Add {style.name} classes to this event first.
               </p>
               <div className="pt-2">
                 <PixelButton
                   size="md"
                   variant="primary"
-                  onClick={() => navigate(`/admin/calendar?month=${month}`)}
+                  onClick={() => navigate(`/admin/events/${eventId}/edit`)}
                 >
-                  SCHEDULE CLASSES IN CALENDAR
+                  ADD CLASSES IN EVENTS › EDIT
                 </PixelButton>
               </div>
             </div>

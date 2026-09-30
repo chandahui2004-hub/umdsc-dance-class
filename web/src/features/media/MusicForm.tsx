@@ -4,11 +4,11 @@ import { api, errorMessage } from '../../lib/api';
 import { Panel } from '../../components/ui/Panel';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { Field } from '../../components/ui/Field';
-import type { ClassSession, DanceStyle, Month } from '@umdsc/shared';
+import type { ClassSession, DanceStyle } from '@umdsc/shared';
 
 interface MusicFormProps {
   style: DanceStyle;
-  month: Month;
+  eventId: string;
   sessions: ClassSession[];
   initialSessionId?: string | null;
   onClose: () => void;
@@ -17,7 +17,7 @@ interface MusicFormProps {
 
 export const MusicForm: React.FC<MusicFormProps> = ({
   style,
-  month,
+  eventId,
   sessions,
   initialSessionId,
   onClose,
@@ -36,7 +36,7 @@ export const MusicForm: React.FC<MusicFormProps> = ({
       setError(null);
       return await api.post('music.create', {
         styleId: style.id,
-        month,
+        eventId,
         sessionId,
         title: title.trim(),
         sourceType: 'youtube',

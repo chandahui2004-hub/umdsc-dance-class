@@ -2,7 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '../../lib/api';
-import { todayKL, addMonths, formatDayLabel } from '../../lib/time';
+import { formatDayLabel } from '../../lib/time';
+import { useCurrentEvent } from '../events/useCurrentEvent';
 import { streamUrl, openInDriveUrl } from '../../lib/google/driveUrls';
 import { Panel } from '../../components/ui/Panel';
 import { PixelButton } from '../../components/ui/PixelButton';
@@ -10,15 +11,15 @@ import { UploadDialog } from './UploadDialog';
 import { ScanPanel } from './ScanPanel';
 import { MusicForm } from './MusicForm';
 import { SectionsEditor } from './SectionsEditor';
-import type { ClassSession, DanceStyle, Month, Video, Music } from '@umdsc/shared';
+import type { ClassSession, DanceStyle, Video, Music } from '@umdsc/shared';
 
 export const MediaPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
-  const currentMonth = todayKL().slice(0, 7);
-  const [month, setMonth] = useState<Month>(searchParams.get('month') || currentMonth);
+  const { current: event } = useCurrentEvent();
+  const eventId = event?.id || '';
   const [styleId, setStyleId] = useState<string>(searchParams.get('style') || '');
   const [selectedSessionId, setSelectedSessionId] = useState<string>('');
 
@@ -29,8 +30,8 @@ export const MediaPage: React.FC = () => {
   const [showAddMusic, setShowAddMusic] = useState(false);
   const [activeMusicForSections, setActiveMusicForSections] = useState<Music | null>(null);
 
-  // Fetch styles
-  const { data: styles = [] } = useQuery<DanceStyle[]>({
+  // Only the current event's styles
+  const { data: allStyles = [] } = useQuery<DanceStyle[]>({
     queryKey: ['styles'],
     queryFn: async () => {
       const res = await api.post<DanceStyle[]>('styles.list');
@@ -38,37 +39,36 @@ export const MediaPage: React.FC = () => {
     }
   });
 
+  const styles = useMemo(
+    () => (event ? event.styleIds.map(id => allStyles.find(s => s.id === id)).filter((s): s is DanceStyle => Boolean(s)) : []),
+    [event, allStyles]
+  );
+
   const activeStyle = useMemo(
     () => styles.find((s) => s.id === styleId) || styles[0] || null,
     [styles, styleId]
   );
 
-  // Auto-select first style
+  // Keep the chosen style inside the current event
   useEffect(() => {
-    if (!styleId && styles.length > 0) {
+    if (styles.length > 0 && !styles.some(s => s.id === styleId)) {
       setStyleId(styles[0].id);
     }
   }, [styleId, styles]);
 
-  // Sync with searchParams
   useEffect(() => {
-    if (month && styleId) {
-      setSearchParams({ month, style: styleId }, { replace: true });
+    if (styleId) {
+      setSearchParams({ style: styleId }, { replace: true });
     }
-  }, [month, styleId, setSearchParams]);
+  }, [styleId, setSearchParams]);
 
-  // Fetch sessions for this style & month
+  const ready = Boolean(eventId && styleId);
+
+  // The event's classes for this style
   const { data: rawSessions = [] } = useQuery<ClassSession[]>({
-    queryKey: ['sessions', styleId, month],
-    queryFn: async () => {
-      if (!styleId || !month) return [];
-      const res = await api.post<ClassSession[]>('sessions.list', {
-        styleId,
-        month
-      });
-      return res.data;
-    },
-    enabled: Boolean(styleId && month)
+    queryKey: ['sessions', eventId, styleId],
+    queryFn: async () => (await api.post<ClassSession[]>('sessions.list', { eventId, styleId })).data,
+    enabled: ready
   });
 
   const sessions = useMemo(
@@ -92,50 +92,16 @@ export const MediaPage: React.FC = () => {
 
   // Fetch videos
   const { data: videos = [] } = useQuery<Video[]>({
-    queryKey: ['videos', styleId, month],
-    queryFn: async () => {
-      if (!styleId || !month) return [];
-      const res = await api.post<Video[]>('videos.list', {
-        styleId,
-        month
-      });
-      return res.data;
-    },
-    enabled: Boolean(styleId && month)
+    queryKey: ['videos', eventId, styleId],
+    queryFn: async () => (await api.post<Video[]>('videos.list', { eventId, styleId })).data,
+    enabled: ready
   });
 
   // Fetch music
   const { data: musicList = [] } = useQuery<Music[]>({
-    queryKey: ['music', styleId, month],
-    queryFn: async () => {
-      if (!styleId || !month) return [];
-      const res = await api.post<Music[]>('music.list', {
-        styleId,
-        month
-      });
-      return res.data;
-    },
-    enabled: Boolean(styleId && month)
-  });
-
-  // Generate 4 Classes mutation
-  const generateSessionsMutation = useMutation({
-    mutationFn: async () => {
-      const res = await api.post<{ generated: ClassSession[] }>('sessions.generateMonth', {
-        styleIds: [styleId],
-        month
-      });
-      return res.data.generated;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['sessions'] });
-      if (data && data.length > 0) {
-        setSelectedSessionId(data[0].id);
-      }
-    },
-    onError: (err) => {
-      alert(errorMessage(err));
-    }
+    queryKey: ['music', eventId, styleId],
+    queryFn: async () => (await api.post<Music[]>('music.list', { eventId, styleId })).data,
+    enabled: ready
   });
 
   // Delete Video mutation
@@ -228,7 +194,7 @@ export const MediaPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Selectors Bar: Style & Month */}
+      {/* Style chips (the event comes from the picker) */}
       <div className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] p-4 shadow-[4px_4px_0_var(--c-ink)] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         {/* Style Chips */}
         <div className="flex gap-2 overflow-x-auto pb-1 items-center">
@@ -254,88 +220,30 @@ export const MediaPage: React.FC = () => {
           ))}
         </div>
 
-        {/* Month Stepper */}
-        <div className="flex items-center gap-2 justify-end">
-          <PixelButton
-            size="md"
-            variant="secondary"
-            onClick={() => {
-              setMonth((m) => addMonths(m, -1));
-              setSelectedSessionId('');
-            }}
-          >
-            &lt;
-          </PixelButton>
-          <div className="px-4 py-2 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] font-mono text-sm font-bold text-[var(--c-navy)] min-w-[100px] text-center">
-            {month}
-          </div>
-          <PixelButton
-            size="md"
-            variant="secondary"
-            onClick={() => {
-              setMonth((m) => addMonths(m, 1));
-              setSelectedSessionId('');
-            }}
-          >
-            &gt;
-          </PixelButton>
-        </div>
       </div>
 
       {/* 4-CLASS SESSIONS SECTION (Class 1 to 4) */}
       <Panel
-        title={`CLASSES FOR ${activeStyle?.name.toUpperCase() || 'STYLE'} (${month})`}
+        title={`CLASSES FOR ${activeStyle?.name.toUpperCase() || 'STYLE'} (${event?.name || 'NO EVENT'})`}
         className="px-corners bg-[var(--c-panel)] space-y-4"
       >
         {sessions.length === 0 ? (
           <div className="p-6 bg-[var(--c-peach)] border-2 border-[var(--c-orange)] shadow-[2px_2px_0_var(--c-ink)] space-y-3">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-              <div>
-                <h3 className="font-display text-xs text-[var(--c-ink)] font-bold">
-                  NO CLASSES SCHEDULED FOR {activeStyle?.name.toUpperCase()} IN {month}
-                </h3>
-                <p className="font-body text-sm text-[var(--c-darkgrey)] mt-1">
-                  Each month typically has 4 weekly classes. Click below to automatically generate all 4 classes for {month} based on {activeStyle?.name}&apos;s default schedule.
-                </p>
-              </div>
-
-              <div className="flex gap-2">
-                <PixelButton
-                  size="md"
-                  variant="primary"
-                  disabled={generateSessionsMutation.isPending || !activeStyle}
-                  onClick={() => generateSessionsMutation.mutate()}
-                >
-                  {generateSessionsMutation.isPending
-                    ? 'GENERATING 4 CLASSES...'
-                    : '⚡ AUTO-GENERATE 4 CLASSES'}
-                </PixelButton>
-                <PixelButton
-                  size="md"
-                  variant="secondary"
-                  onClick={() => navigate(`/admin/calendar?month=${month}`)}
-                >
-                  OPEN CALENDAR
-                </PixelButton>
-              </div>
-            </div>
-
-            {/* Empty 4-Slot Preview Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 opacity-60">
-              {[1, 2, 3, 4].map((num) => (
-                <div
-                  key={num}
-                  className="p-3 border-2 border-dashed border-[var(--c-ink)] bg-[var(--c-bg)] text-center space-y-1"
-                >
-                  <span className="font-display text-xs text-[var(--c-darkgrey)] block">
-                    CLASS {num}
-                  </span>
-                  <span className="font-mono text-[11px] text-[var(--c-darkgrey)]">
-                    Not scheduled yet
-                  </span>
-                </div>
-              ))}
-            </div>
+            <h3 className="font-display text-xs text-[var(--c-ink)] font-bold">
+              {event
+                ? `NO ${activeStyle?.name.toUpperCase() || ''} CLASSES IN ${event.name.toUpperCase()}`
+                : 'NO EVENT CHOSEN'}
+            </h3>
+            <p className="font-body text-sm text-[var(--c-darkgrey)]">
+              Media is stored per class. Add classes to the event first.
+            </p>
+            <PixelButton
+              size="md"
+              variant="primary"
+              onClick={() => navigate(event ? `/admin/events/${event.id}/edit` : '/admin/events/new')}
+            >
+              ADD CLASSES IN EVENTS › EDIT
+            </PixelButton>
           </div>
         ) : (
           <div className="space-y-3">
@@ -346,7 +254,7 @@ export const MediaPage: React.FC = () => {
               <PixelButton
                 size="md"
                 variant="secondary"
-                onClick={() => navigate(`/admin/calendar?month=${month}`)}
+                onClick={() => navigate('/admin/calendar')}
               >
                 EDIT SCHEDULE IN CALENDAR
               </PixelButton>
@@ -657,7 +565,8 @@ export const MediaPage: React.FC = () => {
       {showUploadVideo && activeStyle && (
         <UploadDialog
           type="video"
-          month={month}
+          eventId={eventId}
+          eventName={event?.name || ''}
           style={activeStyle}
           sessions={sessions}
           initialSessionId={selectedSessionId}
@@ -672,7 +581,8 @@ export const MediaPage: React.FC = () => {
       {showUploadMp3 && activeStyle && (
         <UploadDialog
           type="mp3"
-          month={month}
+          eventId={eventId}
+          eventName={event?.name || ''}
           style={activeStyle}
           sessions={sessions}
           initialSessionId={selectedSessionId}
@@ -687,7 +597,8 @@ export const MediaPage: React.FC = () => {
       {showScan && activeStyle && (
         <ScanPanel
           style={activeStyle}
-          month={month}
+          eventId={eventId}
+          eventName={event?.name || ''}
           sessions={sessions}
           onClose={() => setShowScan(false)}
           onSuccess={() => {
@@ -699,7 +610,7 @@ export const MediaPage: React.FC = () => {
       {showAddMusic && activeStyle && (
         <MusicForm
           style={activeStyle}
-          month={month}
+          eventId={eventId}
           sessions={sessions}
           initialSessionId={selectedSessionId}
           onClose={() => setShowAddMusic(false)}
