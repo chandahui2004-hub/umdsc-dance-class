@@ -26,7 +26,7 @@ export function getSettingsRoutes(): Record<string, Route> {
       bumpsData: true,
       handler: (ctx, auth, payload: any) => {
         const key = String(payload?.key || '').trim();
-        const url = String(payload?.url || '').trim();
+        const url = String(payload?.url || payload?.value || payload?.urlOrId || '').trim();
 
         if (!key || !url) {
           throw new AppError('VALIDATION', 'key and url are required');
@@ -40,7 +40,7 @@ export function getSettingsRoutes(): Record<string, Route> {
 
         const existing = ctx.db.settings.find(s => s.key === key && s.active)[0];
         const oldVal = existing ? existing.value : '';
-        const actor = auth?.claims.sub || 'system';
+        const actor = auth?.claims?.sub || 'system';
 
         if (existing) {
           ctx.db.settings.update(existing.id, existing.version, { value: newId }, actor, ctx.now());
@@ -63,6 +63,16 @@ export function getSettingsRoutes(): Record<string, Route> {
         logAudit(ctx, actor, 'settings.setLink', key, JSON.stringify({ oldValue: oldVal, newValue: newId }));
 
         return { key, value: newId };
+      }
+    },
+
+    'settings.update': {
+      perm: 'settings.edit',
+      write: true,
+      bumpsData: true,
+      handler: (ctx, auth, payload: any) => {
+        const setLinkRoute = getSettingsRoutes()['settings.setLink'];
+        return setLinkRoute.handler(ctx, auth, payload);
       }
     },
 

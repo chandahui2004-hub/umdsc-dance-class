@@ -277,6 +277,58 @@ export function getMemberRoutes(): Record<string, Route> {
       }
     },
 
+    'members.autoSync': {
+      perm: 'members.import',
+      write: true,
+      bumpsData: true,
+      handler: (ctx, auth, payload: any) => {
+        const targetMonth = payload?.month ? String(payload.month).trim() : null;
+        let mmList = ctx.db.memberMonths.find(m => m.active && !!m.sourceSheetId);
+        if (targetMonth) {
+          mmList = mmList.filter(m => m.month === targetMonth);
+        }
+
+        const results: { month: string; beforeCount: number; afterCount: number; newCount: number }[] = [];
+        const confirmRoute = getMemberRoutes()['members.confirmImport'];
+
+        for (const mm of mmList) {
+          try {
+            const beforeCount = mm.memberCount || 0;
+            const res: any = confirmRoute.handler(ctx, auth, {
+              month: mm.month,
+              sheetUrl: mm.sourceSheetId,
+              columnMap: JSON.parse(mm.columnMapJson || '{}')
+            });
+            const afterCount = res?.memberCount || beforeCount;
+            results.push({
+              month: mm.month,
+              beforeCount,
+              afterCount,
+              newCount: Math.max(0, afterCount - beforeCount)
+            });
+          } catch (err) {
+            console.error(`Error auto-syncing month ${mm.month}:`, err);
+          }
+        }
+
+        return {
+          syncedAt: ctx.now().toISOString(),
+          results,
+          totalNew: results.reduce((acc, r) => acc + r.newCount, 0)
+        };
+      }
+    },
+
+    'members.sync': {
+      perm: 'members.import',
+      write: true,
+      bumpsData: true,
+      handler: (ctx, auth, payload: any) => {
+        const autoSyncRoute = getMemberRoutes()['members.autoSync'];
+        return autoSyncRoute.handler(ctx, auth, payload);
+      }
+    },
+
     'members.list': {
       perm: 'members.view',
       write: false,

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '../../lib/api';
@@ -9,10 +9,19 @@ import {
   todayKL,
   addMonths,
   getMonthsRange,
+  getDatesBetween,
   monthGrid,
   formatDayLabel
 } from '../../lib/time';
 import type { DanceStyle, Month, ISODate } from '@umdsc/shared';
+
+export interface ScheduledClass {
+  seq: number;
+  date: ISODate;
+  start: string;
+  end: string;
+  venue?: string;
+}
 
 interface PreviewData {
   headers: string[];
@@ -88,6 +97,10 @@ export const ImportWizard: React.FC = () => {
     return Math.max(1, Math.round((d2 - d1) / (1000 * 3600 * 24)) + 1);
   }, [rangeMode, effectiveStart, effectiveEnd]);
 
+  const availableDays: ISODate[] = useMemo(() => {
+    return getDatesBetween(effectiveStart, effectiveEnd);
+  }, [effectiveStart, effectiveEnd]);
+
   const weeks = useMemo(() => monthGrid(viewMonth), [viewMonth]);
 
   const { data: styles = [] } = useQuery<DanceStyle[]>({
@@ -97,6 +110,136 @@ export const ImportWizard: React.FC = () => {
       return res.data;
     }
   });
+
+  // Class Schedules state per style
+  const [schedulesByStyle, setSchedulesByStyle] = useState<Record<string, ScheduledClass[]>>({});
+  const [activeScheduleStyleId, setActiveScheduleStyleId] = useState<string>('');
+
+  const initScheduleForStyle = useCallback((style: DanceStyle, days: ISODate[]): ScheduledClass[] => {
+    const targetWeekday = style.defaultWeekday ?? 2;
+    const matchingDays = days.filter((d) => {
+      const dt = new Date(d);
+      const dayNum = dt.getUTCDay() === 0 ? 7 : dt.getUTCDay();
+      return dayNum === targetWeekday;
+    });
+
+    const chosenDays = matchingDays.length > 0 ? matchingDays : days.slice(0, 4);
+    const classes: ScheduledClass[] = [];
+    const count = Math.max(4, chosenDays.length);
+    for (let i = 0; i < count; i++) {
+      const day = chosenDays[i] || (chosenDays.length > 0 ? chosenDays[chosenDays.length - 1] : days[0] || effectiveStart);
+      classes.push({
+        seq: i + 1,
+        date: day,
+        start: style.defaultStart || '20:00',
+        end: style.defaultEnd || '22:00',
+        venue: style.defaultVenue || 'Dance Studio'
+      });
+    }
+    return classes;
+  }, [effectiveStart]);
+
+  useEffect(() => {
+    if (styles.length > 0) {
+      setSchedulesByStyle((prev) => {
+        const next = { ...prev };
+        let changed = false;
+        for (const st of styles) {
+          if (!next[st.id] || next[st.id].length === 0) {
+            next[st.id] = initScheduleForStyle(st, availableDays);
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+      if (!activeScheduleStyleId) {
+        setActiveScheduleStyleId(styles[0].id);
+      }
+    }
+  }, [styles, availableDays, initScheduleForStyle, activeScheduleStyleId]);
+
+  const updateClassDate = (styleId: string, seq: number, newDate: ISODate) => {
+    setSchedulesByStyle((prev) => {
+      const list = prev[styleId] || [];
+      return {
+        ...prev,
+        [styleId]: list.map((c) => (c.seq === seq ? { ...c, date: newDate } : c))
+      };
+    });
+  };
+
+  const updateClassTime = (styleId: string, seq: number, field: 'start' | 'end', val: string) => {
+    setSchedulesByStyle((prev) => {
+      const list = prev[styleId] || [];
+      return {
+        ...prev,
+        [styleId]: list.map((c) => (c.seq === seq ? { ...c, [field]: val } : c))
+      };
+    });
+  };
+
+  const addClassForStyle = (styleId: string) => {
+    setSchedulesByStyle((prev) => {
+      const list = prev[styleId] || [];
+      const nextSeq = list.length + 1;
+      const lastDate = list.length > 0 ? list[list.length - 1].date : effectiveStart;
+      const nextDateIdx = availableDays.indexOf(lastDate);
+      const nextDate = (nextDateIdx >= 0 && nextDateIdx + 7 < availableDays.length)
+        ? availableDays[nextDateIdx + 7]
+        : (availableDays[availableDays.length - 1] || effectiveEnd);
+
+      const st = styles.find((s) => s.id === styleId);
+      return {
+        ...prev,
+        [styleId]: [
+          ...list,
+          {
+            seq: nextSeq,
+            date: nextDate,
+            start: st?.defaultStart || '20:00',
+            end: st?.defaultEnd || '22:00',
+            venue: st?.defaultVenue || 'Dance Studio'
+          }
+        ]
+      };
+    });
+  };
+
+  const removeClassForStyle = (styleId: string, seq: number) => {
+    setSchedulesByStyle((prev) => {
+      const list = prev[styleId] || [];
+      if (list.length <= 1) return prev;
+      const filtered = list.filter((c) => c.seq !== seq);
+      return {
+        ...prev,
+        [styleId]: filtered.map((c, i) => ({ ...c, seq: i + 1 }))
+      };
+    });
+  };
+
+  const resetStyleScheduleToWeekday = (styleId: string) => {
+    const st = styles.find((s) => s.id === styleId);
+    if (!st) return;
+    setSchedulesByStyle((prev) => ({
+      ...prev,
+      [styleId]: initScheduleForStyle(st, availableDays)
+    }));
+  };
+
+  const copyScheduleToAllStyles = (sourceStyleId: string) => {
+    const sourceList = schedulesByStyle[sourceStyleId];
+    if (!sourceList || sourceList.length === 0) return;
+    setSchedulesByStyle((prev) => {
+      const next = { ...prev };
+      for (const st of styles) {
+        if (st.id !== sourceStyleId) {
+          next[st.id] = sourceList.map((c) => ({ ...c }));
+        }
+      }
+      return next;
+    });
+    alert(`✓ Copied ${sourceList.length} class schedule dates to all other dance styles!`);
+  };
 
   const previewMutation = useMutation({
     mutationFn: async () => {
@@ -145,12 +288,59 @@ export const ImportWizard: React.FC = () => {
         });
       }
 
+      // Store all custom class schedules in database!
+      const allSessions: Array<{
+        month: string;
+        styleId: string;
+        seq: number;
+        date: string;
+        start: string;
+        end: string;
+        venue?: string;
+        status?: string;
+      }> = [];
+
+      for (const [stId, classList] of Object.entries(schedulesByStyle)) {
+        for (const c of classList) {
+          allSessions.push({
+            month: c.date.slice(0, 7),
+            styleId: stId,
+            seq: c.seq,
+            date: c.date,
+            start: c.start,
+            end: c.end,
+            venue: c.venue || '',
+            status: 'scheduled'
+          });
+        }
+      }
+
+      if (allSessions.length > 0) {
+        setImportProgress('Saving custom class dates and times in database...');
+        try {
+          await api.post('sessions.batchUpsert', { sessions: allSessions });
+        } catch (err) {
+          console.warn('sessions.batchUpsert failed:', err);
+        }
+
+        // Re-ensure sheets so Drive attendance sheets reflect the customized class dates
+        for (const m of targetMonths) {
+          try {
+            await api.post('attendance.ensureSheets', { month: m });
+          } catch (err) {
+            console.warn('attendance.ensureSheets failed:', err);
+          }
+        }
+      }
+
       return results;
     },
     onSuccess: (results) => {
       setResultsByMonth(results);
       setImportProgress(null);
       queryClient.invalidateQueries({ queryKey: ['members'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
       queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] });
       setStep(4);
     },
@@ -753,6 +943,13 @@ export const ImportWizard: React.FC = () => {
               {targetMonths.length} {targetMonths.length === 1 ? 'month' : 'months'})
             </div>
             <div>
+              <span className="font-bold text-[var(--c-ink)]">Selected Date Range:</span>{' '}
+              <span className="font-bold text-[var(--c-navy)]">
+                {effectiveStart} to {effectiveEnd}
+              </span>{' '}
+              ({availableDays.length} days)
+            </div>
+            <div>
               <span className="font-bold text-[var(--c-ink)]">Total Dancers Detected:</span>{' '}
               {previewData.rowCount} members
             </div>
@@ -762,10 +959,191 @@ export const ImportWizard: React.FC = () => {
             </div>
           </div>
 
+          {/* Class Schedule Dates & Times Picker (Per Dance Style) */}
+          <div className="border-4 border-[var(--c-ink)] bg-[var(--c-panel)] p-4 space-y-4 shadow-[3px_3px_0_var(--c-ink)]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-[var(--c-ink)] pb-3">
+              <div>
+                <h3 className="font-display text-xs text-[var(--c-ink)] uppercase font-bold flex items-center gap-1.5">
+                  <span>🗓️</span> SET CLASS SCHEDULE DATES & TIMES (PER DANCE STYLE)
+                </h3>
+                <p className="font-body text-xs text-[var(--c-darkgrey)] mt-1">
+                  Class dates can differ for each dance style. Select or tick dates within your range ({effectiveStart} to {effectiveEnd}) for each class.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <PixelButton
+                  size="md"
+                  variant="secondary"
+                  onClick={() => copyScheduleToAllStyles(activeScheduleStyleId)}
+                  title="Copy this style's dates & times to all other styles"
+                >
+                  📋 COPY TO ALL STYLES
+                </PixelButton>
+              </div>
+            </div>
+
+            {/* Dance Style Tabs */}
+            <div className="flex gap-2 overflow-x-auto pb-1 items-center">
+              <span className="font-display text-xs text-[var(--c-ink)] uppercase mr-1 whitespace-nowrap">
+                STYLE:
+              </span>
+              {styles.map((st) => {
+                const count = schedulesByStyle[st.id]?.length || 0;
+                return (
+                  <button
+                    key={st.id}
+                    type="button"
+                    onClick={() => setActiveScheduleStyleId(st.id)}
+                    className={`min-h-[40px] px-3 border-2 border-[var(--c-ink)] font-display text-xs cursor-pointer select-none whitespace-nowrap transition-none ${
+                      activeScheduleStyleId === st.id
+                        ? 'bg-[var(--c-orange)] text-[var(--c-ink)] font-bold shadow-[2px_2px_0_var(--c-ink)]'
+                        : 'bg-[var(--c-bg)] text-[var(--c-ink)] hover:bg-[var(--c-panel)]'
+                    }`}
+                  >
+                    {st.name} ({count} classes)
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Classes for the Active Dance Style */}
+            {activeScheduleStyleId && (
+              <div className="space-y-3">
+                <div className="flex justify-between items-center bg-[var(--c-bg)] border-2 border-[var(--c-ink)] p-2">
+                  <div className="font-display text-xs text-[var(--c-navy)] font-bold">
+                    {styles.find((s) => s.id === activeScheduleStyleId)?.name.toUpperCase()} CLASS SCHEDULE
+                  </div>
+                  <div className="flex gap-2">
+                    <PixelButton
+                      size="md"
+                      variant="secondary"
+                      onClick={() => resetStyleScheduleToWeekday(activeScheduleStyleId)}
+                      title="Reset to default weekly dates"
+                    >
+                      ⚡ AUTO-FILL WEEKDAY
+                    </PixelButton>
+                    <PixelButton
+                      size="md"
+                      variant="primary"
+                      onClick={() => addClassForStyle(activeScheduleStyleId)}
+                    >
+                      + ADD CLASS
+                    </PixelButton>
+                  </div>
+                </div>
+
+                {/* Grid of classes */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {(schedulesByStyle[activeScheduleStyleId] || []).map((c) => (
+                    <div
+                      key={c.seq}
+                      className="border-2 border-[var(--c-ink)] bg-[var(--c-bg)] p-3 space-y-2.5 shadow-[2px_2px_0_var(--c-ink)]"
+                    >
+                      <div className="flex justify-between items-center border-b border-[var(--c-ink)] pb-1.5">
+                        <span className="font-display text-xs text-[var(--c-ink)] font-bold bg-[var(--c-yellow)] px-2 py-0.5 border border-[var(--c-ink)]">
+                          CLASS #{c.seq}
+                        </span>
+                        <span className="font-mono text-xs text-[var(--c-navy)] font-bold">
+                          {formatDayLabel(c.date)}
+                        </span>
+                        {(schedulesByStyle[activeScheduleStyleId] || []).length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeClassForStyle(activeScheduleStyleId, c.seq)}
+                            className="px-1.5 py-0.5 border border-[var(--c-ink)] bg-[var(--c-peach)] text-[var(--c-red)] font-bold text-xs hover:bg-[var(--c-red)] hover:text-white"
+                            title="Remove this class"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Date Selector Dropdown */}
+                      <div>
+                        <label className="block font-display text-[9px] text-[var(--c-darkgrey)] uppercase mb-1">
+                          Select Date (Within Range)
+                        </label>
+                        <select
+                          value={c.date}
+                          onChange={(e) => updateClassDate(activeScheduleStyleId, c.seq, e.target.value as ISODate)}
+                          className="w-full min-h-[38px] px-2 border-2 border-[var(--c-ink)] bg-[var(--c-panel)] font-mono text-xs font-bold"
+                        >
+                          {availableDays.map((d) => (
+                            <option key={d} value={d}>
+                              {d} — {formatDayLabel(d)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Interactive Date Pill Picker (Click / Tick on the range) */}
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="font-display text-[9px] text-[var(--c-darkgrey)] uppercase">
+                            Or Tick Date In Range:
+                          </span>
+                          <span className="font-mono text-[9px] text-[var(--c-darkgrey)]">
+                            {availableDays.length} days available
+                          </span>
+                        </div>
+                        <div className="flex gap-1 overflow-x-auto p-1.5 bg-[var(--c-panel)] border border-[var(--c-ink)] max-h-20">
+                          {availableDays.map((d) => {
+                            const isSelected = c.date === d;
+                            const label = formatDayLabel(d);
+                            return (
+                              <button
+                                key={d}
+                                type="button"
+                                onClick={() => updateClassDate(activeScheduleStyleId, c.seq, d)}
+                                className={`px-2 py-1 text-[10px] font-mono whitespace-nowrap cursor-pointer transition-none select-none ${
+                                  isSelected
+                                    ? 'bg-[var(--c-yellow)] text-[var(--c-ink)] font-bold border-2 border-[var(--c-ink)] shadow-[1px_1px_0_var(--c-ink)]'
+                                    : 'bg-[var(--c-bg)] text-[var(--c-darkgrey)] border border-[var(--c-ink)] hover:bg-[var(--c-peach)]'
+                                }`}
+                              >
+                                {isSelected ? `✓ ${label}` : label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Start Time & End Time */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block font-display text-[9px] text-[var(--c-darkgrey)] uppercase">
+                            Start Time
+                          </label>
+                          <input
+                            type="time"
+                            value={c.start}
+                            onChange={(e) => updateClassTime(activeScheduleStyleId, c.seq, 'start', e.target.value)}
+                            className="w-full min-h-[36px] px-2 border-2 border-[var(--c-ink)] bg-[var(--c-panel)] font-mono text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-display text-[9px] text-[var(--c-darkgrey)] uppercase">
+                            End Time
+                          </label>
+                          <input
+                            type="time"
+                            value={c.end}
+                            onChange={(e) => updateClassTime(activeScheduleStyleId, c.seq, 'end', e.target.value)}
+                            className="w-full min-h-[36px] px-2 border-2 border-[var(--c-ink)] bg-[var(--c-panel)] font-mono text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="bg-[var(--c-peach)] border-2 border-[var(--c-ink)] p-4 text-xs font-body space-y-1">
             <strong>System Action & Automated Google Sheets Generation:</strong>
             <p>
-              Confirming import will automatically create or sync monthly attendance Google Sheets in Google Drive for all {styles.length} active styles across {targetMonths.length} months. Even for future months, classes and attendance grids will be prepared in advance!
+              Confirming import will save these exact class schedules in the database and automatically create or sync monthly attendance Google Sheets in Google Drive for all {styles.length} active styles across {targetMonths.length} months. Even for future months, classes and attendance grids will be prepared in advance!
             </p>
           </div>
 

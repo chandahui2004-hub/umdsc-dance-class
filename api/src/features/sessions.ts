@@ -245,6 +245,96 @@ export function getSessionRoutes(): Record<string, Route> {
         logAudit(ctx, actor, 'sessions.cancel', id, `Cancelled session C${existing.seq}`);
         return updated;
       }
+    },
+
+    'sessions.batchUpsert': {
+      perm: 'sessions.edit',
+      write: true,
+      bumpsData: true,
+      handler: (ctx, auth, payload: any) => {
+        const { sessions } = payload || {};
+        if (!Array.isArray(sessions)) {
+          throw new AppError('VALIDATION', 'sessions array is required');
+        }
+
+        const actor = auth?.claims?.sub || 'system';
+        const results: ClassSession[] = [];
+
+        for (const s of sessions) {
+          const {
+            id,
+            month,
+            styleId,
+            seq,
+            date,
+            start,
+            end,
+            instructorId = '',
+            venue = '',
+            status = 'scheduled',
+            note = ''
+          } = s;
+
+          if (!month || !styleId || !seq || !date || !start || !end) {
+            continue;
+          }
+
+          if (id) {
+            const existing = ctx.db.sessions.find(x => x.id === id && x.active)[0];
+            if (existing) {
+              const updated = ctx.db.sessions.update(
+                existing.id,
+                existing.version,
+                { date, start, end, instructorId, venue, status, note },
+                actor,
+                ctx.now()
+              );
+              notifySessionChanged(ctx, updated);
+              results.push(updated);
+              continue;
+            }
+          }
+
+          // Check if a session already exists for this month, styleId, and seq
+          const existingBySeq = ctx.db.sessions.find(
+            x => x.month === month && x.styleId === styleId && x.seq === Number(seq) && x.active
+          )[0];
+
+          if (existingBySeq) {
+            const updated = ctx.db.sessions.update(
+              existingBySeq.id,
+              existingBySeq.version,
+              { date, start, end, instructorId, venue, status, note },
+              actor,
+              ctx.now()
+            );
+            notifySessionChanged(ctx, updated);
+            results.push(updated);
+          } else {
+            const inserted = ctx.db.sessions.insert(
+              {
+                month,
+                styleId,
+                seq: Number(seq),
+                date,
+                start,
+                end,
+                instructorId,
+                venue,
+                status,
+                note
+              },
+              actor,
+              ctx.now()
+            );
+            notifySessionChanged(ctx, inserted);
+            results.push(inserted);
+          }
+        }
+
+        logAudit(ctx, actor, 'sessions.batchUpsert', '', `Upserted ${results.length} sessions`);
+        return { sessions: results };
+      }
     }
   };
 }

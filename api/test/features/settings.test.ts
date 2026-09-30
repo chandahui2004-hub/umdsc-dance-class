@@ -210,4 +210,32 @@ describe('Feature: Settings and Links', () => {
       expect(data[0].key).toBe('keyA');
     }
   });
+
+  it('settings.update works as alias for settings.setLink accepting value', () => {
+    const folderId = ctx.drive.createFolder('root', 'AttendanceMaster');
+
+    const res = handleRequest(
+      {
+        action: 'settings.update',
+        token: adminToken,
+        payload: {
+          key: 'defaultAttendanceFolderId',
+          value: 'https://drive.google.com/drive/folders/' + folderId + '?usp=sharing'
+        }
+      },
+      ctx,
+      secrets
+    );
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      const data = res.data as any;
+      expect(data.key).toBe('defaultAttendanceFolderId');
+      expect(data.value).toBe(folderId);
+    }
+
+    const saved = ctx.db.settings.find(s => s.key === 'defaultAttendanceFolderId' && s.active)[0];
+    expect(saved).toBeDefined();
+    expect(saved.value).toBe(folderId);
+  });
 });

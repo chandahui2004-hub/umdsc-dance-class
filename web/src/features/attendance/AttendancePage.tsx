@@ -9,6 +9,7 @@ import { Panel } from '../../components/ui/Panel';
 import { Field } from '../../components/ui/Field';
 import { RosterList } from './RosterList';
 import { AttendanceGrid } from './AttendanceGrid';
+import { useRegistrationAutoSync } from '../../lib/useRegistrationAutoSync';
 import type { AttendanceGrid as AttendanceGridData, DanceStyle, Month } from '@umdsc/shared';
 
 export const AttendancePage: React.FC = () => {
@@ -216,23 +217,28 @@ export const AttendancePage: React.FC = () => {
     }
   });
 
+  const autoSync = useRegistrationAutoSync(month);
+
   // Update Master Folder mutation
   const updateFolderMutation = useMutation({
     mutationFn: async (urlOrId: string) => {
       setFolderSaveError(null);
       setFolderSaveSuccess(null);
-      const res = await api.post('settings.update', {
+      const res = await api.post('settings.setLink', {
         key: 'defaultAttendanceFolderId',
+        url: urlOrId.trim(),
         value: urlOrId.trim()
       });
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       setFolderSaveSuccess(
-        'Master folder link saved! System will auto-create dance style subfolders & monthly sheets here.'
+        'Master folder link saved! Auto-creating dance style subfolders & monthly sheets in Drive now...'
       );
-      refetchSettings();
-      refetch();
+      await refetchSettings();
+      await refetch();
+      // Automatically trigger ensureSheetsMutation to generate subfolders & sheets for all dance styles!
+      ensureSheetsMutation.mutate();
     },
     onError: (err) => {
       setFolderSaveError(errorMessage(err));
@@ -242,6 +248,7 @@ export const AttendancePage: React.FC = () => {
   // Ensure / sync sheets mutation
   const ensureSheetsMutation = useMutation({
     mutationFn: async () => {
+      setFolderSaveError(null);
       const res = await api.post<{ sheets: { styleId: string; spreadsheetId: string }[] }>(
         'attendance.ensureSheets',
         { month }
@@ -249,13 +256,14 @@ export const AttendancePage: React.FC = () => {
       return res.data;
     },
     onSuccess: (data) => {
-      alert(
-        `✓ Successfully created/synced attendance sheets for ${data.sheets.length} dance styles in Master Drive folder!`
+      setFolderSaveSuccess(
+        `✓ Auto-generated attendance Google Sheets for all ${data.sheets.length} dance styles in Drive with classes 1-4!`
       );
+      refetchSettings();
       refetch();
     },
     onError: (err) => {
-      alert(errorMessage(err));
+      setFolderSaveError(errorMessage(err));
     }
   });
 
@@ -278,6 +286,31 @@ export const AttendancePage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {/* 1-Minute Registration Auto-sync badge */}
+          <div className="px-2.5 py-1 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] font-mono text-xs flex items-center gap-1.5 shadow-[2px_2px_0_var(--c-ink)]">
+            <span
+              className={`inline-block w-2.5 h-2.5 rounded-full ${
+                autoSync.isSyncing ? 'bg-[var(--c-yellow)] animate-spin' : 'bg-[var(--c-green)] animate-pulse'
+              }`}
+            />
+            <span className="font-display text-[10px] text-[var(--c-ink)]">
+              {autoSync.isSyncing
+                ? 'SYNCING...'
+                : autoSync.lastSyncedAt
+                ? `AUTO-SYNC (1M): ${autoSync.lastSyncedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                : 'AUTO-SYNC: 1 MIN'}
+            </span>
+            <button
+              type="button"
+              onClick={() => autoSync.syncNow()}
+              disabled={autoSync.isSyncing}
+              title="Poll Google Form Sheet for latest registrations now"
+              className="ml-1 px-1.5 py-0.5 border border-[var(--c-ink)] bg-[var(--c-bg)] font-display text-[9px] hover:bg-[var(--c-yellow)]"
+            >
+              ↻ SYNC NOW
+            </button>
+          </div>
+
           {pendingCount > 0 && (
             <div className="px-3 py-1 bg-[var(--c-yellow)] border-2 border-[var(--c-ink)] font-display text-xs text-[var(--c-ink)] font-bold animate-pulse shadow-[2px_2px_0_var(--c-ink)]">
               SAVING… {pendingCount}
@@ -403,12 +436,22 @@ export const AttendancePage: React.FC = () => {
           </div>
           <PixelButton
             size="md"
-            variant="secondary"
-            disabled={ensureSheetsMutation.isPending || !currentMasterFolder}
-            onClick={() => ensureSheetsMutation.mutate()}
+            variant="primary"
+            disabled={
+              ensureSheetsMutation.isPending ||
+              updateFolderMutation.isPending ||
+              (!currentMasterFolder && !masterFolderInput.trim())
+            }
+            onClick={() => {
+              if (masterFolderInput.trim() && masterFolderInput.trim() !== currentMasterFolder) {
+                updateFolderMutation.mutate(masterFolderInput.trim());
+              } else {
+                ensureSheetsMutation.mutate();
+              }
+            }}
           >
-            {ensureSheetsMutation.isPending
-              ? 'SYNCING SHEETS...'
+            {ensureSheetsMutation.isPending || updateFolderMutation.isPending
+              ? 'CREATING & SYNCING...'
               : '⚡ AUTO-CREATE / SYNC ALL STYLE SHEETS IN DRIVE'}
           </PixelButton>
         </div>

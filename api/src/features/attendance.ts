@@ -3,6 +3,7 @@ import { AppError } from '../errors';
 import { Ctx } from '../ports';
 import { AttendanceGrid, ClassSession, Member } from '@umdsc/shared';
 import { sessionLabel, buildLayout, locateCell, planSync } from '../logic/attendanceGrid';
+import { generateMonthSessions } from '../logic/sessionGen';
 import { onSessionChanged } from './sessions';
 
 export function attendanceEnsureSheets(
@@ -10,7 +11,23 @@ export function attendanceEnsureSheets(
   month: string
 ): { styleId: string; spreadsheetId: string }[] {
   const styles = ctx.db.styles.find(s => s.active);
-  const sessions = ctx.db.sessions.find(s => s.month === month && s.active);
+  let sessions = ctx.db.sessions.find(s => s.month === month && s.active);
+
+  // Auto-generate 4 classes for each style if not scheduled yet for this month
+  for (const style of styles) {
+    const existing = sessions.filter(s => s.styleId === style.id);
+    if (existing.length === 0) {
+      try {
+        const { sessions: genSessions } = generateMonthSessions(month, style);
+        for (const s of genSessions) {
+          ctx.db.sessions.insert(s, 'system', ctx.now());
+        }
+      } catch (err) {
+        console.error('Could not auto-generate sessions for style:', style.name, err);
+      }
+    }
+  }
+  sessions = ctx.db.sessions.find(s => s.month === month && s.active);
   
   // Read members for this month from Members sheet if imported
   const mm = ctx.db.memberMonths.find(m => m.month === month && m.active)[0];
@@ -81,8 +98,17 @@ export function attendanceEnsureSheets(
     const styleMembers = members.filter(m => m.styleIds.includes(style.id));
 
     let rec = ctx.db.attendanceSheets.find(s => s.month === month && s.styleId === style.id && s.active)[0];
-
+    let sheetExists = false;
     if (rec) {
+      try {
+        const info = ctx.drive.info(rec.spreadsheetId);
+        sheetExists = Boolean(info && info.exists);
+      } catch {
+        sheetExists = false;
+      }
+    }
+
+    if (rec && sheetExists) {
       // Spreadsheet already exists, sync
       const ss = ctx.drive.openSpreadsheet(rec.spreadsheetId);
       let sheet = ss.sheet('Attendance') || (ss as any).getSheet?.('Attendance');
@@ -135,16 +161,27 @@ export function attendanceEnsureSheets(
       sheet.protectRowWarningOnly(1);
       sheet.setPlainTextColumns([1, 3, 4]);
 
-      const inserted = ctx.db.attendanceSheets.insert(
-        {
-          month,
-          styleId: style.id,
-          spreadsheetId: ss.id
-        },
-        'system',
-        ctx.now()
-      );
-      result.push({ styleId: style.id, spreadsheetId: inserted.spreadsheetId });
+      if (rec) {
+        ctx.db.attendanceSheets.update(
+          rec.id,
+          rec.version,
+          { spreadsheetId: ss.id },
+          'system',
+          ctx.now()
+        );
+        result.push({ styleId: style.id, spreadsheetId: ss.id });
+      } else {
+        const inserted = ctx.db.attendanceSheets.insert(
+          {
+            month,
+            styleId: style.id,
+            spreadsheetId: ss.id
+          },
+          'system',
+          ctx.now()
+        );
+        result.push({ styleId: style.id, spreadsheetId: inserted.spreadsheetId });
+      }
     }
   }
 

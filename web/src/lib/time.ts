@@ -68,3 +68,16 @@ export function monthGrid(month: Month): ISODate[][] {
 
   return grid;
 }
+
+export function getDatesBetween(start: ISODate, end: ISODate): ISODate[] {
+  const s = start <= end ? start : end;
+  const e = start <= end ? end : start;
+  const list: ISODate[] = [];
+  let curr = parseISO(s);
+  const stop = parseISO(e);
+  while (curr <= stop) {
+    list.push(format(curr, 'yyyy-MM-dd') as ISODate);
+    curr = addDays(curr, 1);
+  }
+  return list;
+}

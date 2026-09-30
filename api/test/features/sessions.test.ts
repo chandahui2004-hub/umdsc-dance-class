@@ -281,4 +281,58 @@ describe('Feature: Class Sessions (features/sessions)', () => {
       expect(cancelled.status).toBe('cancelled');
     }
   });
+
+  it('sessions.batchUpsert creates and updates class sessions across styles and custom dates', () => {
+    const res = handleRequest(
+      {
+        action: 'sessions.batchUpsert',
+        token: adminToken,
+        payload: {
+          sessions: [
+            {
+              month: '2026-10',
+              styleId: 'st_locking',
+              seq: 1,
+              date: '2026-10-05',
+              start: '19:30',
+              end: '21:30',
+              venue: 'Studio 1'
+            },
+            {
+              month: '2026-10',
+              styleId: 'st_locking',
+              seq: 2,
+              date: '2026-10-12',
+              start: '19:30',
+              end: '21:30',
+              venue: 'Studio 1'
+            },
+            {
+              month: '2026-10',
+              styleId: 'st_popping',
+              seq: 1,
+              date: '2026-10-07',
+              start: '20:00',
+              end: '22:00',
+              venue: 'Studio 2'
+            }
+          ]
+        }
+      },
+      ctx,
+      secrets
+    );
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      const data = res.data as any;
+      expect(data.sessions.length).toBe(3);
+      expect(data.sessions[0].date).toBe('2026-10-05');
+      expect(data.sessions[0].start).toBe('19:30');
+    }
+
+    const lockingSessions = ctx.db.sessions.find(s => s.month === '2026-10' && s.styleId === 'st_locking' && s.active);
+    expect(lockingSessions.length).toBe(2);
+    expect(lockingSessions[0].date).toBe('2026-10-05');
+  });
 });

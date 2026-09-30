@@ -224,7 +224,7 @@ export const ClassesPage: React.FC = () => {
             description={`No classes are scheduled yet for ${currentMonth}. Tap 'GENERATE MONTH' to automatically create sessions from default weekdays.`}
             action={
               <PixelButton size="md" variant="primary" onClick={handleOpenGenerate}>
-                GENERATE MONTH
+                AUTO-GENERATE SESSIONS
               </PixelButton>
             }
           />
