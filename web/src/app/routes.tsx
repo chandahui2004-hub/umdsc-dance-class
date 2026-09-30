@@ -11,6 +11,9 @@ import { SetupPage } from '../features/setup/SetupPage';
 import { MembersPage } from '../features/members/MembersPage';
 import { TodayPage } from '../features/classes/TodayPage';
 import { ClassesPage } from '../features/classes/ClassesPage';
+import { StylesPage } from '../features/masterdata/StylesPage';
+import { InstructorsPage } from '../features/masterdata/InstructorsPage';
+import { SettingsPage } from '../features/settings/SettingsPage';
 import { useBootstrap } from '../features/auth/useBootstrap';
 import { session } from '../lib/session';
 import { PixelButton } from '../components/ui/PixelButton';
@@ -173,6 +176,9 @@ export const AppRoutes: React.FC = () => {
                   }
                 />
                 <Route path="members" element={<MembersPage />} />
+                <Route path="styles" element={<StylesPage />} />
+                <Route path="instructors" element={<InstructorsPage />} />
+                <Route path="settings" element={<SettingsPage />} />
                 <Route
                   path="more"
                   element={
@@ -188,6 +194,39 @@ export const AppRoutes: React.FC = () => {
                           </h2>
                           <p className="font-body text-xs text-[var(--c-darkgrey)]">
                             View member roster, contact info, styles, and export CSV
+                          </p>
+                        </a>
+                        <a
+                          href="/admin/styles"
+                          className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] block hover:bg-[var(--c-bg)]"
+                        >
+                          <h2 className="font-display text-sm text-[var(--c-ink)] mb-1">
+                            DANCE STYLES
+                          </h2>
+                          <p className="font-body text-xs text-[var(--c-darkgrey)]">
+                            Configure style metadata, aliases, colors, and folders
+                          </p>
+                        </a>
+                        <a
+                          href="/admin/instructors"
+                          className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] block hover:bg-[var(--c-bg)]"
+                        >
+                          <h2 className="font-display text-sm text-[var(--c-ink)] mb-1">
+                            INSTRUCTORS
+                          </h2>
+                          <p className="font-body text-xs text-[var(--c-darkgrey)]">
+                            Manage club dance instructors and contact details
+                          </p>
+                        </a>
+                        <a
+                          href="/admin/settings"
+                          className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] block hover:bg-[var(--c-bg)]"
+                        >
+                          <h2 className="font-display text-sm text-[var(--c-ink)] mb-1">
+                            SYSTEM SETTINGS
+                          </h2>
+                          <p className="font-body text-xs text-[var(--c-darkgrey)]">
+                            Google Drive folder links and update history
                           </p>
                         </a>
                       </div>

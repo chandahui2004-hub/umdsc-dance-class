@@ -52,11 +52,11 @@ export function errorMessage(e: unknown): string {
       case 'SETUP_REQUIRED':
         return 'System setup required.';
       case 'LINK_INVALID':
-        return 'Invalid Google Drive link.';
+        return e.message || 'Invalid Google Drive link.';
       case 'LINK_WRONG_KIND':
-        return 'The link is not of the required kind (file vs folder).';
+        return e.message || 'The link is not of the required kind (file vs folder).';
       case 'LINK_READ_ONLY':
-        return 'The folder is read-only. Edit access is required.';
+        return e.message || 'The folder is read-only. Edit access is required.';
       case 'INTERNAL':
         return 'An unexpected server error occurred. Please try again.';
       default:
@@ -148,3 +148,7 @@ export async function call<T>(
 
   throw new Error(`Failed to call ${action} after ${maxRetries} retries`);
 }
+
+export const api = {
+  post: call
+};
