@@ -19,6 +19,7 @@ import { RolesPage } from '../features/access/RolesPage';
 import { AdminsPage } from '../features/access/AdminsPage';
 import { AttendancePage } from '../features/attendance/AttendancePage';
 import { MediaPage } from '../features/media/MediaPage';
+import { EventsPage } from '../features/events/EventsPage';
 import { useBootstrap } from '../features/auth/useBootstrap';
 import { session } from '../lib/session';
 import { PixelButton } from '../components/ui/PixelButton';
@@ -62,6 +63,12 @@ const MoreIcon = () => (
   </svg>
 );
 
+const EventIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M4 2h2v20H4V2zm4 2h12l-3 4 3 4H8V4z" />
+  </svg>
+);
+
 const DANCER_TABS: TabDef[] = [
   { id: 'calendar', label: 'Home', icon: <CalendarIcon />, path: '/' },
   { id: 'studio', label: 'Studio', icon: <MusicIcon />, path: '/studio' },
@@ -70,7 +77,7 @@ const DANCER_TABS: TabDef[] = [
 
 const ADMIN_TABS: TabDef[] = [
   { id: 'today', label: 'Today', icon: <CalendarIcon />, path: '/admin/today' },
-  { id: 'calendar', label: 'Calendar', icon: <CalendarIcon />, path: '/admin/calendar' },
+  { id: 'events', label: 'Events', icon: <EventIcon />, path: '/admin/events' },
   { id: 'attendance', label: 'Attendance', icon: <AttendanceIcon />, path: '/admin/attendance' },
   { id: 'media', label: 'Media', icon: <VideoIcon />, path: '/admin/media' },
   { id: 'more', label: 'More', icon: <MoreIcon />, path: '/admin/more' }
@@ -177,6 +184,7 @@ export const AppRoutes: React.FC = () => {
                 <Route path="calendar" element={<ClassesPage />} />
                 <Route path="attendance" element={<AttendancePage />} />
                 <Route path="media" element={<MediaPage />} />
+                <Route path="events" element={<EventsPage />} />
                 <Route path="members/import" element={<ImportWizard />} />
                 <Route path="members" element={<MembersPage />} />
                 <Route path="styles" element={<StylesPage />} />
@@ -199,6 +207,17 @@ export const AppRoutes: React.FC = () => {
                           </h2>
                           <p className="font-body text-xs text-[var(--c-darkgrey)]">
                             Import monthly Google Form response sheet & generate attendance
+                          </p>
+                        </a>
+                        <a
+                          href="/admin/calendar"
+                          className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] block hover:bg-[var(--c-bg)]"
+                        >
+                          <h2 className="font-display text-sm text-[var(--c-ink)] mb-1">
+                            CALENDAR
+                          </h2>
+                          <p className="font-body text-xs text-[var(--c-darkgrey)]">
+                            Classes of the chosen event: add, move, cancel or delete
                           </p>
                         </a>
                         <a

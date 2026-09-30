@@ -220,6 +220,17 @@ describe('Feature: events (features/events)', () => {
     });
   });
 
+  it('list flags a missing folder', () => {
+    const kept = drive.createFolder(master, 'KEPT');
+    seedEvent(ctx, { name: 'KEPT', folderId: kept });
+    seedEvent(ctx, { name: 'LOST', folderId: 'fld_deleted' });
+
+    const res = call('events.list', {});
+    const byName = new Map((res.ok ? (res.data as any[]) : []).map(e => [e.name, e.folderMissing]));
+    expect(byName.get('KEPT')).toBe(false);
+    expect(byName.get('LOST')).toBe(true);
+  });
+
   it('preview reports detected styles and unknown classes', () => {
     const res = call('events.previewSource', { sheetUrl: sourceUrl });
     expect(res.ok).toBe(true);

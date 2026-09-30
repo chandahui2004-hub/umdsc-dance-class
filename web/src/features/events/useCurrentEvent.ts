@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { EventItem } from '@umdsc/shared';
+import type { EventListItem } from '@umdsc/shared';
 import { call } from '../../lib/api';
 
 const STORAGE_KEY = 'umdsc:currentEvent';
@@ -29,7 +29,7 @@ function subscribe(fn: () => void): () => void {
 }
 
 /** Active event with the latest start date, else any event, else null. */
-function defaultEvent(events: EventItem[]): EventItem | null {
+function defaultEvent(events: EventListItem[]): EventListItem | null {
   const byStart = [...events].sort((a, b) => b.startDate.localeCompare(a.startDate));
   return byStart.find(e => e.status === 'active') || byStart[0] || null;
 }
@@ -37,14 +37,14 @@ function defaultEvent(events: EventItem[]): EventItem | null {
 export function useEvents() {
   return useQuery({
     queryKey: ['events'],
-    queryFn: async () => (await call<EventItem[]>('events.list', { includeArchived: true })).data || []
+    queryFn: async () => (await call<EventListItem[]>('events.list', { includeArchived: true })).data || []
   });
 }
 
 /** The event every admin page works on, shared across the app and remembered in this browser. */
 export function useCurrentEvent(): {
-  events: EventItem[];
-  current: EventItem | null;
+  events: EventListItem[];
+  current: EventListItem | null;
   setCurrentId(id: string): void;
   isLoading: boolean;
 } {

@@ -1,6 +1,6 @@
 import { Route } from '../router';
 import { AppError } from '../errors';
-import { EventItem, EventStatus, EventType } from '@umdsc/shared';
+import { EventItem, EventListItem, EventStatus, EventType } from '@umdsc/shared';
 import { Ctx } from '../ports';
 import { validateEventFields, eventNameKey, classesOutsideRange } from '../logic/events';
 import { validateLink } from '../logic/linkValidation';
@@ -72,9 +72,14 @@ export function getEventRoutes(): Record<string, Route> {
       write: false,
       handler: (ctx, auth, payload: any) => {
         const includeArchived = Boolean(payload?.includeArchived);
-        return ctx.db.events
+        const rows: EventListItem[] = ctx.db.events
           .find(e => e.active && (includeArchived || e.status === 'active'))
-          .sort((a, b) => b.startDate.localeCompare(a.startDate));
+          .sort((a, b) => b.startDate.localeCompare(a.startDate))
+          .map(e => ({
+            ...e,
+            folderMissing: e.status === 'active' && Boolean(e.folderId) && !ctx.drive.info(e.folderId).exists
+          }));
+        return rows;
       }
     },
 

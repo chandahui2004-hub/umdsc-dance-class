@@ -71,6 +71,7 @@ export interface EventItem extends RowMeta {
   status: EventStatus; sourceRowCount: number; sourceLastRowHash: string;
   lastSyncAt: string; lastSyncError: string; memberCount: number;
 }
+export type EventListItem = EventItem & { folderMissing: boolean };
 export type EventSummary = Pick<EventItem, 'id' | 'name' | 'type' | 'startDate' | 'endDate' | 'status' | 'styleIds'>;
 export type TodayClass = ClassSession & { eventName: string };
 export interface SourcePreview {
