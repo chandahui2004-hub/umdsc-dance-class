@@ -736,7 +736,7 @@ A mechanical but wide change. After this task no API code reads or writes `month
 
 - [x] **Step 1:** `npm test -w api`, `npm test -w web`, `npm run build -w web`, and `npx playwright test --workers=1` (from `web/`). Expected: all pass. Paste the summaries.
 - [x] **Step 2:** Run `requesting-code-review` on branch `feat/events` against `main`. Fix confirmed findings (`receiving-code-review`).
-- [ ] **Step 3: 🧑 OWNER ACTION:** approve deploying. Then, from `api/`:
+- [x] **Step 3: 🧑 OWNER ACTION:** approve deploying. Then, from `api/`:
   - `npm run build`
   - `npx clasp push -f`
   - `npx clasp create-version "events"`
