@@ -76,7 +76,7 @@ describe('Feature: Videos (features/videos)', () => {
         defaultInstructorId: '',
         defaultVenue: 'Studio A',
         attendanceFolderId: 'fld_att_12345678901234567890',
-        videoFolderId: 'fld_vid_12345678901234567890'
+        videoFolderId: ''
       },
       'system',
       ctx.now()
@@ -142,6 +142,26 @@ describe('Feature: Videos (features/videos)', () => {
         classFolderName: '2026-10-06 Popping Class 1',
         musicFolderName: 'Music'
       });
+    }
+  });
+
+  it('targetFolder prefers style.videoFolderId over defaultVideoFolderId when set', () => {
+    const poppingStyle = ctx.db.styles.find(s => s.id === 'st_popping' && s.active)[0];
+    ctx.db.styles.update(poppingStyle.id, poppingStyle.version, { videoFolderId: 'fld_popping_custom_master' }, 'admin', ctx.now());
+
+    const res = handleRequest(
+      {
+        action: 'videos.targetFolder',
+        token: adminToken,
+        payload: { sessionId: session1.id }
+      },
+      ctx,
+      secrets
+    );
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect((res.data as any).videoMasterFolderId).toBe('fld_popping_custom_master');
     }
   });
 

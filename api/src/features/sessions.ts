@@ -39,30 +39,37 @@ export function getSessionRoutes(): Record<string, Route> {
       write: false,
       handler: (ctx, auth, payload: any) => {
         const eventId = String(payload?.eventId || '').trim();
-        if (!eventId) {
-          throw new AppError('VALIDATION', 'eventId is required');
-        }
+        const isAll = !eventId || eventId === 'ALL';
         const styleId = String(payload?.styleId || '').trim();
 
         let sessions = ctx.db.sessions.find(
-          s => s.eventId === eventId && s.active && (!styleId || s.styleId === styleId)
+          s => s.active && (isAll || s.eventId === eventId) && (!styleId || s.styleId === styleId)
         );
 
         if (auth?.claims.role === 'dancer') {
           const matricKey = auth.claims.sub.replace(/^M-/, '');
           const mi = ctx.db.memberIndex.find(m => m.matricKey === matricKey && m.active)[0];
-          if (!mi || !mi.eventIds.includes(eventId)) {
-            return [];
-          }
-          const event = ctx.db.events.find(e => e.id === eventId && e.active)[0];
-          if (!event) return [];
+          if (!mi) return [];
+          const targetEventIds = isAll ? mi.eventIds : (mi.eventIds.includes(eventId) ? [eventId] : []);
+          if (targetEventIds.length === 0) return [];
 
-          let allowed = dancerStylesInEvent(ctx, event, matricKey);
+          sessions = sessions.filter(s => targetEventIds.includes(s.eventId));
+
+          const eventMap = new Map<string, string[]>();
           const calPerm = auth.claims.perms['calendar.view'];
-          if (Array.isArray(calPerm)) {
-            allowed = allowed.filter(id => calPerm.includes(id));
-          }
-          sessions = sessions.filter(s => allowed.includes(s.styleId));
+
+          sessions = sessions.filter(s => {
+            let allowed = eventMap.get(s.eventId);
+            if (!allowed) {
+              const ev = ctx.db.events.find(e => e.id === s.eventId && e.active)[0];
+              allowed = ev ? dancerStylesInEvent(ctx, ev, matricKey) : [];
+              if (Array.isArray(calPerm)) {
+                allowed = allowed.filter(id => calPerm.includes(id));
+              }
+              eventMap.set(s.eventId, allowed);
+            }
+            return allowed.includes(s.styleId);
+          });
         }
 
         return sessions;

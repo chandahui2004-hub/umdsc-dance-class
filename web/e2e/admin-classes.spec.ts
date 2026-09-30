@@ -36,11 +36,15 @@ test.describe('Admin Classes & Calendar', () => {
     });
   });
 
-  test('dates outside the event cannot be picked', async ({ page }) => {
+  test('dates outside the event cannot be picked and months can be freely navigated', async ({ page }) => {
     await mockApi(page, { ...BASE, 'sessions.list': () => [session('ses-1')] });
     await page.goto('/admin/calendar');
     await expect(page.getByText('OCTOBER 2026')).toBeVisible();
-    await expect(page.getByRole('button', { name: /next month/i })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /next month/i })).toBeVisible();
+    await page.getByRole('button', { name: /next month/i }).click();
+    await expect(page.getByText('NOVEMBER 2026')).toBeVisible();
+    await page.getByRole('button', { name: /previous month/i }).click();
+    await expect(page.getByText('OCTOBER 2026')).toBeVisible();
     await page.getByText(/Hip Hop Class 1/i).first().click();
     const date = page.getByLabel(/Date/i);
     await expect(date).toHaveAttribute('min', '2026-10-01');
@@ -74,5 +78,33 @@ test.describe('Admin Classes & Calendar', () => {
     await page.getByText(/Hip Hop Class 1/i).first().click();
     await page.getByRole('button', { name: /SAVE CHANGES/i }).click();
     await expect(page.getByText(/modified by someone else|Changed by/i)).toBeVisible();
+  });
+
+  test('selecting ALL EVENTS shows all classes and allows free month switching', async ({ page }) => {
+    const evt1 = makeEvent({ id: 'evt-1', name: 'OCT MONTHLY CLASS' });
+    const evt2 = makeEvent({ id: 'evt-2', name: 'NOV WORKSHOP' });
+    const s1 = session('ses-1', '2026-10-08');
+    const s2 = { ...session('ses-2', '2026-11-05'), eventId: 'evt-2' };
+
+    const calls = await mockApi(page, {
+      'events.list': () => [evt1, evt2],
+      'styles.list': () => adminBootstrap.styles,
+      'sessions.list': (p) => {
+        if (p?.eventId === 'ALL') return [s1, s2];
+        if (p?.eventId === 'evt-1') return [s1];
+        if (p?.eventId === 'evt-2') return [s2];
+        return [];
+      }
+    });
+
+    await page.goto('/admin/calendar');
+    await page.getByRole('combobox').selectOption('ALL');
+
+    await expect.poll(() => calls.filter(c => c.action === 'sessions.list').map(c => c.payload)).toContainEqual({ eventId: 'ALL' });
+    await expect(page.getByText(/ALL CLASSES ACROSS ALL EVENTS/i)).toBeVisible();
+
+    // Navigate to November
+    await page.getByRole('button', { name: /next month/i }).click();
+    await expect(page.getByText('NOVEMBER 2026')).toBeVisible();
   });
 });

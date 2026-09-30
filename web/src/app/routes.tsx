@@ -27,6 +27,12 @@ import { EventPicker } from '../components/ui/EventPicker';
 import { useEventAutoSync } from '../lib/useEventAutoSync';
 
 // Pixel art icon SVG helpers
+const TodayIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16zm1-13h-2v6h6v-2h-4V7z" />
+  </svg>
+);
+
 const CalendarIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
     <path d="M19 4h-2V2h-2v2H9V2H7v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
@@ -76,7 +82,8 @@ const DANCER_TABS: TabDef[] = [
 ];
 
 const ADMIN_TABS: TabDef[] = [
-  { id: 'today', label: 'Today', icon: <CalendarIcon />, path: '/admin/today' },
+  { id: 'today', label: 'Today', icon: <TodayIcon />, path: '/admin/today' },
+  { id: 'calendar', label: 'Calendar', icon: <CalendarIcon />, path: '/admin/calendar' },
   { id: 'events', label: 'Events', icon: <EventIcon />, path: '/admin/events' },
   { id: 'attendance', label: 'Attendance', icon: <AttendanceIcon />, path: '/admin/attendance' },
   { id: 'media', label: 'Media', icon: <VideoIcon />, path: '/admin/media' },
@@ -208,17 +215,6 @@ export const AppRoutes: React.FC = () => {
                           </h2>
                           <p className="font-body text-xs text-[var(--c-darkgrey)]">
                             Set up a monthly class, trial class or workshop from its registration form
-                          </p>
-                        </a>
-                        <a
-                          href="/admin/calendar"
-                          className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] block hover:bg-[var(--c-bg)]"
-                        >
-                          <h2 className="font-display text-sm text-[var(--c-ink)] mb-1">
-                            CALENDAR
-                          </h2>
-                          <p className="font-body text-xs text-[var(--c-darkgrey)]">
-                            Classes of the chosen event: add, move, cancel or delete
                           </p>
                         </a>
                         <a

@@ -47,15 +47,17 @@ export function useCurrentEvent(): {
   current: EventListItem | null;
   setCurrentId(id: string): void;
   isLoading: boolean;
+  isAll: boolean;
 } {
   const { data: events = [], isLoading } = useEvents();
   const storedId = useSyncExternalStore(subscribe, readStored, () => null);
 
+  const isAll = storedId === 'ALL';
   const current = useMemo(
-    () => events.find(e => e.id === storedId) || defaultEvent(events),
-    [events, storedId]
+    () => (isAll ? null : events.find(e => e.id === storedId) || defaultEvent(events)),
+    [events, storedId, isAll]
   );
   const setCurrentId = useCallback((id: string) => writeStored(id), []);
 
-  return { events, current, setCurrentId, isLoading };
+  return { events, current, setCurrentId, isLoading, isAll };
 }

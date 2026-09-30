@@ -26,7 +26,7 @@ function downloadXlsx(fileName: string, base64: string): void {
 
 export const AttendancePage: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const { current: event, isLoading: eventsLoading } = useCurrentEvent();
+  const { events, current: event, setCurrentId, isLoading: eventsLoading, isAll } = useCurrentEvent();
   const eventId = event?.id || '';
 
   // The Today page links here with styleId and sessionId
@@ -178,6 +178,27 @@ export const AttendancePage: React.FC = () => {
   const activeStyle = styles.find(s => s.id === styleId);
   const sessions = gridData?.sessions || [];
   const members = gridData?.members || [];
+
+  if (!eventsLoading && isAll && events.length > 0) {
+    return (
+      <div className="space-y-6">
+        <h1 className="font-display text-lg tracking-wider text-[var(--c-ink)]">Attendance Tracker</h1>
+        <div className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] space-y-3">
+          <p className="font-display text-xs text-[var(--c-ink)]">SELECT AN EVENT TO TAKE ATTENDANCE</p>
+          <p className="font-body text-sm text-[var(--c-darkgrey)]">
+            Attendance sheets are organized by event. Choose an event from the top bar or pick one below:
+          </p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {events.filter(e => e.status === 'active').map(e => (
+              <PixelButton key={e.id} size="md" variant="secondary" onClick={() => setCurrentId(e.id)}>
+                {e.name}
+              </PixelButton>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!eventsLoading && !event) {
     return (

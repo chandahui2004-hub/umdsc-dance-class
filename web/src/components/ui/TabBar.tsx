@@ -39,7 +39,7 @@ export const TabBar: React.FC<TabBarProps> = ({ tabs }) => {
               </span>
             )}
           </div>
-          <span className="font-display text-[10px] tracking-tight truncate max-w-full">
+          <span className="font-display text-[8px] sm:text-[9px] md:text-[10px] tracking-tight truncate max-w-full text-center px-0.5">
             {tab.label}
           </span>
         </NavLink>

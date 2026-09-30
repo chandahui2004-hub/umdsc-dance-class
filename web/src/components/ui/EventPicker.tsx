@@ -4,7 +4,7 @@ import { useCurrentEvent } from '../../features/events/useCurrentEvent';
 
 /** Chooses the event that Registered Dancers, Attendance, Media and Calendar show. */
 export const EventPicker: React.FC = () => {
-  const { events, current, setCurrentId, isLoading } = useCurrentEvent();
+  const { events, current, setCurrentId, isLoading, isAll } = useCurrentEvent();
 
   if (isLoading) {
     return <span className="font-display text-[10px] text-[var(--c-ink)]">LOADING EVENTS…</span>;
@@ -29,10 +29,11 @@ export const EventPicker: React.FC = () => {
       <span className="whitespace-nowrap">EVENT:</span>
       <select
         aria-label="Current event"
-        value={current?.id || ''}
+        value={isAll ? 'ALL' : (current?.id || '')}
         onChange={e => setCurrentId(e.target.value)}
         className="min-h-[44px] min-w-0 flex-1 px-2 border-2 border-[var(--c-ink)] bg-[var(--c-panel)] font-body text-base text-[var(--c-ink)] focus:outline-none focus:ring-4 focus:ring-[var(--c-yellow)]"
       >
+        <option value="ALL">ALL EVENTS</option>
         {active.map(e => (
           <option key={e.id} value={e.id}>
             {e.name}

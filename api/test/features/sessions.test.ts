@@ -123,6 +123,13 @@ describe('Feature: Class Sessions (features/sessions)', () => {
       expect(list.length).toBe(1);
       expect(list[0].eventId).toBe(event.id);
     }
+
+    const allRes = call('sessions.list', { eventId: 'ALL' });
+    expect(allRes.ok).toBe(true);
+    if (allRes.ok) {
+      const allList = allRes.data as ClassSession[];
+      expect(allList.length).toBe(2);
+    }
   });
 
   it("sessions.today lists only today's classes in active events, in KL time (Review Focus 3)", () => {

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { loginAsAdmin, mockApi } from './fixtures/mockApi';
+import { adminBootstrap } from './fixtures/mockData';
 
 test.describe('Settings: reset and retention', () => {
   test.beforeEach(async ({ page }) => {
@@ -65,5 +66,28 @@ test.describe('Settings: reset and retention', () => {
     await page.goto('/admin/settings');
     await page.getByRole('button', { name: 'CHECK' }).click();
     await expect(page.getByText('No dancer data is due for removal.')).toBeVisible();
+  });
+
+  test('updates dance style video folder link', async ({ page }) => {
+    const calls = await mockApi(page, {
+      'links.history': () => [],
+      'admin.resetStatus': () => ({ needed: false }),
+      'styles.list': () => adminBootstrap.styles,
+      'styles.update': (p) => ({ ...adminBootstrap.styles[0], ...p, videoFolderId: 'folder-hiphop-123' })
+    });
+    await page.goto('/admin/settings');
+    await expect(page.getByText('VIDEO FOLDERS BY DANCE STYLE')).toBeVisible();
+    await expect(page.getByText('HIP HOP', { exact: true })).toBeVisible();
+
+    const input = page.getByLabel('Hip Hop video folder link');
+    await input.fill('https://drive.google.com/drive/folders/folder-hiphop-123');
+    await page.getByRole('button', { name: 'UPDATE LINK' }).first().click();
+
+    await expect(page.getByText('VIDEO LINK UPDATED!')).toBeVisible();
+    expect(calls.find(c => c.action === 'styles.update')?.payload).toEqual({
+      id: 'style-hiphop',
+      version: 1,
+      videoFolderUrl: 'https://drive.google.com/drive/folders/folder-hiphop-123'
+    });
   });
 });

@@ -101,12 +101,16 @@ export function getMasterDataRoutes(): Record<string, Route> {
     perm: 'styles.edit',
     listPerm: 'signedIn',
     processPayload: (ctx, payload) => {
-      if (payload.videoFolderUrl) {
-        payload.videoFolderId = validateLink(ctx, payload.videoFolderUrl, 'folder');
+      if (payload.videoFolderUrl !== undefined) {
+        payload.videoFolderId = payload.videoFolderUrl.trim()
+          ? validateLink(ctx, payload.videoFolderUrl.trim(), 'folder')
+          : '';
         delete payload.videoFolderUrl;
       }
-      if (payload.attendanceFolderUrl) {
-        payload.attendanceFolderId = validateLink(ctx, payload.attendanceFolderUrl, 'folder');
+      if (payload.attendanceFolderUrl !== undefined) {
+        payload.attendanceFolderId = payload.attendanceFolderUrl.trim()
+          ? validateLink(ctx, payload.attendanceFolderUrl.trim(), 'folder')
+          : '';
         delete payload.attendanceFolderUrl;
       }
       return payload;

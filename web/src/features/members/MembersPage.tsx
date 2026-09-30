@@ -14,7 +14,7 @@ import { useCurrentEvent } from '../events/useCurrentEvent';
 
 export const MembersPage: React.FC = () => {
   const { data: bootstrap } = useBootstrap('admin');
-  const { current: event } = useCurrentEvent();
+  const { events, current: event, setCurrentId, isAll } = useCurrentEvent();
   const eventId = event?.id || '';
   const [selectedStyleId, setSelectedStyleId] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -91,6 +91,34 @@ export const MembersPage: React.FC = () => {
     const full = cleaned.startsWith('60') ? cleaned : cleaned.startsWith('0') ? '6' + cleaned : cleaned;
     return `https://wa.me/${full}`;
   };
+
+  if (isAll && events.length > 0) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h1 className="font-display text-xl md:text-2xl text-[var(--c-ink)]">
+            Registered Dancers
+          </h1>
+          <p className="font-body text-sm text-[var(--c-darkgrey)]">
+            Select an event to view its roster
+          </p>
+        </div>
+        <div className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] space-y-3">
+          <p className="font-display text-xs text-[var(--c-ink)]">SELECT AN EVENT</p>
+          <p className="font-body text-sm text-[var(--c-darkgrey)]">
+            Registered dancers belong to specific events. Pick an active event below or use the top event picker:
+          </p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {events.filter(e => e.status === 'active').map(e => (
+              <PixelButton key={e.id} size="md" variant="secondary" onClick={() => setCurrentId(e.id)}>
+                {e.name}
+              </PixelButton>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

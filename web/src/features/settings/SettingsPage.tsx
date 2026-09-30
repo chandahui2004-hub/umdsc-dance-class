@@ -7,6 +7,8 @@ import { Field } from '../../components/ui/Field';
 import { Spinner } from '../../components/ui/Spinner';
 import { ResetTestDataPanel } from './ResetTestDataPanel';
 import { RetentionPanel } from './RetentionPanel';
+import { STYLE_COLOR } from '../../theme/colors';
+import type { DanceStyle } from '@umdsc/shared';
 
 interface LinkHistoryItem {
   id: string;
@@ -16,6 +18,96 @@ interface LinkHistoryItem {
   changedBy: string;
   changedAt: string;
 }
+
+const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
+  const queryClient = useQueryClient();
+  const [url, setUrl] = useState('');
+  const [status, setStatus] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  const updateMutation = useMutation({
+    mutationFn: async (folderUrl: string) => {
+      return await api.post('styles.update', {
+        id: style.id,
+        version: style.version,
+        videoFolderUrl: folderUrl
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['styles'] });
+      setStatus({ text: 'VIDEO LINK UPDATED!', type: 'success' });
+      setUrl('');
+    },
+    onError: (err) => {
+      setStatus({ text: errorMessage(err), type: 'error' });
+    }
+  });
+
+  const color = STYLE_COLOR[style.colorKey] || `var(--c-${style.colorKey})`;
+
+  return (
+    <div className="p-3 md:p-4 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span
+            className="w-4 h-4 rounded-none border border-[var(--c-ink)] inline-block flex-shrink-0"
+            style={{ backgroundColor: color }}
+          />
+          <span className="font-display text-xs md:text-sm text-[var(--c-ink)]">
+            {style.name.toUpperCase()}
+          </span>
+        </div>
+
+        <div className="text-xs font-mono">
+          {style.videoFolderId ? (
+            <a
+              href={`https://drive.google.com/drive/folders/${style.videoFolderId}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-[var(--c-navy)] font-bold underline hover:text-[var(--c-ink)]"
+            >
+              Open in Drive ↗ ({style.videoFolderId.slice(0, 10)}…)
+            </a>
+          ) : (
+            <span className="text-[var(--c-red)] font-bold">Not Configured</span>
+          )}
+        </div>
+      </div>
+
+      {status && (
+        <div
+          role="alert"
+          className={`p-2 font-body font-bold text-xs border-2 ${
+            status.type === 'error'
+              ? 'bg-[var(--c-peach)] border-[var(--c-red)] text-[var(--c-red)]'
+              : 'bg-[var(--c-bg)] border-[var(--c-darkgreen)] text-[var(--c-darkgreen)]'
+          }`}
+        >
+          {status.type === 'error' ? '⚠ ' : '✓ '} {status.text}
+        </div>
+      )}
+
+      <div className="flex flex-col sm:flex-row gap-2">
+        <input
+          aria-label={`${style.name} video folder link`}
+          type="url"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder={style.videoFolderId ? `https://drive.google.com/drive/folders/${style.videoFolderId}` : 'https://drive.google.com/drive/folders/...'}
+          className="flex-1 min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-mono text-xs md:text-sm bg-[var(--c-bg)]"
+        />
+        <PixelButton
+          size="md"
+          variant="primary"
+          className="w-full sm:w-auto"
+          disabled={updateMutation.isPending || !url.trim()}
+          onClick={() => updateMutation.mutate(url.trim())}
+        >
+          {updateMutation.isPending ? 'SAVING…' : 'UPDATE LINK'}
+        </PixelButton>
+      </div>
+    </div>
+  );
+};
 
 export const SettingsPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -43,6 +135,14 @@ export const SettingsPage: React.FC = () => {
     queryFn: async () => {
       const res = await api.post<LinkHistoryItem[]>('links.history');
       return res.data;
+    }
+  });
+
+  const { data: styles = [], isLoading: loadingStyles } = useQuery<DanceStyle[]>({
+    queryKey: ['styles'],
+    queryFn: async () => {
+      const res = await api.post<DanceStyle[]>('styles.list');
+      return res.data || [];
     }
   });
 
@@ -160,8 +260,29 @@ export const SettingsPage: React.FC = () => {
             </Field>
           </Panel>
 
-          {/* Default Video Folder */}
-          <Panel title="DEFAULT VIDEO FOLDER" className="px-corners space-y-3">
+          {/* Video Folders by Dance Style */}
+          <Panel title="VIDEO FOLDERS BY DANCE STYLE" className="px-corners space-y-3">
+            <p className="font-body text-sm text-[var(--c-darkgrey)]">
+              Class recap videos are stored in Google Drive. Different dance styles can have different Google Drive folder links, managed by each dance style&apos;s team member or account.
+            </p>
+
+            {loadingStyles ? (
+              <div className="p-4 text-center">
+                <Spinner size="md" />
+              </div>
+            ) : styles.length === 0 ? (
+              <p className="font-body text-xs text-[var(--c-darkgrey)]">No dance styles configured.</p>
+            ) : (
+              <div className="space-y-3">
+                {styles.map((style) => (
+                  <StyleVideoFolderRow key={style.id} style={style} />
+                ))}
+              </div>
+            )}
+          </Panel>
+
+          {/* Default / Fallback Video Folder */}
+          <Panel title="DEFAULT / FALLBACK VIDEO FOLDER" className="px-corners space-y-3">
             <div className="font-mono text-xs text-[var(--c-darkgrey)]">
               Current ID:{' '}
               <span className="text-[var(--c-ink)] font-bold">
@@ -184,7 +305,7 @@ export const SettingsPage: React.FC = () => {
 
             <Field
               label="Default Video Folder Link"
-              hint="Class recap videos are uploaded and stored in this folder"
+              hint="Used as a fallback for dance styles without a dedicated video folder link"
             >
               <div className="flex flex-col sm:flex-row gap-2">
                 <input
@@ -194,11 +315,12 @@ export const SettingsPage: React.FC = () => {
                   value={vidUrl}
                   onChange={(e) => setVidUrl(e.target.value)}
                   placeholder="https://drive.google.com/drive/folders/..."
-                  className="flex-1 min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-mono text-xs bg-[var(--c-bg)]"
+                  className="flex-1 min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-mono text-xs md:text-sm bg-[var(--c-bg)]"
                 />
                 <PixelButton
                   size="md"
                   variant="primary"
+                  className="w-full sm:w-auto"
                   disabled={setLinkMutation.isPending || !vidUrl.trim()}
                   onClick={() =>
                     setLinkMutation.mutate({
@@ -207,7 +329,7 @@ export const SettingsPage: React.FC = () => {
                     })
                   }
                 >
-                  UPDATE VIDEO LINK
+                  UPDATE DEFAULT LINK
                 </PixelButton>
               </div>
             </Field>

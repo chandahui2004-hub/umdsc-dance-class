@@ -18,7 +18,7 @@ export const MediaPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
-  const { current: event } = useCurrentEvent();
+  const { events, current: event, setCurrentId, isAll } = useCurrentEvent();
   const eventId = event?.id || '';
   const [styleId, setStyleId] = useState<string>(searchParams.get('style') || '');
   const [selectedSessionId, setSelectedSessionId] = useState<string>('');
@@ -144,6 +144,27 @@ export const MediaPage: React.FC = () => {
     if (!selectedSessionId) return musicList;
     return musicList.filter((m) => !m.sessionId || m.sessionId === selectedSessionId);
   }, [musicList, selectedSessionId]);
+
+  if (isAll && events.length > 0) {
+    return (
+      <div className="space-y-6">
+        <h1 className="font-display text-lg tracking-wider text-[var(--c-ink)]">Media Management</h1>
+        <div className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] space-y-3">
+          <p className="font-display text-xs text-[var(--c-ink)]">SELECT AN EVENT FOR MEDIA MANAGEMENT</p>
+          <p className="font-body text-sm text-[var(--c-darkgrey)]">
+            Class recap videos and music tracks are organized by event. Select an active event below to manage its media:
+          </p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {events.filter(e => e.status === 'active').map(e => (
+              <PixelButton key={e.id} size="md" variant="secondary" onClick={() => setCurrentId(e.id)}>
+                {e.name}
+              </PixelButton>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

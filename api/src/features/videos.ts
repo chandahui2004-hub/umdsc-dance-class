@@ -67,7 +67,9 @@ export function getVideoRoutes(): Record<string, Route> {
 
         const event = getEvent(ctx, session.eventId);
         const videoMasterFolderId =
-          ctx.db.settings.find(s => s.key === 'defaultVideoFolderId' && s.active)[0]?.value || '';
+          style.videoFolderId ||
+          ctx.db.settings.find(s => s.key === 'defaultVideoFolderId' && s.active)[0]?.value ||
+          '';
 
         return {
           videoMasterFolderId,
@@ -207,8 +209,10 @@ export function getVideoRoutes(): Record<string, Route> {
         }
 
         // Scan the event's own video folder; if none is saved yet, look for a
-        // folder named after the event under the video master folder.
-        const videoMaster = ctx.db.settings.find(s => s.key === 'defaultVideoFolderId' && s.active)[0]?.value;
+        // folder named after the event under the style video folder, else video master folder.
+        const videoMaster =
+          style.videoFolderId ||
+          ctx.db.settings.find(s => s.key === 'defaultVideoFolderId' && s.active)[0]?.value;
         const rootFolderId =
           event.videoFolderId || (videoMaster ? ctx.drive.findChildFolder(videoMaster, event.name) : null);
         if (!rootFolderId) {
