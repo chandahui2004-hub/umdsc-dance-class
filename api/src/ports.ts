@@ -57,6 +57,8 @@ export interface DrivePort {
   /** Moves the file into folderId unless it is already there. */
   moveToFolder(fileId: string, folderId: string): void;
   renameFolder(folderId: string, name: string): void;
+  /** Moves a folder (with everything in it) under newParentId. */
+  moveFolder(folderId: string, newParentId: string): void;
   /** Copies a spreadsheet into folderId and returns the copy's id. */
   copySpreadsheet(id: string, name: string, folderId: string): string;
   listFilesRecursive(folderId: string): DriveFileInfo[];

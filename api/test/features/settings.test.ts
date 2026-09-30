@@ -4,6 +4,7 @@ import { handleRequest, registerRoutes } from '../../src/router';
 import { makeCtx } from '../fakes/makeCtx';
 import { Hmac, signToken } from '../../src/security/tokens';
 import { getSettingsRoutes } from '../../src/features/settings';
+import { seedEvent } from '../fixtures/events';
 
 const nodeHmac: Hmac = (key: string, message: string) => {
   return new Uint8Array(crypto.createHmac('sha256', key).update(message).digest());
@@ -237,5 +238,22 @@ describe('Feature: Settings and Links', () => {
     const saved = ctx.db.settings.find(s => s.key === 'defaultAttendanceFolderId' && s.active)[0];
     expect(saved).toBeDefined();
     expect(saved.value).toBe(folderId);
+  });
+  it('changing the attendance master folder moves event folders and reports counts', () => {
+    const drive = ctx.drive as any;
+    const oldMaster = drive.createFolder('root', 'Old Attendance');
+    const eventFolder = drive.createFolder(oldMaster, 'OCT MONTHLY CLASS');
+    seedEvent(ctx, { name: 'OCT MONTHLY CLASS', folderId: eventFolder });
+    const newMaster = drive.createFolder('root', 'New Attendance');
+
+    const res = handleRequest(
+      { action: 'settings.setLink', token: adminToken, payload: { key: 'defaultAttendanceFolderId', url: newMaster } },
+      ctx,
+      secrets
+    );
+
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.data).toMatchObject({ key: 'defaultAttendanceFolderId', value: newMaster, moved: 1, created: 0, reused: 0 });
+    expect(drive.parentOf(eventFolder)).toBe(newMaster);
   });
 });

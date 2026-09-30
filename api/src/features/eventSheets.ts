@@ -52,6 +52,53 @@ export function ensureMembersSheet(ctx: Ctx, event: EventItem, folderId: string)
   return ss.id;
 }
 
+/**
+ * After a master folder link changes, puts every event's folder (active and archived)
+ * under the new master: reuse a same-named folder already there, else move the
+ * existing folder, else create one. Attendance folders also get their sheets moved in.
+ */
+export function moveEventFolders(
+  ctx: Ctx,
+  kind: 'attendance' | 'video',
+  newMasterId: string
+): { moved: number; created: number; reused: number } {
+  const counts = { moved: 0, created: 0, reused: 0 };
+
+  for (const event of ctx.db.events.find(e => e.active)) {
+    const currentId = kind === 'attendance' ? event.folderId : event.videoFolderId;
+    if (kind === 'video' && !currentId) continue;
+
+    let target = ctx.drive.findChildFolder(newMasterId, event.name);
+    if (target && target !== currentId) {
+      counts.reused++;
+    } else if (target) {
+      continue; // already in place
+    } else if (currentId && ctx.drive.info(currentId).exists) {
+      ctx.drive.moveFolder(currentId, newMasterId);
+      target = currentId;
+      counts.moved++;
+    } else {
+      target = ctx.drive.createFolder(newMasterId, event.name);
+      counts.created++;
+    }
+
+    if (kind === 'video') {
+      saveEventFields(ctx, event.id, { videoFolderId: target });
+      continue;
+    }
+    saveEventFields(ctx, event.id, { folderId: target });
+    const files = [
+      event.membersSpreadsheetId,
+      ...ctx.db.attendanceSheets.find(a => a.eventId === event.id && a.active).map(a => a.spreadsheetId)
+    ];
+    for (const fileId of files) {
+      if (fileId && ctx.drive.info(fileId).exists) ctx.drive.moveToFolder(fileId, target);
+    }
+  }
+
+  return counts;
+}
+
 /** One attendance sheet per event style, in the event folder, with every class and member. */
 export function ensureEventSheets(ctx: Ctx, event: EventItem): { styleId: string; spreadsheetId: string }[] {
   const folderId = ensureEventFolder(ctx, event);

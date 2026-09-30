@@ -90,6 +90,11 @@ export class FakeDrive implements DrivePort {
     return this.items.get(id)?.name;
   }
 
+  moveFolder(folderId: string, newParentId: string): void {
+    const item = this.items.get(folderId);
+    if (item) item.parentId = newParentId;
+  }
+
   renameFolder(folderId: string, name: string): void {
     const item = this.items.get(folderId);
     if (item) item.name = name;

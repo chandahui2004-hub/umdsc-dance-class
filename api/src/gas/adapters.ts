@@ -193,6 +193,10 @@ export class GasDriveAdapter implements DrivePort {
     file.moveTo(DriveApp.getFolderById(folderId));
   }
 
+  moveFolder(folderId: string, newParentId: string): void {
+    DriveApp.getFolderById(folderId).moveTo(DriveApp.getFolderById(newParentId));
+  }
+
   renameFolder(folderId: string, name: string): void {
     DriveApp.getFolderById(folderId).setName(name);
   }

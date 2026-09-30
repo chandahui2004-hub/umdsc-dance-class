@@ -2,6 +2,12 @@ import { Route } from '../router';
 import { AppError } from '../errors';
 import { validateLink } from '../logic/linkValidation';
 import { logAudit } from '../logic/audit';
+import { moveEventFolders } from './eventSheets';
+
+const MASTER_FOLDER_KINDS: Record<string, 'attendance' | 'video'> = {
+  defaultAttendanceFolderId: 'attendance',
+  defaultVideoFolderId: 'video'
+};
 
 export function getSettingsRoutes(): Record<string, Route> {
   return {
@@ -62,6 +68,10 @@ export function getSettingsRoutes(): Record<string, Route> {
 
         logAudit(ctx, actor, 'settings.setLink', key, JSON.stringify({ oldValue: oldVal, newValue: newId }));
 
+        const kind = MASTER_FOLDER_KINDS[key];
+        if (kind && newId !== oldVal) {
+          return { key, value: newId, ...moveEventFolders(ctx, kind, newId) };
+        }
         return { key, value: newId };
       }
     },
