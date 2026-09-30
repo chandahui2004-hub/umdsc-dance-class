@@ -156,4 +156,73 @@ test.describe('Admin Media Page', () => {
       sessionId: 'ses-1'
     });
   });
+
+  test('collapses and expands all recap videos', async ({ page }) => {
+    await mockApi(page, {
+      ...BASE,
+      'videos.list': () => [
+        {
+          id: 'vid-1',
+          sessionId: 'ses-1',
+          title: 'Routine Part 1.mp4',
+          driveFileId: 'drive-vid-1',
+          mimeType: 'video/mp4',
+          sizeBytes: 1234567,
+          uploadedBy: 'admin',
+          createdAt: '2026-10-08T20:30:00Z',
+          version: 1,
+          active: true
+        },
+        {
+          id: 'vid-2',
+          sessionId: 'ses-1',
+          title: 'Routine Part 2.mp4',
+          driveFileId: 'drive-vid-2',
+          mimeType: 'video/mp4',
+          sizeBytes: 2345678,
+          uploadedBy: 'admin',
+          createdAt: '2026-10-08T20:35:00Z',
+          version: 1,
+          active: true
+        }
+      ]
+    });
+
+    await page.goto('/admin/media');
+    await expect(page.getByText('CLASS RECAP VIDEOS (2)')).toBeVisible();
+
+    // Both videos visible and collapse all button available
+    const collapseAllBtn = page.getByRole('button', { name: /COLLAPSE ALL/i });
+    await expect(collapseAllBtn).toBeVisible();
+
+    // Click collapse all
+    await collapseAllBtn.click();
+    await expect(page.getByRole('button', { name: /EXPAND ALL/i })).toBeVisible();
+
+    // In collapsed state, collapsed summary chips or video titles are visible in compact rows
+    await expect(page.getByText('Routine Part 1.mp4').first()).toBeVisible();
+
+    // Click expand all
+    await page.getByRole('button', { name: /EXPAND ALL/i }).click();
+    await expect(page.getByRole('button', { name: /COLLAPSE ALL/i })).toBeVisible();
+  });
+
+  test('selects multiple video files and shows batch selection list with sizes', async ({ page }) => {
+    await mockApi(page, BASE);
+    await page.goto('/admin/media');
+    await page.getByRole('button', { name: /UPLOAD VIDEO/i }).click();
+
+    // Select 2 video files at once
+    await page.locator('input[type="file"][accept*="video"]').setInputFiles([
+      { name: 'part1.mp4', mimeType: 'video/mp4', buffer: Buffer.from('file-1-content') },
+      { name: 'part2.mp4', mimeType: 'video/mp4', buffer: Buffer.from('file-2-content') }
+    ]);
+
+    // Should list both files with badge showing 2 FILES
+    await expect(page.getByText('2 FILES SELECTED')).toBeVisible();
+    await expect(page.getByText('part1.mp4')).toBeVisible();
+    await expect(page.getByText('part2.mp4')).toBeVisible();
+    await expect(page.getByRole('button', { name: /START UPLOAD \(2 VIDEOS\)/i })).toBeVisible();
+  });
 });
+

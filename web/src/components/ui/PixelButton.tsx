@@ -1,7 +1,7 @@
 import React from 'react';
 
 export type PixelButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
-export type PixelButtonSize = 'md' | 'lg';
+export type PixelButtonSize = 'sm' | 'md' | 'lg';
 
 export interface PixelButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: PixelButtonVariant;
@@ -21,6 +21,7 @@ export const PixelButton: React.FC<PixelButtonProps> = ({
     'inline-flex items-center justify-center font-display uppercase tracking-wider select-none cursor-pointer transition-none disabled:opacity-50 disabled:pointer-events-none text-center';
 
   const sizeStyles = {
+    sm: 'min-h-[36px] px-2.5 py-1 text-[10px]',
     md: 'min-h-[44px] px-4 py-2 text-xs',
     lg: 'min-h-[52px] px-6 py-3 text-sm'
   }[size];

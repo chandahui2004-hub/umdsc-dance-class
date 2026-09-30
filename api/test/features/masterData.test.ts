@@ -166,6 +166,110 @@ describe('Feature: Master Data (Styles & Instructors)', () => {
     }
   });
 
+  it('styles.update manages multiple video folders: add, activate, and remove', () => {
+    const folder1 = ctx.drive.createFolder('root', 'Popping Batch 1');
+    const folder2 = ctx.drive.createFolder('root', 'Popping Batch 2');
+
+    const style = ctx.db.styles.insert(
+      {
+        name: 'Popping',
+        aliases: 'pop',
+        colorKey: 'blue',
+        defaultWeekday: 2,
+        defaultStart: '20:00',
+        defaultEnd: '22:00',
+        defaultInstructorId: '',
+        defaultVenue: 'Studio A',
+        attendanceFolderId: '',
+        videoFolderId: ''
+      },
+      'admin1',
+      ctx.now()
+    );
+
+    // 1. Add folder 1
+    const res1 = handleRequest(
+      {
+        action: 'styles.update',
+        token: adminToken,
+        payload: {
+          id: style.id,
+          version: style.version,
+          addVideoFolderUrl: 'https://drive.google.com/drive/folders/' + folder1
+        }
+      },
+      ctx,
+      secrets
+    );
+    expect(res1.ok).toBe(true);
+    const updated1 = (res1 as any).data;
+    expect(updated1.videoFolderId).toBe(folder1);
+    const folders1 = JSON.parse(updated1.videoFoldersJson);
+    expect(folders1).toHaveLength(1);
+    expect(folders1[0].id).toBe(folder1);
+    expect(folders1[0].name).toBe('Popping Batch 1');
+
+    // 2. Add folder 2
+    const res2 = handleRequest(
+      {
+        action: 'styles.update',
+        token: adminToken,
+        payload: {
+          id: style.id,
+          version: updated1.version,
+          addVideoFolderUrl: 'https://drive.google.com/drive/folders/' + folder2
+        }
+      },
+      ctx,
+      secrets
+    );
+    expect(res2.ok).toBe(true);
+    const updated2 = (res2 as any).data;
+    const folders2 = JSON.parse(updated2.videoFoldersJson);
+    expect(folders2).toHaveLength(2);
+    expect(folders2[1].id).toBe(folder2);
+    expect(folders2[1].name).toBe('Popping Batch 2');
+
+    // 3. Activate folder 2
+    const res3 = handleRequest(
+      {
+        action: 'styles.update',
+        token: adminToken,
+        payload: {
+          id: style.id,
+          version: updated2.version,
+          activateVideoFolderId: folder2
+        }
+      },
+      ctx,
+      secrets
+    );
+    expect(res3.ok).toBe(true);
+    const updated3 = (res3 as any).data;
+    expect(updated3.videoFolderId).toBe(folder2);
+
+    // 4. Remove active folder 2 -> fallback to folder 1
+    const res4 = handleRequest(
+      {
+        action: 'styles.update',
+        token: adminToken,
+        payload: {
+          id: style.id,
+          version: updated3.version,
+          removeVideoFolderId: folder2
+        }
+      },
+      ctx,
+      secrets
+    );
+    expect(res4.ok).toBe(true);
+    const updated4 = (res4 as any).data;
+    expect(updated4.videoFolderId).toBe(folder1);
+    const folders4 = JSON.parse(updated4.videoFoldersJson);
+    expect(folders4).toHaveLength(1);
+    expect(folders4[0].id).toBe(folder1);
+  });
+
   it('instructors CRUD: create, update, deactivate', () => {
     // 1. Create
     const createRes = handleRequest(

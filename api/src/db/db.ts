@@ -172,6 +172,7 @@ const defaultCodecs = {
       ...r,
       aliases: Array.isArray(r.aliases) ? r.aliases.join(',') : String(r.aliases || ''),
       defaultWeekday: r.defaultWeekday !== null ? r.defaultWeekday : '',
+      videoFoldersJson: r.videoFoldersJson || '[]',
       active: r.active ? 'TRUE' : 'FALSE'
     }),
     fromCells: (c: Record<string, string>): DanceStyle => ({
@@ -189,7 +190,8 @@ const defaultCodecs = {
       defaultInstructorId: c.defaultInstructorId || '',
       defaultVenue: c.defaultVenue || '',
       attendanceFolderId: c.attendanceFolderId || '',
-      videoFolderId: c.videoFolderId || ''
+      videoFolderId: c.videoFolderId || '',
+      videoFoldersJson: c.videoFoldersJson || '[]'
     })
   },
   instructors: {

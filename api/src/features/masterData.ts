@@ -10,7 +10,7 @@ export function crudRoutes<T extends { id: string; version: number; active: bool
   getTable: (ctx: any) => Table<T>;
   perm: PermissionCode;
   listPerm?: PermissionCode | 'signedIn' | 'public';
-  processPayload?: (ctx: any, payload: any, isUpdate: boolean) => any;
+  processPayload?: (ctx: any, payload: any, isUpdate: boolean, existing?: any) => any;
   getTargetName?: (row: any) => string;
 }): Record<string, Route> {
   const { prefix, getTable, perm, listPerm = perm, processPayload, getTargetName = (r) => r.name || r.id } = opts;
@@ -58,7 +58,7 @@ export function crudRoutes<T extends { id: string; version: number; active: bool
         }
 
         const actor = auth?.claims.sub || 'system';
-        const processed = processPayload ? processPayload(ctx, rest, true) : rest;
+        const processed = processPayload ? processPayload(ctx, rest, true, existing) : rest;
         const updated = table.update(id, version, processed, actor, ctx.now());
         logAudit(ctx, actor, `${prefix}.update`, getTargetName(updated), JSON.stringify(updated));
         return updated;
@@ -100,13 +100,93 @@ export function getMasterDataRoutes(): Record<string, Route> {
     getTable: (ctx) => ctx.db.styles,
     perm: 'styles.edit',
     listPerm: 'signedIn',
-    processPayload: (ctx, payload) => {
+    processPayload: (ctx, payload, isUpdate, existing) => {
+      let folders: { id: string; name: string; url: string; addedAt: string }[] = [];
+      if (existing?.videoFoldersJson) {
+        try {
+          folders = JSON.parse(existing.videoFoldersJson);
+        } catch {
+          folders = [];
+        }
+      } else if (existing?.videoFolderId) {
+        folders = [{
+          id: existing.videoFolderId,
+          name: 'Video Folder',
+          url: `https://drive.google.com/drive/folders/${existing.videoFolderId}`,
+          addedAt: existing.updatedAt || ctx.now().toISOString()
+        }];
+      }
+
+      // Add a video folder URL
+      if (payload.addVideoFolderUrl !== undefined) {
+        const url = payload.addVideoFolderUrl.trim();
+        if (url) {
+          const folderId = validateLink(ctx, url, 'folder');
+          const info = ctx.drive.info(folderId);
+          const folderName = info.name || 'Video Folder';
+          const existingIdx = folders.findIndex(f => f.id === folderId);
+          if (existingIdx >= 0) {
+            folders[existingIdx] = { ...folders[existingIdx], name: folderName, url };
+          } else {
+            folders.push({
+              id: folderId,
+              name: folderName,
+              url,
+              addedAt: ctx.now().toISOString()
+            });
+          }
+          if (!existing?.videoFolderId || payload.makeActive) {
+            payload.videoFolderId = folderId;
+          }
+        }
+        delete payload.addVideoFolderUrl;
+        delete payload.makeActive;
+        payload.videoFoldersJson = JSON.stringify(folders);
+      }
+
+      // Activate a video folder by ID
+      if (payload.activateVideoFolderId !== undefined) {
+        const targetId = payload.activateVideoFolderId.trim();
+        if (targetId) {
+          payload.videoFolderId = targetId;
+        }
+        delete payload.activateVideoFolderId;
+      }
+
+      // Remove a video folder by ID
+      if (payload.removeVideoFolderId !== undefined) {
+        const targetId = payload.removeVideoFolderId.trim();
+        folders = folders.filter(f => f.id !== targetId);
+        payload.videoFoldersJson = JSON.stringify(folders);
+        if (existing?.videoFolderId === targetId || payload.videoFolderId === targetId) {
+          payload.videoFolderId = folders.length > 0 ? folders[0].id : '';
+        }
+        delete payload.removeVideoFolderId;
+      }
+
+      // Legacy / simple videoFolderUrl
       if (payload.videoFolderUrl !== undefined) {
-        payload.videoFolderId = payload.videoFolderUrl.trim()
-          ? validateLink(ctx, payload.videoFolderUrl.trim(), 'folder')
-          : '';
+        const url = payload.videoFolderUrl.trim();
+        if (url) {
+          const folderId = validateLink(ctx, url, 'folder');
+          const info = ctx.drive.info(folderId);
+          const folderName = info.name || 'Video Folder';
+          payload.videoFolderId = folderId;
+          if (!folders.some(f => f.id === folderId)) {
+            folders.push({
+              id: folderId,
+              name: folderName,
+              url,
+              addedAt: ctx.now().toISOString()
+            });
+            payload.videoFoldersJson = JSON.stringify(folders);
+          }
+        } else {
+          payload.videoFolderId = '';
+        }
         delete payload.videoFolderUrl;
       }
+
       if (payload.attendanceFolderUrl !== undefined) {
         payload.attendanceFolderId = payload.attendanceFolderUrl.trim()
           ? validateLink(ctx, payload.attendanceFolderUrl.trim(), 'folder')

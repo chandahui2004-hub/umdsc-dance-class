@@ -8,7 +8,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { ResetTestDataPanel } from './ResetTestDataPanel';
 import { RetentionPanel } from './RetentionPanel';
 import { STYLE_COLOR } from '../../theme/colors';
-import type { DanceStyle } from '@umdsc/shared';
+import type { DanceStyle, StyleVideoFolder } from '@umdsc/shared';
 
 interface LinkHistoryItem {
   id: string;
@@ -24,7 +24,25 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
   const [url, setUrl] = useState('');
   const [status, setStatus] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  const updateMutation = useMutation({
+  // Parse configured folders
+  let folders: StyleVideoFolder[] = [];
+  if (style.videoFoldersJson) {
+    try {
+      folders = JSON.parse(style.videoFoldersJson);
+    } catch {
+      folders = [];
+    }
+  }
+  if (style.videoFolderId && !folders.some((f) => f.id === style.videoFolderId)) {
+    folders.unshift({
+      id: style.videoFolderId,
+      name: `${style.name} Video Folder`,
+      url: `https://drive.google.com/drive/folders/${style.videoFolderId}`,
+      addedAt: ''
+    });
+  }
+
+  const addFolderMutation = useMutation({
     mutationFn: async (folderUrl: string) => {
       return await api.post('styles.update', {
         id: style.id,
@@ -42,35 +60,58 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
     }
   });
 
+  const activateFolderMutation = useMutation({
+    mutationFn: async (folderId: string) => {
+      return await api.post('styles.update', {
+        id: style.id,
+        version: style.version,
+        activateVideoFolderId: folderId
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['styles'] });
+      setStatus({ text: 'FOLDER ACTIVATED!', type: 'success' });
+    },
+    onError: (err) => {
+      setStatus({ text: errorMessage(err), type: 'error' });
+    }
+  });
+
+  const removeFolderMutation = useMutation({
+    mutationFn: async (folderId: string) => {
+      return await api.post('styles.update', {
+        id: style.id,
+        version: style.version,
+        removeVideoFolderId: folderId
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['styles'] });
+      setStatus({ text: 'FOLDER REMOVED!', type: 'success' });
+    },
+    onError: (err) => {
+      setStatus({ text: errorMessage(err), type: 'error' });
+    }
+  });
+
   const color = STYLE_COLOR[style.colorKey] || `var(--c-${style.colorKey})`;
 
   return (
-    <div className="p-3 md:p-4 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] space-y-2">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <div className="p-3 md:p-4 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] space-y-3">
+      {/* Style Header */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b-2 border-[var(--c-ink)]">
         <div className="flex items-center gap-2">
           <span
             className="w-4 h-4 rounded-none border border-[var(--c-ink)] inline-block flex-shrink-0"
             style={{ backgroundColor: color }}
           />
-          <span className="font-display text-xs md:text-sm text-[var(--c-ink)]">
+          <span className="font-display text-xs md:text-sm text-[var(--c-ink)] font-bold">
             {style.name.toUpperCase()}
           </span>
         </div>
-
-        <div className="text-xs font-mono">
-          {style.videoFolderId ? (
-            <a
-              href={`https://drive.google.com/drive/folders/${style.videoFolderId}`}
-              target="_blank"
-              rel="noreferrer"
-              className="text-[var(--c-navy)] font-bold underline hover:text-[var(--c-ink)]"
-            >
-              Open in Drive ↗ ({style.videoFolderId.slice(0, 10)}…)
-            </a>
-          ) : (
-            <span className="text-[var(--c-red)] font-bold">Not Configured</span>
-          )}
-        </div>
+        <span className="font-mono text-xs text-[var(--c-darkgrey)]">
+          {folders.length} {folders.length === 1 ? 'folder configured' : 'folders configured'}
+        </span>
       </div>
 
       {status && (
@@ -86,24 +127,101 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-2">
-        <input
-          aria-label={`${style.name} video folder link`}
-          type="url"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder={style.videoFolderId ? `https://drive.google.com/drive/folders/${style.videoFolderId}` : 'https://drive.google.com/drive/folders/...'}
-          className="flex-1 min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-mono text-xs md:text-sm bg-[var(--c-bg)]"
-        />
-        <PixelButton
-          size="md"
-          variant="primary"
-          className="w-full sm:w-auto"
-          disabled={updateMutation.isPending || !url.trim()}
-          onClick={() => updateMutation.mutate(url.trim())}
-        >
-          {updateMutation.isPending ? 'SAVING…' : 'UPDATE LINK'}
-        </PixelButton>
+      {/* Folders List */}
+      {folders.length === 0 ? (
+        <p className="font-body text-xs text-[var(--c-red)] font-bold">
+          No video folders configured for this style yet.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {folders.map((folder) => {
+            const isActive = style.videoFolderId === folder.id;
+            return (
+              <div
+                key={folder.id}
+                className={`p-2.5 border-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 ${
+                  isActive
+                    ? 'bg-[var(--c-bg)] border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)]'
+                    : 'bg-[var(--c-panel)] border-[var(--c-darkgrey)]'
+                }`}
+              >
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    {isActive ? (
+                      <span className="font-display text-[9px] px-1.5 py-0.5 bg-[var(--c-green)] text-[var(--c-ink)] border border-[var(--c-ink)] font-bold">
+                        ● ACTIVE
+                      </span>
+                    ) : (
+                      <span className="font-display text-[9px] px-1.5 py-0.5 bg-[var(--c-panel)] text-[var(--c-darkgrey)] border border-[var(--c-darkgrey)] font-bold">
+                        INACTIVE
+                      </span>
+                    )}
+                    <span className="font-display text-xs text-[var(--c-ink)] font-bold truncate">
+                      {folder.name || 'Video Folder'}
+                    </span>
+                  </div>
+                  <div className="font-mono text-[11px]">
+                    <a
+                      href={`https://drive.google.com/drive/folders/${folder.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[var(--c-navy)] font-bold underline hover:text-[var(--c-ink)]"
+                    >
+                      Open in Drive ↗ ({folder.id.slice(0, 10)}…)
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end pt-1 sm:pt-0">
+                  {!isActive && (
+                    <PixelButton
+                      size="sm"
+                      variant="secondary"
+                      disabled={activateFolderMutation.isPending}
+                      onClick={() => activateFolderMutation.mutate(folder.id)}
+                    >
+                      ACTIVATE
+                    </PixelButton>
+                  )}
+                  <PixelButton
+                    size="sm"
+                    variant="danger"
+                    disabled={removeFolderMutation.isPending}
+                    onClick={() => removeFolderMutation.mutate(folder.id)}
+                  >
+                    REMOVE
+                  </PixelButton>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Add Folder Form */}
+      <div className="pt-2 border-t border-[var(--c-ink)] space-y-1">
+        <span className="font-display text-[10px] text-[var(--c-ink)] font-bold">
+          + ADD GOOGLE DRIVE FOLDER LINK:
+        </span>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            aria-label={`${style.name} video folder link`}
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://drive.google.com/drive/folders/..."
+            className="flex-1 min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-mono text-xs md:text-sm bg-[var(--c-bg)]"
+          />
+          <PixelButton
+            size="md"
+            variant="primary"
+            className="w-full sm:w-auto"
+            disabled={addFolderMutation.isPending || !url.trim()}
+            onClick={() => addFolderMutation.mutate(url.trim())}
+          >
+            {addFolderMutation.isPending ? 'SAVING…' : 'UPDATE LINK'}
+          </PixelButton>
+        </div>
       </div>
     </div>
   );

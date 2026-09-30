@@ -36,9 +36,15 @@ export type PermMap = Partial<Record<PermissionCode, '*' | string[]>>;   // stri
 export interface ApiRequest { action: string; token?: string; payload?: unknown; opId?: string; sinceVersion?: number }
 export type ApiResponse<T> = { ok: true; data: T; dataVersion: number; serverTime: string }
   | { ok: false; error: { code: ErrorCode; message: string; retryable: boolean; latest?: unknown } };
+export interface StyleVideoFolder {
+  id: string;
+  name: string;
+  url: string;
+  addedAt: string;
+}
 export interface RowMeta { id: string; version: number; updatedBy: string; updatedAt: string; active: boolean }
 export interface DanceStyle extends RowMeta { name: string; aliases: string[]; colorKey: string; defaultWeekday: number|null;
-  defaultStart: HHmm; defaultEnd: HHmm; defaultInstructorId: string; defaultVenue: string; attendanceFolderId: string; videoFolderId: string }
+  defaultStart: HHmm; defaultEnd: HHmm; defaultInstructorId: string; defaultVenue: string; attendanceFolderId: string; videoFolderId: string; videoFoldersJson?: string }
 export interface Instructor extends RowMeta { name: string; contact: string }
 export interface ClassSession extends RowMeta { eventId: string; styleId: string; seq: number; date: ISODate; start: HHmm; end: HHmm;
   instructorId: string; venue: string; status: 'scheduled'|'replacement'|'cancelled'; note: string }

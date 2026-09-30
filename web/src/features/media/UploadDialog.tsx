@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, errorMessage } from '../../lib/api';
 import { getAccessToken } from '../../lib/google/gis';
@@ -35,37 +35,58 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
   const [selectedSessionId, setSelectedSessionId] = useState<string>(
     initialSessionId || (sessions[0]?.id || '')
   );
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [formatWarning, setFormatWarning] = useState<string | null>(null);
   const [warningIgnored, setWarningIgnored] = useState<boolean>(false);
 
   const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [currentFileIndex, setCurrentFileIndex] = useState<number>(0);
   const [progressPercent, setProgressPercent] = useState<number>(0);
   const [uploadStatus, setUploadStatus] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+
+  // Prevent accidental tab closure while uploading
+  useEffect(() => {
+    if (!isUploading) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = 'Upload is in progress. Leaving will cancel the upload.';
+      return e.returnValue;
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isUploading]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
     setFormatWarning(null);
     setWarningIgnored(false);
 
-    if (e.target.files && e.target.files[0]) {
-      const chosen = e.target.files[0];
-      setFile(chosen);
+    if (e.target.files && e.target.files.length > 0) {
+      const selected = Array.from(e.target.files);
+      setFiles(selected);
       if (type === 'video') {
-        const warning = videoFormatWarning(chosen);
-        if (warning) {
-          setFormatWarning(warning);
+        const warnings = selected.map(f => videoFormatWarning(f)).filter(Boolean);
+        if (warnings.length > 0) {
+          setFormatWarning(warnings[0]!);
         }
       }
     }
   };
 
+  const removeFile = (idxToRemove: number) => {
+    setFiles(prev => prev.filter((_, idx) => idx !== idxToRemove));
+    if (files.length <= 1) {
+      setFormatWarning(null);
+    }
+  };
+
   const handleStartUpload = async () => {
-    if (!file || !selectedSessionId) return;
+    if (files.length === 0 || !selectedSessionId) return;
     setIsUploading(true);
     setError(null);
     setProgressPercent(0);
+    setCurrentFileIndex(0);
     setUploadStatus('Authenticating with Google...');
 
     let wakeLock: any = null;
@@ -100,41 +121,46 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
       const folders = await ensureClassFolder(token, target, type);
       const parentFolderId = folders.musicFolderId || folders.classFolderId;
 
-      // 5. Perform Resumable Upload
-      setUploadStatus('Uploading file to Google Drive...');
-      const uploaded = await uploadResumable({
-        token,
-        file,
-        parentId: parentFolderId,
-        name: file.name,
-        onProgress: (sent, total) => {
-          const pct = Math.round((sent / total) * 100);
-          setProgressPercent(pct);
+      // 5. Upload files sequentially
+      for (let i = 0; i < files.length; i++) {
+        const curFile = files[i];
+        setCurrentFileIndex(i);
+        const prefix = files.length > 1 ? `[${i + 1}/${files.length}] ` : '';
+        setUploadStatus(`${prefix}Uploading ${curFile.name} to Google Drive...`);
+        setProgressPercent(0);
+
+        const uploaded = await uploadResumable({
+          token,
+          file: curFile,
+          parentId: parentFolderId,
+          name: curFile.name,
+          onProgress: (sent, total) => {
+            const pct = Math.round((sent / total) * 100);
+            setProgressPercent(pct);
+          }
+        });
+
+        setUploadStatus(`${prefix}Updating file permissions...`);
+        await makePublic(token, uploaded.id);
+
+        setUploadStatus(`${prefix}Registering file with club system...`);
+        if (type === 'video') {
+          await api.post('videos.register', {
+            driveFileId: uploaded.id,
+            sessionId: selectedSessionId,
+            title: curFile.name,
+            eventFolderId: folders.eventFolderId
+          });
+        } else {
+          await api.post('music.create', {
+            styleId: style.id,
+            eventId,
+            sessionId: selectedSessionId,
+            title: curFile.name,
+            sourceType: 'mp3',
+            driveFileId: uploaded.id
+          });
         }
-      });
-
-      // 6. Make public (anyone reader)
-      setUploadStatus('Updating file permissions...');
-      await makePublic(token, uploaded.id);
-
-      // 7. Register in backend database
-      setUploadStatus('Registering file with club system...');
-      if (type === 'video') {
-        await api.post('videos.register', {
-          driveFileId: uploaded.id,
-          sessionId: selectedSessionId,
-          title: file.name,
-          eventFolderId: folders.eventFolderId
-        });
-      } else {
-        await api.post('music.create', {
-          styleId: style.id,
-          eventId,
-          sessionId: selectedSessionId,
-          title: file.name,
-          sourceType: 'mp3',
-          driveFileId: uploaded.id
-        });
       }
 
       setIsUploading(false);
@@ -149,11 +175,13 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
     }
   };
 
+  const totalBytes = files.reduce((acc, f) => acc + f.size, 0);
+
   return (
     <div className="fixed inset-0 bg-[var(--c-ink)]/60 z-50 flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
         <Panel
-          title={type === 'video' ? 'UPLOAD CLASS RECAP VIDEO' : 'UPLOAD CLASS MP3 MUSIC'}
+          title={type === 'video' ? 'UPLOAD CLASS RECAP VIDEO(S)' : 'UPLOAD CLASS MP3 MUSIC'}
           className="px-corners bg-[var(--c-panel)] space-y-4"
         >
           {error && (
@@ -203,16 +231,59 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
             </>
           )}
 
-          {/* File Picker */}
-          <Field label={type === 'video' ? 'Select Video File' : 'Select MP3 File'} required>
+          {/* File Picker with multiple files support */}
+          <Field
+            label={type === 'video' ? 'Select Video File(s) (One or More)' : 'Select MP3 File(s)'}
+            required
+          >
             <input
               type="file"
+              multiple
               accept={type === 'video' ? 'video/mp4,video/*,.mov,.mp4' : 'audio/mp3,audio/*,.mp3'}
               disabled={isUploading}
               onChange={handleFileChange}
               className="w-full min-h-[44px] p-2 border-2 border-[var(--c-ink)] font-mono text-xs bg-[var(--c-bg)]"
             />
           </Field>
+
+          {/* Selected Files List */}
+          {files.length > 0 && (
+            <div className="space-y-1.5 p-2 bg-[var(--c-bg)] border-2 border-[var(--c-ink)] max-h-44 overflow-y-auto">
+              <div className="flex justify-between items-center text-xs font-display">
+                <span>
+                  {files.length} {files.length === 1 ? 'FILE' : 'FILES'} SELECTED:
+                </span>
+                <span className="font-mono text-[11px] text-[var(--c-darkgrey)]">
+                  {(totalBytes / (1024 * 1024)).toFixed(1)} MB total
+                </span>
+              </div>
+              {files.map((f, idx) => (
+                <div
+                  key={idx}
+                  className="flex justify-between items-center p-1.5 bg-[var(--c-panel)] border border-[var(--c-ink)] font-mono text-xs"
+                >
+                  <span className="truncate max-w-[220px] font-bold">
+                    #{idx + 1} {f.name}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-[var(--c-darkgrey)]">
+                      {(f.size / (1024 * 1024)).toFixed(1)} MB
+                    </span>
+                    {!isUploading && (
+                      <button
+                        type="button"
+                        onClick={() => removeFile(idx)}
+                        className="text-[var(--c-red)] font-bold px-1 hover:bg-[var(--c-peach)] cursor-pointer"
+                        aria-label={`Remove ${f.name}`}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Video Format Warning Alert */}
           {formatWarning && !warningIgnored && (
@@ -231,11 +302,11 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
                   size="md"
                   variant="secondary"
                   onClick={() => {
-                    setFile(null);
+                    setFiles([]);
                     setFormatWarning(null);
                   }}
                 >
-                  CHOOSE ANOTHER FILE
+                  CHOOSE OTHER FILES
                 </PixelButton>
               </div>
             </div>
@@ -245,7 +316,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
           {isUploading && (
             <div className="p-4 bg-[var(--c-bg)] border-2 border-[var(--c-ink)] space-y-2">
               <div className="flex justify-between font-display text-xs text-[var(--c-ink)]">
-                <span>{uploadStatus}</span>
+                <span className="truncate max-w-[300px]">{uploadStatus}</span>
                 <span className="font-bold text-[var(--c-navy)]">{progressPercent}%</span>
               </div>
               <div className="w-full h-4 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] overflow-hidden">
@@ -254,8 +325,18 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
+              {files.length > 1 && (
+                <div className="flex justify-between font-mono text-xs text-[var(--c-darkgrey)]">
+                  <span>
+                    File {currentFileIndex + 1} of {files.length}
+                  </span>
+                  <span>
+                    {Math.round(((currentFileIndex + progressPercent / 100) / files.length) * 100)}% overall
+                  </span>
+                </div>
+              )}
               <div className="p-2 bg-[var(--c-yellow)] border border-[var(--c-ink)] text-center font-display text-[10px] text-[var(--c-ink)] font-bold animate-pulse">
-                KEEP THIS PAGE OPEN UNTIL UPLOAD COMPLETES
+                UPLOADING TO GOOGLE DRIVE · SCREEN WAKE LOCK ACTIVE
               </div>
             </div>
           )}
@@ -274,10 +355,14 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
               size="md"
               variant="primary"
               className="flex-1"
-              disabled={isUploading || !file || (Boolean(formatWarning) && !warningIgnored)}
+              disabled={isUploading || files.length === 0 || (Boolean(formatWarning) && !warningIgnored)}
               onClick={handleStartUpload}
             >
-              {isUploading ? 'UPLOADING...' : 'START UPLOAD'}
+              {isUploading
+                ? `UPLOADING (${currentFileIndex + 1}/${files.length})...`
+                : files.length > 1
+                ? `START UPLOAD (${files.length} VIDEOS)`
+                : 'START UPLOAD'}
             </PixelButton>
           </div>
         </Panel>

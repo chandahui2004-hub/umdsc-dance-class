@@ -30,6 +30,25 @@ export const MediaPage: React.FC = () => {
   const [showAddMusic, setShowAddMusic] = useState(false);
   const [activeMusicForSections, setActiveMusicForSections] = useState<Music | null>(null);
 
+  // Video collapse/expand states
+  const [allVideosCollapsed, setAllVideosCollapsed] = useState<boolean>(false);
+  const [collapsedVideoIds, setCollapsedVideoIds] = useState<Record<string, boolean>>({});
+
+  const toggleVideoCollapse = (id: string) => {
+    setCollapsedVideoIds((prev) => {
+      const current = prev[id] !== undefined ? prev[id] : allVideosCollapsed;
+      return { ...prev, [id]: !current };
+    });
+  };
+
+  const handleToggleAllVideos = () => {
+    setAllVideosCollapsed((prev) => {
+      const next = !prev;
+      setCollapsedVideoIds({});
+      return next;
+    });
+  };
+
   // Only the current event's styles
   const { data: allStyles = [] } = useQuery<DanceStyle[]>({
     queryKey: ['styles'],
@@ -356,10 +375,21 @@ export const MediaPage: React.FC = () => {
           title={`CLASS RECAP VIDEOS (${filteredVideos.length})`}
           className="px-corners bg-[var(--c-panel)] space-y-4"
         >
-          <div className="flex justify-between items-center pb-2 border-b-2 border-[var(--c-ink)]">
-            <span className="font-display text-xs text-[var(--c-ink)]">
-              {selectedSession ? `Class #${selectedSession.seq} Recap` : 'All Recaps'}
-            </span>
+          <div className="flex flex-wrap justify-between items-center gap-2 pb-2 border-b-2 border-[var(--c-ink)]">
+            <div className="flex items-center gap-2">
+              <span className="font-display text-xs text-[var(--c-ink)]">
+                {selectedSession ? `Class #${selectedSession.seq} Recap` : 'All Recaps'}
+              </span>
+              {filteredVideos.length > 0 && (
+                <PixelButton
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleToggleAllVideos}
+                >
+                  {allVideosCollapsed ? '▼ EXPAND ALL' : '▲ COLLAPSE ALL'}
+                </PixelButton>
+              )}
+            </div>
             <PixelButton
               size="md"
               variant="primary"
@@ -388,11 +418,66 @@ export const MediaPage: React.FC = () => {
               </PixelButton>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {filteredVideos.map((vid) => {
                 const sess = sessions.find((s) => s.id === vid.sessionId);
                 const stream = streamUrl(vid.driveFileId);
                 const driveLink = openInDriveUrl(vid.driveFileId);
+                const isCollapsed =
+                  collapsedVideoIds[vid.id] !== undefined
+                    ? collapsedVideoIds[vid.id]
+                    : allVideosCollapsed;
+
+                if (isCollapsed) {
+                  return (
+                    <div
+                      key={vid.id}
+                      className="p-3 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] shadow-[2px_2px_0_var(--c-ink)] flex flex-wrap justify-between items-center gap-2"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => toggleVideoCollapse(vid.id)}
+                          className="font-display text-[9px] px-1.5 py-0.5 bg-[var(--c-panel)] border border-[var(--c-ink)] hover:bg-[var(--c-yellow)] cursor-pointer"
+                          aria-label="Expand video"
+                        >
+                          ▼ EXPAND
+                        </button>
+                        <h4 className="font-display text-xs text-[var(--c-ink)] font-bold truncate">
+                          {vid.title}
+                        </h4>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {sess && (
+                          <span className="font-mono text-xs text-[var(--c-navy)] font-bold">
+                            Class #{sess.seq} ({sess.date})
+                          </span>
+                        )}
+                        <a
+                          href={driveLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-mono text-xs text-[var(--c-blue)] underline font-bold"
+                        >
+                          Drive ↗
+                        </a>
+                        <PixelButton
+                          size="sm"
+                          variant="danger"
+                          disabled={deleteVideoMutation.isPending}
+                          onClick={() =>
+                            deleteVideoMutation.mutate({
+                              id: vid.id,
+                              version: vid.version
+                            })
+                          }
+                        >
+                          DEL
+                        </PixelButton>
+                      </div>
+                    </div>
+                  );
+                }
 
                 return (
                   <div
@@ -400,9 +485,19 @@ export const MediaPage: React.FC = () => {
                     className="p-3 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] shadow-[2px_2px_0_var(--c-ink)] space-y-3"
                   >
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1">
-                      <h4 className="font-display text-xs text-[var(--c-ink)] font-bold truncate">
-                        {vid.title}
-                      </h4>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => toggleVideoCollapse(vid.id)}
+                          className="font-display text-[9px] px-1.5 py-0.5 bg-[var(--c-panel)] border border-[var(--c-ink)] hover:bg-[var(--c-yellow)] cursor-pointer"
+                          aria-label="Collapse video"
+                        >
+                          ▲ COLLAPSE
+                        </button>
+                        <h4 className="font-display text-xs text-[var(--c-ink)] font-bold truncate">
+                          {vid.title}
+                        </h4>
+                      </div>
                       {sess && (
                         <span className="font-mono text-xs text-[var(--c-navy)] font-bold">
                           Class #{sess.seq} ({sess.date})
