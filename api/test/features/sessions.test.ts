@@ -282,6 +282,63 @@ describe('Feature: Class Sessions (features/sessions)', () => {
     }
   });
 
+  it('sessions.list with styleId returns only that style', () => {
+    handleRequest(
+      { action: 'sessions.generateMonth', token: adminToken, payload: { month: '2026-10' } },
+      ctx,
+      secrets
+    );
+
+    const res = handleRequest(
+      { action: 'sessions.list', token: adminToken, payload: { month: '2026-10', styleId: 'st_hiphop' } },
+      ctx,
+      secrets
+    );
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      const list = res.data as any[];
+      expect(list.length).toBe(5);
+      expect(list.every(s => s.styleId === 'st_hiphop')).toBe(true);
+    }
+  });
+
+  it('sessions.delete removes the class from sessions.list', () => {
+    const session = ctx.db.sessions.insert(
+      {
+        month: '2026-09',
+        styleId: 'st_popping',
+        seq: 1,
+        date: '2026-09-30',
+        start: '20:00',
+        end: '22:00',
+        instructorId: '',
+        venue: '',
+        status: 'scheduled',
+        note: ''
+      },
+      'admin1',
+      ctx.now()
+    );
+
+    const res = handleRequest(
+      { action: 'sessions.delete', token: adminToken, payload: { id: session.id, version: session.version } },
+      ctx,
+      secrets
+    );
+    expect(res.ok).toBe(true);
+
+    const list = handleRequest(
+      { action: 'sessions.list', token: adminToken, payload: { month: '2026-09' } },
+      ctx,
+      secrets
+    );
+    expect(list.ok).toBe(true);
+    if (list.ok) {
+      expect((list.data as any[]).length).toBe(0);
+    }
+  });
+
   it('sessions.batchUpsert creates and updates class sessions across styles and custom dates', () => {
     const res = handleRequest(
       {

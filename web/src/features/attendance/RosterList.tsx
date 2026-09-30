@@ -16,6 +16,7 @@ interface RosterListProps {
   activeSessionId: string | null;
   onSelectSession: (sessionId: string) => void;
   onToggle: (memberId: string, sessionId: string, present: boolean) => void;
+  readOnly?: boolean;
 }
 
 export const RosterList: React.FC<RosterListProps> = ({
@@ -24,7 +25,8 @@ export const RosterList: React.FC<RosterListProps> = ({
   presentMap,
   activeSessionId,
   onSelectSession,
-  onToggle
+  onToggle,
+  readOnly = false
 }) => {
   const [search, setSearch] = useState('');
 
@@ -134,6 +136,7 @@ export const RosterList: React.FC<RosterListProps> = ({
                 <div className="flex-shrink-0">
                   <PixelButton
                     size="md"
+                    disabled={readOnly}
                     variant={isPresent ? 'primary' : 'secondary'}
                     className={
                       isPresent

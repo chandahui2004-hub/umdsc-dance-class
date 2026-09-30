@@ -122,6 +122,38 @@ describe('Feature: Attendance (features/attendance)', () => {
     );
   });
 
+  it('changing the master folder moves existing sheets into the new style folder', () => {
+    const rec = ctx.db.attendanceSheets.find(s => s.month === '2026-10' && s.styleId === 'st_popping' && s.active)[0];
+    expect(rec).toBeTruthy();
+
+    const newMaster = ctx.drive.createFolder('root', 'Attendance');
+    ctx.db.settings.insert({ key: 'defaultAttendanceFolderId', value: newMaster }, 'admin1', ctx.now());
+
+    const settingsToken = signToken(
+      {
+        sub: 'admin1',
+        role: 'admin',
+        name: 'Admin One',
+        exp: Math.floor(ctx.now().getTime() / 1000) + 3600,
+        pv: 1,
+        perms: { 'settings.edit': '*' }
+      },
+      secrets.tokenSecret,
+      secrets.hmac
+    );
+
+    const res = handleRequest(
+      { action: 'attendance.ensureSheets', token: settingsToken, payload: { month: '2026-10' } },
+      ctx,
+      secrets
+    );
+    expect(res.ok).toBe(true);
+
+    const poppingFolder = ctx.drive.findChildFolder(newMaster, 'Popping');
+    expect(poppingFolder).toBeTruthy();
+    expect(ctx.drive.parentOf(rec.spreadsheetId)).toBe(poppingFolder);
+  });
+
   it('mark twice with same opId writes once', () => {
     const res1 = handleRequest(
       {

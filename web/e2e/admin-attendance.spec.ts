@@ -154,14 +154,21 @@ test.describe('Admin Attendance Page', () => {
     await expect(alexRow).toBeVisible();
     await expect(alexRow.getByRole('button', { name: /ABSENT/i })).toBeVisible();
 
+    // Ticks are locked until EDIT is pressed
+    await expect(alexRow.getByRole('button', { name: /ABSENT/i })).toBeDisabled();
+    await page.getByRole('button', { name: /^EDIT$/ }).click();
+
     // Tap Alex to mark present
     await alexRow.getByRole('button', { name: /ABSENT/i }).click();
 
     // Alex should now show PRESENT (green) and score becomes 2/2
     await expect(alexRow.getByRole('button', { name: /PRESENT/i })).toBeVisible();
     await expect(page.getByText(/SCORE 2\/2/i)).toBeVisible();
+    await expect(page.getByText(/1 UNSAVED CHANGE/i)).toBeVisible();
 
-    // Wait for batched marks to be sent
+    // Nothing is sent until SUBMIT
+    expect(markCalls.length).toBe(0);
+    await page.getByRole('button', { name: /^SUBMIT$/ }).click();
     await expect.poll(() => markCalls.length).toBeGreaterThan(0);
     expect(markCalls[0].marks).toContainEqual(
       expect.objectContaining({
@@ -306,8 +313,10 @@ test.describe('Admin Attendance Page', () => {
     const alexRow = page.locator('[data-member-id="m-2"]');
     await expect(alexRow).toBeVisible();
 
-    // Click while network fails for attendance.mark
+    // Tick and submit while network fails for attendance.mark
+    await page.getByRole('button', { name: /^EDIT$/ }).click();
     await alexRow.getByRole('button', { name: /ABSENT/i }).click();
+    await page.getByRole('button', { name: /^SUBMIT$/ }).click();
 
     // "SAVING... 1" indicator appears
     await expect(page.getByText(/SAVING… 1/i)).toBeVisible();

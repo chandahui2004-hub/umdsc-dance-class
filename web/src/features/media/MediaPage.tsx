@@ -72,8 +72,11 @@ export const MediaPage: React.FC = () => {
   });
 
   const sessions = useMemo(
-    () => [...rawSessions].sort((a, b) => a.seq - b.seq),
-    [rawSessions]
+    () =>
+      rawSessions
+        .filter((s) => s.styleId === styleId)
+        .sort((a, b) => a.date.localeCompare(b.date) || a.seq - b.seq),
+    [rawSessions, styleId]
   );
 
   // Default selectedSessionId to first session if not selected
@@ -118,11 +121,11 @@ export const MediaPage: React.FC = () => {
   // Generate 4 Classes mutation
   const generateSessionsMutation = useMutation({
     mutationFn: async () => {
-      const res = await api.post<ClassSession[]>('sessions.generate', {
-        styleId,
+      const res = await api.post<{ generated: ClassSession[] }>('sessions.generateMonth', {
+        styleIds: [styleId],
         month
       });
-      return res.data;
+      return res.data.generated;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['sessions'] });

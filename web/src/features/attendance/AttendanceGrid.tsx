@@ -8,13 +8,15 @@ interface AttendanceGridProps {
   members: RosterMember[];
   presentMap: Record<string, string[]>; // memberId -> sessionId[]
   onToggle: (memberId: string, sessionId: string, present: boolean) => void;
+  readOnly?: boolean;
 }
 
 export const AttendanceGrid: React.FC<AttendanceGridProps> = ({
   sessions,
   members,
   presentMap,
-  onToggle
+  onToggle,
+  readOnly = false
 }) => {
   if (sessions.length === 0) {
     return (
@@ -88,11 +90,13 @@ export const AttendanceGrid: React.FC<AttendanceGridProps> = ({
                       <td
                         key={s.id}
                         data-cell={cellKey}
-                        onClick={() => onToggle(m.memberId, s.id, !isPresent)}
-                        className={`p-2 border-r-2 border-[var(--c-ink)] text-center cursor-pointer select-none min-h-[44px] transition-none ${
+                        onClick={readOnly ? undefined : () => onToggle(m.memberId, s.id, !isPresent)}
+                        className={`p-2 border-r-2 border-[var(--c-ink)] text-center select-none min-h-[44px] transition-none ${
+                          readOnly ? 'cursor-default' : 'cursor-pointer'
+                        } ${
                           isPresent
-                            ? 'bg-[var(--c-green)]/40 hover:bg-[var(--c-green)]/60 text-[var(--c-ink)]'
-                            : 'hover:bg-[var(--c-bg)] text-[var(--c-grey)]'
+                            ? `bg-[var(--c-green)]/40 text-[var(--c-ink)] ${readOnly ? '' : 'hover:bg-[var(--c-green)]/60'}`
+                            : `text-[var(--c-grey)] ${readOnly ? '' : 'hover:bg-[var(--c-bg)]'}`
                         }`}
                       >
                         <div className="w-8 h-8 mx-auto flex items-center justify-center font-display text-sm border-2 border-[var(--c-ink)] shadow-[1px_1px_0_var(--c-ink)]">

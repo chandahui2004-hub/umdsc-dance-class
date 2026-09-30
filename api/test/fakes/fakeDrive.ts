@@ -75,6 +75,17 @@ export class FakeDrive implements DrivePort {
     return null;
   }
 
+  moveToFolder(fileId: string, folderId: string): void {
+    const item = this.items.get(fileId);
+    if (item) {
+      item.parentId = folderId;
+    }
+  }
+
+  parentOf(id: string): string | undefined {
+    return this.items.get(id)?.parentId;
+  }
+
   listFilesRecursive(folderId: string): DriveFileInfo[] {
     const results: DriveFileInfo[] = [];
     const collect = (pId: string) => {

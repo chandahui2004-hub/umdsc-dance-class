@@ -32,8 +32,11 @@ export function getSessionRoutes(): Record<string, Route> {
         if (!month) {
           throw new AppError('VALIDATION', 'month is required');
         }
+        const styleId = String(payload?.styleId || '').trim();
 
-        let sessions = ctx.db.sessions.find(s => s.month === month && s.active);
+        let sessions = ctx.db.sessions.find(
+          s => s.month === month && s.active && (!styleId || s.styleId === styleId)
+        );
 
         if (auth?.claims.role === 'dancer') {
           const matricKey = auth.claims.sub.replace(/^M-/, '');
@@ -49,9 +52,9 @@ export function getSessionRoutes(): Record<string, Route> {
           if (mm && mm.membersSpreadsheetId) {
             try {
               const ss = ctx.drive.openSpreadsheet(mm.membersSpreadsheetId);
-              const sheet = ss.getSheet('Members');
+              const sheet = ss.sheet('Members');
               if (sheet) {
-                const rows = sheet.getDataRange();
+                const rows = sheet.getDisplayValues();
                 const headers = rows[0] || [];
                 const matricIdx = headers.indexOf('matricKey');
                 const stylesIdx = headers.indexOf('styleIds');
@@ -244,6 +247,36 @@ export function getSessionRoutes(): Record<string, Route> {
         notifySessionChanged(ctx, updated);
         logAudit(ctx, actor, 'sessions.cancel', id, `Cancelled session C${existing.seq}`);
         return updated;
+      }
+    },
+
+    // Removes a class created by mistake. Unlike cancel (which keeps the class
+    // greyed out on the schedule), a deleted class disappears from every page.
+    // The row stays in the sheet with active=FALSE, and any ticks in its
+    // attendance column are kept.
+    'sessions.delete': {
+      perm: 'sessions.edit',
+      write: true,
+      bumpsData: true,
+      handler: (ctx, auth, payload: any) => {
+        const { id, version } = payload || {};
+        if (!id || version === undefined) {
+          throw new AppError('VALIDATION', 'id and version are required');
+        }
+
+        const existing = ctx.db.sessions.find(s => s.id === id && s.active)[0];
+        if (!existing) {
+          throw new AppError('NOT_FOUND', `Session not found: ${id}`);
+        }
+
+        if (existing.version !== Number(version)) {
+          throw new AppError('VERSION_CONFLICT', 'Session has been modified by another user', false, existing);
+        }
+
+        const actor = auth?.claims.sub || 'system';
+        ctx.db.sessions.deactivate(id, Number(version), actor, ctx.now());
+        logAudit(ctx, actor, 'sessions.delete', id, `Deleted session ${existing.date} C${existing.seq}`);
+        return { deleted: true };
       }
     },
 

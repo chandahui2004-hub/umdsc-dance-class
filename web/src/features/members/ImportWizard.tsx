@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '../../lib/api';
@@ -13,7 +13,7 @@ import {
   monthGrid,
   formatDayLabel
 } from '../../lib/time';
-import type { DanceStyle, Month, ISODate } from '@umdsc/shared';
+import type { ClassSession, DanceStyle, Month, ISODate } from '@umdsc/shared';
 
 export interface ScheduledClass {
   seq: number;
@@ -114,6 +114,7 @@ export const ImportWizard: React.FC = () => {
   // Fetch already-imported months
   const { data: importedMonthsData } = useQuery<{ months: { month: string; sourceSheetId: string; memberCount: number; importedAt: string; lastSyncAt: string }[] }>({
     queryKey: ['importedMonths'],
+    staleTime: 0,
     queryFn: async () => {
       const res = await api.post<{ months: { month: string; sourceSheetId: string; memberCount: number; importedAt: string; lastSyncAt: string }[] }>('members.importedMonths');
       return res.data;
@@ -131,58 +132,27 @@ export const ImportWizard: React.FC = () => {
   const [autoFillEnd, setAutoFillEnd] = useState('22:00');
   const [autoFillCount, setAutoFillCount] = useState(4);
 
-  const initScheduleForStyle = useCallback((style: DanceStyle, days: ISODate[]): ScheduledClass[] => {
-    const targetWeekday = style.defaultWeekday ?? 2;
-    const matchingDays = days.filter((d) => {
-      const dt = new Date(d);
-      const dayNum = dt.getUTCDay() === 0 ? 7 : dt.getUTCDay();
-      return dayNum === targetWeekday;
-    });
-
-    const chosenDays = matchingDays.length > 0 ? matchingDays : days.slice(0, Math.min(4, days.length));
-    const classes: ScheduledClass[] = [];
-    const count = chosenDays.length;
-    for (let i = 0; i < count; i++) {
-      const day = chosenDays[i] || (chosenDays.length > 0 ? chosenDays[chosenDays.length - 1] : days[0] || effectiveStart);
-      classes.push({
-        seq: i + 1,
-        date: day,
-        start: style.defaultStart || '20:00',
-        end: style.defaultEnd || '22:00',
-        venue: style.defaultVenue || 'Dance Studio'
-      });
-    }
-    return classes;
-  }, [effectiveStart]);
-
+  // Every style starts with no classes; the admin picks dates in Step 3.
   useEffect(() => {
-    if (styles.length > 0) {
-      setSchedulesByStyle((prev) => {
-        const next = { ...prev };
-        let changed = false;
-        for (const st of styles) {
-          if (!next[st.id] || next[st.id].length === 0) {
-            next[st.id] = initScheduleForStyle(st, availableDays);
-            changed = true;
-          }
-        }
-        return changed ? next : prev;
-      });
-      if (!activeScheduleStyleId) {
-        setActiveScheduleStyleId(styles[0].id);
-      }
+    if (styles.length > 0 && !activeScheduleStyleId) {
+      setActiveScheduleStyleId(styles[0].id);
     }
-  }, [styles, availableDays, initScheduleForStyle, activeScheduleStyleId]);
+  }, [styles, activeScheduleStyleId]);
 
-  const updateClassDate = (styleId: string, seq: number, newDate: ISODate) => {
+  // Drop classes that fall outside the selected range whenever the range changes,
+  // so a class can never be saved on a date the calendar no longer shows.
+  useEffect(() => {
     setSchedulesByStyle((prev) => {
-      const list = prev[styleId] || [];
-      return {
-        ...prev,
-        [styleId]: list.map((c) => (c.seq === seq ? { ...c, date: newDate } : c))
-      };
+      let changed = false;
+      const next: Record<string, ScheduledClass[]> = {};
+      for (const [styleId, list] of Object.entries(prev)) {
+        const kept = list.filter((c) => c.date >= effectiveStart && c.date <= effectiveEnd);
+        if (kept.length !== list.length) changed = true;
+        next[styleId] = kept.map((c, i) => ({ ...c, seq: i + 1 }));
+      }
+      return changed ? next : prev;
     });
-  };
+  }, [effectiveStart, effectiveEnd]);
 
   const updateClassTime = (styleId: string, seq: number, field: 'start' | 'end', val: string) => {
     setSchedulesByStyle((prev) => {
@@ -224,7 +194,6 @@ export const ImportWizard: React.FC = () => {
   const removeClassForStyle = (styleId: string, seq: number) => {
     setSchedulesByStyle((prev) => {
       const list = prev[styleId] || [];
-      if (list.length <= 1) return prev;
       const filtered = list.filter((c) => c.seq !== seq);
       return {
         ...prev,
@@ -233,13 +202,8 @@ export const ImportWizard: React.FC = () => {
     });
   };
 
-  const resetStyleScheduleToWeekday = (styleId: string) => {
-    const st = styles.find((s) => s.id === styleId);
-    if (!st) return;
-    setSchedulesByStyle((prev) => ({
-      ...prev,
-      [styleId]: initScheduleForStyle(st, availableDays)
-    }));
+  const clearStyleSchedule = (styleId: string) => {
+    setSchedulesByStyle((prev) => ({ ...prev, [styleId]: [] }));
   };
 
   const copyScheduleToAllStyles = (sourceStyleId: string) => {
@@ -335,32 +299,9 @@ export const ImportWizard: React.FC = () => {
 
   const confirmMutation = useMutation({
     mutationFn: async () => {
-      const results: MonthImportResult[] = [];
-
-      for (let i = 0; i < targetMonths.length; i++) {
-        const m = targetMonths[i];
-        setImportProgress(`Auto-generating Google Sheets for ${m} (${i + 1}/${targetMonths.length})...`);
-
-        const res = await api.post<{
-          membersSpreadsheetId: string;
-          memberCount: number;
-          attendanceSheets: { styleId: string; spreadsheetId: string }[];
-        }>('members.confirmImport', {
-          sheetUrl: sheetUrl.trim(),
-          month: m,
-          columnMap,
-          classIndex
-        });
-
-        results.push({
-          month: m,
-          membersSpreadsheetId: res.data.membersSpreadsheetId,
-          memberCount: res.data.memberCount,
-          attendanceSheets: res.data.attendanceSheets
-        });
-      }
-
-      // Store all custom class schedules in database!
+      // 1. Save the admin's class dates first. The server only auto-generates weekly
+      //    classes for a style that has none in the month, so saving first stops
+      //    auto-generated classes from mixing with the chosen ones.
       const allSessions: Array<{
         month: string;
         styleId: string;
@@ -388,21 +329,45 @@ export const ImportWizard: React.FC = () => {
       }
 
       if (allSessions.length > 0) {
-        setImportProgress('Saving custom class dates and times in database...');
-        try {
-          await api.post('sessions.batchUpsert', { sessions: allSessions });
-        } catch (err) {
-          console.warn('sessions.batchUpsert failed:', err);
-        }
+        setImportProgress('Saving class dates and times...');
+        await api.post('sessions.batchUpsert', { sessions: allSessions });
 
-        // Re-ensure sheets so Drive attendance sheets reflect the customized class dates
+        // Classes are matched by number (#1, #2…). If this month was set up before with
+        // more classes, cancel the leftover ones so they don't stay on the schedule.
         for (const m of targetMonths) {
-          try {
-            await api.post('attendance.ensureSheets', { month: m });
-          } catch (err) {
-            console.warn('attendance.ensureSheets failed:', err);
+          const existing = await api.post<ClassSession[]>('sessions.list', { month: m });
+          for (const s of existing.data) {
+            const chosen = (schedulesByStyle[s.styleId] || []).filter((c) => c.date.slice(0, 7) === m);
+            if (chosen.length > 0 && s.seq > chosen.length && s.status !== 'cancelled') {
+              await api.post('sessions.cancel', { id: s.id, version: s.version });
+            }
           }
         }
+      }
+
+      // 2. Import the dancers and build the attendance sheets from the saved classes.
+      const results: MonthImportResult[] = [];
+      for (let i = 0; i < targetMonths.length; i++) {
+        const m = targetMonths[i];
+        setImportProgress(`Importing dancers and creating Google Sheets for ${m} (${i + 1}/${targetMonths.length})...`);
+
+        const res = await api.post<{
+          membersSpreadsheetId: string;
+          memberCount: number;
+          attendanceSheets: { styleId: string; spreadsheetId: string }[];
+        }>('members.confirmImport', {
+          sheetUrl: sheetUrl.trim(),
+          month: m,
+          columnMap,
+          classIndex
+        });
+
+        results.push({
+          month: m,
+          membersSpreadsheetId: res.data.membersSpreadsheetId,
+          memberCount: res.data.memberCount,
+          attendanceSheets: res.data.attendanceSheets
+        });
       }
 
       return results;
@@ -413,7 +378,8 @@ export const ImportWizard: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['members'] });
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
-      queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] });
+      queryClient.invalidateQueries({ queryKey: ['bootstrap'] });
+      queryClient.invalidateQueries({ queryKey: ['importedMonths'] });
       setStep(4);
     },
     onError: (err) => {
@@ -785,6 +751,12 @@ export const ImportWizard: React.FC = () => {
           </div>
 
           {/* Already Imported Months Panel */}
+          {importedMonthsData && importedMonths.length === 0 && (
+            <div className="bg-[var(--c-bg)] border-4 border-[var(--c-ink)] p-4 font-body text-sm text-[var(--c-ink)]">
+              <strong className="font-display text-xs uppercase">📋 Already imported months:</strong> none yet. No
+              registration form has been imported into the system.
+            </div>
+          )}
           {importedMonths.length > 0 && (
             <div className="bg-[var(--c-bg)] border-4 border-[var(--c-ink)] p-4 shadow-[2px_2px_0_var(--c-ink)] space-y-3">
               <h3 className="font-display text-xs text-[var(--c-navy)] uppercase tracking-wider font-bold">
@@ -1145,10 +1117,10 @@ export const ImportWizard: React.FC = () => {
                   <PixelButton
                     size="md"
                     variant="secondary"
-                    onClick={() => resetStyleScheduleToWeekday(activeScheduleStyleId)}
-                    title="Reset to default weekday classes"
+                    onClick={() => clearStyleSchedule(activeScheduleStyleId)}
+                    title="Remove all classes for this style"
                   >
-                    ↻ RESET DEFAULT
+                    ↻ CLEAR ALL
                   </PixelButton>
                 </div>
               </div>
@@ -1345,7 +1317,7 @@ export const ImportWizard: React.FC = () => {
                         <span className="font-mono text-xs text-[var(--c-navy)] font-bold">
                           {c.date} ({formatDayLabel(c.date).slice(0, 3)})
                         </span>
-                        {(schedulesByStyle[activeScheduleStyleId] || []).length > 1 && (
+                        {(schedulesByStyle[activeScheduleStyleId] || []).length > 0 && (
                           <button
                             type="button"
                             onClick={() => removeClassForStyle(activeScheduleStyleId, c.seq)}

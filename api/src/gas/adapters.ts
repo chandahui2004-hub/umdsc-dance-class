@@ -158,6 +158,15 @@ export class GasDriveAdapter implements DrivePort {
     return null;
   }
 
+  moveToFolder(fileId: string, folderId: string): void {
+    const file = DriveApp.getFileById(fileId);
+    const parents = file.getParents();
+    while (parents.hasNext()) {
+      if (parents.next().getId() === folderId) return;
+    }
+    file.moveTo(DriveApp.getFolderById(folderId));
+  }
+
   listFilesRecursive(folderId: string): DriveFileInfo[] {
     const results: DriveFileInfo[] = [];
     const collect = (folder: GoogleAppsScript.Drive.Folder) => {

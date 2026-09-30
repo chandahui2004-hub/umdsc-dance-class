@@ -192,8 +192,9 @@ test.describe('Admin Members Import Wizard', () => {
     await expect(page.getByRole('heading', { name: /MAPPING PREVIEW/i })).toBeVisible();
     await page.getByRole('button', { name: /PROCEED TO CONFIRM/i }).click();
 
-    // Step 3: Confirm & auto-generate sheets
-    await expect(page.getByRole('heading', { name: /CONFIRM & AUTO-GENERATE GOOGLE SHEETS/i })).toBeVisible();
+    // Step 3: Set class schedule & confirm — no classes are pre-selected
+    await expect(page.getByRole('heading', { name: /SET CLASS SCHEDULE & CONFIRM IMPORT/i })).toBeVisible();
+    await expect(page.getByText(/2026-09-30/)).toHaveCount(0);
     await page.getByRole('button', { name: /CONFIRM & AUTO-GENERATE SHEETS/i }).click();
 
     // Step 4: Done! Verify both months were processed and relative sheets generated

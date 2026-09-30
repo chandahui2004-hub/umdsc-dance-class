@@ -109,6 +109,14 @@ export function attendanceEnsureSheets(
     }
 
     if (rec && sheetExists) {
+      // The master folder may have changed since this sheet was created: move the
+      // sheet into the style's folder under the current master folder.
+      try {
+        ctx.drive.moveToFolder(rec.spreadsheetId, folderId);
+      } catch (err) {
+        console.error('Could not move attendance sheet into style folder:', err);
+      }
+
       // Spreadsheet already exists, sync
       const ss = ctx.drive.openSpreadsheet(rec.spreadsheetId);
       let sheet = ss.sheet('Attendance') || (ss as any).getSheet?.('Attendance');

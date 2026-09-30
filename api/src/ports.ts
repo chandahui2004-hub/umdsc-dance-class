@@ -47,6 +47,8 @@ export interface DrivePort {
   createSpreadsheet(name: string, folderId: string): SpreadsheetPort;
   createFolder(parentId: string, name: string): string;
   findChildFolder(parentId: string, name: string): string | null;
+  /** Moves the file into folderId unless it is already there. */
+  moveToFolder(fileId: string, folderId: string): void;
   listFilesRecursive(folderId: string): DriveFileInfo[];
   setAnyoneReader(fileId: string): void;
   exportXlsxBase64(spreadsheetId: string): string;

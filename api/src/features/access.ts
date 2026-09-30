@@ -286,7 +286,7 @@ export function getAccessRoutes(): Record<string, Route> {
         // Deactivate existing rolePermissions
         const oldPerms = ctx.db.rolePermissions.find(rp => rp.roleId === roleId && rp.active);
         for (const op of oldPerms) {
-          ctx.db.rolePermissions.deactivate(op.id, actor, ctx.now());
+          ctx.db.rolePermissions.deactivate(op.id, op.version, actor, ctx.now());
         }
 
         // Insert new rolePermissions

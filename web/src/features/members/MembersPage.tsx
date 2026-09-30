@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { call, errorMessage } from '../../lib/api';
 import { useBootstrap } from '../auth/useBootstrap';
@@ -12,13 +13,39 @@ import { exportToCsv } from '../../lib/csv';
 import { todayKL } from '../../lib/time';
 import type { Member, Month } from '@umdsc/shared';
 
+interface ImportedMonth {
+  month: Month;
+  memberCount: number;
+}
+
 export const MembersPage: React.FC = () => {
   const { data: bootstrap } = useBootstrap('admin');
-  const availableMonths: Month[] = bootstrap?.months?.length
-    ? bootstrap.months
-    : [todayKL().slice(0, 7)];
+  const [searchParams] = useSearchParams();
 
-  const [selectedMonth, setSelectedMonth] = useState<Month>(availableMonths[0]);
+  // Months come from the server's MemberMonths table, not the cached bootstrap,
+  // so a month imported a moment ago shows up straight away.
+  const { data: importedMonths = [] } = useQuery({
+    queryKey: ['importedMonths'],
+    staleTime: 0,
+    queryFn: async () => {
+      const res = await call<{ months: ImportedMonth[] }>('members.importedMonths');
+      return res.data.months;
+    }
+  });
+
+  const currentMonth = todayKL().slice(0, 7);
+  const availableMonths: Month[] = importedMonths.length
+    ? importedMonths.map((m) => m.month)
+    : [currentMonth];
+
+  const [chosenMonth, setSelectedMonth] = useState<Month | null>(searchParams.get('month'));
+  // Until the admin picks one: the month from the link, else this month if imported,
+  // else the latest imported month.
+  const selectedMonth: Month =
+    chosenMonth ??
+    (availableMonths.includes(currentMonth)
+      ? currentMonth
+      : availableMonths[availableMonths.length - 1]);
   const [selectedStyleId, setSelectedStyleId] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
@@ -150,11 +177,17 @@ export const MembersPage: React.FC = () => {
               onChange={(e) => setSelectedMonth(e.target.value)}
               className="w-full min-h-[44px] px-3 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] font-body text-base text-[var(--c-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--c-yellow)]"
             >
-              {availableMonths.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
+              {!availableMonths.includes(selectedMonth) && (
+                <option value={selectedMonth}>{selectedMonth} (not imported)</option>
+              )}
+              {availableMonths.map((m) => {
+                const info = importedMonths.find((im) => im.month === m);
+                return (
+                  <option key={m} value={m}>
+                    {info ? `${m} (${info.memberCount} dancers)` : `${m} (not imported)`}
+                  </option>
+                );
+              })}
             </select>
           </div>
 

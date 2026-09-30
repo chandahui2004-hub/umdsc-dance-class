@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { api, errorMessage } from '../../lib/api';
@@ -18,11 +18,16 @@ export const AttendancePage: React.FC = () => {
   // Load initial month & style from query params or defaults
   const currentMonth = todayKL().slice(0, 7);
   const paramMonth = searchParams.get('month');
-  const paramStyle = searchParams.get('style');
+  // The Today page links with styleId/sessionId; this page's own links use style.
+  const paramStyle = searchParams.get('style') || searchParams.get('styleId');
 
   const [month, setMonth] = useState<Month>(paramMonth || currentMonth);
   const [styleId, setStyleId] = useState<string>(paramStyle || '');
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(searchParams.get('sessionId'));
+
+  // Ticks are only allowed while editing, and are sent to Google Sheets on SUBMIT.
+  const [editing, setEditing] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Master Attendance Folder UI state
   const [showFolderInput, setShowFolderInput] = useState(false);
@@ -112,12 +117,18 @@ export const AttendancePage: React.FC = () => {
     enabled: Boolean(month && styleId)
   });
 
-  // Keep local optimistic present in sync when server gridData loads
+  // Show the saved ticks whenever server data loads, unless the admin is mid-edit
   useEffect(() => {
-    if (gridData?.present) {
+    if (gridData?.present && !editing) {
       setLocalPresent(gridData.present);
     }
-  }, [gridData?.present, gridData?.version]);
+  }, [gridData?.present, gridData?.version, editing]);
+
+  // Switching style or month discards an unfinished edit
+  useEffect(() => {
+    setEditing(false);
+    setSubmitError(null);
+  }, [month, styleId]);
 
   // Set default active session
   useEffect(() => {
@@ -155,9 +166,9 @@ export const AttendancePage: React.FC = () => {
     return () => clearInterval(interval);
   }, [month, styleId, gridData?.version, refetch]);
 
-  // Toggle attendance handler (optimistic + enqueued)
+  // Tick handler: changes stay on screen only until SUBMIT
   const handleToggle = (memberId: string, sessionId: string, nextPresent: boolean) => {
-    // 1. Optimistic local update
+    if (!editing) return;
     setLocalPresent((prev) => {
       const curList = prev[memberId] || [];
       const nextList = nextPresent
@@ -168,15 +179,65 @@ export const AttendancePage: React.FC = () => {
         [memberId]: nextList
       };
     });
+  };
 
-    // 2. Enqueue tick
-    attendanceQueue.enqueue({
-      month,
-      styleId,
-      sessionId,
-      memberId,
-      present: nextPresent
-    });
+  // Cells whose tick differs from what is saved in the sheet
+  const unsavedChanges = useMemo(() => {
+    const saved = gridData?.present || {};
+    const changes: { memberId: string; sessionId: string; present: boolean }[] = [];
+    for (const m of gridData?.members || []) {
+      for (const s of gridData?.sessions || []) {
+        const wasPresent = (saved[m.memberId] || []).includes(s.id);
+        const isPresent = (localPresent[m.memberId] || []).includes(s.id);
+        if (wasPresent !== isPresent) {
+          changes.push({ memberId: m.memberId, sessionId: s.id, present: isPresent });
+        }
+      }
+    }
+    return changes;
+  }, [gridData, localPresent]);
+
+  // Warn before closing the tab with unsubmitted ticks
+  useEffect(() => {
+    if (!editing || unsavedChanges.length === 0) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [editing, unsavedChanges.length]);
+
+  const submitMutation = useMutation({
+    mutationFn: async () => {
+      setSubmitError(null);
+      for (const c of unsavedChanges) {
+        attendanceQueue.enqueue({ month, styleId, ...c });
+      }
+      // flush() returns early if a background flush is already running, so poll
+      // until this sheet's ticks are gone from the queue (up to ~20 s).
+      const isPending = () =>
+        attendanceQueue.pending().some((t) => t.month === month && t.styleId === styleId);
+      for (let i = 0; i < 20 && isPending(); i++) {
+        await attendanceQueue.flush();
+        if (isPending()) await new Promise((r) => setTimeout(r, 1000));
+      }
+      if (isPending()) {
+        throw new Error('Some ticks could not be saved yet. They will keep retrying in the background.');
+      }
+    },
+    onSuccess: async () => {
+      setEditing(false);
+      await refetch();
+    },
+    onError: (err) => {
+      setSubmitError(errorMessage(err));
+    }
+  });
+
+  const cancelEdit = () => {
+    setLocalPresent(gridData?.present || {});
+    setEditing(false);
+    setSubmitError(null);
   };
 
   // Export XLSX mutation
@@ -432,7 +493,7 @@ export const AttendancePage: React.FC = () => {
         {/* Sync & Auto-create Banner */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-1 font-mono text-xs">
           <div className="text-[var(--c-darkgrey)]">
-            Auto-creation: Classes 1 to 4 for {month} will be synced as columns in each style's spreadsheet.
+            Auto-creation: every class for {month} becomes a column in each style's spreadsheet.
           </div>
           <PixelButton
             size="md"
@@ -509,6 +570,57 @@ export const AttendancePage: React.FC = () => {
         </div>
       ) : (
         <>
+          {/* Edit / Submit bar */}
+          {sessions.length > 0 && members.length > 0 && (
+            <div
+              className={`p-3 border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                editing ? 'bg-[var(--c-yellow)]' : 'bg-[var(--c-panel)]'
+              }`}
+            >
+              <div className="font-display text-xs text-[var(--c-ink)]">
+                {editing
+                  ? unsavedChanges.length === 0
+                    ? 'EDITING — TICK PRESENT DANCERS, THEN SUBMIT'
+                    : `EDITING — ${unsavedChanges.length} UNSAVED CHANGE${unsavedChanges.length === 1 ? '' : 'S'}`
+                  : 'SAVED ATTENDANCE — PRESS EDIT TO CHANGE TICKS'}
+              </div>
+              <div className="flex gap-2">
+                {editing ? (
+                  <>
+                    <PixelButton
+                      size="md"
+                      variant="secondary"
+                      disabled={submitMutation.isPending}
+                      onClick={cancelEdit}
+                    >
+                      CANCEL
+                    </PixelButton>
+                    <PixelButton
+                      size="md"
+                      variant="primary"
+                      disabled={submitMutation.isPending || unsavedChanges.length === 0}
+                      onClick={() => submitMutation.mutate()}
+                    >
+                      {submitMutation.isPending ? 'SUBMITTING…' : 'SUBMIT'}
+                    </PixelButton>
+                  </>
+                ) : (
+                  <PixelButton size="md" variant="primary" onClick={() => setEditing(true)}>
+                    EDIT
+                  </PixelButton>
+                )}
+              </div>
+            </div>
+          )}
+          {submitError && (
+            <div
+              role="alert"
+              className="p-2 border-2 border-[var(--c-red)] bg-[var(--c-peach)] text-[var(--c-red)] font-display text-xs font-bold"
+            >
+              ⚠ {submitError}
+            </div>
+          )}
+
           {/* Mobile view (< 1024px) */}
           <div className="block lg:hidden">
             <Panel title="SESSION ATTENDANCE ROSTER" className="px-corners">
@@ -519,6 +631,7 @@ export const AttendancePage: React.FC = () => {
                 activeSessionId={activeSessionId}
                 onSelectSession={setActiveSessionId}
                 onToggle={handleToggle}
+                readOnly={!editing}
               />
             </Panel>
           </div>
@@ -530,6 +643,7 @@ export const AttendancePage: React.FC = () => {
               members={members}
               presentMap={localPresent}
               onToggle={handleToggle}
+              readOnly={!editing}
             />
           </div>
         </>

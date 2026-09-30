@@ -88,6 +88,23 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
     }
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm(`Delete ${styleObj?.name || ''} class #${session.seq} on ${session.date}? It will disappear from every page.`)) {
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      await call('sessions.delete', { id: session.id, version: session.version });
+      onSaved();
+      onClose();
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleReload = () => {
     if (conflictData) {
       setDate(conflictData.date || date);
@@ -271,6 +288,22 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
           >
             CANCEL
           </PixelButton>
+        </div>
+
+        <div className="pt-2 border-t-2 border-[var(--c-ink)]">
+          <PixelButton
+            variant="danger"
+            size="md"
+            type="button"
+            onClick={handleDelete}
+            disabled={loading}
+          >
+            DELETE THIS CLASS
+          </PixelButton>
+          <p className="font-body text-xs text-[var(--c-darkgrey)] mt-1">
+            For a class added by mistake. To keep a class on the schedule but mark it as not
+            happening, set Status to Cancelled instead.
+          </p>
         </div>
       </form>
     </Sheet>
