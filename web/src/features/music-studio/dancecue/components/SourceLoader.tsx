@@ -4,7 +4,7 @@ import { useState } from "react";
 import { getYouTubeVideoId } from "../utils/youtube";
 
 type SourceLoaderProps = {
-  activeSource: "file" | "youtube" | null;
+  activeSource: "file" | "drive" | "youtube" | null;
   onFileSelected: (file: File) => void;
   onYouTubeSelected: (videoId: string) => void;
 };

@@ -26,7 +26,7 @@ const starterMarkers: Marker[] = [
 const sessionStorageKey = "dancecue:session:v1";
 
 type StoredDanceCueSession = {
-  activeSource: "file" | "youtube" | null;
+  activeSource: "file" | "drive" | "youtube" | null;
   fileName: string | null;
   fileTime: number;
   markers: Marker[];
@@ -63,7 +63,7 @@ function readStoredSession(): StoredDanceCueSession | null {
 
     return {
       activeSource:
-        session.activeSource === "file" || session.activeSource === "youtube"
+        session.activeSource === "file" || session.activeSource === "drive" || session.activeSource === "youtube"
           ? session.activeSource
           : null,
       fileName: typeof session.fileName === "string" && session.fileName ? session.fileName : null,
@@ -188,12 +188,9 @@ export function DanceCueApp() {
     }
 
     const session: StoredDanceCueSession = {
-      activeSource:
-        player.activeSource === "file" || player.activeSource === "youtube"
-          ? player.activeSource
-          : null,
+      activeSource: player.activeSource,
       fileName: player.activeSource === "file" ? localFileName : null,
-      fileTime: player.activeSource === "file" ? player.currentTime : 0,
+      fileTime: player.activeSource === "file" || player.activeSource === "drive" ? player.currentTime : 0,
       markers,
       playbackRate: player.playbackRate,
       updatedAt: Date.now(),

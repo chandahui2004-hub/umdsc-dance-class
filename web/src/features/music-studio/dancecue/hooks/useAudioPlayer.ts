@@ -1,15 +1,15 @@
-// Ported from DanceCue by JzeAnson (https://github.com/JzeAnson/DanceCue), used with permission.
-
 import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { YouTubePlayerHandle } from "../components/YouTubePlayer";
 import type { Marker } from "../types/marker";
+import type { Master } from "../../sync/types";
+import { shouldRestartLoop } from "../../sync/loopMath";
 
 type UseAudioPlayerOptions = {
   audioRef: RefObject<HTMLAudioElement | null>;
   markers: Marker[];
 };
 
-type PlayerSource = "file" | "youtube" | null;
+export type PlayerSource = "file" | "drive" | "youtube" | null;
 
 const youtubeStates = {
   ended: 0,
@@ -24,12 +24,24 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLooping, setIsLooping] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [effectiveRate, setEffectiveRate] = useState(1);
   const [loopMarkerId, setLoopMarkerId] = useState<string | null>(null);
   const [markerPlaybackMarkerId, setMarkerPlaybackMarkerId] = useState<string | null>(null);
   const markerPlaybackEndRef = useRef<number | null>(null);
   const objectUrlRef = useRef<string | null>(null);
   const pendingYouTubeVideoIdRef = useRef<string | null>(null);
   const youtubePlayerRef = useRef<YouTubePlayerHandle | null>(null);
+  const loopRestartListenersRef = useRef<Set<(loopStart: number) => void>>(new Set());
+
+  const notifyLoopRestart = useCallback((startSec: number) => {
+    loopRestartListenersRef.current.forEach((listener) => {
+      try {
+        listener(startSec);
+      } catch (err) {
+        console.error("Error in onLoopRestart listener", err);
+      }
+    });
+  }, []);
 
   const sortedMarkers = useMemo(
     () => [...markers].sort((a, b) => a.time - b.time),
@@ -73,11 +85,43 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
       setIsPlaying(false);
       setIsLooping(false);
       setPlaybackRate(1);
+      setEffectiveRate(1);
       setLoopMarkerId(null);
       setMarkerPlaybackMarkerId(null);
       markerPlaybackEndRef.current = null;
     },
     [audioRef],
+  );
+
+  const loadUrl = useCallback(
+    (url: string, _label?: string) => {
+      const audio = audioRef.current;
+
+      if (!audio) {
+        return;
+      }
+
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+
+      youtubePlayerRef.current?.pauseVideo();
+      audio.src = url;
+      audio.loop = false;
+      audio.playbackRate = playbackRate;
+      audio.load();
+      setActiveSource("drive");
+      setCurrentTime(0);
+      setDuration(0);
+      setIsPlaying(false);
+      setIsLooping(false);
+      setEffectiveRate(playbackRate);
+      setLoopMarkerId(null);
+      setMarkerPlaybackMarkerId(null);
+      markerPlaybackEndRef.current = null;
+    },
+    [audioRef, playbackRate],
   );
 
   const loadYouTube = useCallback(
@@ -266,11 +310,14 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
 
       if (activeSource === "youtube") {
         youtubePlayerRef.current?.setPlaybackRate(speed);
+        const actual = youtubePlayerRef.current?.getPlaybackRate() ?? speed;
+        setEffectiveRate(actual);
         return;
       }
 
       if (audioRef.current) {
         audioRef.current.playbackRate = speed;
+        setEffectiveRate(speed);
       }
     },
     [activeSource, audioRef],
@@ -284,6 +331,7 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
     };
   }, []);
 
+  // Sync state and duration from YouTube player
   useEffect(() => {
     if (activeSource !== "youtube") {
       return;
@@ -301,35 +349,77 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
       setCurrentTime(nextCurrentTime);
       setDuration(nextDuration);
 
-      if (loopMarker) {
-        const loopEnd = loopMarker.endTime || nextDuration;
-
-        if (loopEnd > loopMarker.time && nextCurrentTime >= loopEnd) {
-          player.seekTo(loopMarker.time, true);
-        }
-
-        return;
-      }
-
-      const markerPlaybackEnd = markerPlaybackEndRef.current;
-
-      if (markerPlaybackEnd !== null && nextCurrentTime >= markerPlaybackEnd) {
-        player.pauseVideo();
-        player.seekTo(markerPlaybackEnd, true);
-        setCurrentTime(markerPlaybackEnd);
-        setMarkerPlaybackMarkerId(null);
-        markerPlaybackEndRef.current = null;
-        return;
-      }
-
-      if (isLooping && nextDuration > 0 && nextCurrentTime >= nextDuration - 0.2) {
-        player.seekTo(0, true);
-        player.playVideo();
+      const actualRate = player.getPlaybackRate();
+      if (actualRate && actualRate !== effectiveRate) {
+        setEffectiveRate(actualRate);
       }
     }, 250);
 
     return () => window.clearInterval(intervalId);
-  }, [activeSource, isLooping, loopMarker]);
+  }, [activeSource, effectiveRate]);
+
+  // High-precision rAF loop while playing for loop restart and marker boundary checking
+  useEffect(() => {
+    if (!isPlaying) {
+      return;
+    }
+
+    let rafId: number;
+
+    const tick = () => {
+      const audio = audioRef.current;
+      const yt = youtubePlayerRef.current;
+
+      const now =
+        activeSource === "youtube"
+          ? yt?.getCurrentTime() ?? currentTime
+          : audio?.currentTime ?? currentTime;
+
+      setCurrentTime(now);
+
+      if (loopMarker) {
+        if (shouldRestartLoop(now, { start: loopMarker.time, end: loopMarker.endTime }, duration)) {
+          if (activeSource === "youtube") {
+            yt?.seekTo(loopMarker.time, true);
+          } else if (audio) {
+            audio.currentTime = loopMarker.time;
+          }
+          setCurrentTime(loopMarker.time);
+          notifyLoopRestart(loopMarker.time);
+        }
+      } else if (markerPlaybackEndRef.current !== null) {
+        if (now >= markerPlaybackEndRef.current) {
+          const end = markerPlaybackEndRef.current;
+          if (activeSource === "youtube") {
+            yt?.pauseVideo();
+            yt?.seekTo(end, true);
+          } else if (audio) {
+            audio.pause();
+            audio.currentTime = end;
+          }
+          setCurrentTime(end);
+          setIsPlaying(false);
+          setMarkerPlaybackMarkerId(null);
+          markerPlaybackEndRef.current = null;
+        }
+      } else if (isLooping && duration > 0 && now >= duration - 0.2) {
+        if (activeSource === "youtube") {
+          yt?.seekTo(0, true);
+          yt?.playVideo();
+        } else if (audio) {
+          audio.currentTime = 0;
+          void audio.play();
+        }
+        setCurrentTime(0);
+        notifyLoopRestart(0);
+      }
+
+      rafId = requestAnimationFrame(tick);
+    };
+
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [isPlaying, activeSource, loopMarker, isLooping, duration, audioRef, notifyLoopRestart, currentTime]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -346,26 +436,6 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
 
       const nextTime = audio.currentTime;
       setCurrentTime(nextTime);
-
-      if (!loopMarker) {
-        const markerPlaybackEnd = markerPlaybackEndRef.current;
-
-        if (markerPlaybackEnd !== null && nextTime >= markerPlaybackEnd) {
-          audio.pause();
-          audio.currentTime = markerPlaybackEnd;
-          setCurrentTime(markerPlaybackEnd);
-          setMarkerPlaybackMarkerId(null);
-          markerPlaybackEndRef.current = null;
-        }
-
-        return;
-      }
-
-      const loopEnd = loopMarker.endTime || duration;
-
-      if (loopEnd > loopMarker.time && nextTime >= loopEnd) {
-        audio.currentTime = loopMarker.time;
-      }
     };
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
@@ -384,7 +454,44 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
       audio.removeEventListener("pause", handlePause);
       audio.removeEventListener("ended", handleEnded);
     };
-  }, [activeSource, audioRef, duration, loopMarker, sortedMarkers]);
+  }, [activeSource, audioRef]);
+
+  const master: Master = useMemo(
+    () => ({
+      getTime: () => {
+        if (activeSource === "youtube") {
+          return youtubePlayerRef.current?.getCurrentTime() ?? currentTime;
+        }
+        return audioRef.current?.currentTime ?? currentTime;
+      },
+      isPlaying,
+      rate: effectiveRate,
+      source: activeSource,
+      onLoopRestart: (fn: (loopStart: number) => void) => {
+        loopRestartListenersRef.current.add(fn);
+        return () => {
+          loopRestartListenersRef.current.delete(fn);
+        };
+      },
+      pauseForBuffer: () => {
+        if (activeSource === "youtube") {
+          youtubePlayerRef.current?.pauseVideo();
+        } else {
+          audioRef.current?.pause();
+        }
+      },
+      resumeFromBuffer: () => {
+        if (isPlaying) {
+          if (activeSource === "youtube") {
+            youtubePlayerRef.current?.playVideo();
+          } else {
+            void audioRef.current?.play();
+          }
+        }
+      },
+    }),
+    [activeSource, audioRef, currentTime, effectiveRate, isPlaying],
+  );
 
   return {
     activeMarker,
@@ -392,14 +499,17 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
     attachYouTubePlayer,
     currentTime,
     duration,
+    effectiveRate,
     handleYouTubeStateChange,
     isLooping,
     isPlaying,
     playbackRate,
     loopMarker,
     markerPlaybackMarker,
+    master,
     jumpToMarker,
     loadFile,
+    loadUrl,
     loadYouTube,
     pause,
     play,
