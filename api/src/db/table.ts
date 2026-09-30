@@ -112,7 +112,23 @@ export class Table<T extends RowMeta> {
     return newItem;
   }
 
-  update(id: string, version: number, patch: Partial<Omit<T, keyof RowMeta>>, actor: string, now: Date): T {
+  /** Drops the cached copy so the next read sees rows written by other requests. */
+  reload(): void {
+    this.cachedValues = null;
+  }
+
+  /**
+   * With keepVersion, the row keeps its version: used for system bookkeeping (sync
+   * status, folder ids) so it never causes a VERSION_CONFLICT for an admin's edit.
+   */
+  update(
+    id: string,
+    version: number,
+    patch: Partial<Omit<T, keyof RowMeta>>,
+    actor: string,
+    now: Date,
+    opts?: { keepVersion?: boolean }
+  ): T {
     this.configurePlainText();
     const rows = this.ensureLoaded();
     const idColIdx = this.headerIndices.get('id');
@@ -146,9 +162,9 @@ export class Table<T extends RowMeta> {
       ...currentItem,
       ...(patch as any),
       id,
-      version: version + 1,
-      updatedBy: actor,
-      updatedAt: now.toISOString(),
+      version: opts?.keepVersion ? version : version + 1,
+      updatedBy: opts?.keepVersion ? currentItem.updatedBy : actor,
+      updatedAt: opts?.keepVersion ? currentItem.updatedAt : now.toISOString(),
       active: patch.active !== undefined ? patch.active : currentItem.active
     };
 

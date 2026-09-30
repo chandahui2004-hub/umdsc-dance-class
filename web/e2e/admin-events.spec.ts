@@ -60,6 +60,22 @@ test.describe('Admin Events page', () => {
     await expect.poll(() => calls.find(c => c.action === 'events.recreateFolder')?.payload).toEqual({ id: 'evt-oct' });
   });
 
+  test('a folder that could not be moved is listed with a retry hint', async ({ page }) => {
+    await mockApi(page, {
+      'settings.get': () => ({ defaultAttendanceFolderId: 'fld-master-a' }),
+      'settings.setLink': () => ({
+        key: 'defaultAttendanceFolderId', value: 'fld-master-b', moved: 1, created: 0, reused: 0,
+        failed: [{ eventName: 'OCT MONTHLY CLASS', message: 'Access denied' }]
+      })
+    });
+    await page.goto('/admin/events');
+    await page.getByRole('button', { name: /CHANGE ATTENDANCE FOLDER/i }).click();
+    await page.getByLabel(/Attendance master folder link/i).fill('fld-master-b');
+    await page.getByRole('button', { name: /^SAVE$/i }).click();
+    await expect(page.getByText(/Could not move OCT MONTHLY CLASS: Access denied/)).toBeVisible();
+    await expect(page.getByText(/save the same link again to retry/i)).toBeVisible();
+  });
+
   test('changing the attendance master folder reports moved folders', async ({ page }) => {
     const calls = await mockApi(page, {
       'settings.get': () => ({ defaultAttendanceFolderId: 'fld-master-a' }),

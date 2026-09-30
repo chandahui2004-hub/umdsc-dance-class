@@ -18,6 +18,7 @@ interface SetLinkResult {
   moved?: number;
   created?: number;
   reused?: number;
+  failed?: { eventName: string; message: string }[];
 }
 
 const FolderRow: React.FC<{ folder: FolderSetting; value?: string }> = ({ folder, value }) => {
@@ -26,12 +27,14 @@ const FolderRow: React.FC<{ folder: FolderSetting; value?: string }> = ({ folder
   const [url, setUrl] = useState('');
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [failed, setFailed] = useState<{ eventName: string; message: string }[]>([]);
 
   const save = useMutation({
     mutationFn: async () => (await call<SetLinkResult>('settings.setLink', { key: folder.key, url: url.trim() })).data,
     onSuccess: r => {
       setEditing(false);
       setError(null);
+      setFailed(r.failed || []);
       setNote(
         r.moved !== undefined
           ? `Moved ${r.moved}, created ${r.created}, reused ${r.reused} event folders`
@@ -73,6 +76,16 @@ const FolderRow: React.FC<{ folder: FolderSetting; value?: string }> = ({ folder
         </div>
       )}
       {note && <p className="font-body text-sm font-bold text-[var(--c-darkgreen)]">{note}</p>}
+      {failed.length > 0 && (
+        <div role="alert" className="p-2 border-2 border-[var(--c-red)] bg-[var(--c-peach)] font-body text-sm text-[var(--c-red)] space-y-1">
+          {failed.map(f => (
+            <p key={f.eventName}>
+              Could not move {f.eventName}: {f.message}
+            </p>
+          ))}
+          <p className="font-bold">Fix the folder&apos;s sharing, then save the same link again to retry.</p>
+        </div>
+      )}
       {error && <p role="alert" className="font-body text-sm font-bold text-[var(--c-red)]">⚠ {error}</p>}
     </div>
   );

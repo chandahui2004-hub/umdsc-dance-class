@@ -5,18 +5,23 @@ import { MEMBERS_COLUMNS } from '../db/schema';
 import { buildLayout, planSync, sessionLabel } from '../logic/attendanceGrid';
 import { readEventMembers } from './eventMembers';
 
-/** Updates fields on the latest copy of an event row (callers may hold a stale version). */
+/**
+ * Saves system bookkeeping on an event (sync status, counts, folder and sheet ids).
+ * Re-reads the row first and keeps its version, so it never overwrites or conflicts
+ * with an admin's edit of the event.
+ */
 export function saveEventFields(
   ctx: Ctx,
   eventId: string,
   patch: Partial<Omit<EventItem, keyof RowMeta>>,
   actor = 'system'
 ): EventItem {
+  ctx.db.events.reload();
   const current = ctx.db.events.get(eventId);
   if (!current) {
     throw new AppError('NOT_FOUND', `Event not found: ${eventId}`);
   }
-  return ctx.db.events.update(current.id, current.version, patch, actor, ctx.now());
+  return ctx.db.events.update(current.id, current.version, patch, actor, ctx.now(), { keepVersion: true });
 }
 
 function attendanceMaster(ctx: Ctx): string {
@@ -61,42 +66,58 @@ export function moveEventFolders(
   ctx: Ctx,
   kind: 'attendance' | 'video',
   newMasterId: string
-): { moved: number; created: number; reused: number } {
-  const counts = { moved: 0, created: 0, reused: 0 };
+): { moved: number; created: number; reused: number; failed: { eventName: string; message: string }[] } {
+  const counts = { moved: 0, created: 0, reused: 0, failed: [] as { eventName: string; message: string }[] };
 
   for (const event of ctx.db.events.find(e => e.active)) {
-    const currentId = kind === 'attendance' ? event.folderId : event.videoFolderId;
-    if (kind === 'video' && !currentId) continue;
-
-    let target = ctx.drive.findChildFolder(newMasterId, event.name);
-    if (target && target !== currentId) {
-      counts.reused++;
-    } else if (target) {
-      continue; // already in place
-    } else if (currentId && ctx.drive.info(currentId).exists) {
-      ctx.drive.moveFolder(currentId, newMasterId);
-      target = currentId;
-      counts.moved++;
-    } else {
-      target = ctx.drive.createFolder(newMasterId, event.name);
-      counts.created++;
-    }
-
-    if (kind === 'video') {
-      saveEventFields(ctx, event.id, { videoFolderId: target });
-      continue;
-    }
-    saveEventFields(ctx, event.id, { folderId: target });
-    const files = [
-      event.membersSpreadsheetId,
-      ...ctx.db.attendanceSheets.find(a => a.eventId === event.id && a.active).map(a => a.spreadsheetId)
-    ];
-    for (const fileId of files) {
-      if (fileId && ctx.drive.info(fileId).exists) ctx.drive.moveToFolder(fileId, target);
+    try {
+      moveOneEventFolder(ctx, event, kind, newMasterId, counts);
+    } catch (err) {
+      // One folder the club Gmail cannot move must not stop the others; saving
+      // the same link again retries only what is still out of place.
+      counts.failed.push({ eventName: event.name, message: err instanceof Error ? err.message : String(err) });
     }
   }
 
   return counts;
+}
+
+function moveOneEventFolder(
+  ctx: Ctx,
+  event: EventItem,
+  kind: 'attendance' | 'video',
+  newMasterId: string,
+  counts: { moved: number; created: number; reused: number }
+): void {
+  const currentId = kind === 'attendance' ? event.folderId : event.videoFolderId;
+  if (kind === 'video' && !currentId) return;
+
+  let target = ctx.drive.findChildFolder(newMasterId, event.name);
+  if (target && target !== currentId) {
+    counts.reused++;
+  } else if (target) {
+    return; // already in place
+  } else if (currentId && ctx.drive.info(currentId).exists) {
+    ctx.drive.moveFolder(currentId, newMasterId);
+    target = currentId;
+    counts.moved++;
+  } else {
+    target = ctx.drive.createFolder(newMasterId, event.name);
+    counts.created++;
+  }
+
+  if (kind === 'video') {
+    saveEventFields(ctx, event.id, { videoFolderId: target });
+    return;
+  }
+  saveEventFields(ctx, event.id, { folderId: target });
+  const files = [
+    event.membersSpreadsheetId,
+    ...ctx.db.attendanceSheets.find(a => a.eventId === event.id && a.active).map(a => a.spreadsheetId)
+  ];
+  for (const fileId of files) {
+    if (fileId && ctx.drive.info(fileId).exists) ctx.drive.moveToFolder(fileId, target);
+  }
 }
 
 /** One attendance sheet per event style, in the event folder, with every class and member. */

@@ -77,6 +77,8 @@ export interface AuditLogRow extends RowMeta {
 }
 
 export interface Db {
+  /** Forgets every cached table so the next read sees other requests' writes. */
+  reload(): void;
   settings: Table<SettingRow>;
   events: Table<EventItem>;
   linkHistory: Table<LinkHistoryRow>;
@@ -412,6 +414,11 @@ export function openDb(drive: DrivePort, systemSpreadsheetId: string): Db {
   const tables: Partial<Db> = {};
 
   return {
+    reload() {
+      for (const key of Object.keys(tables)) {
+        delete (tables as any)[key];
+      }
+    },
     get settings() {
       return (tables.settings ||= new Table(getSheet('Settings'), SCHEMA.Settings, defaultCodecs.settings, 'set'));
     },

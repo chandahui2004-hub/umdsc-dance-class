@@ -239,20 +239,40 @@ export function getSessionRoutes(): Record<string, Route> {
 
         const actor = auth?.claims?.sub || 'system';
         const results: ClassSession[] = [];
+        // Classes named by id in this batch are never matched by seq for another entry
+        const claimedIds = new Set(sessions.map((s: any) => s.id).filter(Boolean));
+        const OPTIONAL = ['instructorId', 'venue', 'status', 'note'] as const;
 
         for (const s of sessions) {
-          const { id, eventId, styleId, seq, date, start, end, instructorId = '', venue = '', status = 'scheduled', note = '' } = s;
-          const fields = { date, start, end, instructorId, venue, status, note };
+          const { id, eventId, styleId, seq, date, start, end } = s;
 
-          const existing =
-            (id && ctx.db.sessions.find(x => x.id === id && x.active)[0]) ||
-            ctx.db.sessions.find(
-              x => x.eventId === eventId && x.styleId === styleId && x.seq === Number(seq) && x.active
-            )[0];
+          const existing = id
+            ? ctx.db.sessions.find(x => x.id === id && x.active)[0]
+            : ctx.db.sessions.find(
+                x =>
+                  x.eventId === eventId &&
+                  x.styleId === styleId &&
+                  x.seq === Number(seq) &&
+                  x.active &&
+                  !claimedIds.has(x.id)
+              )[0];
 
-          const saved = existing
-            ? ctx.db.sessions.update(existing.id, existing.version, fields, actor, ctx.now())
-            : ctx.db.sessions.insert({ eventId, styleId, seq: Number(seq), ...fields }, actor, ctx.now());
+          let saved: ClassSession;
+          if (existing) {
+            // Only the fields the caller sent change; instructor, note etc. are kept otherwise
+            const patch: any = { seq: Number(seq), date, start, end };
+            for (const key of OPTIONAL) if (s[key] !== undefined) patch[key] = s[key];
+            saved = ctx.db.sessions.update(existing.id, existing.version, patch, actor, ctx.now());
+          } else {
+            saved = ctx.db.sessions.insert(
+              {
+                eventId, styleId, seq: Number(seq), date, start, end,
+                instructorId: s.instructorId || '', venue: s.venue || '', status: s.status || 'scheduled', note: s.note || ''
+              },
+              actor,
+              ctx.now()
+            );
+          }
           notifySessionChanged(ctx, saved);
           results.push(saved);
         }

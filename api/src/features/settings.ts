@@ -69,7 +69,7 @@ export function getSettingsRoutes(): Record<string, Route> {
         logAudit(ctx, actor, 'settings.setLink', key, JSON.stringify({ oldValue: oldVal, newValue: newId }));
 
         const kind = MASTER_FOLDER_KINDS[key];
-        if (kind && newId !== oldVal) {
+        if (kind) {
           return { key, value: newId, ...moveEventFolders(ctx, kind, newId) };
         }
         return { key, value: newId };

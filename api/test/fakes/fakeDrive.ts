@@ -16,6 +16,8 @@ interface Item {
   mimeType?: string;
   sizeBytes?: number;
   createdTime?: string;
+  /** In the Drive bin: Drive still returns it, but the system treats it as missing. */
+  trashed?: boolean;
 }
 
 export class FakeDrive implements DrivePort {
@@ -24,7 +26,7 @@ export class FakeDrive implements DrivePort {
 
   info(id: string): DriveItemInfo {
     const item = this.items.get(id);
-    if (!item) {
+    if (!item || item.trashed) {
       return { exists: false, kind: 'file', name: '', canEdit: false };
     }
     return {
@@ -68,7 +70,7 @@ export class FakeDrive implements DrivePort {
 
   findChildFolder(parentId: string, name: string): string | null {
     for (const item of this.items.values()) {
-      if (item.parentId === parentId && item.name === name && item.kind === 'folder') {
+      if (item.parentId === parentId && item.name === name && item.kind === 'folder' && !item.trashed) {
         return item.id;
       }
     }
@@ -86,11 +88,23 @@ export class FakeDrive implements DrivePort {
     return this.items.get(id)?.parentId;
   }
 
+  /** Moves an item to the Drive bin (it keeps its id and parent). */
+  trash(id: string): void {
+    const item = this.items.get(id);
+    if (item) item.trashed = true;
+  }
+
   nameOf(id: string): string | undefined {
     return this.items.get(id)?.name;
   }
 
+  /** Folder ids whose move fails, e.g. a folder owned by another account. */
+  failMovesFor = new Set<string>();
+
   moveFolder(folderId: string, newParentId: string): void {
+    if (this.failMovesFor.has(folderId)) {
+      throw new Error('Access denied: cannot move this folder');
+    }
     const item = this.items.get(folderId);
     if (item) item.parentId = newParentId;
   }

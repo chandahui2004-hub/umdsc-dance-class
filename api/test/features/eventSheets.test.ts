@@ -65,7 +65,7 @@ describe('event sheets and source', () => {
 
       const result = moveEventFolders(ctx, 'attendance', masterB);
 
-      expect(result).toEqual({ moved: 2, created: 0, reused: 0 });
+      expect(result).toEqual({ moved: 2, created: 0, reused: 0, failed: [] });
       expect(drive.parentOf(e1.folderId)).toBe(masterB);
       expect(drive.parentOf(e2.folderId)).toBe(masterB);
       expect(children(masterB, 'OCT MONTHLY CLASS').length).toBe(1);
@@ -79,7 +79,7 @@ describe('event sheets and source', () => {
 
       const result = moveEventFolders(ctx, 'attendance', masterB);
 
-      expect(result).toEqual({ moved: 0, created: 0, reused: 1 });
+      expect(result).toEqual({ moved: 0, created: 0, reused: 1, failed: [] });
       expect(drive.findChildFolder(masterB, 'OCT MONTHLY CLASS')).toBe(already);
       expect(children(masterB, 'OCT MONTHLY CLASS').length).toBe(1);
       const updated = ctx.db.events.get(e1.id)!;
@@ -97,10 +97,26 @@ describe('event sheets and source', () => {
 
       const result = moveEventFolders(ctx, 'attendance', masterB);
 
-      expect(result).toEqual({ moved: 0, created: 1, reused: 0 });
+      expect(result).toEqual({ moved: 0, created: 1, reused: 0, failed: [] });
       const updated = ctx.db.events.get(e1.id)!;
       expect(drive.parentOf(updated.folderId)).toBe(masterB);
       expect(drive.parentOf(updated.membersSpreadsheetId)).toBe(updated.folderId);
+    });
+
+    it('an event folder moved to the Drive bin counts as missing and is not reused (review #6)', () => {
+      const e1 = eventWithSheets('OCT MONTHLY CLASS');
+      drive.trash(e1.folderId);
+
+      expect(drive.info(e1.folderId).exists).toBe(false);
+      expect(drive.findChildFolder(masterA, 'OCT MONTHLY CLASS')).toBeNull();
+
+      ensureEventSheets(ctx, ctx.db.events.get(e1.id)!);
+      const updated = ctx.db.events.get(e1.id)!;
+      expect(updated.folderId).not.toBe(e1.folderId);
+      expect(drive.parentOf(updated.folderId)).toBe(masterA);
+      for (const a of ctx.db.attendanceSheets.find(x => x.eventId === e1.id)) {
+        expect(drive.parentOf(a.spreadsheetId)).toBe(updated.folderId);
+      }
     });
 
     it('video kind skips events without a video folder', () => {
@@ -110,7 +126,7 @@ describe('event sheets and source', () => {
 
       const result = moveEventFolders(ctx, 'video', videoB);
 
-      expect(result).toEqual({ moved: 1, created: 0, reused: 0 });
+      expect(result).toEqual({ moved: 1, created: 0, reused: 0, failed: [] });
       expect(drive.parentOf(withVideo.videoFolderId)).toBe(videoB);
     });
   });

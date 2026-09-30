@@ -31,6 +31,7 @@ export interface SpreadsheetPort {
   removeSheet(name: string): void;
 }
 
+/** `exists` is false for items that are missing, unshared, or in the Drive bin. */
 export interface DriveItemInfo {
   exists: boolean;
   kind: 'folder' | 'spreadsheet' | 'file';
@@ -53,6 +54,7 @@ export interface DrivePort {
   openSpreadsheet(id: string): SpreadsheetPort;
   createSpreadsheet(name: string, folderId: string): SpreadsheetPort;
   createFolder(parentId: string, name: string): string;
+  /** A child folder with this name that is not in the Drive bin, or null. */
   findChildFolder(parentId: string, name: string): string | null;
   /** Moves the file into folderId unless it is already there. */
   moveToFolder(fileId: string, folderId: string): void;

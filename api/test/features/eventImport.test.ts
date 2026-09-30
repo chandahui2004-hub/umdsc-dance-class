@@ -179,6 +179,20 @@ describe('importEventMembers', () => {
     expect(mi.lastEventEnd).toBe('2026-11-15');
   });
 
+  it('auto-sync picks up a second submission that adds a style (review #3)', () => {
+    const { event, sourceId } = makeEvent([row('Ali', '22001111', 'Popping'), row('Bala', '22002222', 'Popping')]);
+    importEventMembers(ctx, event, { full: true });
+
+    source(sourceId).appendRows([['2026-10-05 09:00:00', 'Ali', '22001111', '0123456789', 'a@t.com', 'Hip Hop']]);
+    const result = importEventMembers(ctx, fresh(event), { full: false });
+
+    expect(result.changed).toBe(true);
+    const ali = readEventMembers(ctx, fresh(event)).find(m => m.matricKey === '22001111')!;
+    expect(ali.styleIds.sort()).toEqual(['st_hiphop', 'st_popping']);
+    const hh = attendanceSheet(event, 'st_hiphop').getDisplayValues().slice(2).map(r => r[1]);
+    expect(hh).toContain('Ali');
+  });
+
   it('a member missing from the form is flagged, never removed', () => {
     const { event, sourceId } = makeEvent([row('Ali', '22001111', 'Popping'), row('Bala', '22002222', 'Popping')]);
     importEventMembers(ctx, event, { full: true });

@@ -9,6 +9,7 @@ import { FakeSheet } from '../fakes/fakeSheets';
 import { Hmac, signToken } from '../../src/security/tokens';
 import { getEventRoutes } from '../../src/features/events';
 import { seedSourceSheet } from '../fixtures/events';
+import { openDb } from '../../src/db/db';
 
 const nodeHmac: Hmac = (key: string, message: string) => new Uint8Array(crypto.createHmac('sha256', key).update(message).digest());
 const secrets = { tokenSecret: 'test_secret_key_123456789012345678901234567890', hmac: nodeHmac };
@@ -137,6 +138,59 @@ describe('Feature: event auto-sync and sync now', () => {
     const res = call('events.sync', { id: e.id });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error.message).toContain('Archived events do not sync');
+  });
+
+  it('syncing does not bump the event version, so an open edit still saves (review #5)', () => {
+    const e = createEvent('OCT');
+    const version = ctx.db.events.get(e.id)!.version;
+    sourceTab(e.sourceId).appendRows([['2026-10-02', 'Bala', '22002222', '', '', 'Popping']]);
+
+    expect(call('events.sync', { id: e.id }).ok).toBe(true);
+
+    expect(ctx.db.events.get(e.id)!.version).toBe(version);
+    const edit = call('events.update', { id: e.id, version, name: 'OCT RENAMED' });
+    expect(edit.ok).toBe(true);
+  });
+
+  it('auto-sync re-reads the event after waiting for the lock (review #4)', () => {
+    const e = createEvent('OCT');
+    sourceTab(e.sourceId).appendRows([['2026-10-02', 'Bala', '22002222', '', '', 'Popping']]);
+    call('events.autoSync', {}); // loads the Events table, then cheap-checks
+    ctx.cache.remove(`sync:check:${e.id}`);
+    sourceTab(e.sourceId).appendRows([['2026-10-03', 'Chong', '22003333', '', '', 'Popping']]);
+
+    // Another admin renames and archives-then-unarchives while this request waits for the lock
+    lock.onAcquire = () => {
+      const other = openDb(drive, 'test_system_ss');
+      const row = other.events.get(e.id)!;
+      other.events.update(e.id, row.version, { name: 'RENAMED BY OTHER' }, 'other', ctx.now());
+    };
+    const res = call('events.autoSync', {});
+
+    expect(res.ok && (res.data as any).changed).toEqual([e.id]);
+    const fresh = openDb(drive, 'test_system_ss').events.get(e.id)!;
+    expect(fresh.name).toBe('RENAMED BY OTHER');
+    expect(fresh.memberCount).toBe(3);
+  });
+
+  it('events past the 3-year retention never sync, so a retention wipe stays wiped (review #2)', () => {
+    const sourceId = seedSourceSheet(ctx, [HEADERS, ['2023-09-01', 'Ali', '22001111', '', '', 'Popping']]);
+    const created = call('events.create', {
+      name: 'SEP 2023', type: 'monthly', startDate: '2023-09-01', endDate: '2023-09-20',
+      sheetUrl: `https://docs.google.com/spreadsheets/d/${sourceId}/edit`,
+      columnMap: { fullName: 1, matric: 2, contact: 3, email: 4, gender: null, nationality: null },
+      classIndex: 5, styleIds: ['st_popping'], sessions: []
+    });
+    const id = created.ok ? (created.data as any).event.id : '';
+    sourceTab(sourceId).appendRows([['2023-09-02', 'Bala', '22002222', '', '', 'Popping']]);
+
+    const auto = call('events.autoSync', {});
+    expect(auto.ok && (auto.data as any).checked).not.toContain(id);
+    expect(auto.ok && (auto.data as any).changed).not.toContain(id);
+
+    const now = call('events.sync', { id });
+    expect(now.ok).toBe(false);
+    if (!now.ok) expect(now.error.message).toContain('ended more than 3 years ago');
   });
 
   it('busy lock skips and clears the throttle key', () => {

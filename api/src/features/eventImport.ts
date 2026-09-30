@@ -17,7 +17,7 @@ export interface ImportResult {
 }
 
 const REMOVED_FLAG = 'removed-from-form';
-/** Member fields that Sync now refreshes from the form. */
+/** Member fields refreshed from the form on every sync that reads it. */
 const REFRESHED_FIELDS: (keyof Member)[] = [
   'fullName', 'nameKey', 'contact', 'email', 'gender', 'nationality', 'styleIds', 'styleNames'
 ];
@@ -107,7 +107,8 @@ export function sourceUnchanged(ctx: Ctx, event: EventItem): boolean {
 /**
  * Brings an event's Members sheet, attendance sheets and MemberIndex up to date
  * with its form. Call with the script lock held. Without `full`, returns early
- * with no writes when the form's row count and last row are unchanged.
+ * with no writes when the form's row count and last row are unchanged; `full`
+ * (Sync now) always re-reads, which also catches edits to older responses.
  */
 export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boolean }): ImportResult {
   const { tab, sheet: source } = openSourceTab(ctx, event.sourceSheetId, event.sourceTab);
@@ -149,7 +150,8 @@ export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boo
       }
       return;
     }
-    if (!opts.full) return;
+    // The whole form was read, so refresh known members too (e.g. a second
+    // submission adding a style); this writes only when something differs.
     const next = cellsOf(m);
     const differs = REFRESHED_FIELDS.some(f => next[col(f)] !== row[col(f)]);
     if (differs || flags.includes(REMOVED_FLAG)) {

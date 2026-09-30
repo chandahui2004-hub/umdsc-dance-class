@@ -1030,6 +1030,8 @@ test('ensureFolderPath reuses an existing folder and creates only missing levels
 
 ### Task 27: Dancer Home, day sheet and Me
 
+> **Changed 2026-09-30:** registration is now event-based (`docs/superpowers/specs/2026-09-30-event-based-registration-design.md`). Wherever Tasks 27–31 say "month" or "month switcher", use the dancer's **events** instead: `dancer.bootstrap` returns `events` (id, name, type, dates, status) and `profile.eventIds`; the Home calendar gets an **event switcher** and shows the chosen event's date range. Archived events stay visible to dancers.
+
 **Files:** Create `web/src/features/calendar/{DancerHome,DaySheet,ClassCard}.tsx`, `web/src/features/me/MePage.tsx`. Test: `web/e2e/dancer-home.spec.ts`.
 
 **Behaviour (spec §13, §13.1 metaphors):**

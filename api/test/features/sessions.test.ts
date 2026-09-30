@@ -203,6 +203,29 @@ describe('Feature: Class Sessions (features/sessions)', () => {
     expect(locking.find(s => s.seq === 1)!.date).toBe('2026-10-06');
   });
 
+  it('batchUpsert keeps instructor and note, and adds a class dated before existing ones (review #1)', () => {
+    const existing = ctx.db.sessions.insert(
+      { eventId: event.id, styleId: 'st_popping', seq: 1, date: '2026-10-13', start: '20:00', end: '22:00', instructorId: 'ins_1', venue: 'Studio', status: 'scheduled', note: 'bring shoes' },
+      'admin1',
+      ctx.now()
+    );
+
+    // Exactly what the event wizard sends after adding 6 Oct before the 13 Oct class
+    const res = call('sessions.batchUpsert', {
+      sessions: [
+        { eventId: event.id, styleId: 'st_popping', seq: 1, date: '2026-10-06', start: '20:00', end: '22:00', venue: '', status: 'scheduled' },
+        { id: existing.id, eventId: event.id, styleId: 'st_popping', seq: 2, date: '2026-10-13', start: '20:00', end: '22:00', venue: 'Studio', status: 'scheduled' }
+      ]
+    });
+
+    expect(res.ok).toBe(true);
+    const active = ctx.db.sessions.find(s => s.eventId === event.id && s.active).sort((a, b) => a.date.localeCompare(b.date));
+    expect(active.map(s => [s.date, s.seq])).toEqual([['2026-10-06', 1], ['2026-10-13', 2]]);
+    const kept = ctx.db.sessions.get(existing.id)!;
+    expect(kept.instructorId).toBe('ins_1');
+    expect(kept.note).toBe('bring shoes');
+  });
+
   it('sessions.batchUpsert rejects a date outside the event', () => {
     const res = call('sessions.batchUpsert', {
       sessions: [{ eventId: event.id, styleId: 'st_locking', seq: 1, date: '2026-12-01', start: '19:30', end: '21:30' }]

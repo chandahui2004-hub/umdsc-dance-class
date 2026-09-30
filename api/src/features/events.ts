@@ -2,7 +2,8 @@ import { Route } from '../router';
 import { AppError } from '../errors';
 import { EventItem, EventListItem, EventStatus, EventType } from '@umdsc/shared';
 import { Ctx } from '../ports';
-import { validateEventFields, eventNameKey, classesOutsideRange } from '../logic/events';
+import { validateEventFields, eventNameKey, classesOutsideRange, todayKL } from '../logic/events';
+import { isDue } from '../logic/retention';
 import { validateLink } from '../logic/linkValidation';
 import { logAudit } from '../logic/audit';
 import { previewSource, openSourceTab } from './eventSource';
@@ -14,6 +15,14 @@ import { assertSchemaReady } from './reset';
 
 const AUTO_SYNC_SECONDS = 600;
 const SYNC_NOW_SECONDS = 60;
+
+const RETENTION_NO_SYNC =
+  'This event ended more than 3 years ago, so it no longer syncs (data retention). Archive it when you are done.';
+
+/** Old events stop syncing, so re-reading their form can never undo a retention wipe. */
+function pastRetention(event: EventItem, today: string): boolean {
+  return isDue(event.endDate, today);
+}
 
 function errorText(err: unknown): string {
   if (err instanceof AppError) return err.message.replace(/^[A-Z_]+: /, '');
@@ -176,7 +185,8 @@ export function getEventRoutes(): Record<string, Route> {
       handler: (ctx) => {
         const result = { checked: [] as string[], changed: [] as string[], skipped: [] as string[], errors: [] as { eventId: string; message: string }[] };
 
-        for (const event of ctx.db.events.find(e => e.active && e.status === 'active')) {
+        const today = todayKL(ctx.now());
+        for (const event of ctx.db.events.find(e => e.active && e.status === 'active' && !pastRetention(e, today))) {
           const checkKey = `sync:check:${event.id}`;
           if (ctx.cache.get(checkKey) !== null) {
             result.skipped.push(event.id);
@@ -201,7 +211,13 @@ export function getEventRoutes(): Record<string, Route> {
           }
 
           try {
-            withScriptLock(ctx.lock, () => importEventMembers(ctx, ctx.db.events.get(event.id)!, { full: false }));
+            withScriptLock(ctx.lock, () => {
+              // Other requests may have written while this one waited for the lock
+              ctx.db.reload();
+              const fresh = ctx.db.events.get(event.id);
+              if (!fresh || !fresh.active || fresh.status !== 'active') return;
+              importEventMembers(ctx, fresh, { full: false });
+            });
             result.changed.push(event.id);
           } catch (err) {
             if (err instanceof AppError && err.code === 'BUSY') {
@@ -227,6 +243,9 @@ export function getEventRoutes(): Record<string, Route> {
         const event = getEvent(ctx, String(payload?.id || ''));
         if (event.status === 'archived') {
           throw new AppError('VALIDATION', 'Archived events do not sync');
+        }
+        if (pastRetention(event, todayKL(ctx.now()))) {
+          throw new AppError('VALIDATION', RETENTION_NO_SYNC);
         }
         const forceKey = `sync:force:${event.id}`;
         const recent = ctx.cache.get(forceKey);

@@ -134,8 +134,12 @@ export class GasDriveAdapter implements DrivePort {
     try {
       // Use advanced Drive service (v3) to get metadata & capabilities
       const file = (Drive as any).Files.get(id, {
-        fields: 'id,name,mimeType,capabilities(canEdit)'
+        fields: 'id,name,mimeType,trashed,capabilities(canEdit)'
       });
+      if (file.trashed) {
+        // Drive still returns binned items; they would be purged after 30 days
+        return { exists: false, kind: 'file', name: '', canEdit: false };
+      }
 
       const mime = file.mimeType || '';
       let kind: 'folder' | 'spreadsheet' | 'file' = 'file';
@@ -178,8 +182,9 @@ export class GasDriveAdapter implements DrivePort {
   findChildFolder(parentId: string, name: string): string | null {
     const parent = DriveApp.getFolderById(parentId);
     const folders = parent.getFoldersByName(name);
-    if (folders.hasNext()) {
-      return folders.next().getId();
+    while (folders.hasNext()) {
+      const folder = folders.next();
+      if (!folder.isTrashed()) return folder.getId();
     }
     return null;
   }

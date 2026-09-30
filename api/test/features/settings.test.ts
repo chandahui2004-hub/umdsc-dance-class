@@ -239,6 +239,33 @@ describe('Feature: Settings and Links', () => {
     expect(saved).toBeDefined();
     expect(saved.value).toBe(folderId);
   });
+  it('a failed folder move is reported, the rest still move, and saving the same link again retries (review #7)', () => {
+    const drive = ctx.drive as any;
+    const oldMaster = drive.createFolder('root', 'Old Attendance');
+    const f1 = drive.createFolder(oldMaster, 'OCT');
+    const f2 = drive.createFolder(oldMaster, 'TRIAL');
+    seedEvent(ctx, { name: 'OCT', folderId: f1 });
+    seedEvent(ctx, { name: 'TRIAL', folderId: f2 });
+    const newMaster = drive.createFolder('root', 'New Attendance');
+    drive.failMovesFor.add(f1);
+
+    const save = () =>
+      handleRequest(
+        { action: 'settings.setLink', token: adminToken, payload: { key: 'defaultAttendanceFolderId', url: newMaster } },
+        ctx,
+        secrets
+      );
+
+    const first = save();
+    expect(first.ok && first.data).toMatchObject({ moved: 1, failed: [{ eventName: 'OCT' }] });
+    expect(drive.parentOf(f2)).toBe(newMaster);
+
+    drive.failMovesFor.clear();
+    const retry = save();
+    expect(retry.ok && retry.data).toMatchObject({ moved: 1, failed: [] });
+    expect(drive.parentOf(f1)).toBe(newMaster);
+  });
+
   it('changing the attendance master folder moves event folders and reports counts', () => {
     const drive = ctx.drive as any;
     const oldMaster = drive.createFolder('root', 'Old Attendance');
