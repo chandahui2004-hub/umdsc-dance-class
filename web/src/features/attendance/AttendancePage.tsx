@@ -9,7 +9,6 @@ import { Panel } from '../../components/ui/Panel';
 import { Field } from '../../components/ui/Field';
 import { RosterList } from './RosterList';
 import { AttendanceGrid } from './AttendanceGrid';
-import { useRegistrationAutoSync } from '../../lib/useRegistrationAutoSync';
 import type { AttendanceGrid as AttendanceGridData, DanceStyle, Month } from '@umdsc/shared';
 
 export const AttendancePage: React.FC = () => {
@@ -278,7 +277,6 @@ export const AttendancePage: React.FC = () => {
     }
   });
 
-  const autoSync = useRegistrationAutoSync(month);
 
   // Update Master Folder mutation
   const updateFolderMutation = useMutation({
@@ -347,30 +345,6 @@ export const AttendancePage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {/* 1-Minute Registration Auto-sync badge */}
-          <div className="px-2.5 py-1 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] font-mono text-xs flex items-center gap-1.5 shadow-[2px_2px_0_var(--c-ink)]">
-            <span
-              className={`inline-block w-2.5 h-2.5 rounded-full ${
-                autoSync.isSyncing ? 'bg-[var(--c-yellow)] animate-spin' : 'bg-[var(--c-green)] animate-pulse'
-              }`}
-            />
-            <span className="font-display text-[10px] text-[var(--c-ink)]">
-              {autoSync.isSyncing
-                ? 'SYNCING...'
-                : autoSync.lastSyncedAt
-                ? `AUTO-SYNC (1M): ${autoSync.lastSyncedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                : 'AUTO-SYNC: 1 MIN'}
-            </span>
-            <button
-              type="button"
-              onClick={() => autoSync.syncNow()}
-              disabled={autoSync.isSyncing}
-              title="Poll Google Form Sheet for latest registrations now"
-              className="ml-1 px-1.5 py-0.5 border border-[var(--c-ink)] bg-[var(--c-bg)] font-display text-[9px] hover:bg-[var(--c-yellow)]"
-            >
-              ↻ SYNC NOW
-            </button>
-          </div>
 
           {pendingCount > 0 && (
             <div className="px-3 py-1 bg-[var(--c-yellow)] border-2 border-[var(--c-ink)] font-display text-xs text-[var(--c-ink)] font-bold animate-pulse shadow-[2px_2px_0_var(--c-ink)]">

@@ -4,12 +4,15 @@ import { TabBar, TabDef } from '../components/ui/TabBar';
 export interface PhoneShellProps {
   tabs: TabDef[];
   header?: React.ReactNode;
+  /** Shown above the page content, e.g. the admin event picker. */
+  topBar?: React.ReactNode;
   children: React.ReactNode;
 }
 
 export const PhoneShell: React.FC<PhoneShellProps> = ({
   tabs,
   header,
+  topBar,
   children
 }) => {
   return (
@@ -23,6 +26,13 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
           <header className="sticky top-0 z-30 bg-[var(--c-navy)] text-[var(--c-panel)] border-b-4 border-[var(--c-ink)] px-4 py-3 shadow-[0_4px_0_var(--c-ink)]">
             {header}
           </header>
+        )}
+        {topBar && (
+          <div className="px-4 pt-4">
+            <div className="p-3 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)]">
+              {topBar}
+            </div>
+          </div>
         )}
         <main className="flex-1 p-4 overflow-x-hidden">{children}</main>
       </div>

@@ -22,6 +22,8 @@ import { MediaPage } from '../features/media/MediaPage';
 import { useBootstrap } from '../features/auth/useBootstrap';
 import { session } from '../lib/session';
 import { PixelButton } from '../components/ui/PixelButton';
+import { EventPicker } from '../components/ui/EventPicker';
+import { useEventAutoSync } from '../lib/useEventAutoSync';
 
 // Pixel art icon SVG helpers
 const CalendarIcon = () => (
@@ -74,15 +76,26 @@ const ADMIN_TABS: TabDef[] = [
   { id: 'more', label: 'More', icon: <MoreIcon />, path: '/admin/more' }
 ];
 
-export const ShellLayout: React.FC<{ tabs: TabDef[]; children: React.ReactNode }> = ({
+export const ShellLayout: React.FC<{ tabs: TabDef[]; topBar?: React.ReactNode; children: React.ReactNode }> = ({
   tabs,
+  topBar,
   children
 }) => {
   const layout = useLayout();
   if (layout === 'desktop') {
-    return <DesktopShell nav={tabs}>{children}</DesktopShell>;
+    return <DesktopShell nav={tabs} topBar={topBar}>{children}</DesktopShell>;
   }
-  return <PhoneShell tabs={tabs}>{children}</PhoneShell>;
+  return <PhoneShell tabs={tabs} topBar={topBar}>{children}</PhoneShell>;
+};
+
+/** Admin shell: event picker on every page, and the 10-minute registration check. */
+const AdminShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  useEventAutoSync();
+  return (
+    <ShellLayout tabs={ADMIN_TABS} topBar={<EventPicker />}>
+      {children}
+    </ShellLayout>
+  );
 };
 
 // Dancer Pages
@@ -158,7 +171,7 @@ export const AppRoutes: React.FC = () => {
         path="/admin/*"
         element={
           <RequireRole role="admin">
-            <ShellLayout tabs={ADMIN_TABS}>
+            <AdminShell>
               <Routes>
                 <Route path="today" element={<TodayPage />} />
                 <Route path="calendar" element={<ClassesPage />} />
@@ -260,7 +273,7 @@ export const AppRoutes: React.FC = () => {
                 />
                 <Route path="*" element={<Navigate to="/admin/today" replace />} />
               </Routes>
-            </ShellLayout>
+            </AdminShell>
           </RequireRole>
         }
       />
