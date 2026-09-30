@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ISODate, ClassSession, DanceStyle, Instructor, VideoItem, MusicItem } from '@umdsc/shared';
+import type { ISODate, ClassSession, DanceStyle, Instructor, VideoItem, MusicItem, EventSummary } from '@umdsc/shared';
 import { Sheet } from '../../components/ui/Sheet';
 import { ClassCard } from './ClassCard';
 import { formatDayLabel } from '../../lib/time';
@@ -14,6 +14,7 @@ export interface DaySheetProps {
   videos: VideoItem[];
   music: MusicItem[];
   attendance: { sessionId: string; present: boolean }[];
+  events?: (EventSummary | { id: string; name: string })[];
 }
 
 export const DaySheet: React.FC<DaySheetProps> = ({
@@ -25,7 +26,8 @@ export const DaySheet: React.FC<DaySheetProps> = ({
   instructors,
   videos,
   music,
-  attendance
+  attendance,
+  events = []
 }) => {
   if (!date) return null;
 
@@ -54,6 +56,7 @@ export const DaySheet: React.FC<DaySheetProps> = ({
             const att = attendance.find((a) => a.sessionId === session.id);
             const classVideos = videos.filter((v) => v.sessionId === session.id);
             const classMusic = music.filter((m) => m.sessionId === session.id);
+            const ev = events.find((e) => e.id === session.eventId);
 
             return (
               <ClassCard
@@ -64,6 +67,7 @@ export const DaySheet: React.FC<DaySheetProps> = ({
                 attendancePresent={att?.present}
                 videos={classVideos}
                 music={classMusic}
+                eventName={ev?.name}
               />
             );
           })

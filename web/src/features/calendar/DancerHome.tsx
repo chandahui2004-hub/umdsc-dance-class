@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import type { Month, ISODate } from '@umdsc/shared';
 import { useBootstrap } from '../auth/useBootstrap';
 import { MonthCalendar, type CalendarMark } from '../../components/ui/MonthCalendar';
@@ -38,7 +38,7 @@ export const DancerHome: React.FC = () => {
     return [];
   }, [rawEvents, (bootstrap as any)?.profile?.months, styles]);
 
-  // Active event selection
+  // Active event selection: defaults to first active event on load, but allows 'all'
   const [selectedEventId, setSelectedEventId] = useState<string>('all');
   const today = todayKL();
   const currentMonth = today.slice(0, 7) as Month;
@@ -53,18 +53,22 @@ export const DancerHome: React.FC = () => {
     return events.find((e) => e.id === selectedEventId) || null;
   }, [events, selectedEventId]);
 
-  // Set initial month when events load
+  // Set initial event and view month ONCE when events load
+  const initializedRef = useRef(false);
   React.useEffect(() => {
-    if (events.length > 0 && selectedEventId === 'all') {
+    if (events.length > 0 && !initializedRef.current) {
+      initializedRef.current = true;
       const firstActive = events.find((e) => e.status === 'active') || events[0];
-      setSelectedEventId(firstActive.id);
-      if (firstActive.startDate) {
-        setViewMonth(firstActive.startDate.slice(0, 7) as Month);
+      if (firstActive) {
+        setSelectedEventId(firstActive.id);
+        if (firstActive.startDate) {
+          setViewMonth(firstActive.startDate.slice(0, 7) as Month);
+        }
       }
     }
-  }, [events, selectedEventId]);
+  }, [events]);
 
-  // Allowed months for current event
+  // Allowed months: restricted when single event is selected; free navigation when 'all'
   const allowedMonths = useMemo(() => {
     if (!currentEvent) return undefined;
     const startM = currentEvent.startDate.slice(0, 7);
@@ -195,19 +199,19 @@ export const DancerHome: React.FC = () => {
             }}
             className="min-h-[44px] px-3 border-2 border-[var(--c-ink)] bg-[var(--c-panel)] font-display text-xs text-[var(--c-ink)] font-bold shadow-[2px_2px_0_var(--c-ink)] cursor-pointer"
           >
+            <option value="all">ALL EVENTS</option>
             {events.map((ev) => (
               <option key={ev.id} value={ev.id}>
                 {ev.name.toUpperCase()}
               </option>
             ))}
-            <option value="all">ALL REGISTERED EVENTS</option>
           </select>
         </div>
       </div>
 
       {/* Event Details Banner */}
-      {currentEvent && (
-        <div className="bg-[var(--c-panel)] border-2 border-[var(--c-ink)] p-2.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+      {currentEvent ? (
+        <div data-testid="event-banner" className="bg-[var(--c-panel)] border-2 border-[var(--c-ink)] p-2.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono shadow-[2px_2px_0_var(--c-ink)]">
           <div className="flex items-center gap-2">
             <span className="font-display text-[10px] px-1.5 py-0.5 bg-[var(--c-yellow)] text-[var(--c-ink)] border border-[var(--c-ink)] font-bold">
               {currentEvent.type.toUpperCase()}
@@ -218,6 +222,20 @@ export const DancerHome: React.FC = () => {
           </div>
           <span className="text-[var(--c-darkgrey)] text-[11px]">
             {currentEvent.startDate} → {currentEvent.endDate}
+          </span>
+        </div>
+      ) : (
+        <div data-testid="all-events-banner" className="bg-[var(--c-panel)] border-2 border-[var(--c-ink)] p-2.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono shadow-[2px_2px_0_var(--c-ink)]">
+          <div className="flex items-center gap-2">
+            <span className="font-display text-[10px] px-1.5 py-0.5 bg-[var(--c-navy)] text-[var(--c-yellow)] border border-[var(--c-ink)] font-bold">
+              ALL EVENTS
+            </span>
+            <span className="font-bold text-[var(--c-ink)]">
+              {filteredSessions.length} classes across all registered events
+            </span>
+          </div>
+          <span className="text-[var(--c-darkgrey)] text-[11px]">
+            Change months freely
           </span>
         </div>
       )}
@@ -282,6 +300,7 @@ export const DancerHome: React.FC = () => {
         videos={videos}
         music={music}
         attendance={attendance}
+        events={events}
       />
     </div>
   );

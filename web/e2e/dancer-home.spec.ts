@@ -65,6 +65,24 @@ const SESSION_OCT_15 = {
   active: true
 };
 
+const SESSION_NOV_12 = {
+  id: 'ses-3',
+  eventId: 'evt-nov',
+  styleId: 'style-hiphop',
+  seq: 1,
+  date: '2026-11-12',
+  start: '20:00',
+  end: '22:00',
+  instructorId: 'inst-1',
+  venue: 'Studio B',
+  status: 'scheduled' as const,
+  note: '',
+  version: 1,
+  updatedBy: 'admin',
+  updatedAt: '2026-10-01T00:00:00.000Z',
+  active: true
+};
+
 const VIDEO_RECAP = {
   id: 'vid-1',
   eventId: 'evt-oct',
@@ -102,7 +120,7 @@ const DANCER_BOOTSTRAP_DATA = {
   profile: {
     matricKey: '17201234',
     fullName: 'SARAH BINTI AHMAD',
-    eventIds: ['evt-oct'],
+    eventIds: ['evt-oct', 'evt-nov'],
     perms: {
       'calendar.view': '*',
       'attendance.view.own': '*',
@@ -119,11 +137,20 @@ const DANCER_BOOTSTRAP_DATA = {
       endDate: '2026-10-31',
       status: 'active' as const,
       styleIds: ['style-hiphop']
+    },
+    {
+      id: 'evt-nov',
+      name: 'NOV TRIAL CLASS',
+      type: 'trial' as const,
+      startDate: '2026-11-01',
+      endDate: '2026-11-30',
+      status: 'active' as const,
+      styleIds: ['style-hiphop']
     }
   ],
   styles: [HIPHOP_STYLE],
   instructors: [INSTRUCTOR_ALEX],
-  sessions: [SESSION_OCT_8, SESSION_OCT_15],
+  sessions: [SESSION_OCT_8, SESSION_OCT_15, SESSION_NOV_12],
   attendance: [
     { sessionId: 'ses-1', present: true },
     { sessionId: 'ses-2', present: false }
@@ -201,6 +228,65 @@ test.describe('Dancer Portal: Home, DaySheet & Me Page', () => {
     await expect(page).toHaveURL(/\/studio\?music=mus-1/);
   });
 
+  test('dancer calendar: selects ALL EVENTS and allows free month switching across all registered classes', async ({ page }) => {
+    await page.goto('/');
+
+    // Event switcher select element
+    const eventSelect = page.locator('#dancer-event-select');
+    await expect(eventSelect).toBeVisible();
+
+    // Select ALL EVENTS
+    await eventSelect.selectOption('all');
+
+    // ALL EVENTS banner is visible
+    const banner = page.getByTestId('all-events-banner');
+    await expect(banner).toBeVisible();
+    await expect(banner).toContainText('ALL EVENTS');
+    await expect(banner).toContainText('across all registered events');
+
+    // In ALL EVENTS mode, months can be freely changed: go to next month (November 2026)
+    const nextMonthBtn = page.getByRole('button', { name: 'Next month' });
+    await expect(nextMonthBtn).toBeVisible();
+    await nextMonthBtn.click();
+
+    await expect(page.getByText(/NOVEMBER 2026/i)).toBeVisible();
+
+    // November session (Nov 12) is visible on the calendar
+    const nov12Btn = page.locator('button[data-date="2026-11-12"]');
+    await expect(nov12Btn).toBeVisible();
+  });
+
+  test('dancer video: collapses and expands recap videos on class card', async ({ page }) => {
+    await page.goto('/');
+
+    // Open Day Sheet for Oct 8
+    const oct8Btn = page.locator('button[data-date="2026-10-08"]');
+    await oct8Btn.click();
+
+    // Recap video section is visible
+    await expect(page.getByText('CLASS RECAP VIDEOS (1)')).toBeVisible();
+    await expect(page.getByText('Hip Hop Week 1 Routine Recap.mp4')).toBeVisible();
+
+    // Collapse all button is available
+    const collapseAllBtn = page.getByRole('button', { name: /COLLAPSE ALL/i });
+    await expect(collapseAllBtn).toBeVisible();
+
+    // Click collapse all
+    await collapseAllBtn.click();
+
+    // Button flips to EXPAND ALL and compact card shows EXPAND
+    await expect(page.getByRole('button', { name: /EXPAND ALL/i })).toBeVisible();
+    const expandVideoBtn = page.getByRole('button', { name: /EXPAND/i }).first();
+    await expect(expandVideoBtn).toBeVisible();
+
+    // Video tag is hidden while collapsed
+    await expect(page.locator('video')).not.toBeVisible();
+
+    // Click expand
+    await expandVideoBtn.click();
+    await expect(page.locator('video')).toBeVisible();
+  });
+
   test('Me page displays dancer profile, registered events, HeartsBar and handles log out', async ({ page }) => {
     await page.goto('/me');
 
@@ -213,7 +299,7 @@ test.describe('Dancer Portal: Home, DaySheet & Me Page', () => {
     await expect(page.getByText(/HIP HOP/i).first()).toBeVisible();
 
     // HeartsBar shows attendance score
-    const heartsBar = page.locator('[role="img"][aria-label*="attended"]');
+    const heartsBar = page.locator('[role="img"][aria-label*="attended"]').first();
     await expect(heartsBar).toBeVisible();
 
     // Logout
