@@ -20,6 +20,7 @@ import { getAttendanceRoutes } from './features/attendance';
 import { getVideoRoutes } from './features/videos';
 import { getMusicRoutes } from './features/music';
 import { getBootstrapRoutes } from './features/bootstrap';
+import { getResetRoutes } from './features/reset';
 
 export interface AuthInfo {
   claims: TokenClaims;
@@ -53,6 +54,7 @@ registerRoutes(getAttendanceRoutes());
 registerRoutes(getVideoRoutes());
 registerRoutes(getMusicRoutes());
 registerRoutes(getBootstrapRoutes());
+registerRoutes(getResetRoutes());
 
 export function handleRequest(
   req: ApiRequest,
