@@ -226,6 +226,6 @@ test.describe('Login, Title Screen, and Route Guards', () => {
 
     await page.goto('/');
     // Must immediately show dancer information from cache without waiting for network
-    await expect(page.getByText('SARAH BINTI AHMAD')).toBeVisible({ timeout: 2000 });
+    await expect(page.getByText('SARAH BINTI AHMAD').first()).toBeVisible({ timeout: 2000 });
   });
 });

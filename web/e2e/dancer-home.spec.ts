@@ -205,8 +205,8 @@ test.describe('Dancer Portal: Home, DaySheet & Me Page', () => {
     await page.goto('/me');
 
     // Profile details
-    await expect(page.getByText('SARAH BINTI AHMAD')).toBeVisible();
-    await expect(page.getByText('17201234')).toBeVisible();
+    await expect(page.getByText('SARAH BINTI AHMAD').first()).toBeVisible();
+    await expect(page.getByText('17201234').first()).toBeVisible();
 
     // Events and attendance hearts
     await expect(page.getByText('OCT MONTHLY CLASS')).toBeVisible();
