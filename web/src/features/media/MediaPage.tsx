@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '../../lib/api';
 import { todayKL, addMonths } from '../../lib/time';
@@ -12,11 +13,13 @@ import { SectionsEditor } from './SectionsEditor';
 import type { ClassSession, DanceStyle, Month, Video, Music } from '@umdsc/shared';
 
 export const MediaPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
   const currentMonth = todayKL().slice(0, 7);
-  const [month, setMonth] = useState<Month>(currentMonth);
-  const [styleId, setStyleId] = useState<string>('');
+  const [month, setMonth] = useState<Month>(searchParams.get('month') || currentMonth);
+  const [styleId, setStyleId] = useState<string>(searchParams.get('style') || '');
   const [selectedSessionId, setSelectedSessionId] = useState<string>('');
 
   // Dialog states
@@ -41,11 +44,18 @@ export const MediaPage: React.FC = () => {
   );
 
   // Auto-select first style
-  React.useEffect(() => {
+  useEffect(() => {
     if (!styleId && styles.length > 0) {
       setStyleId(styles[0].id);
     }
   }, [styleId, styles]);
+
+  // Sync with searchParams
+  useEffect(() => {
+    if (month && styleId) {
+      setSearchParams({ month, style: styleId }, { replace: true });
+    }
+  }, [month, styleId, setSearchParams]);
 
   // Fetch sessions for this style & month
   const { data: sessions = [] } = useQuery<ClassSession[]>({
@@ -159,7 +169,7 @@ export const MediaPage: React.FC = () => {
             size="md"
             variant="secondary"
             onClick={() => setShowUploadMp3(true)}
-            disabled={!activeStyle || sessions.length === 0}
+            disabled={!activeStyle}
           >
             UPLOAD MP3
           </PixelButton>
@@ -167,7 +177,7 @@ export const MediaPage: React.FC = () => {
             size="md"
             variant="primary"
             onClick={() => setShowUploadVideo(true)}
-            disabled={!activeStyle || sessions.length === 0}
+            disabled={!activeStyle}
           >
             UPLOAD VIDEO
           </PixelButton>
@@ -227,6 +237,27 @@ export const MediaPage: React.FC = () => {
           </PixelButton>
         </div>
       </div>
+
+      {/* Zero sessions banner */}
+      {sessions.length === 0 && (
+        <div className="p-4 bg-[var(--c-peach)] border-4 border-[var(--c-orange)] shadow-[4px_4px_0_var(--c-ink)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div>
+            <h3 className="font-display text-xs text-[var(--c-ink)] font-bold">
+              NO CLASSES SCHEDULED FOR {activeStyle?.name.toUpperCase()} IN {month}
+            </h3>
+            <p className="font-body text-sm text-[var(--c-darkgrey)] mt-1">
+              Class recap videos are organized by class session. You can generate or schedule sessions with 1 click in the Calendar!
+            </p>
+          </div>
+          <PixelButton
+            size="md"
+            variant="primary"
+            onClick={() => navigate(`/admin/calendar?month=${month}`)}
+          >
+            SCHEDULE IN CALENDAR
+          </PixelButton>
+        </div>
+      )}
 
       {/* Session Filter Bar */}
       {sessions.length > 0 && (

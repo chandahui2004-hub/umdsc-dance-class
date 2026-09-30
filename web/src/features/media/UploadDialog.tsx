@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api, errorMessage } from '../../lib/api';
 import { getAccessToken } from '../../lib/google/gis';
 import { pickFolder, hasPickerGrant } from '../../lib/google/picker';
@@ -28,6 +29,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
   onClose,
   onSuccess
 }) => {
+  const navigate = useNavigate();
   const [selectedSessionId, setSelectedSessionId] = useState<string>(
     initialSessionId || (sessions[0]?.id || '')
   );
@@ -167,21 +169,43 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
             </div>
           )}
 
-          {/* Session Selector */}
-          <Field label="Target Class Session" required>
-            <select
-              value={selectedSessionId}
-              disabled={isUploading}
-              onChange={(e) => setSelectedSessionId(e.target.value)}
-              className="w-full min-h-[44px] px-2 border-2 border-[var(--c-ink)] font-body text-sm bg-[var(--c-bg)]"
-            >
-              {sessions.map((s) => (
-                <option key={s.id} value={s.id}>
-                  #{s.seq} {s.date} ({s.start} - {s.end}) {s.venue ? `@ ${s.venue}` : ''}
-                </option>
-              ))}
-            </select>
-          </Field>
+          {sessions.length === 0 ? (
+            <div className="p-4 bg-[var(--c-peach)] border-2 border-[var(--c-orange)] space-y-3">
+              <h4 className="font-display text-xs text-[var(--c-ink)] font-bold">
+                NO CLASS SESSIONS SCHEDULED IN {month}
+              </h4>
+              <p className="font-body text-sm text-[var(--c-darkgrey)]">
+                Media files are organized inside each class&apos;s folder. Please generate or add class sessions for {style.name} in the Calendar first.
+              </p>
+              <div className="pt-2">
+                <PixelButton
+                  size="md"
+                  variant="primary"
+                  onClick={() => navigate(`/admin/calendar?month=${month}`)}
+                >
+                  SCHEDULE CLASSES IN CALENDAR
+                </PixelButton>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Session Selector */}
+              <Field label="Target Class Session" required>
+                <select
+                  value={selectedSessionId}
+                  disabled={isUploading}
+                  onChange={(e) => setSelectedSessionId(e.target.value)}
+                  className="w-full min-h-[44px] px-2 border-2 border-[var(--c-ink)] font-body text-sm bg-[var(--c-bg)]"
+                >
+                  {sessions.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      #{s.seq} {s.date} ({s.start} - {s.end}) {s.venue ? `@ ${s.venue}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </>
+          )}
 
           {/* File Picker */}
           <Field label={type === 'video' ? 'Select Video File' : 'Select MP3 File'} required>
