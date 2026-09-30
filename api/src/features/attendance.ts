@@ -490,7 +490,7 @@ export function getAttendanceRoutes(): Record<string, Route> {
     },
 
     'attendance.ensureSheets': {
-      perm: 'attendance.mark',
+      perm: 'settings.edit',
       write: true,
       bumpsData: true,
       handler: (ctx, auth, payload: any) => {

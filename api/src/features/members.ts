@@ -329,6 +329,23 @@ export function getMemberRoutes(): Record<string, Route> {
       }
     },
 
+    'members.importedMonths': {
+      perm: 'members.import',
+      write: false,
+      handler: (ctx) => {
+        const mmList = ctx.db.memberMonths.find(m => m.active);
+        return {
+          months: mmList.map(mm => ({
+            month: mm.month,
+            sourceSheetId: mm.sourceSheetId || '',
+            memberCount: mm.memberCount || 0,
+            importedAt: mm.importedAt || '',
+            lastSyncAt: mm.lastSyncAt || ''
+          })).sort((a: any, b: any) => a.month.localeCompare(b.month))
+        };
+      }
+    },
+
     'members.list': {
       perm: 'members.view',
       write: false,

@@ -111,9 +111,25 @@ export const ImportWizard: React.FC = () => {
     }
   });
 
+  // Fetch already-imported months
+  const { data: importedMonthsData } = useQuery<{ months: { month: string; sourceSheetId: string; memberCount: number; importedAt: string; lastSyncAt: string }[] }>({
+    queryKey: ['importedMonths'],
+    queryFn: async () => {
+      const res = await api.post<{ months: { month: string; sourceSheetId: string; memberCount: number; importedAt: string; lastSyncAt: string }[] }>('members.importedMonths');
+      return res.data;
+    }
+  });
+  const importedMonths = importedMonthsData?.months || [];
+
   // Class Schedules state per style
   const [schedulesByStyle, setSchedulesByStyle] = useState<Record<string, ScheduledClass[]>>({});
   const [activeScheduleStyleId, setActiveScheduleStyleId] = useState<string>('');
+
+  // Auto-fill state
+  const [autoFillDay, setAutoFillDay] = useState<number>(1); // 1=Mon, 7=Sun
+  const [autoFillStart, setAutoFillStart] = useState('20:00');
+  const [autoFillEnd, setAutoFillEnd] = useState('22:00');
+  const [autoFillCount, setAutoFillCount] = useState(4);
 
   const initScheduleForStyle = useCallback((style: DanceStyle, days: ISODate[]): ScheduledClass[] => {
     const targetWeekday = style.defaultWeekday ?? 2;
@@ -123,9 +139,9 @@ export const ImportWizard: React.FC = () => {
       return dayNum === targetWeekday;
     });
 
-    const chosenDays = matchingDays.length > 0 ? matchingDays : days.slice(0, 4);
+    const chosenDays = matchingDays.length > 0 ? matchingDays : days.slice(0, Math.min(4, days.length));
     const classes: ScheduledClass[] = [];
-    const count = Math.max(4, chosenDays.length);
+    const count = chosenDays.length;
     for (let i = 0; i < count; i++) {
       const day = chosenDays[i] || (chosenDays.length > 0 ? chosenDays[chosenDays.length - 1] : days[0] || effectiveStart);
       classes.push({
@@ -239,6 +255,62 @@ export const ImportWizard: React.FC = () => {
       return next;
     });
     alert(`✓ Copied ${sourceList.length} class schedule dates to all other dance styles!`);
+  };
+
+  // Toggle a calendar date for the active style (multi-select)
+  const toggleCalendarDate = (styleId: string, date: ISODate) => {
+    setSchedulesByStyle((prev) => {
+      const list = prev[styleId] || [];
+      const existing = list.find((c) => c.date === date);
+      if (existing) {
+        // Remove this date
+        const filtered = list.filter((c) => c.date !== date);
+        return {
+          ...prev,
+          [styleId]: filtered.map((c, i) => ({ ...c, seq: i + 1 }))
+        };
+      } else {
+        // Add this date, inheriting time from last class or style defaults
+        const st = styles.find((s) => s.id === styleId);
+        const lastClass = list.length > 0 ? list[list.length - 1] : null;
+        const newClass: ScheduledClass = {
+          seq: list.length + 1,
+          date,
+          start: lastClass?.start || st?.defaultStart || '20:00',
+          end: lastClass?.end || st?.defaultEnd || '22:00',
+          venue: lastClass?.venue || st?.defaultVenue || 'Dance Studio'
+        };
+        const updated = [...list, newClass].sort((a, b) => a.date.localeCompare(b.date));
+        return {
+          ...prev,
+          [styleId]: updated.map((c, i) => ({ ...c, seq: i + 1 }))
+        };
+      }
+    });
+  };
+
+  // Auto-fill: fill all matching weekdays in range with same time
+  const handleAutoFill = (styleId: string) => {
+    const matchingDays = availableDays.filter((d) => {
+      const dt = new Date(d);
+      const dayNum = dt.getUTCDay() === 0 ? 7 : dt.getUTCDay();
+      return dayNum === autoFillDay;
+    });
+    const limited = matchingDays.slice(0, autoFillCount);
+    if (limited.length === 0) return;
+
+    const st = styles.find((s) => s.id === styleId);
+    const classes: ScheduledClass[] = limited.map((d, i) => ({
+      seq: i + 1,
+      date: d,
+      start: autoFillStart,
+      end: autoFillEnd,
+      venue: st?.defaultVenue || 'Dance Studio'
+    }));
+    setSchedulesByStyle((prev) => ({
+      ...prev,
+      [styleId]: classes
+    }));
   };
 
   const previewMutation = useMutation({
@@ -712,6 +784,68 @@ export const ImportWizard: React.FC = () => {
             </div>
           </div>
 
+          {/* Already Imported Months Panel */}
+          {importedMonths.length > 0 && (
+            <div className="bg-[var(--c-bg)] border-4 border-[var(--c-ink)] p-4 shadow-[2px_2px_0_var(--c-ink)] space-y-3">
+              <h3 className="font-display text-xs text-[var(--c-navy)] uppercase tracking-wider font-bold">
+                📋 ALREADY IMPORTED MONTHS & RESPONSE SHEETS
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left font-mono text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b-2 border-[var(--c-ink)] bg-[var(--c-panel)] font-display text-[10px] text-[var(--c-ink)] uppercase">
+                      <th className="p-2">Month</th>
+                      <th className="p-2">Google Sheet</th>
+                      <th className="p-2">Members</th>
+                      <th className="p-2">Imported</th>
+                      <th className="p-2">Last Sync</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--c-ink)]">
+                    {importedMonths.map((im) => {
+                      const isDuplicate = targetMonths.includes(im.month as Month);
+                      return (
+                        <tr key={im.month} className={isDuplicate ? 'bg-[var(--c-peach)]' : 'hover:bg-[var(--c-panel)]'}>
+                          <td className="p-2 font-bold">
+                            {im.month}
+                            {isDuplicate && (
+                              <span className="ml-1 px-1 py-0.5 bg-[var(--c-orange)] text-[var(--c-ink)] text-[8px] font-display font-bold border border-[var(--c-ink)]">
+                                OVERLAP
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-2">
+                            {im.sourceSheetId ? (
+                              <a
+                                href={`https://docs.google.com/spreadsheets/d/${im.sourceSheetId}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[var(--c-navy)] underline hover:text-[var(--c-orange)]"
+                                title={im.sourceSheetId}
+                              >
+                                {im.sourceSheetId.slice(0, 16)}...
+                              </a>
+                            ) : (
+                              <span className="text-[var(--c-grey)] italic">—</span>
+                            )}
+                          </td>
+                          <td className="p-2 font-bold">{im.memberCount}</td>
+                          <td className="p-2 text-[var(--c-darkgrey)]">{im.importedAt ? im.importedAt.slice(0, 10) : '—'}</td>
+                          <td className="p-2 text-[var(--c-darkgrey)]">{im.lastSyncAt ? im.lastSyncAt.slice(0, 16).replace('T', ' ') : '—'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {targetMonths.some((m) => importedMonths.some((im) => im.month === m)) && (
+                <div className="p-2 bg-[var(--c-peach)] border-2 border-[var(--c-red)] font-body text-xs text-[var(--c-red)] font-bold">
+                  ⚠ Some selected months overlap with already-imported months. Re-importing will update/overwrite existing data for those months.
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Google Sheet Response Link */}
           <Field
             label="Google Sheet Link"
@@ -932,204 +1066,313 @@ export const ImportWizard: React.FC = () => {
 
       {/* STEP 3: Confirm & Auto-generate relative Google Sheets */}
       {step === 3 && previewData && (
-        <Panel title="STEP 3: CONFIRM & AUTO-GENERATE GOOGLE SHEETS" className="px-corners space-y-4">
+        <Panel title="STEP 3: SET CLASS SCHEDULE & CONFIRM IMPORT" className="px-corners space-y-4">
           <h2 className="font-display text-sm tracking-wider text-[var(--c-ink)] uppercase">
-            CONFIRM & AUTO-GENERATE GOOGLE SHEETS
+            SET CLASS SCHEDULE & CONFIRM IMPORT
           </h2>
-          <div className="bg-[var(--c-bg)] border-2 border-[var(--c-ink)] p-4 space-y-3 font-mono text-sm">
+
+          {/* Summary Info */}
+          <div className="bg-[var(--c-bg)] border-2 border-[var(--c-ink)] p-4 space-y-2 font-mono text-sm">
             <div>
               <span className="font-bold text-[var(--c-ink)]">Target Months:</span>{' '}
               <span className="font-bold text-[var(--c-navy)]">{targetMonths.join(', ')}</span> (
               {targetMonths.length} {targetMonths.length === 1 ? 'month' : 'months'})
             </div>
             <div>
-              <span className="font-bold text-[var(--c-ink)]">Selected Date Range:</span>{' '}
-              <span className="font-bold text-[var(--c-navy)]">
-                {effectiveStart} to {effectiveEnd}
-              </span>{' '}
+              <span className="font-bold text-[var(--c-ink)]">Date Range:</span>{' '}
+              <span className="font-bold text-[var(--c-navy)]">{effectiveStart} → {effectiveEnd}</span>{' '}
               ({availableDays.length} days)
             </div>
             <div>
-              <span className="font-bold text-[var(--c-ink)]">Total Dancers Detected:</span>{' '}
+              <span className="font-bold text-[var(--c-ink)]">Dancers Detected:</span>{' '}
               {previewData.rowCount} members
-            </div>
-            <div>
-              <span className="font-bold text-[var(--c-ink)]">Sample Names:</span>{' '}
-              {previewData.sampleNames.join(', ')}
             </div>
           </div>
 
-          {/* Class Schedule Dates & Times Picker (Per Dance Style) */}
-          <div className="border-4 border-[var(--c-ink)] bg-[var(--c-panel)] p-4 space-y-4 shadow-[3px_3px_0_var(--c-ink)]">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-[var(--c-ink)] pb-3">
-              <div>
-                <h3 className="font-display text-xs text-[var(--c-ink)] uppercase font-bold flex items-center gap-1.5">
-                  <span>🗓️</span> SET CLASS SCHEDULE DATES & TIMES (PER DANCE STYLE)
-                </h3>
-                <p className="font-body text-xs text-[var(--c-darkgrey)] mt-1">
-                  Class dates can differ for each dance style. Select or tick dates within your range ({effectiveStart} to {effectiveEnd}) for each class.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <PixelButton
-                  size="md"
-                  variant="secondary"
-                  onClick={() => copyScheduleToAllStyles(activeScheduleStyleId)}
-                  title="Copy this style's dates & times to all other styles"
-                >
-                  📋 COPY TO ALL STYLES
-                </PixelButton>
-              </div>
+          {/* Calendar-Based Class Schedule Picker */}
+          <div className="border-4 border-[var(--c-ink)] bg-[var(--c-panel)] shadow-[3px_3px_0_var(--c-ink)]">
+            {/* Header */}
+            <div className="p-4 border-b-2 border-[var(--c-ink)]">
+              <h3 className="font-display text-xs text-[var(--c-ink)] uppercase font-bold flex items-center gap-1.5">
+                <span>🗓️</span> SET CLASS SCHEDULE (CLICK DATES ON CALENDAR PER DANCE STYLE)
+              </h3>
+              <p className="font-body text-xs text-[var(--c-darkgrey)] mt-1">
+                Select a dance style, then click dates on the calendar to add/remove class days. Time inherits from the previous class but is fully editable.
+              </p>
             </div>
 
-            {/* Dance Style Tabs */}
-            <div className="flex gap-2 overflow-x-auto pb-1 items-center">
-              <span className="font-display text-xs text-[var(--c-ink)] uppercase mr-1 whitespace-nowrap">
-                STYLE:
-              </span>
-              {styles.map((st) => {
-                const count = schedulesByStyle[st.id]?.length || 0;
-                return (
-                  <button
-                    key={st.id}
-                    type="button"
-                    onClick={() => setActiveScheduleStyleId(st.id)}
-                    className={`min-h-[40px] px-3 border-2 border-[var(--c-ink)] font-display text-xs cursor-pointer select-none whitespace-nowrap transition-none ${
-                      activeScheduleStyleId === st.id
-                        ? 'bg-[var(--c-orange)] text-[var(--c-ink)] font-bold shadow-[2px_2px_0_var(--c-ink)]'
-                        : 'bg-[var(--c-bg)] text-[var(--c-ink)] hover:bg-[var(--c-panel)]'
-                    }`}
+            {/* Side-by-Side Layout: Styles + Calendar */}
+            <div className="flex flex-col lg:flex-row">
+              {/* Left: Dance Styles List */}
+              <div className="lg:w-48 lg:min-w-[192px] border-b-2 lg:border-b-0 lg:border-r-2 border-[var(--c-ink)] bg-[var(--c-bg)] p-3 space-y-1.5">
+                <span className="font-display text-[10px] text-[var(--c-darkgrey)] uppercase block pb-1 border-b border-[var(--c-ink)]">
+                  DANCE STYLES
+                </span>
+                {styles.map((st) => {
+                  const count = schedulesByStyle[st.id]?.length || 0;
+                  const isActive = activeScheduleStyleId === st.id;
+                  return (
+                    <button
+                      key={st.id}
+                      type="button"
+                      onClick={() => setActiveScheduleStyleId(st.id)}
+                      className={`w-full min-h-[38px] px-3 py-1.5 border-2 border-[var(--c-ink)] font-display text-xs cursor-pointer select-none transition-none text-left flex justify-between items-center ${
+                        isActive
+                          ? 'bg-[var(--c-orange)] text-[var(--c-ink)] font-bold shadow-[2px_2px_0_var(--c-ink)]'
+                          : 'bg-[var(--c-panel)] text-[var(--c-ink)] hover:bg-[var(--c-yellow)]'
+                      }`}
+                    >
+                      <span>{st.name}</span>
+                      <span className={`px-1.5 py-0.5 text-[9px] border border-[var(--c-ink)] font-mono font-bold ${
+                        count > 0 ? 'bg-[var(--c-green)]' : 'bg-[var(--c-peach)]'
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+
+                {/* Copy & Reset Buttons */}
+                <div className="pt-2 border-t border-[var(--c-ink)] space-y-1.5">
+                  <PixelButton
+                    size="md"
+                    variant="secondary"
+                    onClick={() => copyScheduleToAllStyles(activeScheduleStyleId)}
+                    title="Copy this style's schedule to all other styles"
                   >
-                    {st.name} ({count} classes)
-                  </button>
-                );
-              })}
+                    📋 COPY TO ALL
+                  </PixelButton>
+                  <PixelButton
+                    size="md"
+                    variant="secondary"
+                    onClick={() => resetStyleScheduleToWeekday(activeScheduleStyleId)}
+                    title="Reset to default weekday classes"
+                  >
+                    ↻ RESET DEFAULT
+                  </PixelButton>
+                </div>
+              </div>
+
+              {/* Center: Interactive Calendar */}
+              <div className="flex-1 p-4 space-y-3">
+                {activeScheduleStyleId && (
+                  <>
+                    <div className="flex justify-between items-center">
+                      <span className="font-display text-xs text-[var(--c-navy)] font-bold uppercase">
+                        {styles.find((s) => s.id === activeScheduleStyleId)?.name} — CLICK DATES TO ADD/REMOVE CLASSES
+                      </span>
+                      <span className="font-mono text-xs text-[var(--c-darkgrey)]">
+                        {schedulesByStyle[activeScheduleStyleId]?.length || 0} classes selected
+                      </span>
+                    </div>
+
+                    {/* Days of Week Header */}
+                    <div className="grid grid-cols-7 gap-1 text-center font-display text-[11px] text-[var(--c-darkgrey)] border-b border-[var(--c-ink)] pb-1">
+                      <span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span>
+                      <span className="text-[var(--c-navy)]">SAT</span>
+                      <span className="text-[var(--c-navy)]">SUN</span>
+                    </div>
+
+                    {/* Calendar Grid: Only show dates in the range */}
+                    <div className="space-y-1">
+                      {(() => {
+                        // Build weeks from effectiveStart to effectiveEnd
+                        const startD = new Date(effectiveStart);
+                        const endD = new Date(effectiveEnd);
+                        // Find the Monday before or on effectiveStart
+                        const startDow = startD.getUTCDay() === 0 ? 7 : startD.getUTCDay();
+                        const mondayOffset = startDow - 1;
+                        const calStart = new Date(startD);
+                        calStart.setUTCDate(calStart.getUTCDate() - mondayOffset);
+
+                        const calWeeks: ISODate[][] = [];
+                        let current = new Date(calStart);
+                        while (current <= endD || current.getUTCDay() !== 1) {
+                          const week: ISODate[] = [];
+                          for (let i = 0; i < 7; i++) {
+                            week.push(current.toISOString().slice(0, 10) as ISODate);
+                            current.setUTCDate(current.getUTCDate() + 1);
+                          }
+                          calWeeks.push(week);
+                          if (current > endD && current.getUTCDay() === 1) break;
+                        }
+
+                        const selectedDates = new Set((schedulesByStyle[activeScheduleStyleId] || []).map((c) => c.date));
+
+                        return calWeeks.map((week, wIdx) => (
+                          <div key={wIdx} className="grid grid-cols-7 gap-1">
+                            {week.map((d) => {
+                              const dayNum = parseInt(d.slice(8), 10);
+                              const isInRange = d >= effectiveStart && d <= effectiveEnd;
+                              const isClassDay = selectedDates.has(d);
+                              const classEntry = isClassDay ? (schedulesByStyle[activeScheduleStyleId] || []).find((c) => c.date === d) : null;
+
+                              if (!isInRange) {
+                                return (
+                                  <div
+                                    key={d}
+                                    className="min-h-[44px] p-1 border border-[var(--c-ink)]/30 bg-[var(--c-bg)]/50 opacity-30"
+                                  >
+                                    <span className="font-mono text-[10px] text-[var(--c-grey)]">{dayNum}</span>
+                                  </div>
+                                );
+                              }
+
+                              return (
+                                <button
+                                  key={d}
+                                  type="button"
+                                  onClick={() => toggleCalendarDate(activeScheduleStyleId, d)}
+                                  className={`min-h-[44px] p-1.5 border-2 border-[var(--c-ink)] flex flex-col justify-between cursor-pointer select-none transition-none text-left ${
+                                    isClassDay
+                                      ? 'bg-[var(--c-orange)] text-[var(--c-ink)] font-bold shadow-[2px_2px_0_var(--c-ink)] ring-2 ring-[var(--c-ink)] z-10'
+                                      : 'bg-[var(--c-panel)] text-[var(--c-ink)] hover:bg-[var(--c-yellow)]'
+                                  }`}
+                                >
+                                  <div className="flex justify-between items-center w-full">
+                                    <span className="font-mono text-xs font-bold">{dayNum}</span>
+                                    {isClassDay && (
+                                      <span className="px-1 bg-[var(--c-green)] text-[var(--c-ink)] text-[8px] font-display font-bold border border-[var(--c-ink)]">
+                                        #{classEntry?.seq}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-[9px] font-mono">
+                                    {isClassDay ? (
+                                      <span className="text-[var(--c-ink)]">{classEntry?.start}</span>
+                                    ) : (
+                                      <span className="opacity-60">{formatDayLabel(d).slice(0, 3)}</span>
+                                    )}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ));
+                      })()}
+                    </div>
+
+                    {/* Auto-Fill Controls */}
+                    <div className="p-3 bg-[var(--c-bg)] border-2 border-[var(--c-ink)] space-y-2">
+                      <div className="flex items-center gap-2 font-display text-[10px] text-[var(--c-ink)] uppercase font-bold">
+                        <span>⚡</span> AUTO-FILL
+                      </div>
+                      <div className="flex flex-wrap gap-2 items-end">
+                        <div>
+                          <label className="block font-display text-[9px] text-[var(--c-darkgrey)] uppercase">Day</label>
+                          <select
+                            value={autoFillDay}
+                            onChange={(e) => setAutoFillDay(Number(e.target.value))}
+                            className="min-h-[34px] px-2 border-2 border-[var(--c-ink)] bg-[var(--c-panel)] font-mono text-xs"
+                          >
+                            <option value={1}>Monday</option>
+                            <option value={2}>Tuesday</option>
+                            <option value={3}>Wednesday</option>
+                            <option value={4}>Thursday</option>
+                            <option value={5}>Friday</option>
+                            <option value={6}>Saturday</option>
+                            <option value={7}>Sunday</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block font-display text-[9px] text-[var(--c-darkgrey)] uppercase">Start</label>
+                          <input
+                            type="time"
+                            value={autoFillStart}
+                            onChange={(e) => setAutoFillStart(e.target.value)}
+                            className="min-h-[34px] px-2 border-2 border-[var(--c-ink)] bg-[var(--c-panel)] font-mono text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-display text-[9px] text-[var(--c-darkgrey)] uppercase">End</label>
+                          <input
+                            type="time"
+                            value={autoFillEnd}
+                            onChange={(e) => setAutoFillEnd(e.target.value)}
+                            className="min-h-[34px] px-2 border-2 border-[var(--c-ink)] bg-[var(--c-panel)] font-mono text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-display text-[9px] text-[var(--c-darkgrey)] uppercase">Classes</label>
+                          <input
+                            type="number"
+                            min={1}
+                            max={20}
+                            value={autoFillCount}
+                            onChange={(e) => setAutoFillCount(Math.max(1, Number(e.target.value)))}
+                            className="w-16 min-h-[34px] px-2 border-2 border-[var(--c-ink)] bg-[var(--c-panel)] font-mono text-xs"
+                          />
+                        </div>
+                        <PixelButton
+                          size="md"
+                          variant="primary"
+                          onClick={() => handleAutoFill(activeScheduleStyleId)}
+                        >
+                          ⚡ FILL {autoFillCount} CLASSES
+                        </PixelButton>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
-            {/* Classes for the Active Dance Style */}
-            {activeScheduleStyleId && (
-              <div className="space-y-3">
-                <div className="flex justify-between items-center bg-[var(--c-bg)] border-2 border-[var(--c-ink)] p-2">
-                  <div className="font-display text-xs text-[var(--c-navy)] font-bold">
-                    {styles.find((s) => s.id === activeScheduleStyleId)?.name.toUpperCase()} CLASS SCHEDULE
-                  </div>
-                  <div className="flex gap-2">
-                    <PixelButton
-                      size="md"
-                      variant="secondary"
-                      onClick={() => resetStyleScheduleToWeekday(activeScheduleStyleId)}
-                      title="Reset to default weekly dates"
-                    >
-                      ⚡ AUTO-FILL WEEKDAY
-                    </PixelButton>
-                    <PixelButton
-                      size="md"
-                      variant="primary"
-                      onClick={() => addClassForStyle(activeScheduleStyleId)}
-                    >
-                      + ADD CLASS
-                    </PixelButton>
-                  </div>
+            {/* Bottom: Selected Classes Time Editor */}
+            {activeScheduleStyleId && (schedulesByStyle[activeScheduleStyleId] || []).length > 0 && (
+              <div className="border-t-2 border-[var(--c-ink)] p-4 space-y-3 bg-[var(--c-bg)]">
+                <div className="flex justify-between items-center">
+                  <span className="font-display text-[10px] text-[var(--c-ink)] uppercase font-bold">
+                    CLASS TIMES FOR {styles.find((s) => s.id === activeScheduleStyleId)?.name.toUpperCase()}
+                  </span>
+                  <PixelButton
+                    size="md"
+                    variant="primary"
+                    onClick={() => addClassForStyle(activeScheduleStyleId)}
+                  >
+                    + ADD CLASS
+                  </PixelButton>
                 </div>
-
-                {/* Grid of classes */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                   {(schedulesByStyle[activeScheduleStyleId] || []).map((c) => (
                     <div
                       key={c.seq}
-                      className="border-2 border-[var(--c-ink)] bg-[var(--c-bg)] p-3 space-y-2.5 shadow-[2px_2px_0_var(--c-ink)]"
+                      className="border-2 border-[var(--c-ink)] bg-[var(--c-panel)] p-2.5 space-y-2 shadow-[2px_2px_0_var(--c-ink)]"
                     >
-                      <div className="flex justify-between items-center border-b border-[var(--c-ink)] pb-1.5">
-                        <span className="font-display text-xs text-[var(--c-ink)] font-bold bg-[var(--c-yellow)] px-2 py-0.5 border border-[var(--c-ink)]">
-                          CLASS #{c.seq}
+                      <div className="flex justify-between items-center">
+                        <span className="font-display text-[10px] text-[var(--c-ink)] font-bold bg-[var(--c-yellow)] px-1.5 py-0.5 border border-[var(--c-ink)]">
+                          #{c.seq}
                         </span>
                         <span className="font-mono text-xs text-[var(--c-navy)] font-bold">
-                          {formatDayLabel(c.date)}
+                          {c.date} ({formatDayLabel(c.date).slice(0, 3)})
                         </span>
                         {(schedulesByStyle[activeScheduleStyleId] || []).length > 1 && (
                           <button
                             type="button"
                             onClick={() => removeClassForStyle(activeScheduleStyleId, c.seq)}
-                            className="px-1.5 py-0.5 border border-[var(--c-ink)] bg-[var(--c-peach)] text-[var(--c-red)] font-bold text-xs hover:bg-[var(--c-red)] hover:text-white"
-                            title="Remove this class"
+                            className="px-1 py-0.5 border border-[var(--c-ink)] bg-[var(--c-peach)] text-[var(--c-red)] font-bold text-[10px] hover:bg-[var(--c-red)] hover:text-white"
+                            title="Remove"
                           >
                             ×
                           </button>
                         )}
                       </div>
-
-                      {/* Date Selector Dropdown */}
-                      <div>
-                        <label className="block font-display text-[9px] text-[var(--c-darkgrey)] uppercase mb-1">
-                          Select Date (Within Range)
-                        </label>
-                        <select
-                          value={c.date}
-                          onChange={(e) => updateClassDate(activeScheduleStyleId, c.seq, e.target.value as ISODate)}
-                          className="w-full min-h-[38px] px-2 border-2 border-[var(--c-ink)] bg-[var(--c-panel)] font-mono text-xs font-bold"
-                        >
-                          {availableDays.map((d) => (
-                            <option key={d} value={d}>
-                              {d} — {formatDayLabel(d)}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Interactive Date Pill Picker (Click / Tick on the range) */}
-                      <div>
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="font-display text-[9px] text-[var(--c-darkgrey)] uppercase">
-                            Or Tick Date In Range:
-                          </span>
-                          <span className="font-mono text-[9px] text-[var(--c-darkgrey)]">
-                            {availableDays.length} days available
-                          </span>
-                        </div>
-                        <div className="flex gap-1 overflow-x-auto p-1.5 bg-[var(--c-panel)] border border-[var(--c-ink)] max-h-20">
-                          {availableDays.map((d) => {
-                            const isSelected = c.date === d;
-                            const label = formatDayLabel(d);
-                            return (
-                              <button
-                                key={d}
-                                type="button"
-                                onClick={() => updateClassDate(activeScheduleStyleId, c.seq, d)}
-                                className={`px-2 py-1 text-[10px] font-mono whitespace-nowrap cursor-pointer transition-none select-none ${
-                                  isSelected
-                                    ? 'bg-[var(--c-yellow)] text-[var(--c-ink)] font-bold border-2 border-[var(--c-ink)] shadow-[1px_1px_0_var(--c-ink)]'
-                                    : 'bg-[var(--c-bg)] text-[var(--c-darkgrey)] border border-[var(--c-ink)] hover:bg-[var(--c-peach)]'
-                                }`}
-                              >
-                                {isSelected ? `✓ ${label}` : label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Start Time & End Time */}
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-1.5">
                         <div>
-                          <label className="block font-display text-[9px] text-[var(--c-darkgrey)] uppercase">
-                            Start Time
-                          </label>
+                          <label className="block font-display text-[8px] text-[var(--c-darkgrey)] uppercase">Start</label>
                           <input
                             type="time"
                             value={c.start}
                             onChange={(e) => updateClassTime(activeScheduleStyleId, c.seq, 'start', e.target.value)}
-                            className="w-full min-h-[36px] px-2 border-2 border-[var(--c-ink)] bg-[var(--c-panel)] font-mono text-xs"
+                            className="w-full min-h-[32px] px-1.5 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] font-mono text-xs"
                           />
                         </div>
                         <div>
-                          <label className="block font-display text-[9px] text-[var(--c-darkgrey)] uppercase">
-                            End Time
-                          </label>
+                          <label className="block font-display text-[8px] text-[var(--c-darkgrey)] uppercase">End</label>
                           <input
                             type="time"
                             value={c.end}
                             onChange={(e) => updateClassTime(activeScheduleStyleId, c.seq, 'end', e.target.value)}
-                            className="w-full min-h-[36px] px-2 border-2 border-[var(--c-ink)] bg-[var(--c-panel)] font-mono text-xs"
+                            className="w-full min-h-[32px] px-1.5 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] font-mono text-xs"
                           />
                         </div>
                       </div>
@@ -1140,6 +1383,7 @@ export const ImportWizard: React.FC = () => {
             )}
           </div>
 
+          {/* System Action Notice */}
           <div className="bg-[var(--c-peach)] border-2 border-[var(--c-ink)] p-4 text-xs font-body space-y-1">
             <strong>System Action & Automated Google Sheets Generation:</strong>
             <p>
