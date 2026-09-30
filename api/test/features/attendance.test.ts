@@ -145,6 +145,19 @@ describe('Feature: Attendance (features/attendance)', () => {
     if (!res.ok) expect(res.error.code).toBe('VALIDATION');
   });
 
+  it('attendance.ensureSheets builds the event sheets inside the event folder', () => {
+    const master = ctx.drive.createFolder('root', 'Attendance');
+    ctx.db.settings.insert({ key: 'defaultAttendanceFolderId', value: master }, 'system', ctx.now());
+
+    const res = call('attendance.ensureSheets', { eventId: event.id });
+
+    expect(res.ok).toBe(true);
+    const folder = ctx.drive.findChildFolder(master, 'OCT MONTHLY CLASS');
+    const rec = ctx.db.attendanceSheets.find(a => a.eventId === event.id && a.styleId === 'st_popping')[0];
+    expect(res.ok && (res.data as any).sheets).toEqual([{ styleId: 'st_popping', spreadsheetId: rec.spreadsheetId }]);
+    expect((ctx.drive as any).parentOf(rec.spreadsheetId)).toBe(folder);
+  });
+
   it('attendance.export names the file after the event and style', () => {
     const res = call('attendance.export', { eventId: event.id, styleId: 'st_popping' });
     expect(res.ok && res.data).toEqual({

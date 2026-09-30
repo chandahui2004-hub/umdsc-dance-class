@@ -5,6 +5,7 @@ import { AttendanceGrid, ClassSession } from '@umdsc/shared';
 import { sessionLabel, locateCell } from '../logic/attendanceGrid';
 import { onSessionChanged } from './sessions';
 import { getEvent, readEventMembers } from './eventMembers';
+import { ensureEventSheets } from './eventSheets';
 
 const versionKey = (eventId: string, styleId: string) => `attv:${eventId}:${styleId}`;
 const gridKey = (eventId: string, styleId: string, ver: number) => `att:${eventId}:${styleId}:${ver}`;
@@ -185,6 +186,19 @@ export function getAttendanceRoutes(): Record<string, Route> {
 
         const version = bumpAttendanceVersion(ctx, eventId, styleId);
         return { applied, version };
+      }
+    },
+
+    'attendance.ensureSheets': {
+      perm: 'members.import',
+      write: true,
+      bumpsData: true,
+      handler: (ctx, auth, payload: any) => {
+        const eventId = String(payload?.eventId || '').trim();
+        if (!eventId) {
+          throw new AppError('VALIDATION', 'eventId is required');
+        }
+        return { sheets: ensureEventSheets(ctx, getEvent(ctx, eventId)) };
       }
     },
 
