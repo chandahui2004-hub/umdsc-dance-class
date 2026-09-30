@@ -60,3 +60,8 @@ export interface AdminBootstrap { profile: { username: string; displayName: stri
 export interface AttendanceGrid { month: Month; styleId: string; version: number; sessions: ClassSession[];
   members: { memberId: string; fullName: string; matric: string }[]; present: Record<string, string[]> } // memberId -> sessionIds
 export interface LoginResult<B> { token: string; claims: TokenClaims; bootstrap: B }
+
+// Type aliases for UI convenience
+export type Video = VideoItem;
+export type Music = MusicItem;
+export type MusicSection = Section;

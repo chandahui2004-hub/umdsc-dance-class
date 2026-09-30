@@ -18,6 +18,7 @@ import { SettingsPage } from '../features/settings/SettingsPage';
 import { RolesPage } from '../features/access/RolesPage';
 import { AdminsPage } from '../features/access/AdminsPage';
 import { AttendancePage } from '../features/attendance/AttendancePage';
+import { MediaPage } from '../features/media/MediaPage';
 import { useBootstrap } from '../features/auth/useBootstrap';
 import { session } from '../lib/session';
 import { PixelButton } from '../components/ui/PixelButton';
@@ -162,15 +163,7 @@ export const AppRoutes: React.FC = () => {
                 <Route path="today" element={<TodayPage />} />
                 <Route path="calendar" element={<ClassesPage />} />
                 <Route path="attendance" element={<AttendancePage />} />
-                <Route
-                  path="media"
-                  element={
-                    <div>
-                      <h1 className="font-display text-xl mb-4">Media</h1>
-                      <p className="font-body text-base">Videos & Music Management</p>
-                    </div>
-                  }
-                />
+                <Route path="media" element={<MediaPage />} />
                 <Route path="members/import" element={<ImportWizard />} />
                 <Route path="members" element={<MembersPage />} />
                 <Route path="styles" element={<StylesPage />} />
