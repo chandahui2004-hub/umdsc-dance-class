@@ -97,6 +97,13 @@ function refreshAttendanceFixedColumns(ctx: Ctx, event: EventItem, changed: Map<
   }
 }
 
+/** Cheap check (one small read, no writes): true when the form's row count and last row are unchanged. */
+export function sourceUnchanged(ctx: Ctx, event: EventItem): boolean {
+  const { sheet } = openSourceTab(ctx, event.sourceSheetId, event.sourceTab);
+  const { lastRow, values } = sheet.lastRowValues();
+  return lastRow === event.sourceRowCount && hashRow(values) === event.sourceLastRowHash;
+}
+
 /**
  * Brings an event's Members sheet, attendance sheets and MemberIndex up to date
  * with its form. Call with the script lock held. Without `full`, returns early

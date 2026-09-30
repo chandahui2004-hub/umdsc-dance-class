@@ -3,10 +3,12 @@ import { LockPort } from '../../src/ports';
 export class FakeLock implements LockPort {
   isLocked = false;
   releaseCalled = false;
+  tryLockCalls = 0;
 
-  constructor(private willSucceed = true) {}
+  constructor(public willSucceed = true) {}
 
   tryLock(ms: number): boolean {
+    this.tryLockCalls++;
     if (this.willSucceed && !this.isLocked) {
       this.isLocked = true;
       return true;

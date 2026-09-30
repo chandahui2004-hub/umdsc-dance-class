@@ -6,10 +6,19 @@ import { validateEventFields, eventNameKey, classesOutsideRange } from '../logic
 import { validateLink } from '../logic/linkValidation';
 import { logAudit } from '../logic/audit';
 import { previewSource, openSourceTab } from './eventSource';
-import { ensureEventFolder, ensureMembersSheet, ensureEventSheets } from './eventSheets';
+import { ensureEventFolder, ensureMembersSheet, ensureEventSheets, saveEventFields } from './eventSheets';
 import { getEvent, readEventMembers } from './eventMembers';
-import { importEventMembers } from './eventImport';
+import { importEventMembers, sourceUnchanged } from './eventImport';
+import { withScriptLock } from '../db/lock';
 import { assertSchemaReady } from './reset';
+
+const AUTO_SYNC_SECONDS = 600;
+const SYNC_NOW_SECONDS = 60;
+
+function errorText(err: unknown): string {
+  if (err instanceof AppError) return err.message.replace(/^[A-Z_]+: /, '');
+  return err instanceof Error ? err.message : String(err);
+}
 
 function statusRoute(status: EventStatus): Route {
   return {
@@ -151,6 +160,82 @@ export function getEventRoutes(): Record<string, Route> {
 
         logAudit(ctx, actor, 'events.update', updated.id, updated.name);
         return ctx.db.events.get(updated.id);
+      }
+    },
+
+    // Runs every 10 minutes from any open admin page. Registered as a read route:
+    // it takes the script lock itself, and only when a form actually changed.
+    'events.autoSync': {
+      perm: 'members.import',
+      write: false,
+      handler: (ctx) => {
+        const result = { checked: [] as string[], changed: [] as string[], skipped: [] as string[], errors: [] as { eventId: string; message: string }[] };
+
+        for (const event of ctx.db.events.find(e => e.active && e.status === 'active')) {
+          const checkKey = `sync:check:${event.id}`;
+          if (ctx.cache.get(checkKey) !== null) {
+            result.skipped.push(event.id);
+            continue;
+          }
+          ctx.cache.put(checkKey, '1', AUTO_SYNC_SECONDS);
+
+          try {
+            if (sourceUnchanged(ctx, event)) {
+              result.checked.push(event.id);
+              continue;
+            }
+          } catch (err) {
+            const message = errorText(err);
+            result.errors.push({ eventId: event.id, message });
+            try {
+              withScriptLock(ctx.lock, () => saveEventFields(ctx, event.id, { lastSyncError: message }, 'sync'));
+            } catch {
+              // lock busy: the error is still returned to the caller
+            }
+            continue;
+          }
+
+          try {
+            withScriptLock(ctx.lock, () => importEventMembers(ctx, ctx.db.events.get(event.id)!, { full: false }));
+            result.changed.push(event.id);
+          } catch (err) {
+            if (err instanceof AppError && err.code === 'BUSY') {
+              ctx.cache.remove(checkKey);
+              result.skipped.push(event.id);
+            } else {
+              result.errors.push({ eventId: event.id, message: errorText(err) });
+            }
+          }
+        }
+
+        if (result.changed.length > 0) {
+          ctx.props.set('DATA_VERSION', String(Number(ctx.props.get('DATA_VERSION') || 1) + 1));
+        }
+        return result;
+      }
+    },
+
+    'events.sync': {
+      perm: 'members.import',
+      write: true,
+      handler: (ctx, auth, payload: any) => {
+        const event = getEvent(ctx, String(payload?.id || ''));
+        if (event.status === 'archived') {
+          throw new AppError('VALIDATION', 'Archived events do not sync');
+        }
+        const forceKey = `sync:force:${event.id}`;
+        const recent = ctx.cache.get(forceKey);
+        if (recent !== null) {
+          return { ...JSON.parse(recent), message: 'Synced less than a minute ago' };
+        }
+
+        const result = importEventMembers(ctx, event, { full: true });
+        ctx.cache.put(forceKey, JSON.stringify(result), SYNC_NOW_SECONDS);
+        if (result.added > 0 || result.updated > 0 || result.flaggedRemoved > 0) {
+          ctx.props.set('DATA_VERSION', String(Number(ctx.props.get('DATA_VERSION') || 1) + 1));
+        }
+        logAudit(ctx, auth?.claims.sub || 'system', 'events.sync', event.id, `+${result.added} ~${result.updated}`);
+        return result;
       }
     },
 
