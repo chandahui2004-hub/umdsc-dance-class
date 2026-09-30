@@ -20,6 +20,7 @@ import { AdminsPage } from '../features/access/AdminsPage';
 import { AttendancePage } from '../features/attendance/AttendancePage';
 import { MediaPage } from '../features/media/MediaPage';
 import { EventsPage } from '../features/events/EventsPage';
+import { EventWizard } from '../features/events/EventWizard';
 import { useBootstrap } from '../features/auth/useBootstrap';
 import { session } from '../lib/session';
 import { PixelButton } from '../components/ui/PixelButton';
@@ -185,6 +186,8 @@ export const AppRoutes: React.FC = () => {
                 <Route path="attendance" element={<AttendancePage />} />
                 <Route path="media" element={<MediaPage />} />
                 <Route path="events" element={<EventsPage />} />
+                <Route path="events/new" element={<EventWizard />} />
+                <Route path="events/:id/edit" element={<EventWizard />} />
                 <Route path="members/import" element={<ImportWizard />} />
                 <Route path="members" element={<MembersPage />} />
                 <Route path="styles" element={<StylesPage />} />
