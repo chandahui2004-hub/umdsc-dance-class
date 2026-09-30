@@ -8,9 +8,9 @@ import {
   ClassSession,
   VideoItem,
   MusicItem,
-  Section,
-  Month
+  Section
 } from '@umdsc/shared';
+import { dancerStylesInEvent } from './eventMembers';
 
 export function getAdminBootstrap(
   ctx: Ctx,
@@ -41,14 +41,14 @@ export function getAdminBootstrap(
     const instructors = ctx.db.instructors.find(i => i.active);
     const sessions = ctx.db.sessions.find(s => s.active);
     const roles = ctx.db.roles.find(r => r.active);
-    const months = Array.from(new Set(ctx.db.memberMonths.find(m => m.active).map(m => m.month))).sort();
+    const events = ctx.db.events.find(e => e.active).sort((a, b) => b.startDate.localeCompare(a.startDate));
     const settings: Record<string, string> = {};
     for (const s of ctx.db.settings.find(s => s.active)) {
       settings[s.key] = s.value;
     }
     settings.clubEmail = ctx.clubEmail;
 
-    sharedData = { styles, instructors, sessions, roles, months, settings };
+    sharedData = { styles, instructors, sessions, roles: roles as any, events, settings };
     ctx.cache.put(cacheKey, JSON.stringify(sharedData), 600);
   }
 
@@ -88,55 +88,30 @@ export function getDancerBootstrap(
     ctx.cache.put(miKey, JSON.stringify(dancer), 600);
   }
 
-  const dancerMonths: Month[] = dancer.months || [];
+  const dancerEventIds: string[] = dancer.eventIds || [];
+  const dancerEvents = ctx.db.events.find(e => e.active && dancerEventIds.includes(e.id));
 
-  // Determine dancer's styleIds per month
-  const monthStylesMap = new Map<string, Set<string>>();
-
-  for (const m of dancerMonths) {
+  // The dancer's styles per event come from that event's Members sheet
+  const eventStylesMap = new Map<string, Set<string>>();
+  const calPerm = perms['calendar.view'];
+  for (const event of dancerEvents) {
     const styleSet = new Set<string>();
-    const mm = ctx.db.memberMonths.find(row => row.month === m && row.active)[0];
-    if (mm && mm.membersSpreadsheetId) {
-      try {
-        const memSs = ctx.drive.openSpreadsheet(mm.membersSpreadsheetId);
-        const memSheet = memSs.sheet('Members') || (memSs as any).getSheet?.('Members');
-        if (memSheet) {
-          const rows = memSheet.getDisplayValues();
-          const headers = rows[0] || [];
-          const matricIdx = headers.indexOf('matricKey');
-          const stylesIdx = headers.indexOf('styleIds');
-          for (let i = 1; i < rows.length; i++) {
-            if (rows[i][matricIdx] === matricKey) {
-              const sIds = String(rows[i][stylesIdx] || '').split(',').map(s => s.trim()).filter(Boolean);
-              for (const sId of sIds) styleSet.add(sId);
-              break;
-            }
-          }
-        }
-      } catch {
-        // ignore
-      }
+    try {
+      for (const sId of dancerStylesInEvent(ctx, event, matricKey)) styleSet.add(sId);
+    } catch {
+      // unreadable Members sheet: the dancer simply sees nothing for this event
     }
-
-    // Add extra member roles styles
-    const memberRoles = ctx.db.memberRoles.find(mr => mr.matricKey === matricKey && mr.active);
-    for (const mr of memberRoles) {
+    for (const mr of ctx.db.memberRoles.find(r => r.matricKey === matricKey && r.active)) {
       for (const sId of mr.styleIds || []) {
-        styleSet.add(sId);
+        if (event.styleIds.includes(sId)) styleSet.add(sId);
       }
     }
-
-    // Apply calendar.view perm restriction if array
-    const calPerm = perms['calendar.view'];
     if (Array.isArray(calPerm)) {
       for (const sId of Array.from(styleSet)) {
-        if (!calPerm.includes(sId)) {
-          styleSet.delete(sId);
-        }
+        if (!calPerm.includes(sId)) styleSet.delete(sId);
       }
     }
-
-    monthStylesMap.set(m, styleSet);
+    eventStylesMap.set(event.id, styleSet);
   }
 
   const sessionsMap = new Map<string, ClassSession>();
@@ -145,12 +120,11 @@ export function getDancerBootstrap(
   const sectionsMap = new Map<string, Section>();
   const allDancerStyleIds = new Set<string>();
 
-  for (const [m, styleSet] of monthStylesMap.entries()) {
+  for (const [eventId, styleSet] of eventStylesMap.entries()) {
     for (const styleId of styleSet) {
       allDancerStyleIds.add(styleId);
 
-      // Check chunk cache
-      const chunkKey = `boot:chunk:${m}:${styleId}:${dataVersion}`;
+      const chunkKey = `boot:chunk:${eventId}:${styleId}:${dataVersion}`;
       let chunkData: any = null;
       const cachedChunk = ctx.cache.get(chunkKey);
       if (cachedChunk) {
@@ -162,17 +136,13 @@ export function getDancerBootstrap(
       }
 
       if (!chunkData) {
-        const chunkSessions = ctx.db.sessions.find(s => s.month === m && s.styleId === styleId && s.active);
-        const chunkVideos = ctx.db.videos.find(v => v.month === m && v.styleId === styleId && v.active);
-        const chunkMusic = ctx.db.music.find(mus => mus.month === m && mus.styleId === styleId && mus.active);
+        const chunkMusic = ctx.db.music.find(mus => mus.eventId === eventId && mus.styleId === styleId && mus.active);
         const musicIds = new Set(chunkMusic.map(mus => mus.id));
-        const chunkSections = ctx.db.sections.find(sec => musicIds.has(sec.musicId) && sec.active);
-
         chunkData = {
-          sessions: chunkSessions,
-          videos: chunkVideos,
+          sessions: ctx.db.sessions.find(s => s.eventId === eventId && s.styleId === styleId && s.active),
+          videos: ctx.db.videos.find(v => v.eventId === eventId && v.styleId === styleId && v.active),
           music: chunkMusic,
-          sections: chunkSections
+          sections: ctx.db.sections.find(sec => musicIds.has(sec.musicId) && sec.active)
         };
         ctx.cache.put(chunkKey, JSON.stringify(chunkData), 600);
       }
@@ -188,15 +158,15 @@ export function getDancerBootstrap(
   const attendance: { sessionId: string; present: boolean }[] = [];
   const memberId = 'M-' + matricKey;
 
-  for (const [m, styleSet] of monthStylesMap.entries()) {
+  for (const [eventId, styleSet] of eventStylesMap.entries()) {
     for (const styleId of styleSet) {
       const attRec = ctx.db.attendanceSheets.find(
-        a => a.month === m && a.styleId === styleId && a.active
+        a => a.eventId === eventId && a.styleId === styleId && a.active
       )[0];
       if (!attRec) continue;
 
-      const curAttVer = Number(ctx.cache.get(`attv:${m}:${styleId}`) || 1);
-      const cachedGridStr = ctx.cache.get(`att:${m}:${styleId}:${curAttVer}`);
+      const curAttVer = Number(ctx.cache.get(`attv:${eventId}:${styleId}`) || 1);
+      const cachedGridStr = ctx.cache.get(`att:${eventId}:${styleId}:${curAttVer}`);
       let presentMap: Record<string, string[]> | null = null;
       let gridSessions: ClassSession[] = [];
 
@@ -211,37 +181,23 @@ export function getDancerBootstrap(
       }
 
       if (!presentMap) {
-        const ss = ctx.drive.openSpreadsheet(attRec.spreadsheetId);
-        const sheet = ss.sheet('Attendance') || (ss as any).getSheet?.('Attendance');
-        if (sheet) {
-          const data = sheet.getDisplayValues();
-          if (data.length >= 2) {
-            const keyRow = data[0];
-            const mIdCol = keyRow.indexOf('memberId');
-            gridSessions = ctx.db.sessions
-              .find(s => s.month === m && s.styleId === styleId && s.active)
-              .sort((a, b) => a.seq - b.seq);
-            const sessCols = gridSessions
-              .map(s => ({ id: s.id, colIdx: keyRow.indexOf(s.id) }))
-              .filter(x => x.colIdx !== -1);
+        const sheet = ctx.drive.openSpreadsheet(attRec.spreadsheetId).sheet('Attendance');
+        const data = sheet ? sheet.getDisplayValues() : [];
+        if (data.length >= 2) {
+          const keyRow = data[0];
+          const mIdCol = keyRow.indexOf('memberId');
+          gridSessions = ctx.db.sessions
+            .find(s => s.eventId === eventId && s.styleId === styleId && s.active)
+            .sort((a, b) => a.date.localeCompare(b.date) || a.seq - b.seq);
+          const sessCols = gridSessions
+            .map(s => ({ id: s.id, colIdx: keyRow.indexOf(s.id) }))
+            .filter(x => x.colIdx !== -1);
 
-            presentMap = {};
-            for (let r = 2; r < data.length; r++) {
-              const rowMId = data[r][mIdCol];
-              if (!rowMId) continue;
-              presentMap[rowMId] = [];
-              for (const sc of sessCols) {
-                if (data[r][sc.colIdx] === '/') {
-                  presentMap[rowMId].push(sc.id);
-                }
-              }
-            }
-
-            ctx.cache.put(
-              `att:${m}:${styleId}:${curAttVer}`,
-              JSON.stringify({ month: m, styleId, version: curAttVer, sessions: gridSessions, members: [], present: presentMap }),
-              60
-            );
+          presentMap = {};
+          for (let r = 2; r < data.length; r++) {
+            const rowMId = data[r][mIdCol];
+            if (!rowMId) continue;
+            presentMap[rowMId] = sessCols.filter(sc => data[r][sc.colIdx] === '/').map(sc => sc.id);
           }
         }
       }
@@ -263,9 +219,12 @@ export function getDancerBootstrap(
     profile: {
       matricKey,
       fullName: dancer.fullName,
-      months: dancerMonths,
+      eventIds: dancerEventIds,
       perms
     },
+    events: dancerEvents.map(e => ({
+      id: e.id, name: e.name, type: e.type, startDate: e.startDate, endDate: e.endDate, status: e.status, styleIds: e.styleIds
+    })),
     styles,
     instructors,
     sessions: Array.from(sessionsMap.values()).sort((a, b) => a.date.localeCompare(b.date)),

@@ -4,6 +4,8 @@ import { handleRequest, registerRoutes } from '../../src/router';
 import { makeCtx } from '../fakes/makeCtx';
 import { Hmac, signToken } from '../../src/security/tokens';
 import { getVideoRoutes } from '../../src/features/videos';
+import { seedEvent } from '../fixtures/events';
+import { EventItem } from '@umdsc/shared';
 import { getSessionRoutes } from '../../src/features/sessions';
 
 const nodeHmac: Hmac = (key: string, message: string) => {
@@ -21,6 +23,7 @@ describe('Feature: Videos (features/videos)', () => {
   let dancerToken: string;
   let session1: any;
   let session2: any;
+  let event: EventItem;
 
   beforeEach(() => {
     ctx = makeCtx();
@@ -79,10 +82,13 @@ describe('Feature: Videos (features/videos)', () => {
       ctx.now()
     );
 
+    ctx.db.settings.insert({ key: 'defaultVideoFolderId', value: 'fld_video_master' }, 'system', ctx.now());
+    event = seedEvent(ctx, { name: 'OCT MONTHLY CLASS', styleIds: ['st_popping'], videoFolderId: 'fld_vid_12345678901234567890' });
+
     // Create session 1: 2026-10-06 (seq 1)
     session1 = ctx.db.sessions.insert(
       {
-        month: '2026-10',
+        eventId: event.id,
         styleId: 'st_popping',
         seq: 1,
         date: '2026-10-06',
@@ -100,7 +106,7 @@ describe('Feature: Videos (features/videos)', () => {
     // Create session 2: 2026-10-13 (seq 2)
     session2 = ctx.db.sessions.insert(
       {
-        month: '2026-10',
+        eventId: event.id,
         styleId: 'st_popping',
         seq: 2,
         date: '2026-10-13',
@@ -130,8 +136,9 @@ describe('Feature: Videos (features/videos)', () => {
     expect(res.ok).toBe(true);
     if (res.ok) {
       expect(res.data).toEqual({
-        rootFolderId: 'fld_vid_12345678901234567890',
-        monthFolderName: '2026-10',
+        videoMasterFolderId: 'fld_video_master',
+        eventFolderId: 'fld_vid_12345678901234567890',
+        eventFolderName: 'OCT MONTHLY CLASS',
         classFolderName: '2026-10-06 Popping Class 1',
         musicFolderName: 'Music'
       });
@@ -191,7 +198,7 @@ describe('Feature: Videos (features/videos)', () => {
       {
         action: 'videos.list',
         token: adminToken,
-        payload: { month: '2026-10', styleId: 'st_popping' }
+        payload: { eventId: event.id, styleId: 'st_popping' }
       },
       ctx,
       secrets
@@ -204,6 +211,32 @@ describe('Feature: Videos (features/videos)', () => {
       expect(list[0].title).toBe('Class 1 Routine');
       expect(list[0].sessionId).toBe(session1.id);
     }
+  });
+
+  it('register saves the uploaded event folder on an event that has none', () => {
+    const e2 = seedEvent(ctx, { name: 'TRIAL', styleIds: ['st_popping'] });
+    const s2 = ctx.db.sessions.insert(
+      { eventId: e2.id, styleId: 'st_popping', seq: 1, date: '2026-10-07', start: '20:00', end: '22:00', instructorId: '', venue: '', status: 'scheduled', note: '' },
+      'system',
+      ctx.now()
+    );
+    (ctx.drive as any).items.set('file_new_1234567890123456', {
+      id: 'file_new_1234567890123456', kind: 'file', name: 'a.mp4', canEdit: true, mimeType: 'video/mp4', sizeBytes: 1
+    });
+
+    const res = handleRequest(
+      {
+        action: 'videos.register',
+        token: adminToken,
+        payload: { driveFileId: 'file_new_1234567890123456', sessionId: s2.id, title: 'A', eventFolderId: 'fld_trial_video' }
+      },
+      ctx,
+      secrets
+    );
+
+    expect(res.ok).toBe(true);
+    if (res.ok) expect((res.data as any).eventId).toBe(e2.id);
+    expect(ctx.db.events.get(e2.id)!.videoFolderId).toBe('fld_trial_video');
   });
 
   it('scan suggests session by filename date, else by parent class-folder name, else by createdTime date', () => {
@@ -259,7 +292,7 @@ describe('Feature: Videos (features/videos)', () => {
       {
         action: 'videos.scan',
         token: adminToken,
-        payload: { styleId: 'st_popping', month: '2026-10' }
+        payload: { styleId: 'st_popping', eventId: event.id }
       },
       ctx,
       secrets
@@ -300,7 +333,7 @@ describe('Feature: Videos (features/videos)', () => {
     ctx.db.videos.insert(
       {
         styleId: 'st_popping',
-        month: '2026-10',
+        eventId: event.id,
         sessionId: session1.id,
         title: 'Already Registered',
         driveFileId: 'file_reg_1234567890123456',
@@ -318,7 +351,7 @@ describe('Feature: Videos (features/videos)', () => {
       {
         action: 'videos.scan',
         token: adminToken,
-        payload: { styleId: 'st_popping', month: '2026-10' }
+        payload: { styleId: 'st_popping', eventId: event.id }
       },
       ctx,
       secrets

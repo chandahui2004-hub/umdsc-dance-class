@@ -3,6 +3,7 @@ import { AppError } from '../errors';
 import { parseDateFromName } from '../logic/filenameDate';
 import { logAudit } from '../logic/audit';
 import { can } from '../logic/permissions';
+import { getEvent } from './eventMembers';
 
 export function getVideoRoutes(): Record<string, Route> {
   return {
@@ -10,12 +11,12 @@ export function getVideoRoutes(): Record<string, Route> {
       perm: 'videos.view',
       write: false,
       handler: (ctx, auth, payload: any) => {
-        const { month, styleId, sessionId } = payload || {};
+        const { eventId, styleId, sessionId } = payload || {};
 
         let videos = ctx.db.videos.find(v => v.active);
 
-        if (month) {
-          videos = videos.filter(v => v.month === month);
+        if (eventId) {
+          videos = videos.filter(v => v.eventId === eventId);
         }
         if (styleId) {
           videos = videos.filter(v => v.styleId === styleId);
@@ -33,9 +34,8 @@ export function getVideoRoutes(): Record<string, Route> {
 
           const matricKey = auth.claims.sub.replace(/^M-/, '');
           const mi = ctx.db.memberIndex.find(m => m.matricKey === matricKey && m.active)[0];
-          if (mi && mi.months) {
-            videos = videos.filter(v => mi.months.includes(v.month));
-          }
+          const myEvents = mi ? mi.eventIds : [];
+          videos = videos.filter(v => myEvents.includes(v.eventId));
         }
 
         return videos;
@@ -65,12 +65,14 @@ export function getVideoRoutes(): Record<string, Route> {
           throw new AppError('NOT_FOUND', `Style not found: ${session.styleId}`);
         }
 
-        const defaultFolder = ctx.db.settings.find(s => s.key === 'defaultVideoFolderId' && s.active)[0]?.value;
-        const rootFolderId = style.videoFolderId || defaultFolder || '';
+        const event = getEvent(ctx, session.eventId);
+        const videoMasterFolderId =
+          ctx.db.settings.find(s => s.key === 'defaultVideoFolderId' && s.active)[0]?.value || '';
 
         return {
-          rootFolderId,
-          monthFolderName: session.month,
+          videoMasterFolderId,
+          eventFolderId: event.videoFolderId,
+          eventFolderName: event.name,
           classFolderName: `${session.date} ${style.name} Class ${session.seq}`,
           musicFolderName: 'Music'
         };
@@ -82,7 +84,7 @@ export function getVideoRoutes(): Record<string, Route> {
       write: true,
       bumpsData: true,
       handler: (ctx, auth, payload: any) => {
-        const { driveFileId, sessionId, title } = payload || {};
+        const { driveFileId, sessionId, title, eventFolderId } = payload || {};
         if (!driveFileId || !sessionId) {
           throw new AppError('VALIDATION', 'driveFileId and sessionId are required');
         }
@@ -107,10 +109,14 @@ export function getVideoRoutes(): Record<string, Route> {
         ctx.drive.setAnyoneReader(driveFileId);
 
         const actor = auth?.claims.sub || 'system';
+        const event = getEvent(ctx, session.eventId);
+        if (eventFolderId && !event.videoFolderId) {
+          ctx.db.events.update(event.id, event.version, { videoFolderId: String(eventFolderId) }, actor, ctx.now());
+        }
         const inserted = ctx.db.videos.insert(
           {
             styleId: session.styleId,
-            month: session.month,
+            eventId: session.eventId,
             sessionId: session.id,
             title: title || info.name || 'Untitled Video',
             driveFileId,
@@ -189,25 +195,29 @@ export function getVideoRoutes(): Record<string, Route> {
       perm: 'videos.edit',
       write: false,
       handler: (ctx, auth, payload: any) => {
-        const { styleId, month } = payload || {};
-        if (!styleId || !month) {
-          throw new AppError('VALIDATION', 'styleId and month are required');
+        const { styleId, eventId } = payload || {};
+        if (!styleId || !eventId) {
+          throw new AppError('VALIDATION', 'styleId and eventId are required');
         }
+        const event = getEvent(ctx, eventId);
 
         const style = ctx.db.styles.find(s => s.id === styleId && s.active)[0];
         if (!style) {
           throw new AppError('NOT_FOUND', `Style not found: ${styleId}`);
         }
 
-        const defaultFolder = ctx.db.settings.find(s => s.key === 'defaultVideoFolderId' && s.active)[0]?.value;
-        const rootFolderId = style.videoFolderId || defaultFolder;
+        // Scan the event's own video folder; if none is saved yet, look for a
+        // folder named after the event under the video master folder.
+        const videoMaster = ctx.db.settings.find(s => s.key === 'defaultVideoFolderId' && s.active)[0]?.value;
+        const rootFolderId =
+          event.videoFolderId || (videoMaster ? ctx.drive.findChildFolder(videoMaster, event.name) : null);
         if (!rootFolderId) {
           return [];
         }
 
         const allFiles = ctx.drive.listFilesRecursive(rootFolderId);
         const existingFileIds = new Set(
-          ctx.db.videos.find(v => v.styleId === styleId && v.month === month && v.active).map(v => v.driveFileId)
+          ctx.db.videos.find(v => v.styleId === styleId && v.eventId === eventId && v.active).map(v => v.driveFileId)
         );
 
         const mediaFiles = allFiles.filter(
@@ -218,14 +228,15 @@ export function getVideoRoutes(): Record<string, Route> {
               /\.(mp4|mov|m4v|webm|avi|mp3|m4a|wav)$/i.test(f.name))
         );
 
-        const sessions = ctx.db.sessions.find(s => s.month === month && s.styleId === styleId && s.active);
+        const sessions = ctx.db.sessions.find(s => s.eventId === eventId && s.styleId === styleId && s.active);
+        const range = { startDate: event.startDate, endDate: event.endDate };
 
         const results = mediaFiles.map(f => {
           let suggestedSessionId: string | null = null;
           let reason = 'no date match';
 
           // 1. Filename date
-          const d1 = parseDateFromName(f.name, month);
+          const d1 = parseDateFromName(f.name, range);
           if (d1) {
             const matchS = sessions.find(s => s.date === d1);
             if (matchS) {
@@ -236,7 +247,7 @@ export function getVideoRoutes(): Record<string, Route> {
 
           // 2. Parent class-folder name
           if (!suggestedSessionId && f.parentName) {
-            const d2 = parseDateFromName(f.parentName, month);
+            const d2 = parseDateFromName(f.parentName, range);
             if (d2) {
               const matchS = sessions.find(s => s.date === d2);
               if (matchS) {
@@ -249,7 +260,7 @@ export function getVideoRoutes(): Record<string, Route> {
           // 3. Created time date
           if (!suggestedSessionId && f.createdTime) {
             const d3 = f.createdTime.slice(0, 10);
-            if (d3.startsWith(month)) {
+            if (d3 >= event.startDate && d3 <= event.endDate) {
               const matchS = sessions.find(s => s.date === d3);
               if (matchS) {
                 suggestedSessionId = matchS.id;

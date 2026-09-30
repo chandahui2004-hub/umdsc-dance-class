@@ -1,9 +1,10 @@
 import { Route } from '../router';
 import { AppError } from '../errors';
 import { Ctx } from '../ports';
-import { ClassSession } from '@umdsc/shared';
-import { generateMonthSessions } from '../logic/sessionGen';
+import { ClassSession, EventItem, TodayClass } from '@umdsc/shared';
 import { logAudit } from '../logic/audit';
+import { todayKL } from '../logic/events';
+import { getEvent, dancerStylesInEvent } from './eventMembers';
 
 type SessionListener = (ctx: Ctx, s: ClassSession) => void;
 const sessionListeners: SessionListener[] = [];
@@ -22,122 +23,64 @@ function notifySessionChanged(ctx: Ctx, s: ClassSession): void {
   }
 }
 
+function assertDateInEvent(event: EventItem, date: string): void {
+  if (!date || date < event.startDate || date > event.endDate) {
+    throw new AppError(
+      'VALIDATION',
+      `Class date must be inside the event (${event.startDate} to ${event.endDate})`
+    );
+  }
+}
+
 export function getSessionRoutes(): Record<string, Route> {
   return {
     'sessions.list': {
       perm: 'calendar.view',
       write: false,
       handler: (ctx, auth, payload: any) => {
-        const month = String(payload?.month || '').trim();
-        if (!month) {
-          throw new AppError('VALIDATION', 'month is required');
+        const eventId = String(payload?.eventId || '').trim();
+        if (!eventId) {
+          throw new AppError('VALIDATION', 'eventId is required');
         }
         const styleId = String(payload?.styleId || '').trim();
 
         let sessions = ctx.db.sessions.find(
-          s => s.month === month && s.active && (!styleId || s.styleId === styleId)
+          s => s.eventId === eventId && s.active && (!styleId || s.styleId === styleId)
         );
 
         if (auth?.claims.role === 'dancer') {
           const matricKey = auth.claims.sub.replace(/^M-/, '');
           const mi = ctx.db.memberIndex.find(m => m.matricKey === matricKey && m.active)[0];
-          if (!mi || !mi.months || !mi.months.includes(month)) {
+          if (!mi || !mi.eventIds.includes(eventId)) {
             return [];
           }
+          const event = ctx.db.events.find(e => e.id === eventId && e.active)[0];
+          if (!event) return [];
 
-          let dancerStyleIds: string[] | null = null;
-
-          // 1. Check memberMonths -> members sheet
-          const mm = ctx.db.memberMonths.find(m => m.month === month && m.active)[0];
-          if (mm && mm.membersSpreadsheetId) {
-            try {
-              const ss = ctx.drive.openSpreadsheet(mm.membersSpreadsheetId);
-              const sheet = ss.sheet('Members');
-              if (sheet) {
-                const rows = sheet.getDisplayValues();
-                const headers = rows[0] || [];
-                const matricIdx = headers.indexOf('matricKey');
-                const stylesIdx = headers.indexOf('styleIds');
-                if (matricIdx !== -1 && stylesIdx !== -1) {
-                  for (let i = 1; i < rows.length; i++) {
-                    if (rows[i][matricIdx] === matricKey) {
-                      dancerStyleIds = String(rows[i][stylesIdx] || '')
-                        .split(',')
-                        .map(s => s.trim())
-                        .filter(Boolean);
-                      break;
-                    }
-                  }
-                }
-              }
-            } catch {
-              // ignore
-            }
-          }
-
-          // 2. Check memberRoles
-          if (!dancerStyleIds) {
-            const mrList = ctx.db.memberRoles.find(m => m.matricKey === matricKey && m.active);
-            const extraStyles = mrList.flatMap(m => m.styleIds || []);
-            if (extraStyles.length > 0) {
-              dancerStyleIds = extraStyles;
-            }
-          }
-
-          // 3. Permission scope
+          let allowed = dancerStylesInEvent(ctx, event, matricKey);
           const calPerm = auth.claims.perms['calendar.view'];
           if (Array.isArray(calPerm)) {
-            dancerStyleIds = dancerStyleIds ? dancerStyleIds.filter(id => calPerm.includes(id)) : calPerm;
+            allowed = allowed.filter(id => calPerm.includes(id));
           }
-
-          if (dancerStyleIds) {
-            sessions = sessions.filter(s => dancerStyleIds!.includes(s.styleId));
-          }
+          sessions = sessions.filter(s => allowed.includes(s.styleId));
         }
 
         return sessions;
       }
     },
 
-    'sessions.generateMonth': {
-      perm: 'sessions.edit',
-      write: true,
-      bumpsData: true,
-      handler: (ctx, auth, payload: any) => {
-        const month = String(payload?.month || '').trim();
-        if (!month) {
-          throw new AppError('VALIDATION', 'month is required');
-        }
-
-        const requestedStyleIds: string[] = Array.isArray(payload?.styleIds) ? payload.styleIds : [];
-        let styles = ctx.db.styles.find(s => s.active);
-        if (requestedStyleIds.length > 0) {
-          styles = styles.filter(s => requestedStyleIds.includes(s.id));
-        }
-
-        const actor = auth?.claims.sub || 'system';
-        const generated: ClassSession[] = [];
-        const extraWeekFlags: Record<string, boolean> = {};
-
-        for (const style of styles) {
-          // Skip styles that already have active sessions that month
-          const existing = ctx.db.sessions.find(s => s.month === month && s.styleId === style.id && s.active);
-          if (existing.length > 0) {
-            continue;
-          }
-
-          const { sessions, extraWeekFlag } = generateMonthSessions(month, style);
-          extraWeekFlags[style.id] = extraWeekFlag;
-
-          for (const s of sessions) {
-            const inserted = ctx.db.sessions.insert(s, actor, ctx.now());
-            generated.push(inserted);
-            notifySessionChanged(ctx, inserted);
-          }
-        }
-
-        logAudit(ctx, actor, 'sessions.generateMonth', month, `Generated ${generated.length} sessions`);
-        return { generated, extraWeekFlags };
+    'sessions.today': {
+      perm: 'calendar.view',
+      write: false,
+      handler: (ctx) => {
+        const today = todayKL(ctx.now());
+        const activeEvents = new Map(
+          ctx.db.events.find(e => e.active && e.status === 'active').map(e => [e.id, e])
+        );
+        const result: TodayClass[] = ctx.db.sessions
+          .find(s => s.active && s.date === today && activeEvents.has(s.eventId))
+          .map(s => ({ ...s, eventName: activeEvents.get(s.eventId)!.name }));
+        return result.sort((a, b) => a.start.localeCompare(b.start));
       }
     },
 
@@ -147,7 +90,7 @@ export function getSessionRoutes(): Record<string, Route> {
       bumpsData: true,
       handler: (ctx, auth, payload: any) => {
         const {
-          month,
+          eventId,
           styleId,
           seq,
           date,
@@ -159,30 +102,20 @@ export function getSessionRoutes(): Record<string, Route> {
           note = ''
         } = payload || {};
 
-        if (!month || !styleId || !seq || !date || !start || !end) {
-          throw new AppError('VALIDATION', 'month, styleId, seq, date, start, and end are required');
+        if (!eventId || !styleId || !seq || !date || !start || !end) {
+          throw new AppError('VALIDATION', 'eventId, styleId, seq, date, start, and end are required');
         }
+        assertDateInEvent(getEvent(ctx, eventId), date);
 
         const actor = auth?.claims.sub || 'system';
         const inserted = ctx.db.sessions.insert(
-          {
-            month,
-            styleId,
-            seq: Number(seq),
-            date,
-            start,
-            end,
-            instructorId,
-            venue,
-            status,
-            note
-          },
+          { eventId, styleId, seq: Number(seq), date, start, end, instructorId, venue, status, note },
           actor,
           ctx.now()
         );
 
         notifySessionChanged(ctx, inserted);
-        logAudit(ctx, actor, 'sessions.create', inserted.id, `${month} ${styleId} C${seq}`);
+        logAudit(ctx, actor, 'sessions.create', inserted.id, `${eventId} ${styleId} C${seq}`);
         return inserted;
       }
     },
@@ -204,6 +137,10 @@ export function getSessionRoutes(): Record<string, Route> {
 
         if (existing.version !== Number(version)) {
           throw new AppError('VERSION_CONFLICT', 'Session has been modified by another user', false, existing);
+        }
+
+        if (date !== undefined && date !== existing.date) {
+          assertDateInEvent(getEvent(ctx, existing.eventId), date);
         }
 
         const actor = auth?.claims.sub || 'system';
@@ -290,79 +227,34 @@ export function getSessionRoutes(): Record<string, Route> {
           throw new AppError('VALIDATION', 'sessions array is required');
         }
 
+        // Validate everything before writing anything
+        const events = new Map<string, EventItem>();
+        for (const s of sessions) {
+          if (!s?.eventId || !s.styleId || !s.seq || !s.date || !s.start || !s.end) {
+            throw new AppError('VALIDATION', 'Each class needs eventId, styleId, seq, date, start and end');
+          }
+          if (!events.has(s.eventId)) events.set(s.eventId, getEvent(ctx, s.eventId));
+          assertDateInEvent(events.get(s.eventId)!, s.date);
+        }
+
         const actor = auth?.claims?.sub || 'system';
         const results: ClassSession[] = [];
 
         for (const s of sessions) {
-          const {
-            id,
-            month,
-            styleId,
-            seq,
-            date,
-            start,
-            end,
-            instructorId = '',
-            venue = '',
-            status = 'scheduled',
-            note = ''
-          } = s;
+          const { id, eventId, styleId, seq, date, start, end, instructorId = '', venue = '', status = 'scheduled', note = '' } = s;
+          const fields = { date, start, end, instructorId, venue, status, note };
 
-          if (!month || !styleId || !seq || !date || !start || !end) {
-            continue;
-          }
+          const existing =
+            (id && ctx.db.sessions.find(x => x.id === id && x.active)[0]) ||
+            ctx.db.sessions.find(
+              x => x.eventId === eventId && x.styleId === styleId && x.seq === Number(seq) && x.active
+            )[0];
 
-          if (id) {
-            const existing = ctx.db.sessions.find(x => x.id === id && x.active)[0];
-            if (existing) {
-              const updated = ctx.db.sessions.update(
-                existing.id,
-                existing.version,
-                { date, start, end, instructorId, venue, status, note },
-                actor,
-                ctx.now()
-              );
-              notifySessionChanged(ctx, updated);
-              results.push(updated);
-              continue;
-            }
-          }
-
-          // Check if a session already exists for this month, styleId, and seq
-          const existingBySeq = ctx.db.sessions.find(
-            x => x.month === month && x.styleId === styleId && x.seq === Number(seq) && x.active
-          )[0];
-
-          if (existingBySeq) {
-            const updated = ctx.db.sessions.update(
-              existingBySeq.id,
-              existingBySeq.version,
-              { date, start, end, instructorId, venue, status, note },
-              actor,
-              ctx.now()
-            );
-            notifySessionChanged(ctx, updated);
-            results.push(updated);
-          } else {
-            const inserted = ctx.db.sessions.insert(
-              {
-                month,
-                styleId,
-                seq: Number(seq),
-                date,
-                start,
-                end,
-                instructorId,
-                venue,
-                status,
-                note
-              },
-              actor,
-              ctx.now()
-            );
-            notifySessionChanged(ctx, inserted);
-            results.push(inserted);
-          }
+          const saved = existing
+            ? ctx.db.sessions.update(existing.id, existing.version, fields, actor, ctx.now())
+            : ctx.db.sessions.insert({ eventId, styleId, seq: Number(seq), ...fields }, actor, ctx.now());
+          notifySessionChanged(ctx, saved);
+          results.push(saved);
         }
 
         logAudit(ctx, actor, 'sessions.batchUpsert', '', `Upserted ${results.length} sessions`);

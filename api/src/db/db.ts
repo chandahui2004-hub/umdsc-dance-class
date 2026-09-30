@@ -27,28 +27,16 @@ export interface LinkHistoryRow extends RowMeta {
   changedAt: string;
 }
 
-export interface MemberMonthRow extends RowMeta {
-  month: string;
-  sourceSheetId: string;
-  sourceTab: string;
-  columnMapJson: string;
-  membersSpreadsheetId: string;
-  importedBy: string;
-  importedAt: string;
-  lastSyncAt: string;
-  memberCount: number;
-}
-
 export interface MemberIndexRow extends RowMeta {
   matricKey: string;
   nameKey: string;
   fullName: string;
-  months: string[];
-  lastMonth: string;
+  eventIds: string[];
+  lastEventEnd: string;
 }
 
 export interface AttendanceSheetRow extends RowMeta {
-  month: string;
+  eventId: string;
   styleId: string;
   spreadsheetId: string;
 }
@@ -95,7 +83,6 @@ export interface Db {
   styles: Table<DanceStyle>;
   instructors: Table<Instructor>;
   sessions: Table<ClassSession>;
-  memberMonths: Table<MemberMonthRow>;
   memberIndex: Table<MemberIndexRow>;
   attendanceSheets: Table<AttendanceSheetRow>;
   admins: Table<AdminRow>;
@@ -223,7 +210,7 @@ const defaultCodecs = {
       updatedBy: c.updatedBy || '',
       updatedAt: c.updatedAt || '',
       active: parseBool(c.active),
-      month: c.month || '',
+      eventId: c.eventId || '',
       styleId: c.styleId || '',
       seq: Number(c.seq || 1),
       date: c.date || '',
@@ -235,29 +222,10 @@ const defaultCodecs = {
       note: c.note || ''
     })
   },
-  memberMonths: {
-    toCells: (r: MemberMonthRow) => ({ ...r, active: r.active ? 'TRUE' : 'FALSE' }),
-    fromCells: (c: Record<string, string>): MemberMonthRow => ({
-      id: c.id,
-      version: Number(c.version || 1),
-      updatedBy: c.updatedBy || '',
-      updatedAt: c.updatedAt || '',
-      active: parseBool(c.active),
-      month: c.month || '',
-      sourceSheetId: c.sourceSheetId || '',
-      sourceTab: c.sourceTab || '',
-      columnMapJson: c.columnMapJson || '{}',
-      membersSpreadsheetId: c.membersSpreadsheetId || '',
-      importedBy: c.importedBy || '',
-      importedAt: c.importedAt || '',
-      lastSyncAt: c.lastSyncAt || '',
-      memberCount: Number(c.memberCount || 0)
-    })
-  },
   memberIndex: {
     toCells: (r: MemberIndexRow) => ({
       ...r,
-      months: (r.months || []).join(','),
+      eventIds: (r.eventIds || []).join(','),
       active: r.active ? 'TRUE' : 'FALSE'
     }),
     fromCells: (c: Record<string, string>): MemberIndexRow => ({
@@ -269,8 +237,8 @@ const defaultCodecs = {
       matricKey: c.matricKey || '',
       nameKey: c.nameKey || '',
       fullName: c.fullName || '',
-      months: parseList(c.months),
-      lastMonth: c.lastMonth || ''
+      eventIds: parseList(c.eventIds),
+      lastEventEnd: c.lastEventEnd || ''
     })
   },
   attendanceSheets: {
@@ -281,7 +249,7 @@ const defaultCodecs = {
       updatedBy: c.updatedBy || '',
       updatedAt: c.updatedAt || '',
       active: parseBool(c.active),
-      month: c.month || '',
+      eventId: c.eventId || '',
       styleId: c.styleId || '',
       spreadsheetId: c.spreadsheetId || ''
     })
@@ -358,7 +326,7 @@ const defaultCodecs = {
       updatedAt: c.updatedAt || '',
       active: parseBool(c.active),
       styleId: c.styleId || '',
-      month: c.month || '',
+      eventId: c.eventId || '',
       sessionId: c.sessionId || '',
       title: c.title || '',
       driveFileId: c.driveFileId || '',
@@ -378,7 +346,7 @@ const defaultCodecs = {
       updatedAt: c.updatedAt || '',
       active: parseBool(c.active),
       styleId: c.styleId || '',
-      month: c.month || '',
+      eventId: c.eventId || '',
       sessionId: c.sessionId || '',
       title: c.title || '',
       sourceType: (c.sourceType || 'mp3') as any,
@@ -461,9 +429,6 @@ export function openDb(drive: DrivePort, systemSpreadsheetId: string): Db {
     },
     get sessions() {
       return (tables.sessions ||= new Table(getSheet('ClassSessions'), SCHEMA.ClassSessions, defaultCodecs.sessions, 'ses'));
-    },
-    get memberMonths() {
-      return (tables.memberMonths ||= new Table(getSheet('MemberMonths'), SCHEMA.MemberMonths, defaultCodecs.memberMonths, 'mm'));
     },
     get memberIndex() {
       return (tables.memberIndex ||= new Table(getSheet('MemberIndex'), SCHEMA.MemberIndex, defaultCodecs.memberIndex, 'mi'));

@@ -2,6 +2,7 @@ import { Route } from '../router';
 import { AppError } from '../errors';
 import { getYouTubeVideoId } from '@umdsc/shared';
 import { logAudit } from '../logic/audit';
+import { getEvent } from './eventMembers';
 
 export function getMusicRoutes(): Record<string, Route> {
   return {
@@ -9,12 +10,15 @@ export function getMusicRoutes(): Record<string, Route> {
       perm: 'music.view',
       write: false,
       handler: (ctx, auth, payload: any) => {
-        const { month, styleId } = payload || {};
+        const { eventId, styleId, sessionId } = payload || {};
 
         let musicList = ctx.db.music.find(m => m.active);
 
-        if (month) {
-          musicList = musicList.filter(m => m.month === month);
+        if (eventId) {
+          musicList = musicList.filter(m => m.eventId === eventId);
+        }
+        if (sessionId) {
+          musicList = musicList.filter(m => !m.sessionId || m.sessionId === sessionId);
         }
         if (styleId) {
           musicList = musicList.filter(m => m.styleId === styleId);
@@ -29,9 +33,8 @@ export function getMusicRoutes(): Record<string, Route> {
 
           const matricKey = auth.claims.sub.replace(/^M-/, '');
           const mi = ctx.db.memberIndex.find(m => m.matricKey === matricKey && m.active)[0];
-          if (mi && mi.months) {
-            musicList = musicList.filter(m => mi.months.includes(m.month));
-          }
+          const myEvents = mi ? mi.eventIds : [];
+          musicList = musicList.filter(m => myEvents.includes(m.eventId));
         }
 
         return musicList;
@@ -45,7 +48,7 @@ export function getMusicRoutes(): Record<string, Route> {
       handler: (ctx, auth, payload: any) => {
         const {
           styleId,
-          month,
+          eventId,
           sessionId = '',
           title,
           sourceType,
@@ -53,9 +56,10 @@ export function getMusicRoutes(): Record<string, Route> {
           youtubeUrl = ''
         } = payload || {};
 
-        if (!styleId || !month || !title || !sourceType) {
-          throw new AppError('VALIDATION', 'styleId, month, title, and sourceType are required');
+        if (!styleId || !eventId || !title || !sourceType) {
+          throw new AppError('VALIDATION', 'styleId, eventId, title, and sourceType are required');
         }
+        getEvent(ctx, eventId);
 
         let parsedYoutubeId = '';
         let validDriveFileId = driveFileId;
@@ -79,7 +83,7 @@ export function getMusicRoutes(): Record<string, Route> {
         const inserted = ctx.db.music.insert(
           {
             styleId,
-            month,
+            eventId,
             sessionId,
             title,
             sourceType,

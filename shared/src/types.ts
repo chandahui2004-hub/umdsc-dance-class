@@ -40,24 +40,24 @@ export interface RowMeta { id: string; version: number; updatedBy: string; updat
 export interface DanceStyle extends RowMeta { name: string; aliases: string[]; colorKey: string; defaultWeekday: number|null;
   defaultStart: HHmm; defaultEnd: HHmm; defaultInstructorId: string; defaultVenue: string; attendanceFolderId: string; videoFolderId: string }
 export interface Instructor extends RowMeta { name: string; contact: string }
-export interface ClassSession extends RowMeta { month: Month; styleId: string; seq: number; date: ISODate; start: HHmm; end: HHmm;
+export interface ClassSession extends RowMeta { eventId: string; styleId: string; seq: number; date: ISODate; start: HHmm; end: HHmm;
   instructorId: string; venue: string; status: 'scheduled'|'replacement'|'cancelled'; note: string }
 export interface Member { memberId: string; fullName: string; matricRaw: string; matricKey: string; nameKey: string; contact: string;
   email: string; gender: string; nationality: string; styleIds: string[]; styleNames: string[]; sourceTimestamp: string; flags: string[] }
-export interface VideoItem extends RowMeta { styleId: string; month: Month; sessionId: string; title: string; driveFileId: string;
+export interface VideoItem extends RowMeta { styleId: string; eventId: string; sessionId: string; title: string; driveFileId: string;
   mimeType: string; sizeBytes: number; folderId: string; uploadedBy: string; source: 'upload'|'scan' }
-export interface MusicItem extends RowMeta { styleId: string; month: Month; sessionId: string; title: string;
+export interface MusicItem extends RowMeta { styleId: string; eventId: string; sessionId: string; title: string;
   sourceType: 'mp3'|'youtube'; driveFileId: string; youtubeId: string }
 export interface Section extends RowMeta { musicId: string; name: string; startSec: number; endSec: number; videoId: string; videoStartSec: number|null }
 export interface Role extends RowMeta { name: string; description: string; loginType: 'admin'|'dancer'; isSystem: boolean; permissions: PermissionCode[] }
 export interface AdminUser extends RowMeta { username: string; displayName: string; roleId: string }
 export interface TokenClaims { sub: string; role: 'admin'|'dancer'; name: string; exp: number; pv: number; perms: PermMap }
-export interface DancerBootstrap { profile: { matricKey: string; fullName: string; months: Month[]; perms: PermMap };
-  styles: DanceStyle[]; instructors: Instructor[]; sessions: ClassSession[]; attendance: { sessionId: string; present: boolean }[];
+export interface DancerBootstrap { profile: { matricKey: string; fullName: string; eventIds: string[]; perms: PermMap };
+  events: EventSummary[]; styles: DanceStyle[]; instructors: Instructor[]; sessions: ClassSession[]; attendance: { sessionId: string; present: boolean }[];
   videos: VideoItem[]; music: MusicItem[]; sections: Section[] }
 export interface AdminBootstrap { profile: { username: string; displayName: string; perms: PermMap }; styles: DanceStyle[];
-  instructors: Instructor[]; sessions: ClassSession[]; roles: Role[]; months: Month[]; settings: Record<string,string> }
-export interface AttendanceGrid { month: Month; styleId: string; version: number; sessions: ClassSession[];
+  instructors: Instructor[]; sessions: ClassSession[]; roles: Role[]; events: EventItem[]; settings: Record<string,string> }
+export interface AttendanceGrid { eventId: string; styleId: string; version: number; sessions: ClassSession[];
   members: { memberId: string; fullName: string; matric: string }[]; present: Record<string, string[]>;
   spreadsheetId?: string; folderId?: string; masterFolderId?: string } // memberId -> sessionIds
 export interface LoginResult<B> { token: string; claims: TokenClaims; bootstrap: B }

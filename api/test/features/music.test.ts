@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import { handleRequest, registerRoutes } from '../../src/router';
 import { makeCtx } from '../fakes/makeCtx';
 import { Hmac, signToken } from '../../src/security/tokens';
+import { seedEvent } from '../fixtures/events';
 import { getMusicRoutes } from '../../src/features/music';
 
 const nodeHmac: Hmac = (key: string, message: string) => {
@@ -22,6 +23,7 @@ describe('Feature: Music & Sections (features/music)', () => {
   beforeEach(() => {
     ctx = makeCtx();
     registerRoutes(getMusicRoutes());
+    seedEvent(ctx, { id: 'evt_test', styleIds: ['st_popping'] } as any);
 
     adminToken = signToken(
       {
@@ -99,7 +101,7 @@ describe('Feature: Music & Sections (features/music)', () => {
         token: adminToken,
         payload: {
           styleId: 'st_popping',
-          month: '2026-10',
+          eventId: 'evt_test',
           title: 'Battle Track',
           sourceType: 'youtube',
           youtubeUrl: 'not_a_valid_youtube_url'
@@ -122,7 +124,7 @@ describe('Feature: Music & Sections (features/music)', () => {
         token: adminToken,
         payload: {
           styleId: 'st_popping',
-          month: '2026-10',
+          eventId: 'evt_test',
           title: 'Never Gonna Give You Up',
           sourceType: 'youtube',
           youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ?t=5'
@@ -144,7 +146,7 @@ describe('Feature: Music & Sections (features/music)', () => {
     const music = ctx.db.music.insert(
       {
         styleId: 'st_popping',
-        month: '2026-10',
+        eventId: 'evt_test',
         sessionId: '',
         title: 'Song',
         sourceType: 'youtube',
@@ -180,7 +182,7 @@ describe('Feature: Music & Sections (features/music)', () => {
     const music = ctx.db.music.insert(
       {
         styleId: 'st_popping',
-        month: '2026-10',
+        eventId: 'evt_test',
         sessionId: '',
         title: 'Song',
         sourceType: 'youtube',
@@ -258,7 +260,7 @@ describe('Feature: Music & Sections (features/music)', () => {
     ctx.db.music.insert(
       {
         styleId: 'st_hiphop',
-        month: '2026-10',
+        eventId: 'evt_test',
         sessionId: '',
         title: 'Hip Hop Beat',
         sourceType: 'youtube',

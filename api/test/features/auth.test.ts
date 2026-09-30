@@ -69,8 +69,8 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
         matricKey: '22004591',
         nameKey: 'ahmad fiqri mohd zamri',
         fullName: 'Ahmad Fiqri Bin Mohd Zamri',
-        months: ['2026-10'],
-        lastMonth: '2026-10'
+        eventIds: ['evt_test'],
+        lastEventEnd: '2026-10-31'
       },
       'system',
       new Date()
@@ -81,8 +81,8 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
         matricKey: 'S2199647',
         nameKey: 'tan wei jie',
         fullName: 'Tan Wei Jie',
-        months: ['2026-10'],
-        lastMonth: '2026-10'
+        eventIds: ['evt_test'],
+        lastEventEnd: '2026-10-31'
       },
       'system',
       new Date()
