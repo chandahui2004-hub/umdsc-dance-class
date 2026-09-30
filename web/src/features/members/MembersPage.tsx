@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { call, errorMessage } from '../../lib/api';
 import { useBootstrap } from '../auth/useBootstrap';
@@ -10,47 +9,18 @@ import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { STYLE_COLOR } from '../../theme/colors';
 import { exportToCsv } from '../../lib/csv';
-import { todayKL } from '../../lib/time';
-import type { Member, Month } from '@umdsc/shared';
-
-interface ImportedMonth {
-  month: Month;
-  memberCount: number;
-}
+import type { Member } from '@umdsc/shared';
+import { useCurrentEvent } from '../events/useCurrentEvent';
 
 export const MembersPage: React.FC = () => {
   const { data: bootstrap } = useBootstrap('admin');
-  const [searchParams] = useSearchParams();
-
-  // Months come from the server's MemberMonths table, not the cached bootstrap,
-  // so a month imported a moment ago shows up straight away.
-  const { data: importedMonths = [] } = useQuery({
-    queryKey: ['importedMonths'],
-    staleTime: 0,
-    queryFn: async () => {
-      const res = await call<{ months: ImportedMonth[] }>('members.importedMonths');
-      return res.data.months;
-    }
-  });
-
-  const currentMonth = todayKL().slice(0, 7);
-  const availableMonths: Month[] = importedMonths.length
-    ? importedMonths.map((m) => m.month)
-    : [currentMonth];
-
-  const [chosenMonth, setSelectedMonth] = useState<Month | null>(searchParams.get('month'));
-  // Until the admin picks one: the month from the link, else this month if imported,
-  // else the latest imported month.
-  const selectedMonth: Month =
-    chosenMonth ??
-    (availableMonths.includes(currentMonth)
-      ? currentMonth
-      : availableMonths[availableMonths.length - 1]);
+  const { current: event } = useCurrentEvent();
+  const eventId = event?.id || '';
   const [selectedStyleId, setSelectedStyleId] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 
-  // Fetch members for the chosen month
+  // Members of the event chosen in the picker
   const {
     data: members = [],
     isLoading,
@@ -58,11 +28,9 @@ export const MembersPage: React.FC = () => {
     refetch,
     isRefetching
   } = useQuery({
-    queryKey: ['members', selectedMonth],
-    queryFn: async () => {
-      const res = await call<Member[]>('members.list', { month: selectedMonth });
-      return res.data || [];
-    }
+    queryKey: ['members', eventId],
+    enabled: Boolean(eventId),
+    queryFn: async () => (await call<Member[]>('members.list', { eventId })).data || []
   });
 
   // Filter members by style and search query
@@ -115,7 +83,7 @@ export const MembersPage: React.FC = () => {
       styleNames: m.styleNames?.join(', ') || ''
     }));
 
-    exportToCsv(`dancers_${selectedMonth}.csv`, exportRows, headers);
+    exportToCsv(`dancers_${(event?.name || 'event').replace(/\s+/g, '_')}.csv`, exportRows, headers);
   };
 
   const formatWhatsAppUrl = (phone: string): string => {
@@ -133,7 +101,7 @@ export const MembersPage: React.FC = () => {
             Registered Dancers
           </h1>
           <p className="font-body text-sm text-[var(--c-darkgrey)]">
-            Dancer directory and registration records for monthly dance classes
+            Dancers registered for the event chosen above
           </p>
         </div>
 
@@ -163,32 +131,12 @@ export const MembersPage: React.FC = () => {
       {/* Filter and Search Panel */}
       <Panel title="FILTER & SEARCH" className="px-corners">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* Month Selector */}
+          {/* Event (chosen in the picker above) */}
           <div>
-            <label
-              htmlFor="month-select"
-              className="block font-display text-[10px] text-[var(--c-ink)] mb-1 uppercase"
-            >
-              Registration Month
-            </label>
-            <select
-              id="month-select"
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="w-full min-h-[44px] px-3 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] font-body text-base text-[var(--c-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--c-yellow)]"
-            >
-              {!availableMonths.includes(selectedMonth) && (
-                <option value={selectedMonth}>{selectedMonth} (not imported)</option>
-              )}
-              {availableMonths.map((m) => {
-                const info = importedMonths.find((im) => im.month === m);
-                return (
-                  <option key={m} value={m}>
-                    {info ? `${m} (${info.memberCount} dancers)` : `${m} (not imported)`}
-                  </option>
-                );
-              })}
-            </select>
+            <span className="block font-display text-[10px] text-[var(--c-ink)] mb-1 uppercase">Event</span>
+            <p className="min-h-[44px] px-3 flex items-center border-2 border-[var(--c-ink)] bg-[var(--c-bg)] font-body text-base text-[var(--c-ink)]">
+              {event ? `${event.name} (${event.memberCount} dancers)` : 'No event yet'}
+            </p>
           </div>
 
           {/* Dance Class / Style Filter */}
@@ -307,7 +255,7 @@ export const MembersPage: React.FC = () => {
           title="NO DANCERS FOUND"
           description={
             members.length === 0
-              ? `No registrations found for ${selectedMonth}. Please import registrations via the import wizard.`
+              ? `No registrations found for ${event?.name || 'this event'}. New form responses appear within 10 minutes, or press Sync now on the Events page.`
               : 'No dancers match your current filter and search query.'
           }
         />

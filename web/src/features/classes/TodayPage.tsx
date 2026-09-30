@@ -9,14 +9,14 @@ import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { todayKL } from '../../lib/time';
 import { STYLE_COLOR } from '../../theme/colors';
-import type { ClassSession } from '@umdsc/shared';
+import type { TodayClass } from '@umdsc/shared';
+import { useCurrentEvent } from '../events/useCurrentEvent';
 
 export const TodayPage: React.FC = () => {
   const navigate = useNavigate();
   const today = todayKL();
-  const currentMonth = today.slice(0, 7);
-
   const { data: bootstrap } = useBootstrap('admin');
+  const { setCurrentId } = useCurrentEvent();
 
   const {
     data: sessions = [],
@@ -25,14 +25,12 @@ export const TodayPage: React.FC = () => {
     refetch,
     isRefetching
   } = useQuery({
-    queryKey: ['sessions', currentMonth],
-    queryFn: async () => {
-      const res = await call<ClassSession[]>('sessions.list', { month: currentMonth });
-      return res.data || [];
-    }
+    queryKey: ['sessions', 'today'],
+    queryFn: async () => (await call<TodayClass[]>('sessions.today', {})).data || []
   });
 
-  const todaySessions = sessions.filter((s) => s.date === today && s.active);
+  // The server returns only today's classes (Malaysia time) from active events
+  const todaySessions = sessions;
 
   const getStyle = (styleId: string) => {
     return bootstrap?.styles?.find((st) => st.id === styleId);
@@ -99,7 +97,7 @@ export const TodayPage: React.FC = () => {
             return (
               <Panel
                 key={session.id}
-                title={`${style?.name || 'Class'} Class ${session.seq}`}
+                title={`${style?.name || 'Class'} Class ${session.seq} · ${session.eventName}`}
                 className="px-corners space-y-3"
               >
                 <div className="flex items-center gap-2">
@@ -143,11 +141,10 @@ export const TodayPage: React.FC = () => {
                   <PixelButton
                     variant="primary"
                     size="md"
-                    onClick={() =>
-                      navigate(
-                        `/admin/attendance?sessionId=${session.id}&styleId=${session.styleId}&month=${session.month}`
-                      )
-                    }
+                    onClick={() => {
+                      setCurrentId(session.eventId);
+                      navigate(`/admin/attendance?sessionId=${session.id}&styleId=${session.styleId}`);
+                    }}
                     className="w-full"
                   >
                     TAKE ATTENDANCE

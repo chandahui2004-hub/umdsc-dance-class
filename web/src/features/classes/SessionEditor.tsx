@@ -12,6 +12,9 @@ export interface SessionEditorProps {
   session: ClassSession | null;
   styles: DanceStyle[];
   instructors: Instructor[];
+  /** Event dates: the date picker only allows days inside the event. */
+  minDate?: string;
+  maxDate?: string;
   onSaved: () => void;
 }
 
@@ -21,6 +24,8 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
   session,
   styles,
   instructors,
+  minDate,
+  maxDate,
   onSaved
 }) => {
   const [date, setDate] = useState('');
@@ -179,12 +184,13 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
         {/* Date Field */}
         <Field
           label="Date"
-          type="text"
+          type="date"
           value={date}
+          min={minDate}
+          max={maxDate}
           onChange={(e) => setDate(e.target.value)}
-          placeholder="YYYY-MM-DD"
           disabled={loading}
-          helper="e.g. 2026-10-08"
+          helper={minDate && maxDate ? `Inside the event: ${minDate} to ${maxDate}` : undefined}
           required
         />
 
