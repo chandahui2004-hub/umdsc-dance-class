@@ -62,6 +62,24 @@ export interface AttendanceGrid { month: Month; styleId: string; version: number
   spreadsheetId?: string; folderId?: string; masterFolderId?: string } // memberId -> sessionIds
 export interface LoginResult<B> { token: string; claims: TokenClaims; bootstrap: B }
 
+export type EventType = 'monthly' | 'trial' | 'workshop' | 'other';
+export type EventStatus = 'active' | 'archived';
+export interface EventItem extends RowMeta {
+  name: string; nameKey: string; type: EventType; startDate: ISODate; endDate: ISODate;
+  sourceSheetId: string; sourceTab: string; columnMapJson: string; classIndex: number;
+  styleIds: string[]; folderId: string; videoFolderId: string; membersSpreadsheetId: string;
+  status: EventStatus; sourceRowCount: number; sourceLastRowHash: string;
+  lastSyncAt: string; lastSyncError: string; memberCount: number;
+}
+export type EventSummary = Pick<EventItem, 'id' | 'name' | 'type' | 'startDate' | 'endDate' | 'status' | 'styleIds'>;
+export type TodayClass = ClassSession & { eventName: string };
+export interface SourcePreview {
+  headers: string[]; sourceTab: string; columnMap: Record<string, number | null>;
+  scores: Record<string, number>; classIndex: number; rowCount: number; sampleNames: string[];
+  detectedStyleIds: string[]; unknownClasses: { token: string; count: number }[];
+  warnings: { kind: string; row: number; detail: string }[];
+}
+
 // Type aliases for UI convenience
 export type Video = VideoItem;
 export type Music = MusicItem;

@@ -165,6 +165,67 @@ export class Table<T extends RowMeta> {
     return this.update(id, version, { active: false } as any, actor, now);
   }
 
+  /**
+   * Inserts or updates many rows matched on `key`, writing the whole table body
+   * with a single setValues call. Rows whose cells do not change keep their version.
+   */
+  upsertMany(key: keyof T, rows: Omit<T, keyof RowMeta>[], actor: string, now: Date): T[] {
+    this.configurePlainText();
+    const values = this.ensureLoaded();
+    const headers = values[0] || [];
+    const width = headers.length;
+    const pad = (cells: string[]) => {
+      const out = cells.slice(0, width);
+      while (out.length < width) out.push('');
+      return out;
+    };
+
+    const body: string[][] = values.slice(1).map(pad);
+    const indexByKey = new Map<string, number>();
+    body.forEach((cells, i) => {
+      if (cells.every(c => !c)) return;
+      const item = this.rowToObject(cells);
+      indexByKey.set(String(item[key]), i);
+    });
+
+    const result: T[] = [];
+    for (const data of rows) {
+      const k = String((data as any)[key]);
+      const idx = indexByKey.get(k);
+      if (idx !== undefined) {
+        const current = this.rowToObject(body[idx]);
+        const merged: T = { ...current, ...(data as any), id: current.id, version: current.version,
+          updatedBy: current.updatedBy, updatedAt: current.updatedAt, active: current.active };
+        const mergedCells = this.objectToRowCells(merged, width).map(c => String(c ?? ''));
+        if (mergedCells.join('\u001f') === body[idx].join('\u001f')) {
+          result.push(current);
+          continue;
+        }
+        const updated: T = { ...merged, version: current.version + 1, updatedBy: actor, updatedAt: now.toISOString() };
+        body[idx] = this.objectToRowCells(updated, width).map(c => String(c ?? ''));
+        result.push(updated);
+      } else {
+        const created: T = {
+          ...(data as any),
+          id: (data as any).id || newId(this.prefix),
+          version: 1,
+          updatedBy: actor,
+          updatedAt: now.toISOString(),
+          active: true
+        };
+        indexByKey.set(k, body.length);
+        body.push(this.objectToRowCells(created, width).map(c => String(c ?? '')));
+        result.push(created);
+      }
+    }
+
+    if (body.length > 0) {
+      this.sheet.setValues(2, 1, body);
+    }
+    this.cachedValues = [values[0] || [], ...body];
+    return result;
+  }
+
   upsertBy(key: keyof T, data: Omit<T, keyof RowMeta>, actor: string, now: Date): T {
     const existing = this.all({ includeInactive: true }).find(r => r[key] === (data as any)[key]);
     if (existing) {

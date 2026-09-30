@@ -3,6 +3,7 @@ import { Table, RowCodec } from '../../src/db/table';
 import { RowMeta, DanceStyle } from '@umdsc/shared';
 import { SheetPort, Cell } from '../../src/ports';
 import { AppError } from '../../src/errors';
+import { FakeSheet as SharedFakeSheet } from '../fakes/fakeSheets';
 
 class FakeSheet implements SheetPort {
   plainTextColumns: number[] = [];
@@ -169,6 +170,32 @@ describe('Table', () => {
     expect(table.all()).toHaveLength(0);
     expect(table.all({ includeInactive: true })).toHaveLength(1);
     expect(table.get(item.id)?.active).toBe(false);
+  });
+
+  it('upsertMany writes 10 updates + 20 inserts with one sheet write', () => {
+    const sheet = new SharedFakeSheet('Items', [[...columns]]);
+    const table = new Table<TestItem>(sheet, columns, testCodec, 'item');
+    const now = new Date('2026-09-28T12:00:00Z');
+    for (let i = 0; i < 10; i++) {
+      table.insert({ name: `n${i}`, category: 'old' }, 'seed', now);
+    }
+    const before = sheet.writeCalls;
+
+    const rows = [
+      ...Array.from({ length: 10 }, (_, i) => ({ name: `n${i}`, category: i < 3 ? 'new' : 'old' })),
+      ...Array.from({ length: 20 }, (_, i) => ({ name: `m${i}`, category: 'fresh' }))
+    ];
+    table.upsertMany('name', rows, 'admin1', now);
+
+    expect(sheet.writeCalls - before).toBe(1);
+    const fresh = new Table<TestItem>(sheet, columns, testCodec, 'item');
+    const all = fresh.all();
+    expect(all.length).toBe(30);
+    for (let i = 0; i < 10; i++) {
+      const row = all.find(r => r.name === `n${i}`)!;
+      expect(row.version).toBe(i < 3 ? 2 : 1);
+    }
+    expect(all.filter(r => r.category === 'fresh').every(r => r.version === 1 && r.id.startsWith('item_'))).toBe(true);
   });
 
   it('plain-text columns: insert calls setPlainTextColumns for date/time/matric/phone columns', () => {

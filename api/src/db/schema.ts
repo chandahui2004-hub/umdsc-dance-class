@@ -2,6 +2,7 @@ export const COMMON_COLUMNS = ['id', 'version', 'updatedBy', 'updatedAt', 'activ
 
 export const SCHEMA = {
   Settings: ['key', 'value', ...COMMON_COLUMNS],
+  Events: ['name', 'nameKey', 'type', 'startDate', 'endDate', 'sourceSheetId', 'sourceTab', 'columnMapJson', 'classIndex', 'styleIds', 'folderId', 'videoFolderId', 'membersSpreadsheetId', 'status', 'sourceRowCount', 'sourceLastRowHash', 'lastSyncAt', 'lastSyncError', 'memberCount', ...COMMON_COLUMNS],
   LinkHistory: ['key', 'oldValue', 'newValue', 'changedBy', 'changedAt', ...COMMON_COLUMNS],
   DanceStyles: ['name', 'aliases', 'colorKey', 'defaultWeekday', 'defaultStart', 'defaultEnd', 'defaultInstructorId', 'defaultVenue', 'attendanceFolderId', 'videoFolderId', ...COMMON_COLUMNS],
   Instructors: ['name', 'contact', ...COMMON_COLUMNS],
@@ -62,5 +63,8 @@ export const PLAIN_TEXT_COLUMNS = new Set([
   'importedAt',
   'lastSyncAt',
   'changedAt',
-  'ts'
+  'ts',
+  'startDate',
+  'endDate',
+  'lastEventEnd'
 ]);

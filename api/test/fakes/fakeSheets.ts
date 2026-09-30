@@ -4,6 +4,7 @@ export class FakeSheet implements SheetPort {
   plainTextColumns: number[] = [];
   hiddenRows: number[] = [];
   protectedRows: number[] = [];
+  writeCalls = 0;
 
   constructor(public name: string, public rows: Cell[][] = []) {}
 
@@ -20,6 +21,7 @@ export class FakeSheet implements SheetPort {
   }
 
   setValues(row1: number, col1: number, values: Cell[][]): void {
+    this.writeCalls++;
     for (let r = 0; r < values.length; r++) {
       const targetRow = row1 - 1 + r;
       while (this.rows.length <= targetRow) {
@@ -32,6 +34,7 @@ export class FakeSheet implements SheetPort {
   }
 
   appendRows(values: Cell[][]): void {
+    this.writeCalls++;
     for (const row of values) {
       this.rows.push([...row]);
     }

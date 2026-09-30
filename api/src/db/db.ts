@@ -7,7 +7,8 @@ import {
   MusicItem,
   Section,
   Role,
-  PermissionCode
+  PermissionCode,
+  EventItem
 } from '@umdsc/shared';
 import { DrivePort, SpreadsheetPort } from '../ports';
 import { Table, RowCodec } from './table';
@@ -89,6 +90,7 @@ export interface AuditLogRow extends RowMeta {
 
 export interface Db {
   settings: Table<SettingRow>;
+  events: Table<EventItem>;
   linkHistory: Table<LinkHistoryRow>;
   styles: Table<DanceStyle>;
   instructors: Table<Instructor>;
@@ -126,6 +128,39 @@ const defaultCodecs = {
       active: parseBool(c.active),
       key: c.key || '',
       value: c.value || ''
+    })
+  },
+  events: {
+    toCells: (r: EventItem) => ({
+      ...r,
+      styleIds: (r.styleIds || []).join(','),
+      active: r.active ? 'TRUE' : 'FALSE'
+    }),
+    fromCells: (c: Record<string, string>): EventItem => ({
+      id: c.id,
+      version: Number(c.version || 1),
+      updatedBy: c.updatedBy || '',
+      updatedAt: c.updatedAt || '',
+      active: parseBool(c.active),
+      name: c.name || '',
+      nameKey: c.nameKey || '',
+      type: (c.type || 'other') as EventItem['type'],
+      startDate: c.startDate || '',
+      endDate: c.endDate || '',
+      sourceSheetId: c.sourceSheetId || '',
+      sourceTab: c.sourceTab || '',
+      columnMapJson: c.columnMapJson || '{}',
+      classIndex: c.classIndex === '' || c.classIndex === undefined ? -1 : Number(c.classIndex),
+      styleIds: parseList(c.styleIds),
+      folderId: c.folderId || '',
+      videoFolderId: c.videoFolderId || '',
+      membersSpreadsheetId: c.membersSpreadsheetId || '',
+      status: (c.status || 'active') as EventItem['status'],
+      sourceRowCount: Number(c.sourceRowCount || 0),
+      sourceLastRowHash: c.sourceLastRowHash || '',
+      lastSyncAt: c.lastSyncAt || '',
+      lastSyncError: c.lastSyncError || '',
+      memberCount: Number(c.memberCount || 0)
     })
   },
   linkHistory: {
@@ -411,6 +446,9 @@ export function openDb(drive: DrivePort, systemSpreadsheetId: string): Db {
   return {
     get settings() {
       return (tables.settings ||= new Table(getSheet('Settings'), SCHEMA.Settings, defaultCodecs.settings, 'set'));
+    },
+    get events() {
+      return (tables.events ||= new Table(getSheet('Events'), SCHEMA.Events, defaultCodecs.events, 'evt'));
     },
     get linkHistory() {
       return (tables.linkHistory ||= new Table(getSheet('LinkHistory'), SCHEMA.LinkHistory, defaultCodecs.linkHistory, 'lh'));
