@@ -22,6 +22,7 @@ import { getMusicRoutes } from './features/music';
 import { getBootstrapRoutes } from './features/bootstrap';
 import { getResetRoutes } from './features/reset';
 import { getEventRoutes } from './features/events';
+import { getRetentionRoutes } from './features/retention';
 
 export interface AuthInfo {
   claims: TokenClaims;
@@ -57,6 +58,7 @@ registerRoutes(getMusicRoutes());
 registerRoutes(getBootstrapRoutes());
 registerRoutes(getResetRoutes());
 registerRoutes(getEventRoutes());
+registerRoutes(getRetentionRoutes());
 
 export function handleRequest(
   req: ApiRequest,
