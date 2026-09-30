@@ -9,6 +9,8 @@ import { TitleScreen } from '../features/auth/TitleScreen';
 import { AdminLogin } from '../features/auth/AdminLogin';
 import { SetupPage } from '../features/setup/SetupPage';
 import { MembersPage } from '../features/members/MembersPage';
+import { TodayPage } from '../features/classes/TodayPage';
+import { ClassesPage } from '../features/classes/ClassesPage';
 import { useBootstrap } from '../features/auth/useBootstrap';
 import { session } from '../lib/session';
 import { PixelButton } from '../components/ui/PixelButton';
@@ -135,21 +137,6 @@ const DancerMePage: React.FC = () => {
   );
 };
 
-// Admin Pages
-const AdminTodayPage: React.FC = () => {
-  const { data: bootstrap } = useBootstrap('admin');
-  const adminName = bootstrap?.profile?.displayName || session.get()?.claims.name || 'Admin';
-
-  return (
-    <div className="space-y-4">
-      <h1 className="font-display text-xl md:text-2xl text-[var(--c-ink)]">Today</h1>
-      <div className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] p-4 shadow-[4px_4px_0_var(--c-ink)]">
-        <p className="font-body text-base">Welcome, {adminName}. Today&apos;s scheduled classes.</p>
-      </div>
-    </div>
-  );
-};
-
 export const AppRoutes: React.FC = () => {
   return (
     <Routes>
@@ -165,16 +152,8 @@ export const AppRoutes: React.FC = () => {
           <RequireRole role="admin">
             <ShellLayout tabs={ADMIN_TABS}>
               <Routes>
-                <Route path="today" element={<AdminTodayPage />} />
-                <Route
-                  path="calendar"
-                  element={
-                    <div>
-                      <h1 className="font-display text-xl mb-4">Calendar</h1>
-                      <p className="font-body text-base">Master Calendar & Class Scheduling</p>
-                    </div>
-                  }
-                />
+                <Route path="today" element={<TodayPage />} />
+                <Route path="calendar" element={<ClassesPage />} />
                 <Route
                   path="attendance"
                   element={
