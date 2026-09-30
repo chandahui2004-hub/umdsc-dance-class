@@ -17,6 +17,7 @@ import { InstructorsPage } from '../features/masterdata/InstructorsPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import { RolesPage } from '../features/access/RolesPage';
 import { AdminsPage } from '../features/access/AdminsPage';
+import { AttendancePage } from '../features/attendance/AttendancePage';
 import { useBootstrap } from '../features/auth/useBootstrap';
 import { session } from '../lib/session';
 import { PixelButton } from '../components/ui/PixelButton';
@@ -160,15 +161,7 @@ export const AppRoutes: React.FC = () => {
               <Routes>
                 <Route path="today" element={<TodayPage />} />
                 <Route path="calendar" element={<ClassesPage />} />
-                <Route
-                  path="attendance"
-                  element={
-                    <div>
-                      <h1 className="font-display text-xl mb-4">Attendance</h1>
-                      <p className="font-body text-base">Attendance Tracker</p>
-                    </div>
-                  }
-                />
+                <Route path="attendance" element={<AttendancePage />} />
                 <Route
                   path="media"
                   element={

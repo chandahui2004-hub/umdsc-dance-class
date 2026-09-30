@@ -1,5 +1,5 @@
 import { get, set } from 'idb-keyval';
-import { newOpId } from './api';
+import { api, newOpId } from './api';
 import type { Month } from '@umdsc/shared';
 
 export interface Tick {
@@ -166,3 +166,14 @@ export function createTickQueue(deps: TickQueueDeps) {
     load
   };
 }
+
+export const attendanceQueue = createTickQueue({
+  send: async (month, styleId, marks) => {
+    const res = await api.post<{ applied: string[]; version: number }>('attendance.mark', {
+      month,
+      styleId,
+      marks
+    });
+    return res.data;
+  }
+});
