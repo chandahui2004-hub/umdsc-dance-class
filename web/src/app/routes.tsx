@@ -14,6 +14,8 @@ import { ClassesPage } from '../features/classes/ClassesPage';
 import { StylesPage } from '../features/masterdata/StylesPage';
 import { InstructorsPage } from '../features/masterdata/InstructorsPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
+import { RolesPage } from '../features/access/RolesPage';
+import { AdminsPage } from '../features/access/AdminsPage';
 import { useBootstrap } from '../features/auth/useBootstrap';
 import { session } from '../lib/session';
 import { PixelButton } from '../components/ui/PixelButton';
@@ -179,6 +181,8 @@ export const AppRoutes: React.FC = () => {
                 <Route path="styles" element={<StylesPage />} />
                 <Route path="instructors" element={<InstructorsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
+                <Route path="roles" element={<RolesPage />} />
+                <Route path="admins" element={<AdminsPage />} />
                 <Route
                   path="more"
                   element={
@@ -216,6 +220,28 @@ export const AppRoutes: React.FC = () => {
                           </h2>
                           <p className="font-body text-xs text-[var(--c-darkgrey)]">
                             Manage club dance instructors and contact details
+                          </p>
+                        </a>
+                        <a
+                          href="/admin/roles"
+                          className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] block hover:bg-[var(--c-bg)]"
+                        >
+                          <h2 className="font-display text-sm text-[var(--c-ink)] mb-1">
+                            ROLES & PERMISSIONS
+                          </h2>
+                          <p className="font-body text-xs text-[var(--c-darkgrey)]">
+                            Manage permissions matrix and dancer role assignments
+                          </p>
+                        </a>
+                        <a
+                          href="/admin/admins"
+                          className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] block hover:bg-[var(--c-bg)]"
+                        >
+                          <h2 className="font-display text-sm text-[var(--c-ink)] mb-1">
+                            ADMIN ACCOUNTS
+                          </h2>
+                          <p className="font-body text-xs text-[var(--c-darkgrey)]">
+                            Manage admin user accounts, roles, and passwords
                           </p>
                         </a>
                         <a
