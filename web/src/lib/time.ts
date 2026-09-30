@@ -26,6 +26,19 @@ export function addMonths(month: Month, n: number): Month {
   return `${year}-${monthNum}`;
 }
 
+export function getMonthsRange(startMonth: Month, endMonth: Month): Month[] {
+  if (startMonth > endMonth) {
+    return [startMonth];
+  }
+  const result: Month[] = [];
+  let curr = startMonth;
+  while (curr <= endMonth) {
+    result.push(curr);
+    curr = addMonths(curr, 1);
+  }
+  return result;
+}
+
 export function formatDayLabel(d: ISODate): string {
   const date = parseISO(d);
   return format(date, 'EEE dd MMM');

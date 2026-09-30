@@ -9,6 +9,7 @@ import { TitleScreen } from '../features/auth/TitleScreen';
 import { AdminLogin } from '../features/auth/AdminLogin';
 import { SetupPage } from '../features/setup/SetupPage';
 import { MembersPage } from '../features/members/MembersPage';
+import { ImportWizard } from '../features/members/ImportWizard';
 import { TodayPage } from '../features/classes/TodayPage';
 import { ClassesPage } from '../features/classes/ClassesPage';
 import { StylesPage } from '../features/masterdata/StylesPage';
@@ -177,6 +178,7 @@ export const AppRoutes: React.FC = () => {
                     </div>
                   }
                 />
+                <Route path="members/import" element={<ImportWizard />} />
                 <Route path="members" element={<MembersPage />} />
                 <Route path="styles" element={<StylesPage />} />
                 <Route path="instructors" element={<InstructorsPage />} />
@@ -189,6 +191,17 @@ export const AppRoutes: React.FC = () => {
                     <div className="space-y-4">
                       <h1 className="font-display text-xl mb-4">More</h1>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <a
+                          href="/admin/members/import"
+                          className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] block hover:bg-[var(--c-bg)]"
+                        >
+                          <h2 className="font-display text-sm text-[var(--c-ink)] mb-1">
+                            IMPORT REGISTRATIONS
+                          </h2>
+                          <p className="font-body text-xs text-[var(--c-darkgrey)]">
+                            Import monthly Google Form response sheet & generate attendance
+                          </p>
+                        </a>
                         <a
                           href="/admin/members"
                           className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] block hover:bg-[var(--c-bg)]"

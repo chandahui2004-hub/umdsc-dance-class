@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { monthGrid, todayKL, addMonths, formatDayLabel } from './time';
+import { monthGrid, todayKL, addMonths, formatDayLabel, getMonthsRange } from './time';
 
 describe('time logic', () => {
   it('generates full-week monthGrid starting on Monday', () => {
@@ -29,5 +29,12 @@ describe('time logic', () => {
   it('gets today in Asia/Kuala_Lumpur format', () => {
     const today = todayKL();
     expect(today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('generates a range of consecutive months from start to end', () => {
+    expect(getMonthsRange('2026-10', '2026-12')).toEqual(['2026-10', '2026-11', '2026-12']);
+    expect(getMonthsRange('2026-11', '2027-02')).toEqual(['2026-11', '2026-12', '2027-01', '2027-02']);
+    expect(getMonthsRange('2026-10', '2026-10')).toEqual(['2026-10']);
+    expect(getMonthsRange('2026-12', '2026-10')).toEqual(['2026-12']);
   });
 });
