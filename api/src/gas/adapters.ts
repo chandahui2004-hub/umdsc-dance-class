@@ -96,6 +96,11 @@ export class GasSpreadsheetAdapter implements SpreadsheetPort {
   setName(name: string): void {
     this.ss.setName(name);
   }
+
+  firstSheet(): SheetPort | null {
+    const sheets = this.ss.getSheets();
+    return sheets.length > 0 ? new GasSheetAdapter(sheets[0]) : null;
+  }
 }
 
 export class GasDriveAdapter implements DrivePort {

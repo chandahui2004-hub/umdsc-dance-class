@@ -14,28 +14,22 @@ export function getYouTubeVideoId(value: string): string | null {
     return trimmedValue;
   }
 
-  try {
-    const url = new URL(trimmedValue);
+  // youtu.be/<id>
+  const youtuBeMatch = trimmedValue.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+  if (youtuBeMatch) {
+    return youtuBeMatch[1];
+  }
 
-    if (url.hostname.includes('youtu.be')) {
-      const id = url.pathname.split('/').filter(Boolean)[0];
-      return id && /^[a-zA-Z0-9_-]{11}$/.test(id) ? id : null;
-    }
+  // youtube.com watch?v=<id>
+  const watchMatch = trimmedValue.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+  if (watchMatch) {
+    return watchMatch[1];
+  }
 
-    if (url.hostname.includes('youtube.com')) {
-      const watchId = url.searchParams.get('v');
-
-      if (watchId && /^[a-zA-Z0-9_-]{11}$/.test(watchId)) {
-        return watchId;
-      }
-
-      const pathParts = url.pathname.split('/').filter(Boolean);
-      const embeddedId = pathParts.find(part => /^[a-zA-Z0-9_-]{11}$/.test(part));
-
-      return embeddedId ?? null;
-    }
-  } catch {
-    return null;
+  // youtube.com/embed/<id> or /v/<id> or /shorts/<id>
+  const embedMatch = trimmedValue.match(/youtube\.com\/(?:embed|v|shorts)\/([a-zA-Z0-9_-]{11})/);
+  if (embedMatch) {
+    return embedMatch[1];
   }
 
   return null;

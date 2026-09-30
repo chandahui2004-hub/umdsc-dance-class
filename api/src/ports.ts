@@ -21,6 +21,7 @@ export interface SpreadsheetPort {
   sheet(name: string): SheetPort | null;
   addSheet(name: string, headers: string[]): SheetPort;
   setName(name: string): void;
+  firstSheet?(): SheetPort | null;
 }
 
 export interface DriveItemInfo {

@@ -35,7 +35,7 @@ export function getMemberRoutes(): Record<string, Route> {
         }
 
         const ss = ctx.drive.openSpreadsheet(driveItem.id);
-        const sheet = ss.sheet('Sheet1') || (ss as any).getSheet?.('Sheet1') || (ss as any).sheetsMap?.values().next().value;
+        const sheet = ss.sheet('Form Responses 1') || ss.sheet('Form responses 1') || ss.sheet('Sheet1') || (ss.firstSheet ? ss.firstSheet() : null) || (ss as any).getSheet?.('Sheet1') || (ss as any).sheetsMap?.values().next().value;
         if (!sheet) {
           throw new AppError('VALIDATION', 'No sheets found in spreadsheet');
         }
@@ -111,7 +111,7 @@ export function getMemberRoutes(): Record<string, Route> {
         }
 
         const ss = ctx.drive.openSpreadsheet(sourceSheetId);
-        const sheet = ss.sheet('Sheet1') || (ss as any).getSheet?.('Sheet1') || (ss as any).sheetsMap?.values().next().value;
+        const sheet = ss.sheet('Form Responses 1') || ss.sheet('Form responses 1') || ss.sheet('Sheet1') || (ss.firstSheet ? ss.firstSheet() : null) || (ss as any).getSheet?.('Sheet1') || (ss as any).sheetsMap?.values().next().value;
         if (!sheet) {
           throw new AppError('VALIDATION', 'Sheet not found');
         }
