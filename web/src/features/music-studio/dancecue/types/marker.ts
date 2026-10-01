@@ -5,4 +5,5 @@ export type Marker = {
   endTime: number;
   name: string;
   time: number;
+  isReadOnly?: boolean;
 };

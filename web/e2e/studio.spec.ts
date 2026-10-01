@@ -25,69 +25,103 @@ async function loginAsDancer(page: any) {
   });
 }
 
-test.describe('Music Studio (DanceCue)', () => {
+const BOOTSTRAP_DATA = {
+  profile: {
+    matric: 'M-17201234',
+    fullName: 'SARAH BINTI AHMAD',
+    eventIds: ['evt-oct'],
+    styles: ['style-hiphop'],
+    months: ['2026-10']
+  },
+  events: [
+    {
+      id: 'evt-oct',
+      name: 'OCT MONTHLY CLASS',
+      type: 'monthly',
+      startDate: '2026-10-01',
+      endDate: '2026-10-31',
+      status: 'active',
+      styleIds: ['style-hiphop']
+    }
+  ],
+  styles: [
+    {
+      id: 'style-hiphop',
+      name: 'Hip Hop',
+      aliases: ['hiphop'],
+      colorKey: 'orange',
+      defaultWeekday: 4,
+      defaultStart: '20:00',
+      defaultEnd: '22:00',
+      defaultInstructorId: 'inst-1',
+      defaultVenue: 'Dance Room 1',
+      attendanceFolderId: 'f-att-1',
+      videoFolderId: 'f-vid-1',
+      version: 1,
+      updatedBy: 'admin',
+      updatedAt: '2026-10-01T00:00:00.000Z',
+      active: true
+    }
+  ],
+  instructors: [],
+  sessions: [],
+  attendance: [],
+  videos: [],
+  music: [
+    {
+      id: 'm-hiphop-routine',
+      eventId: 'evt-oct',
+      styleId: 'style-hiphop',
+      sessionId: 'ses-1',
+      title: 'Hip Hop Routine Song',
+      sourceType: 'mp3',
+      driveFileId: 'drive-mp3-999',
+      youtubeId: '',
+      version: 1,
+      updatedBy: 'admin',
+      updatedAt: '2026-10-01T00:00:00.000Z',
+      active: true
+    }
+  ],
+  sections: [
+    {
+      id: 'sec-chorus',
+      musicId: 'm-hiphop-routine',
+      name: 'Routine Chorus Part A',
+      startSec: 15,
+      endSec: 45,
+      videoId: '',
+      videoStartSec: null,
+      version: 1,
+      updatedBy: 'admin',
+      updatedAt: '2026-10-01T00:00:00.000Z',
+      active: true
+    }
+  ]
+};
+
+test.describe('Music Studio (DanceCue & Sources)', () => {
   test.beforeEach(async ({ page }) => {
     await loginAsDancer(page);
     await mockApi(page, {
-      'dancer.bootstrap': () => ({
-        profile: {
-          matric: 'M-17201234',
-          fullName: 'SARAH BINTI AHMAD',
-          eventIds: ['evt-oct'],
-          styles: ['style-hiphop'],
-          months: ['2026-10']
-        },
-        events: [
-          {
-            id: 'evt-oct',
-            name: 'OCT MONTHLY CLASS',
-            type: 'monthly',
-            startDate: '2026-10-01',
-            endDate: '2026-10-31',
-            status: 'active',
-            styleIds: ['style-hiphop']
-          }
-        ],
-        styles: [
-          {
-            id: 'style-hiphop',
-            name: 'Hip Hop',
-            aliases: ['hiphop'],
-            colorKey: 'orange',
-            defaultWeekday: 4,
-            defaultStart: '20:00',
-            defaultEnd: '22:00',
-            defaultInstructorId: 'inst-1',
-            defaultVenue: 'Dance Room 1',
-            attendanceFolderId: 'f-att-1',
-            videoFolderId: 'f-vid-1',
-            version: 1,
-            updatedBy: 'admin',
-            updatedAt: '2026-10-01T00:00:00.000Z',
-            active: true
-          }
-        ],
-        instructors: [],
-        sessions: [],
-        attendance: [],
-        videos: [],
-        music: [],
-        sections: []
-      })
+      'dancer.bootstrap': () => BOOTSTRAP_DATA
     });
   });
 
-  test('loads Studio page and renders DanceCue interface verbatim', async ({ page }) => {
+  test('loads Studio page and displays Class Music tab with track list', async ({ page }) => {
     await page.goto('/studio');
 
     // Header and title
     await expect(page.locator('text=DanceCue').first()).toBeVisible();
     await expect(page.locator('text=Rehearse in motion')).toBeVisible();
 
-    // Track source selector
-    await expect(page.locator('text=Choose music source')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'MP3 file' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'YouTube link' })).toBeVisible();
+    // Source picker tabs
+    await expect(page.getByRole('button', { name: 'Class Music' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'My MP3' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'YouTube' })).toBeVisible();
+
+    // Track in list
+    await expect(page.locator('text=Hip Hop Routine Song')).toBeVisible();
 
     // Audio player controls
     await expect(page.locator('button', { hasText: 'Loop' }).first()).toBeVisible();
@@ -95,38 +129,48 @@ test.describe('Music Studio (DanceCue)', () => {
     await expect(page.locator('button', { hasText: 'Play' }).first()).toBeVisible();
     await expect(page.locator('button', { hasText: '+5s' })).toBeVisible();
 
-    // Default starter markers
-    await expect(page.getByRole('heading', { name: 'Markers' })).toBeVisible();
-    await expect(page.locator('text=Intro').first()).toBeVisible();
-    await expect(page.locator('text=Verse').first()).toBeVisible();
-    await expect(page.locator('text=Chorus').first()).toBeVisible();
-    await expect(page.locator('text=Bridge').first()).toBeVisible();
-
     // Voice Command Panel
-    await expect(page.locator('text=Voice Cue')).toBeVisible();
-    await expect(page.locator('text=Play').last()).toBeVisible();
-    await expect(page.locator('text=Pause').last()).toBeVisible();
-    await expect(page.locator('text=Go to Chorus')).toBeVisible();
-    await expect(page.locator('text=Loop Chorus')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Voice Cue' })).toBeVisible();
   });
 
-  test('navigates from bottom tab bar to Studio and switches source mode', async ({ page }) => {
-    await page.goto('/');
+  test('preloads class music and sections via ?music=<id> query parameter', async ({ page }) => {
+    await page.goto('/studio?music=m-hiphop-routine');
 
-    // Click Studio tab (mobile TabBar or desktop Sidebar)
-    const studioTab = page.locator('a[href="/studio"]').first();
-    await studioTab.click();
+    // Active music label should appear
+    await expect(page.locator('text=♪ Hip Hop Routine Song')).toBeVisible();
 
-    await expect(page).toHaveURL(/.*\/studio/);
-    await expect(page.locator('text=DanceCue').first()).toBeVisible();
+    // The class section should be visible with Class Section badge
+    await expect(page.locator('text=Routine Chorus Part A')).toBeVisible();
+    await expect(page.locator('text=Class Section')).toBeVisible();
 
-    // Switch to YouTube link
-    await page.getByRole('button', { name: 'YouTube link' }).click();
+    // Add personal loop
+    await page.getByRole('button', { name: 'Add Loop' }).click();
+    await page.getByPlaceholder(/Loop name/i).fill('Sarah Practice 8-Count');
+    await page.getByRole('button', { name: 'Save Loop' }).click();
+
+    // Verify personal loop appears with My Loop badge
+    await expect(page.locator('text=Sarah Practice 8-Count')).toBeVisible();
+    await expect(page.locator('text=My Loop')).toBeVisible();
+
+    // Delete personal loop
+    await page.getByTitle('Delete personal loop').click();
+    await expect(page.locator('text=Sarah Practice 8-Count')).not.toBeVisible();
+  });
+
+  test('switches source modes between Class Music, My MP3, and YouTube', async ({ page }) => {
+    await page.goto('/studio');
+
+    // Switch to My MP3
+    await page.getByRole('button', { name: 'My MP3' }).click();
+    await expect(page.locator('text=Load MP3 or audio file')).toBeVisible();
+
+    // Switch to YouTube
+    await page.getByRole('button', { name: 'YouTube' }).click();
     await expect(page.getByPlaceholder('Paste YouTube link')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Use YouTube' })).toBeVisible();
 
-    // Switch back to MP3 file
-    await page.getByRole('button', { name: 'MP3 file' }).click();
-    await expect(page.locator('text=Load MP3 or audio file')).toBeVisible();
+    // Switch back to Class Music
+    await page.getByRole('button', { name: 'Class Music' }).click();
+    await expect(page.locator('text=Hip Hop Routine Song')).toBeVisible();
   });
 });
