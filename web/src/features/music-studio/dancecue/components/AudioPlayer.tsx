@@ -26,17 +26,17 @@ type AudioPlayerProps = {
 };
 
 const controlButtonClass =
-  "grid size-12 shrink-0 place-items-center rounded-full border border-white/5 bg-white/[0.07] text-xs font-black text-zinc-100 shadow-lg shadow-black/25 transition hover:border-fuchsia-200/30 hover:bg-white/[0.11] active:scale-95 disabled:cursor-not-allowed disabled:opacity-45";
+  "grid size-12 shrink-0 place-items-center border-2 border-black bg-white text-xs font-['Press_Start_2P'] text-black shadow-[2px_2px_0_#000] transition active:translate-x-[1px] active:translate-y-[1px] hover:bg-[#FFF1E8] disabled:cursor-not-allowed disabled:opacity-45";
 const loopButtonOffClass =
-  "grid size-12 shrink-0 place-items-center rounded-full border border-white/5 bg-white/[0.07] text-xs font-black text-zinc-100 shadow-lg shadow-black/25 transition hover:border-fuchsia-200/30 hover:bg-white/[0.11] active:scale-95";
+  "grid size-12 shrink-0 place-items-center border-2 border-black bg-white text-[9px] min-text-5px font-['Press_Start_2P'] text-black shadow-[2px_2px_0_#000] transition active:translate-x-[1px] active:translate-y-[1px] hover:bg-[#FFF1E8]";
 const loopButtonOnClass =
-  "grid size-12 shrink-0 place-items-center rounded-full border-2 border-fuchsia-100 bg-[#e9a8ff] text-xs font-black text-[#221129] shadow-[0_0_0_3px_rgba(233,168,255,0.24),0_0_26px_rgba(233,168,255,0.8)] transition hover:bg-[#f0c4ff] active:scale-95";
-const panelClass = "rounded-[1.65rem] bg-[#101014] px-3 pb-3 pt-3 shadow-lg shadow-black/25";
+  "grid size-12 shrink-0 place-items-center border-2 border-black bg-[#FFEC27] text-[9px] min-text-5px font-['Press_Start_2P'] text-black shadow-[2px_2px_0_#000] transition active:translate-x-[1px] active:translate-y-[1px]";
+const panelClass = "border-4 border-black bg-[#1D2B53] px-3 pb-4 pt-3 shadow-[4px_4px_0_#000]";
 const waveformHeights = [
   22, 30, 18, 27, 35, 24, 31, 16, 38, 22, 28, 17, 34, 25, 19, 36, 42, 23, 31, 18, 35, 27, 21,
   32, 17, 25, 37, 29, 21, 34, 40, 18, 28, 36, 24, 32, 19,
 ];
-const speedOptions = [0.75,0.8,0.9,1,1.25];
+const speedOptions = [0.75, 0.8, 0.9, 1, 1.25];
 
 export function formatTime(totalSeconds: number) {
   if (!Number.isFinite(totalSeconds)) {
@@ -225,41 +225,41 @@ export function AudioPlayer({
         }}
       >
         <div
-          className="absolute inset-y-0 left-0 rounded-r-md bg-gradient-to-r from-fuchsia-400/24 via-fuchsia-300/18 to-cyan-300/16"
+          className="absolute inset-y-0 left-0 bg-[#29ADFF]/30 border-r-2 border-[#29ADFF]"
           style={{ width: `${progress}%` }}
         />
         {hasDraftRange ? (
           <div
-            className="absolute inset-y-1 rounded-md border border-cyan-200/55 bg-cyan-300/14 shadow-[0_0_18px_rgba(103,232,249,0.25)]"
+            className="absolute inset-y-0 border-2 border-[#FFEC27] bg-[#FFEC27]/30 shadow-[0_0_8px_rgba(255,236,39,0.3)]"
             style={{ left: `${draftStart}%`, width: `${draftWidth}%` }}
             aria-hidden="true"
           >
-            <span className="absolute inset-y-1 left-0 w-1 rounded-full bg-cyan-100 shadow-[0_0_12px_rgba(165,243,252,0.75)]" />
-            <span className="absolute inset-y-1 right-0 w-1 rounded-full bg-cyan-100 shadow-[0_0_12px_rgba(165,243,252,0.75)]" />
+            <span className="absolute inset-y-0 left-0 w-1 bg-[#FFEC27] border-r border-black" />
+            <span className="absolute inset-y-0 right-0 w-1 bg-[#FFEC27] border-l border-black" />
           </div>
         ) : null}
         <div
-          className="absolute inset-y-0 w-1.5 rounded-full bg-fuchsia-200 shadow-[0_0_18px_rgba(240,171,252,0.9)]"
-          style={{ left: `calc(${progress}% - 3px)` }}
+          className="absolute inset-y-0 w-2 -ml-1 bg-[#29ADFF] border border-black z-10 shadow-[1px_1px_0_#000]"
+          style={{ left: `${progress}%` }}
           aria-hidden="true"
         />
-        <div className="absolute inset-x-2 top-1/2 flex -translate-y-1/2 items-center justify-between gap-1">
+        <div className="absolute inset-x-2 top-1/2 flex -translate-y-1/2 items-center justify-between gap-1 pointer-events-none opacity-40">
           {waveformHeights.map((height, index) => (
             <span
-              className="w-0.5 rounded-full bg-zinc-400/35"
+              className="w-0.5 bg-[#FFEC27]"
               key={`${height}-${index}`}
-              style={{ height: Math.max(10, height - 8) }}
+              style={{ height: Math.max(8, height - 12) }}
             />
           ))}
         </div>
       </div>
 
-      <div className="mt-3 flex items-center justify-between px-1 font-mono text-xs font-black tabular-nums text-zinc-300">
+      <div className="mt-2.5 flex items-center justify-between px-1 font-mono text-[11px] min-text-5px font-bold tabular-nums text-[#00E436]">
         <span>{formatTime(currentTime)}</span>
         <span>{formatTime(duration)}</span>
       </div>
 
-      <div className="mt-6 flex items-center justify-between gap-2">
+      <div className="mt-5 flex items-center justify-between gap-2">
         <button
           className={isLooping ? loopButtonOnClass : loopButtonOffClass}
           type="button"
@@ -278,7 +278,7 @@ export function AudioPlayer({
           -5s
         </button>
         <button
-          className="grid size-16 shrink-0 place-items-center rounded-full bg-fuchsia-300 text-lg font-black text-[#21132a] shadow-[0_0_22px_rgba(240,171,252,0.55)] transition hover:bg-fuchsia-200 active:scale-95"
+          className="grid size-14 shrink-0 place-items-center border-4 border-black bg-[#FFA300] text-[11px] min-text-5px font-['Press_Start_2P'] text-black shadow-[3px_3px_0_#000] hover:bg-[#FFA300]/90 active:translate-x-[2px] active:translate-y-[2px]"
           type="button"
           title={isPlaying ? "Pause" : "Play"}
           onClick={isPlaying ? onPause : onPlay}
@@ -294,17 +294,17 @@ export function AudioPlayer({
           +5s
         </button>
         <label
-          className="grid size-12 shrink-0 place-items-center rounded-full border border-white/5 bg-white/[0.06] shadow-lg shadow-black/25"
+          className="grid size-12 shrink-0 place-items-center border-2 border-black bg-white shadow-[2px_2px_0_#000]"
           title="Playback speed"
         >
           <span className="sr-only">Playback speed</span>
           <select
-            className="h-full w-full cursor-pointer appearance-none rounded-full bg-transparent text-center text-xs font-black text-fuchsia-100 outline-none"
+            className="h-full w-full cursor-pointer appearance-none bg-transparent text-center font-['Press_Start_2P'] text-[9px] min-text-5px font-bold text-black outline-none"
             value={playbackRate}
             onChange={(event) => onSpeedChange(Number(event.target.value))}
           >
             {speedOptions.map((speed) => (
-              <option className="bg-[#17181c] text-white" key={speed} value={speed}>
+              <option className="bg-white text-black font-mono font-bold" key={speed} value={speed}>
                 {speed}x
               </option>
             ))}

@@ -12,7 +12,8 @@ import { useBootstrap } from '../auth/useBootstrap';
 import { session } from '../../lib/session';
 import { streamUrl } from '../../lib/google/driveUrls';
 import { api } from '../../lib/api';
-import type { MusicItem, Section } from '@umdsc/shared';
+import { VideoPanel } from './sync/VideoPanel';
+import type { MusicItem, Section, VideoItem } from '@umdsc/shared';
 import './dancecue/dancecue.css';
 
 export const Studio: React.FC = () => {
@@ -33,6 +34,7 @@ export const Studio: React.FC = () => {
   const stylesList = bootstrapData?.styles || [];
   const eventsList = (bootstrapData as any)?.events || [];
   const sectionsList: Section[] = (bootstrapData as any)?.sections || [];
+  const videosList: VideoItem[] = (bootstrapData as any)?.videos || [];
 
   const [selectedMusicId, setSelectedMusicId] = useState<string | null>(musicParam);
   const [activeMusicTitle, setActiveMusicTitle] = useState<string | null>(null);
@@ -61,6 +63,10 @@ export const Studio: React.FC = () => {
     markers: markerEngine.markers
   });
 
+  const preloadedMusicRef = useRef<string | null>(null);
+
+  const { loadUrl, loadYouTube } = player;
+
   // Handle music selection
   const handleSelectClassMusic = useCallback(
     (item: MusicItem) => {
@@ -71,22 +77,23 @@ export const Studio: React.FC = () => {
         const key = sourceKey({ type: 'drive', fileId: item.driveFileId });
         setCurrentSourceKey(key);
         setYoutubeVideoId(null);
-        player.loadUrl(streamUrl(item.driveFileId), item.title);
+        loadUrl(streamUrl(item.driveFileId), item.title);
       } else {
         const key = sourceKey({ type: 'yt', videoId: item.youtubeId });
         setCurrentSourceKey(key);
         setYoutubeVideoId(item.youtubeId);
-        player.loadYouTube(item.youtubeId);
+        loadYouTube(item.youtubeId);
       }
     },
-    [player]
+    [loadUrl, loadYouTube]
   );
 
   // Preload music if ?music=<id> is present in URL
   useEffect(() => {
-    if (musicParam && musicList.length > 0) {
+    if (musicParam && musicList.length > 0 && preloadedMusicRef.current !== musicParam) {
       const match = musicList.find((m: MusicItem) => m.id === musicParam);
       if (match) {
+        preloadedMusicRef.current = musicParam;
         handleSelectClassMusic(match);
       }
     }
@@ -126,20 +133,27 @@ export const Studio: React.FC = () => {
 
   return (
     <div className="dancecue-root w-full">
-      <main className="min-h-screen bg-[#101114] px-4 py-5 font-sans text-zinc-100 sm:px-6">
-        <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-[480px] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-[#17181c] shadow-2xl shadow-black/40">
+      <main className="min-h-screen bg-[#101114] px-3 py-4 font-sans text-zinc-100 sm:px-6">
+        <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-[560px] lg:max-w-[760px] flex-col border-4 border-black bg-[#17181c] shadow-[8px_8px_0_#000]">
           {/* Header */}
-          <section className="border-b border-white/10 bg-gradient-to-br from-fuchsia-500/18 via-[#1b1d24] to-cyan-400/14 px-5 pb-5 pt-6">
-            <div>
-              <p className="font-mono text-[0.7rem] font-bold uppercase tracking-[0.16em] text-cyan-200">
-                DanceCue Studio
-              </p>
-              <h1 className="mt-2 whitespace-nowrap text-2xl font-black leading-tight tracking-normal text-white">
-                Rehearse in motion
-              </h1>
+          <section className="border-b-4 border-black bg-[#1D2B53] px-4 pb-4 pt-5 text-white shadow-inner">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 bg-[#FF004D] border border-black inline-block animate-pulse" />
+                <p className="font-['Press_Start_2P'] text-[10px] min-text-5px uppercase tracking-wider text-[#FFEC27]">
+                  DanceCue Studio
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 font-mono text-[9px] min-text-5px text-[#00E436]">
+                <span className="w-2 h-2 bg-[#00E436] inline-block rounded-none border border-black" />
+                <span>READY</span>
+              </div>
             </div>
-            <p className="mt-3 text-xs leading-5 text-zinc-300 font-mono">
-              Practice club routines with synced sections, looping, and hands-free voice cues.
+            <h1 className="mt-2 text-xl font-['Press_Start_2P'] leading-tight tracking-normal text-white">
+              Rehearse in motion
+            </h1>
+            <p className="mt-2 text-xs min-text-5px leading-5 text-[#C2C3C7] font-mono">
+              Practice club routines with synced class video, loops, and hands-free voice cues.
             </p>
           </section>
 
@@ -198,6 +212,15 @@ export const Studio: React.FC = () => {
               onSkip={player.skipBy}
               onSpeedChange={player.setSpeed}
               playbackRate={player.playbackRate}
+            />
+
+            {/* Synced Class Video Panel */}
+            <VideoPanel
+              master={player.master}
+              videos={videosList}
+              activeMusic={musicList.find((m: MusicItem) => m.id === selectedMusicId) || null}
+              activeLoopMarker={player.loopMarker}
+              onSaveLoopWithVideo={markerEngine.saveLoopWithVideo}
             />
 
             {/* Sections & Loops List */}

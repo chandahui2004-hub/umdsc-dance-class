@@ -6,4 +6,6 @@ export type Marker = {
   name: string;
   time: number;
   isReadOnly?: boolean;
+  videoId?: string;
+  videoStart?: number;
 };
