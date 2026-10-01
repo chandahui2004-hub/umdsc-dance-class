@@ -72,7 +72,10 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({
           }`}
           type="button"
           aria-pressed={sourceMode === 'class'}
-          onClick={() => setSourceMode('class')}
+          onClick={() => {
+            setSourceMode('class');
+            setErrorMessage('');
+          }}
         >
           Class Music
         </button>
@@ -84,7 +87,10 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({
           }`}
           type="button"
           aria-pressed={sourceMode === 'file'}
-          onClick={() => setSourceMode('file')}
+          onClick={() => {
+            setSourceMode('file');
+            setErrorMessage('');
+          }}
         >
           My MP3
         </button>
@@ -96,7 +102,10 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({
           }`}
           type="button"
           aria-pressed={sourceMode === 'youtube'}
-          onClick={() => setSourceMode('youtube')}
+          onClick={() => {
+            setSourceMode('youtube');
+            setErrorMessage('');
+          }}
         >
           YouTube
         </button>
@@ -126,12 +135,26 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({
               onChange={event => {
                 const file = event.target.files?.[0];
                 if (file) {
+                  const isVideo =
+                    (file.type && file.type.startsWith('video/')) ||
+                    /\.(mp4|mov|m4v|webm|mkv|avi|wmv|flv)$/i.test(file.name);
+                  if (isVideo) {
+                    setErrorMessage('Only MP3 or audio files are accepted. Video files (MP4) cannot be used as music.');
+                    event.target.value = '';
+                    return;
+                  }
+                  setErrorMessage('');
                   onFileSelected(file);
                 }
               }}
             />
             Load MP3 or audio file
           </label>
+          {errorMessage && (
+            <p className="mt-2 px-1 text-xs font-bold text-rose-200" role="alert">
+              {errorMessage}
+            </p>
+          )}
         </div>
       )}
 

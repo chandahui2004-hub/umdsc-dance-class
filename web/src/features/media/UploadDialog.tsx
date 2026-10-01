@@ -64,6 +64,19 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
 
     if (e.target.files && e.target.files.length > 0) {
       const selected = Array.from(e.target.files);
+
+      if (type === 'mp3') {
+        const videoFiles = selected.filter(
+          f => (f.type && f.type.startsWith('video/')) || /\.(mp4|mov|m4v|webm|mkv|avi)$/i.test(f.name)
+        );
+        if (videoFiles.length > 0) {
+          setError('Only MP3 or audio files can be uploaded for music. Video files (MP4) are not allowed.');
+          setFiles([]);
+          e.target.value = '';
+          return;
+        }
+      }
+
       setFiles(selected);
       if (type === 'video') {
         const warnings = selected.map(f => videoFormatWarning(f)).filter(Boolean);
@@ -361,7 +374,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
               {isUploading
                 ? `UPLOADING (${currentFileIndex + 1}/${files.length})...`
                 : files.length > 1
-                ? `START UPLOAD (${files.length} VIDEOS)`
+                ? `START UPLOAD (${files.length} ${type === 'video' ? 'VIDEOS' : 'TRACKS'})`
                 : 'START UPLOAD'}
             </PixelButton>
           </div>
