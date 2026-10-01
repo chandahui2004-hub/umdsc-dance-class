@@ -55,7 +55,23 @@ const youtubePlayerStates = {
 
 let apiReadyPromise: Promise<void> | null = null;
 
+function preconnectYouTube() {
+  if (typeof document === 'undefined') return;
+  const origins = ['https://www.youtube.com', 'https://s.ytimg.com', 'https://googlevideo.com'];
+  origins.forEach((origin) => {
+    if (!document.querySelector(`link[rel="preconnect"][href="${origin}"]`)) {
+      const link = document.createElement('link');
+      link.rel = 'preconnect';
+      link.href = origin;
+      link.crossOrigin = 'anonymous';
+      document.head.appendChild(link);
+    }
+  });
+}
+
 function loadYouTubeApi() {
+  preconnectYouTube();
+
   if (window.YT?.Player) {
     return Promise.resolve();
   }
@@ -92,6 +108,10 @@ export function YouTubePlayer({
   const [isApiLoading, setIsApiLoading] = useState(false);
 
   useEffect(() => {
+    preconnectYouTube();
+  }, []);
+
+  useEffect(() => {
     latestVideoIdRef.current = videoId;
   }, [videoId]);
 
@@ -111,6 +131,10 @@ export function YouTubePlayer({
         width: "200",
         videoId: videoId ?? undefined,
         playerVars: {
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
+          iv_load_policy: 3,
           modestbranding: 1,
           playsinline: 1,
           rel: 0,
@@ -119,6 +143,11 @@ export function YouTubePlayer({
           onReady: (event) => {
             setIsApiLoading(false);
             setErrorMessage("");
+            try {
+              (event.target as any).setPlaybackQuality?.('small');
+            } catch {
+              // Ignore quality errors on restricted streams
+            }
             onReady(event.target);
 
             if (latestVideoIdRef.current) {
@@ -158,12 +187,12 @@ export function YouTubePlayer({
 
     const retryTimeoutId = window.setTimeout(() => {
       playerRef.current?.cueVideoById(videoId);
-    }, 20000);
+    }, 8000);
 
     const failedTimeoutId = window.setTimeout(() => {
       setIsApiLoading(false);
       setErrorMessage("Still loading. Check your internet connection, ad blocker, or try another link.");
-    }, 60000);
+    }, 20000);
 
     return () => {
       window.clearTimeout(retryTimeoutId);
@@ -173,9 +202,14 @@ export function YouTubePlayer({
 
   useEffect(() => {
     if (videoId && playerRef.current) {
-      setIsApiLoading(true);
+      setIsApiLoading(false);
       setErrorMessage("");
       playerRef.current.cueVideoById(videoId);
+      try {
+        (playerRef.current as any).setPlaybackQuality?.('small');
+      } catch {
+        // Ignore quality errors
+      }
     }
   }, [videoId]);
 
