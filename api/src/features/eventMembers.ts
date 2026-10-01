@@ -17,6 +17,17 @@ function list(value: string): string[] {
 /** Reads the event's Members sheet (tab "Members") by header name. */
 export function readEventMembers(ctx: Ctx, event: EventItem): Member[] {
   if (!event.membersSpreadsheetId) return [];
+
+  const cacheKey = `evt:members:${event.id}:${event.membersSpreadsheetId}`;
+  const cached = ctx.cache.get(cacheKey);
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch {
+      // ignore
+    }
+  }
+
   const sheet = ctx.drive.openSpreadsheet(event.membersSpreadsheetId).sheet('Members');
   if (!sheet) return [];
 
@@ -45,6 +56,8 @@ export function readEventMembers(ctx: Ctx, event: EventItem): Member[] {
       flags: list(get(r, 'flags'))
     });
   }
+
+  ctx.cache.put(cacheKey, JSON.stringify(members), 600);
   return members;
 }
 

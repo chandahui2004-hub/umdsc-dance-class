@@ -175,6 +175,30 @@ describe('Feature: Bootstrap with Caching (features/bootstrap)', () => {
     }
   });
 
+  it('caches event members sheet across bootstrap calls', () => {
+    handleRequest({ action: 'dancer.bootstrap', token: dancerToken }, ctx, secrets);
+    const cachedMembers = ctx.cache.get(`evt:members:${event.id}:${event.membersSpreadsheetId}`);
+    expect(cachedMembers).toBeTruthy();
+    expect(JSON.parse(cachedMembers!).length).toBe(2);
+  });
+
+  it('caches attendance grid across bootstrap calls', () => {
+    handleRequest({ action: 'dancer.bootstrap', token: dancerToken }, ctx, secrets);
+    const cachedAtt = ctx.cache.get(`att:${event.id}:st_popping:1`);
+    expect(cachedAtt).toBeTruthy();
+    const parsed = JSON.parse(cachedAtt!);
+    expect(parsed.present['M-22001111']).toEqual([popSess.id]);
+  });
+
+  it('caches dancer bootstrap across bootstrap calls', () => {
+    handleRequest({ action: 'dancer.bootstrap', token: dancerToken }, ctx, secrets);
+    const dv = Number(ctx.props.get('DATA_VERSION') || 1);
+    const cachedBoot = ctx.cache.get(`boot:dancer:22001111:${dv}`);
+    expect(cachedBoot).toBeTruthy();
+    const parsed = JSON.parse(cachedBoot!);
+    expect(parsed.profile.matricKey).toBe('22001111');
+  });
+
   it('admin.bootstrap returns events instead of months', () => {
     const res = handleRequest({ action: 'admin.bootstrap', token: adminToken }, ctx, secrets);
     expect(res.ok).toBe(true);

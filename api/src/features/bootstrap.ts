@@ -69,6 +69,16 @@ export function getDancerBootstrap(
     return { notModified: true };
   }
 
+  const dancerBootKey = `boot:dancer:${matricKey}:${dataVersion}`;
+  const cachedDancerBoot = ctx.cache.get(dancerBootKey);
+  if (cachedDancerBoot) {
+    try {
+      return JSON.parse(cachedDancerBoot);
+    } catch {
+      // ignore
+    }
+  }
+
   const miKey = 'mi:' + matricKey;
   let dancer: any = null;
   const miCached = ctx.cache.get(miKey);
@@ -199,6 +209,12 @@ export function getDancerBootstrap(
             if (!rowMId) continue;
             presentMap[rowMId] = sessCols.filter(sc => data[r][sc.colIdx] === '/').map(sc => sc.id);
           }
+
+          ctx.cache.put(
+            `att:${eventId}:${styleId}:${curAttVer}`,
+            JSON.stringify({ present: presentMap, sessions: gridSessions }),
+            600
+          );
         }
       }
 
@@ -215,7 +231,7 @@ export function getDancerBootstrap(
   const instructorIds = new Set(Array.from(sessionsMap.values()).map(s => s.instructorId).filter(Boolean));
   const instructors = ctx.db.instructors.find(i => instructorIds.has(i.id) && i.active);
 
-  return {
+  const result: DancerBootstrap = {
     profile: {
       matricKey,
       fullName: dancer.fullName,
@@ -233,6 +249,10 @@ export function getDancerBootstrap(
     music: Array.from(musicMap.values()),
     sections: Array.from(sectionsMap.values())
   };
+
+  ctx.cache.put(dancerBootKey, JSON.stringify(result), 300);
+
+  return result;
 }
 
 export function getBootstrapRoutes(): Record<string, Route> {

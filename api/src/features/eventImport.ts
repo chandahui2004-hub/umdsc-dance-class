@@ -168,6 +168,11 @@ export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boo
   const added = members.filter(m => !known.has(m.memberId));
   if (added.length > 0) membersSheet.appendRows(added.map(cellsOf));
 
+  if (bodyChanged || added.length > 0) {
+    ctx.cache.remove(`evt:members:${event.id}:${membersId}`);
+    ctx.cache.remove(`evt:members:${event.id}:${event.membersSpreadsheetId}`);
+  }
+
   // Attendance sheets: append new members / classes; Sync now also refreshes names
   const latest = ctx.db.events.get(event.id) || event;
   ensureEventSheets(ctx, latest);
