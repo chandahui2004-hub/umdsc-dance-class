@@ -218,10 +218,11 @@ test.describe('Dancer Portal: Home, DaySheet & Me Page', () => {
     // Video section
     await expect(page.getByText('Hip Hop Week 1 Routine Recap.mp4')).toBeVisible();
     await expect(page.getByRole('link', { name: /OPEN IN DRIVE/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /DOWNLOAD/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /DOWNLOAD(?! MP3)/i })).toBeVisible();
 
     // Music section
     await expect(page.getByText('Old School Beat - 95 BPM')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Download MP3' })).toBeVisible();
     const studioBtn = page.getByRole('button', { name: /PRACTISE IN STUDIO|PRACTICE IN STUDIO/i });
     await expect(studioBtn).toBeVisible();
 
