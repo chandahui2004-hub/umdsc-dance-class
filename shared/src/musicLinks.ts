@@ -16,13 +16,19 @@ const DRIVE_FOLDER = 'That is a Drive folder. Paste the link of the audio file i
 
 const rejected = (reason: string): ParsedMusicLink => ({ kind: 'rejected', reason });
 
+// A Spotify track id is 22 letters and digits. Anything else is not one, and the id is used in a cache key.
+const SPOTIFY_ID = /^[A-Za-z0-9]{16,32}$/;
+
 /** Recognises what an admin or dancer pasted. Shared so the form and the server apply the same rules. */
 export function parseMusicLink(input: string): ParsedMusicLink {
   const text = (input || '').trim();
   if (!text) return rejected(UNSUPPORTED);
 
   const uri = text.match(/^spotify:([a-z]+):([A-Za-z0-9]+)$/);
-  if (uri) return uri[1] === 'track' ? { kind: 'spotify', trackId: uri[2] } : rejected(SINGLE_SONG);
+  if (uri) {
+    if (uri[1] !== 'track') return rejected(SINGLE_SONG);
+    return SPOTIFY_ID.test(uri[2]) ? { kind: 'spotify', trackId: uri[2] } : rejected(UNSUPPORTED);
+  }
 
   if (/^[a-zA-Z0-9_-]{11}$/.test(text)) return { kind: 'youtube', id: text }; // a bare video id
 
@@ -42,7 +48,9 @@ export function parseMusicLink(input: string): ParsedMusicLink {
 
   if (host === 'open.spotify.com') {
     if (parts[0]?.startsWith('intl-')) parts.shift(); // regional links: /intl-ms/track/<id>
-    if (parts[0] === 'track' && parts[1]) return { kind: 'spotify', trackId: parts[1] };
+    if (parts[0] === 'track') {
+      return parts[1] && SPOTIFY_ID.test(parts[1]) ? { kind: 'spotify', trackId: parts[1] } : rejected(UNSUPPORTED);
+    }
     return rejected(['album', 'playlist', 'artist', 'show', 'episode'].includes(parts[0]) ? SINGLE_SONG : UNSUPPORTED);
   }
 
@@ -110,5 +118,5 @@ export type ResolvedLink =
       artist: string;
       durationSec: number;
       candidates: SpotifyCandidate[];
-      notice?: 'SEARCH_QUOTA';
+      notice?: 'SEARCH_QUOTA' | 'SEARCH_UNAVAILABLE';
     };

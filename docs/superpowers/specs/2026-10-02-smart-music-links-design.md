@@ -132,7 +132,9 @@ All outside calls go through two new ports on `Ctx` (`api/src/ports.ts`), so tes
 - Web tests: MusicForm Spotify flow (paste → 3 cards → Use this → correct `music.create` payload); ClassCard buttons per source type; SoundCloudPlayer with a mocked `SC.Widget` (play, seek, loop restart, speed disabled).
 - One real-browser check with a public SoundCloud track (`https://soundcloud.com/forss/flickermood`).
 
-**Owner setup (one time):**
-1. In the Apps Script editor → Services → add **YouTube Data API v3**. This adds the `youtube.readonly` scope to `api/appsscript.json`.
-2. Run `authorizeOnce` once as the club account to approve the new permission.
-3. Deploy to `AKfycbz3z…` as usual.
+**Staged rollout (decided while building).** Search is optional: if it fails for any reason (daily limit, the YouTube
+service not switched on or not approved yet), `music.resolveLink` still returns the Spotify song with
+`notice: 'SEARCH_QUOTA'` or `'SEARCH_UNAVAILABLE'` and no candidates, and the admin pastes a practice link or saves it
+listen-only. So the feature ships without the new Google permission, and automatic matches are switched on later with
+the steps in `docs/ENABLE-YOUTUBE-SEARCH.md` (a new permission must be approved before the live site is moved to a
+version that asks for it).

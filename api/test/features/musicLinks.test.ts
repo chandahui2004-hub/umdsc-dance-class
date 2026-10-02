@@ -224,6 +224,21 @@ describe('resolveMusicLink', () => {
       });
     });
 
+    it('still returns the Spotify song when YouTube search is not available at all (service off or not approved)', () => {
+      ctx.youtube.failWith(new AppError('INTERNAL', 'YouTube lookup failed: YouTube is not defined'));
+
+      const result = resolveMusicLink(ctx, SPOTIFY_URL) as any;
+
+      expect(result).toMatchObject({
+        kind: 'spotify',
+        title: 'Never Gonna Give You Up',
+        artist: 'Rick Astley',
+        candidates: [],
+        notice: 'SEARCH_UNAVAILABLE'
+      });
+      expect(ctx.cache.get(`spotify:${SPOTIFY_ID}`)).toBeNull(); // so it works as soon as search is switched on
+    });
+
     it('does not cache an answer that came from an exhausted quota', () => {
       ctx.youtube.failWith(new AppError('QUOTA', 'limit'));
       resolveMusicLink(ctx, SPOTIFY_URL);

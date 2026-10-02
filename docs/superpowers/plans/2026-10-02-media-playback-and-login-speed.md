@@ -462,7 +462,7 @@
 
 ## Measurements
 
-_(Task 18 adds its rows below.)_
+_(Task 18 notes are at the end of this section.)_
 
 **Task 10 — live, deployment v12 then v13 (2026-10-02, about 10 pm MYT), same account, curl from the dev PC:**
 
@@ -489,3 +489,8 @@ Reading:
 | 3 (bootstrap cached) | 4.40 s | 57 | 443 | 1252 | 181 | 208 | 44 | – | – | – | – |
 
 Reading: a cache hit costs 3–4.4 s (about 2 s is Apps Script's fixed overhead, and each table read is 180–500 ms). A miss adds about 7 s, and the cache lives only 5 minutes and is wiped by any admin edit. The three large steps are exactly what Tasks 7 (styles) and 8 (chunks, attendance leave the login path) remove.
+
+**Task 18 — smart music links, deployed as version 15 (2026-10-02):**
+- Live checks that were possible without an admin login all passed: the new `music.resolveLink` action exists (answers UNAUTHORIZED, where an unknown action answers VALIDATION), dancer login is 3.2–3.7 s, and the existing song now carries the `soundcloudUrl` and `spotifyUrl` fields (so the Music sheet got its two new columns).
+- Not verified live: the admin-only `music.resolveLink` and link-based `music.create` (no admin credentials were used). Both are covered by 41 API test files using real downloaded Spotify, YouTube and SoundCloud responses, and the admin form by Playwright.
+- The YouTube permission is **not** in version 15 on purpose; see `docs/ENABLE-YOUTUBE-SEARCH.md`. Version 14 (with the permission) exists but was never put live.

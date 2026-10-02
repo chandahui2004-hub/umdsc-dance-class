@@ -17,6 +17,8 @@ interface SpotifyPickerProps {
 }
 
 const QUOTA_MESSAGE = 'Search limit reached for today. Paste the YouTube link yourself or try after 4 pm.';
+const UNAVAILABLE_MESSAGE =
+  "YouTube search isn't available right now. Paste the YouTube link yourself, or save as listen-only.";
 
 function minutesAndSeconds(totalSec: number): string {
   const minutes = Math.floor(totalSec / 60);
@@ -53,13 +55,13 @@ export const SpotifyPicker: React.FC<SpotifyPickerProps> = ({ resolved, choice, 
         </p>
       </div>
 
-      {resolved.notice === 'SEARCH_QUOTA' && (
+      {resolved.notice && (
         <p role="alert" className="border-2 border-[var(--c-orange)] bg-[var(--c-peach)] p-2 text-xs font-bold text-[var(--c-ink)]">
-          {QUOTA_MESSAGE}
+          {resolved.notice === 'SEARCH_QUOTA' ? QUOTA_MESSAGE : UNAVAILABLE_MESSAGE}
         </p>
       )}
 
-      {resolved.candidates.length === 0 && resolved.notice !== 'SEARCH_QUOTA' && (
+      {resolved.candidates.length === 0 && !resolved.notice && (
         <p className="font-body text-xs text-[var(--c-darkgrey)]">No matching YouTube versions found. Paste your own below.</p>
       )}
 

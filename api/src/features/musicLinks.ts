@@ -128,7 +128,7 @@ function resolveSpotify(ctx: Ctx, trackId: string): ResolvedLink {
   const durationSec = Number(metaContent(page.body, 'music:duration')) || 0;
 
   let candidates: SpotifyCandidate[] = [];
-  let notice: 'SEARCH_QUOTA' | undefined;
+  let notice: 'SEARCH_QUOTA' | 'SEARCH_UNAVAILABLE' | undefined;
   try {
     const found = ctx.youtube.search(`${artist} ${title}`.trim(), SEARCH_RESULTS);
     const details = new Map(ctx.youtube.videos(found.map(f => f.youtubeId)).map(v => [v.youtubeId, v]));
@@ -147,8 +147,9 @@ function resolveSpotify(ctx: Ctx, trackId: string): ResolvedLink {
       });
     candidates = rankCandidates({ title, durationSec }, playable).slice(0, MAX_CANDIDATES);
   } catch (err) {
-    if (!(err instanceof AppError && err.code === 'QUOTA')) throw err;
-    notice = 'SEARCH_QUOTA';
+    // Whatever stops the search (daily limit, service not switched on or not approved yet), the admin still
+    // gets the Spotify song and can paste a practice link or save it listen-only, so this never fails the lookup.
+    notice = err instanceof AppError && err.code === 'QUOTA' ? 'SEARCH_QUOTA' : 'SEARCH_UNAVAILABLE';
   }
 
   const result: ResolvedLink = {

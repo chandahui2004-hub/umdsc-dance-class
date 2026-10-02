@@ -12,11 +12,6 @@
         "userSymbol": "Drive",
         "serviceId": "drive",
         "version": "v3"
-      },
-      {
-        "userSymbol": "YouTube",
-        "serviceId": "youtube",
-        "version": "v3"
       }
     ]
   },
@@ -24,7 +19,6 @@
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive",
     "https://www.googleapis.com/auth/script.scriptapp",
-    "https://www.googleapis.com/auth/script.external_request",
-    "https://www.googleapis.com/auth/youtube.readonly"
+    "https://www.googleapis.com/auth/script.external_request"
   ]
 }

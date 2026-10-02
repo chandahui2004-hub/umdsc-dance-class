@@ -219,6 +219,23 @@ describe('MusicForm', () => {
     expect(screen.getByPlaceholderText('Paste a YouTube, SoundCloud or MP3 link')).toBeInTheDocument();
   });
 
+  it('explains when YouTube search is not available, and the admin can still save listen-only', async () => {
+    scriptResolve(spotifyResolved({ candidates: [], notice: 'SEARCH_UNAVAILABLE' }));
+    renderForm();
+
+    paste(SPOTIFY_URL);
+
+    expect(
+      await screen.findByText(
+        "YouTube search isn't available right now. Paste the YouTube link yourself, or save as listen-only."
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText('No matching YouTube versions found. Paste your own below.')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'SAVE AS LISTEN-ONLY' }));
+    await waitFor(() => expect(saveButton()).toBeEnabled());
+  });
+
   it('shows why a link is unsupported and cannot be saved', async () => {
     renderForm();
 

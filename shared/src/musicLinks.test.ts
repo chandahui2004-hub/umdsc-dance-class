@@ -62,6 +62,15 @@ describe('parseMusicLink', () => {
     expect(parseMusicLink(input)).toEqual({ kind: 'rejected', reason: UNKNOWN });
   });
 
+  it.each([
+    ['a path that is not an id', 'https://open.spotify.com/track/..%2F..%2Fsecret'],
+    ['an id that is far too long', `https://open.spotify.com/track/${'a'.repeat(300)}`],
+    ['a URI with a too-short id', 'spotify:track:abc'],
+    ['an id with odd characters', 'https://open.spotify.com/track/abc-def_ghi!jkl']
+  ])('rejects a Spotify track link with %s', (_label, input) => {
+    expect(parseMusicLink(input).kind).toBe('rejected');
+  });
+
   it('rejects a Google Drive folder link', () => {
     const result = parseMusicLink(`https://drive.google.com/drive/folders/${DRIVE}`);
     expect(result.kind).toBe('rejected');
