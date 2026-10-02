@@ -3,6 +3,7 @@ import type { ISODate, ClassSession, DanceStyle, Instructor, VideoItem, MusicIte
 import { Sheet } from '../../components/ui/Sheet';
 import { ClassCard } from './ClassCard';
 import { formatDayLabel } from '../../lib/time';
+import { resolveInstructor } from '../../lib/instructorPhotos';
 
 export interface DaySheetProps {
   isOpen: boolean;
@@ -54,45 +55,7 @@ export const DaySheet: React.FC<DaySheetProps> = ({
         ) : (
           daySessions.map((session) => {
             const style = styles.find((st) => st.id === session.styleId);
-            const effectiveInstructorId = session.instructorId || style?.defaultInstructorId;
-            let instructor = instructors.find((i) => i.id === effectiveInstructorId);
-            if (!instructor && style?.name) {
-              const sName = style.name.toLowerCase();
-              if (sName.includes('latin')) {
-                instructor = instructors.find((i) => i.name.toLowerCase().includes('lam')) || {
-                  id: 'inst-lam',
-                  name: 'Lam Hong Woh',
-                  contact: '',
-                  photoUrl: '/instructors/lam-hong-woh.png',
-                  active: true,
-                  version: 1,
-                  updatedBy: '',
-                  updatedAt: ''
-                };
-              } else if (sName.includes('popping')) {
-                instructor = instructors.find((i) => i.name.toLowerCase().includes('carmen')) || {
-                  id: 'inst-carmen',
-                  name: 'Carmen Loh',
-                  contact: '',
-                  photoUrl: '/instructors/carmen-loh.png',
-                  active: true,
-                  version: 1,
-                  updatedBy: '',
-                  updatedAt: ''
-                };
-              } else if (sName.includes('locking') || sName.includes('hip hop')) {
-                instructor = instructors.find((i) => i.name.toLowerCase().includes('kelvin')) || {
-                  id: 'inst-kelvin',
-                  name: 'Newstyle Kelvin',
-                  contact: '',
-                  photoUrl: '/instructors/newstyle-kelvin.png',
-                  active: true,
-                  version: 1,
-                  updatedBy: '',
-                  updatedAt: ''
-                };
-              }
-            }
+            const instructor = resolveInstructor(session, style, instructors);
             const att = attendance.find((a) => a.sessionId === session.id);
             const classVideos = videos.filter((v) => v.sessionId === session.id);
             const classMusic = music.filter((m) => m.sessionId === session.id);

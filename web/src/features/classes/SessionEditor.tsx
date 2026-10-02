@@ -4,6 +4,7 @@ import { Sheet } from '../../components/ui/Sheet';
 import { Field } from '../../components/ui/Field';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { TimePicker } from '../../components/ui/TimePicker';
+import { getInstructorPhotoUrl } from '../../lib/instructorPhotos';
 import type { ClassSession, Instructor, DanceStyle } from '@umdsc/shared';
 
 export interface SessionEditorProps {
@@ -46,14 +47,16 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
       setDate(session.date || '');
       setStart(session.start || '20:00');
       setEnd(session.end || '22:00');
-      setInstructorId(session.instructorId || '');
+      // Fall back to style's default instructor if session has none
+      const sessionStyle = styles.find((s) => s.id === session.styleId);
+      setInstructorId(session.instructorId || sessionStyle?.defaultInstructorId || '');
       setVenue(session.venue || '');
       setStatus(session.status || 'scheduled');
       setNote(session.note || '');
       setError(null);
       setConflictData(null);
     }
-  }, [session]);
+  }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!session) return null;
 
@@ -209,7 +212,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
           <TimePicker value={end} onChange={setEnd} />
         </div>
 
-        {/* Instructor Select */}
+        {/* Instructor Select with Photo Preview */}
         <div>
           <label
             htmlFor="instructor-select"
@@ -217,20 +220,39 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
           >
             Instructor
           </label>
-          <select
-            id="instructor-select"
-            value={instructorId}
-            onChange={(e) => setInstructorId(e.target.value)}
-            disabled={loading}
-            className="w-full min-h-[44px] px-3 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] font-body text-base text-[var(--c-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--c-yellow)]"
-          >
-            <option value="">Select Instructor...</option>
-            {instructors.map((inst) => (
-              <option key={inst.id} value={inst.id}>
-                {inst.name}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-start gap-2">
+            {(() => {
+              const selectedInst = instructors.find((i) => i.id === instructorId);
+              const photoUrl = getInstructorPhotoUrl(selectedInst);
+              return photoUrl ? (
+                <img
+                  src={photoUrl}
+                  alt={selectedInst?.name || 'Instructor'}
+                  className="w-11 h-[55px] object-cover border-2 border-[var(--c-ink)] flex-shrink-0"
+                  loading="lazy"
+                />
+              ) : (
+                <span className="w-11 h-[55px] flex items-center justify-center bg-[var(--c-bg)] border-2 border-[var(--c-ink)] font-display text-sm text-[var(--c-darkgrey)] flex-shrink-0">👤</span>
+              );
+            })()}
+            <select
+              id="instructor-select"
+              value={instructorId}
+              onChange={(e) => setInstructorId(e.target.value)}
+              disabled={loading}
+              className="w-full min-h-[44px] px-3 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] font-body text-base text-[var(--c-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--c-yellow)]"
+            >
+              <option value="">Select Instructor...</option>
+              {instructors.map((inst) => (
+                <option key={inst.id} value={inst.id}>
+                  {inst.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          {instructorId && styleObj?.defaultInstructorId && instructorId === styleObj.defaultInstructorId && (
+            <p className="font-body text-[9px] text-[var(--c-darkgrey)] mt-1">Default instructor for {styleObj.name}</p>
+          )}
         </div>
 
         {/* Venue Field */}

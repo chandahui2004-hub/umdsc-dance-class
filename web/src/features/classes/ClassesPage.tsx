@@ -11,6 +11,7 @@ import { SessionEditor } from './SessionEditor';
 import { todayKL } from '../../lib/time';
 import { STYLE_COLOR } from '../../theme/colors';
 import { useCurrentEvent } from '../events/useCurrentEvent';
+import { resolveInstructor, getInstructorPhotoUrl } from '../../lib/instructorPhotos';
 import type { ClassSession, DanceStyle, Instructor, ISODate, Month } from '@umdsc/shared';
 
 export const ClassesPage: React.FC = () => {
@@ -185,16 +186,20 @@ export const ClassesPage: React.FC = () => {
               <div className="space-y-2">
                 {activeSessions
                   .filter(s => s.date === selectedDate)
-                  .map(s => (
+                  .map(s => {
+                    const style = getStyle(s.styleId);
+                    const instructor = resolveInstructor(s, style, instructors);
+                    const photoUrl = getInstructorPhotoUrl(instructor);
+                    return (
                     <button
                       key={s.id}
                       type="button"
                       onClick={() => setEditingSession(s)}
-                      className="w-full text-left p-3 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] hover:bg-[var(--c-bg)] space-y-1"
+                      className="w-full text-left p-3 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] hover:bg-[var(--c-bg)] space-y-2"
                     >
                       <div className="flex flex-wrap justify-between items-center gap-1">
                         <span style={{ backgroundColor: colorOf(s.styleId) }} className="px-2 py-0.5 text-[10px] font-display text-[var(--c-ink)] border border-[var(--c-ink)]">
-                          {getStyle(s.styleId)?.name || 'Style'} Class {s.seq}
+                          {style?.name || 'Style'} Class {s.seq}
                         </span>
                         {isAll && (
                           <span className="font-display text-[9px] px-1 bg-[var(--c-peach)] text-[var(--c-ink)] border border-[var(--c-ink)]">
@@ -205,11 +210,24 @@ export const ClassesPage: React.FC = () => {
                           {s.start} - {s.end}
                         </span>
                       </div>
-                      <div className="font-body text-xs text-[var(--c-darkgrey)]">
-                        Instructor: {getInstructor(s.instructorId)?.name || 'TBA'} · Venue: {s.venue || 'TBA'}
+                      <div className="flex items-center gap-2">
+                        {photoUrl ? (
+                          <img
+                            src={photoUrl}
+                            alt={instructor?.name || 'Instructor'}
+                            className="w-8 h-10 object-cover border-2 border-[var(--c-ink)] flex-shrink-0"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span className="w-8 h-10 flex items-center justify-center bg-[var(--c-bg)] border-2 border-[var(--c-ink)] font-display text-[8px] text-[var(--c-darkgrey)] flex-shrink-0">👤</span>
+                        )}
+                        <div className="font-body text-xs text-[var(--c-darkgrey)]">
+                          <span className="font-bold text-[var(--c-ink)]">{instructor?.name || 'TBA'}</span> · {s.venue || 'TBA'}
+                        </div>
                       </div>
                     </button>
-                  ))}
+                    );
+                  })}
                 {activeSessions.filter(s => s.date === selectedDate).length === 0 && (
                   <p className="font-body text-xs text-[var(--c-darkgrey)] py-2 text-center">No classes on this date.</p>
                 )}
@@ -271,7 +289,11 @@ export const ClassesPage: React.FC = () => {
           <EmptyState title="NO CLASSES YET" description="Pick a day in the calendar and add a class, or use Events › Edit." />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {activeSessions.map(s => (
+            {activeSessions.map(s => {
+              const style = getStyle(s.styleId);
+              const instructor = resolveInstructor(s, style, instructors);
+              const photoUrl = getInstructorPhotoUrl(instructor);
+              return (
               <button
                 key={s.id}
                 type="button"
@@ -280,7 +302,7 @@ export const ClassesPage: React.FC = () => {
               >
                 <div className="flex flex-wrap justify-between items-start gap-1">
                   <span style={{ backgroundColor: colorOf(s.styleId) }} className="px-2 py-0.5 text-xs font-display text-[var(--c-ink)] border border-[var(--c-ink)]">
-                    {getStyle(s.styleId)?.name || 'Style'} Class {s.seq}
+                    {style?.name || 'Style'} Class {s.seq}
                   </span>
                   {isAll && (
                     <span className="font-display text-[9px] px-1 bg-[var(--c-peach)] text-[var(--c-ink)] border border-[var(--c-ink)]">
@@ -289,8 +311,25 @@ export const ClassesPage: React.FC = () => {
                   )}
                   <span className="font-display text-[10px] text-[var(--c-ink)]">{s.date}</span>
                 </div>
-                <div className="font-body text-sm">
-                  <strong>Time:</strong> <span className="font-mono">{s.start} - {s.end}</span>
+                <div className="flex items-center gap-2">
+                  {photoUrl ? (
+                    <img
+                      src={photoUrl}
+                      alt={instructor?.name || 'Instructor'}
+                      className="w-10 h-[50px] object-cover border-2 border-[var(--c-ink)] flex-shrink-0"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <span className="w-10 h-[50px] flex items-center justify-center bg-[var(--c-bg)] border-2 border-[var(--c-ink)] font-display text-[9px] text-[var(--c-darkgrey)] flex-shrink-0">👤</span>
+                  )}
+                  <div className="space-y-1">
+                    <div className="font-body text-xs">
+                      <span className="font-bold text-[var(--c-ink)]">{instructor?.name || 'TBA'}</span>
+                    </div>
+                    <div className="font-body text-xs text-[var(--c-darkgrey)]">
+                      <span className="font-mono">{s.start} - {s.end}</span> · {s.venue || 'TBA'}
+                    </div>
+                  </div>
                 </div>
                 <span
                   className={`inline-block px-1.5 py-0.5 font-display text-[9px] border border-[var(--c-ink)] ${
@@ -304,7 +343,8 @@ export const ClassesPage: React.FC = () => {
                   {s.status.toUpperCase()}
                 </span>
               </button>
-            ))}
+              );
+            })}
           </div>
         )}
       </Panel>

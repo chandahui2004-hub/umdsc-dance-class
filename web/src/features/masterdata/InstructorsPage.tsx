@@ -242,7 +242,7 @@ export const InstructorsPage: React.FC = () => {
               >
                 <div className="space-y-3">
                   {/* Portrait photo (1080x1350 4:5 aspect ratio) */}
-                  <div className="relative w-full aspect-[4/5] bg-[var(--c-bg)] border-2 border-[var(--c-ink)] overflow-hidden flex items-center justify-center">
+                  <div className="w-full aspect-[4/5] bg-[var(--c-bg)] border-2 border-[var(--c-ink)] overflow-hidden flex items-center justify-center">
                     {photoUrl ? (
                       <img
                         src={photoUrl}
@@ -260,13 +260,13 @@ export const InstructorsPage: React.FC = () => {
                         </span>
                       </div>
                     )}
-                    {/* Instructor Color Banner */}
-                    <div
-                      className="absolute top-2 left-2 px-2 py-0.5 border border-[var(--c-ink)] shadow-[1px_1px_0_var(--c-ink)] font-display text-[9px] font-bold text-[var(--c-ink)]"
-                      style={{ backgroundColor: instColor }}
-                    >
-                      {inst.color?.toUpperCase() || 'COLOR'}
-                    </div>
+                  </div>
+                  {/* Instructor Color Banner below picture */}
+                  <div
+                    className="w-full py-1 text-center border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] font-display text-[9px] font-bold text-[var(--c-ink)] uppercase tracking-wider"
+                    style={{ backgroundColor: instColor }}
+                  >
+                    INSTRUCTOR · {inst.color?.toUpperCase() || 'DEFAULT'}
                   </div>
 
                   {/* Instructor Meta */}

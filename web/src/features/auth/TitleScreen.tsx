@@ -75,11 +75,11 @@ export const TitleScreen: React.FC = () => {
       {/* 8-bit Title Header */}
       <div className="text-center mb-6">
         <div className="flex justify-center mb-3">
-          <div className="p-2 bg-white border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)]">
+          <div className="p-2.5 bg-white border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)]">
             <img
               src="/logo.png"
               alt="UMDSC Club Logo"
-              className="w-20 h-20 md:w-24 md:h-24 object-contain"
+              className="w-28 h-28 md:w-36 md:h-36 object-contain"
             />
           </div>
         </div>

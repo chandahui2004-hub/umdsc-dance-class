@@ -44,15 +44,15 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
         <div className="sticky top-0 z-30 bg-[var(--c-navy)] text-[var(--c-panel)] border-b-4 border-[var(--c-ink)] shadow-[0_4px_0_var(--c-ink)]">
           <div className="px-3 py-2 flex items-center justify-between gap-2 select-none">
             {/* Left: Brand + Role Badge */}
-            <div className="flex items-center gap-1.5 overflow-hidden">
-              <div className="p-0.5 bg-white border border-[var(--c-ink)] shrink-0">
+            <div className="flex items-center gap-2 overflow-hidden">
+              <div className="p-1 bg-white border-2 border-[var(--c-ink)] shadow-[1px_1px_0_var(--c-ink)] shrink-0">
                 <img
                   src="/logo.png"
                   alt="UMDSC Logo"
-                  className="w-5 h-5 object-contain"
+                  className="w-7 h-7 object-contain"
                 />
               </div>
-              <span className="font-display text-[10px] tracking-wider text-[var(--c-yellow)] uppercase">
+              <span className="font-display text-xs tracking-wider text-[var(--c-yellow)] uppercase">
                 UMDSC
               </span>
               <span

@@ -107,26 +107,28 @@ export const ClassCard: React.FC<ClassCardProps> = ({
 
         return (
           <div className="bg-[var(--c-bg)] p-3 md:p-4 border-2 border-[var(--c-ink)] flex flex-col sm:flex-row gap-4 items-start">
-            {/* Instructor Portrait (Left - Focus Point) */}
-            <div className="relative w-28 sm:w-36 md:w-40 aspect-[4/5] shrink-0 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[3px_3px_0_var(--c-ink)] overflow-hidden self-center sm:self-start">
-              {photoUrl ? (
-                <img
-                  src={photoUrl}
-                  alt={instructor?.name || 'Instructor'}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-[var(--c-panel)]">
-                  <span className="font-display text-2xl text-[var(--c-darkgrey)] mb-1">👤</span>
-                  <span className="font-display text-[8px] text-[var(--c-darkgrey)] uppercase leading-tight">
-                    {instructor?.name ? instructor.name.slice(0, 2).toUpperCase() : 'TBA'}
-                  </span>
-                </div>
-              )}
-              {/* Retro Focus Ribbon */}
+            {/* Instructor Portrait & Badge (Left - Focus Point) */}
+            <div className="flex flex-col items-center shrink-0 self-center sm:self-start w-28 sm:w-36 md:w-40 gap-2">
+              <div className="w-full aspect-[4/5] bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[3px_3px_0_var(--c-ink)] overflow-hidden">
+                {photoUrl ? (
+                  <img
+                    src={photoUrl}
+                    alt={instructor?.name || 'Instructor'}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-[var(--c-panel)]">
+                    <span className="font-display text-2xl text-[var(--c-darkgrey)] mb-1">👤</span>
+                    <span className="font-display text-[8px] text-[var(--c-darkgrey)] uppercase leading-tight">
+                      {instructor?.name ? instructor.name.slice(0, 2).toUpperCase() : 'TBA'}
+                    </span>
+                  </div>
+                )}
+              </div>
+              {/* Instructor Bar Below Picture */}
               <div
-                className="absolute top-1.5 left-1.5 px-1.5 py-0.5 border border-[var(--c-ink)] font-display text-[8px] font-bold text-[var(--c-ink)] shadow-[1px_1px_0_var(--c-ink)]"
+                className="w-full py-1 text-center border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] font-display text-[9px] font-bold text-[var(--c-ink)] uppercase tracking-wider"
                 style={{ backgroundColor: instructorColor }}
               >
                 INSTRUCTOR

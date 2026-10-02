@@ -60,15 +60,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
       } bg-[var(--c-panel)] border-r-4 border-[var(--c-ink)] flex flex-col h-screen sticky top-0 shadow-[4px_0_0_var(--c-ink)] transition-[width] duration-150 shrink-0 select-none z-30`}
     >
       {/* Brand Header */}
-      <div className="p-3 bg-[var(--c-navy)] text-[var(--c-panel)] border-b-4 border-[var(--c-ink)] flex items-center justify-between gap-2">
+      <div className="p-3 bg-[var(--c-navy)] text-[var(--c-panel)] border-b-4 border-[var(--c-ink)]">
         {!isCollapsed ? (
-          <>
-            <div className="flex items-center gap-2.5 overflow-hidden">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-3 overflow-hidden">
               <div className="p-1 bg-white border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] shrink-0">
                 <img
                   src="/logo.png"
                   alt="UMDSC Logo"
-                  className="w-7 h-7 object-contain"
+                  className="w-12 h-12 object-contain"
                 />
               </div>
               <div className="overflow-hidden">
@@ -86,18 +86,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
               aria-label="Collapse navigation"
               title="Collapse navigation"
               data-testid="sidebar-toggle-btn"
-              className="p-1.5 bg-[var(--c-ink)] text-[var(--c-yellow)] hover:bg-[var(--c-darkgrey)] border border-[var(--c-yellow)] shadow-[1px_1px_0_var(--c-ink)] active:translate-x-[1px] active:translate-y-[1px] flex items-center justify-center font-display text-xs cursor-pointer"
+              className="p-1.5 bg-[var(--c-ink)] text-[var(--c-yellow)] hover:bg-[var(--c-darkgrey)] border border-[var(--c-yellow)] shadow-[1px_1px_0_var(--c-ink)] active:translate-x-[1px] active:translate-y-[1px] flex items-center justify-center font-display text-xs cursor-pointer shrink-0"
             >
               ◀
             </button>
-          </>
+          </div>
         ) : (
-          <div className="w-full flex flex-col items-center gap-1.5">
-            <div className="p-1 bg-white border-2 border-[var(--c-ink)] shadow-[1px_1px_0_var(--c-ink)]">
+          <div className="w-full flex flex-col items-center gap-2">
+            <div className="p-1.5 bg-white border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)]">
               <img
                 src="/logo.png"
                 alt="UMDSC Logo"
-                className="w-6 h-6 object-contain"
+                className="w-11 h-11 object-contain"
               />
             </div>
             <button

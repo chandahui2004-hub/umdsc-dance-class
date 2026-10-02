@@ -201,7 +201,7 @@ export function getMasterDataRoutes(): Record<string, Route> {
     prefix: 'instructors',
     getTable: (ctx) => ctx.db.instructors,
     perm: 'instructors.edit',
-    listPerm: 'instructors.edit'
+    listPerm: 'signedIn'
   });
 
   return {

@@ -11,6 +11,7 @@ import { todayKL } from '../../lib/time';
 import { STYLE_COLOR } from '../../theme/colors';
 import type { TodayClass } from '@umdsc/shared';
 import { useCurrentEvent } from '../events/useCurrentEvent';
+import { resolveInstructor, getInstructorPhotoUrl } from '../../lib/instructorPhotos';
 
 export const TodayPage: React.FC = () => {
   const navigate = useNavigate();
@@ -91,7 +92,8 @@ export const TodayPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {todaySessions.map((session) => {
             const style = getStyle(session.styleId);
-            const instructor = getInstructor(session.instructorId);
+            const instructor = resolveInstructor(session, style, bootstrap?.instructors || []);
+            const photoUrl = getInstructorPhotoUrl(instructor);
             const colorVar = style ? STYLE_COLOR[style.colorKey] || `var(--c-${style.colorKey})` : 'var(--c-orange)';
 
             return (
@@ -120,21 +122,33 @@ export const TodayPage: React.FC = () => {
                   </span>
                 </div>
 
-                <div className="space-y-1 font-body text-sm text-[var(--c-ink)]">
-                  <div>
-                    <strong>Time:</strong> <span className="font-mono">{session.start} - {session.end}</span>
-                  </div>
-                  <div>
-                    <strong>Instructor:</strong> {instructor?.name || 'TBA'}
-                  </div>
-                  <div>
-                    <strong>Venue:</strong> {session.venue || 'Club Studio'}
-                  </div>
-                  {session.note && (
-                    <div className="text-xs text-[var(--c-darkgrey)] italic">
-                      Note: {session.note}
-                    </div>
+                <div className="flex items-start gap-3">
+                  {photoUrl ? (
+                    <img
+                      src={photoUrl}
+                      alt={instructor?.name || 'Instructor'}
+                      className="w-12 h-[60px] object-cover border-2 border-[var(--c-ink)] flex-shrink-0"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <span className="w-12 h-[60px] flex items-center justify-center bg-[var(--c-bg)] border-2 border-[var(--c-ink)] font-display text-sm text-[var(--c-darkgrey)] flex-shrink-0">👤</span>
                   )}
+                  <div className="space-y-1 font-body text-sm text-[var(--c-ink)]">
+                    <div>
+                      <strong>Time:</strong> <span className="font-mono">{session.start} - {session.end}</span>
+                    </div>
+                    <div>
+                      <strong>Instructor:</strong> {instructor?.name || 'TBA'}
+                    </div>
+                    <div>
+                      <strong>Venue:</strong> {session.venue || 'Club Studio'}
+                    </div>
+                    {session.note && (
+                      <div className="text-xs text-[var(--c-darkgrey)] italic">
+                        Note: {session.note}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="pt-2">

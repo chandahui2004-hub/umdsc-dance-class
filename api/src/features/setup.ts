@@ -117,7 +117,44 @@ export function getSetupRoutes(): Record<string, Route> {
           );
         }
 
-        // 4. Seed DanceStyles
+        // 4. Seed Default Instructors
+        const insLam = db.instructors.insert(
+          {
+            name: 'Lam Hong Woh',
+            contact: '',
+            color: 'pink',
+            photoUrl: '/instructors/lam-hong-woh.png',
+            photosJson: '[]'
+          },
+          'setup',
+          now
+        );
+
+        const insCarmen = db.instructors.insert(
+          {
+            name: 'Carmen Loh',
+            contact: '',
+            color: 'blue',
+            photoUrl: '/instructors/carmen-loh.png',
+            photosJson: '[]'
+          },
+          'setup',
+          now
+        );
+
+        const insKelvin = db.instructors.insert(
+          {
+            name: 'Newstyle Kelvin',
+            contact: '',
+            color: 'orange',
+            photoUrl: '/instructors/newstyle-kelvin.png',
+            photosJson: '[]'
+          },
+          'setup',
+          now
+        );
+
+        // 5. Seed DanceStyles
         db.styles.insert(
           {
             name: 'Locking',
@@ -126,7 +163,7 @@ export function getSetupRoutes(): Record<string, Route> {
             defaultWeekday: null,
             defaultStart: '20:00',
             defaultEnd: '22:00',
-            defaultInstructorId: '',
+            defaultInstructorId: insKelvin.id,
             defaultVenue: '',
             attendanceFolderId: '',
             videoFolderId: ''
@@ -143,7 +180,7 @@ export function getSetupRoutes(): Record<string, Route> {
             defaultWeekday: null,
             defaultStart: '20:00',
             defaultEnd: '22:00',
-            defaultInstructorId: '',
+            defaultInstructorId: insCarmen.id,
             defaultVenue: '',
             attendanceFolderId: '',
             videoFolderId: ''
@@ -160,7 +197,7 @@ export function getSetupRoutes(): Record<string, Route> {
             defaultWeekday: null,
             defaultStart: '20:00',
             defaultEnd: '22:00',
-            defaultInstructorId: '',
+            defaultInstructorId: insKelvin.id,
             defaultVenue: '',
             attendanceFolderId: '',
             videoFolderId: ''
@@ -177,7 +214,7 @@ export function getSetupRoutes(): Record<string, Route> {
             defaultWeekday: null,
             defaultStart: '20:00',
             defaultEnd: '22:00',
-            defaultInstructorId: '',
+            defaultInstructorId: insLam.id,
             defaultVenue: '',
             attendanceFolderId: '',
             videoFolderId: ''

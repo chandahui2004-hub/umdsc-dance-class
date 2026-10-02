@@ -62,11 +62,11 @@ export const AdminLogin: React.FC = () => {
     <div className="min-h-screen bg-[var(--c-bg)] flex flex-col items-center justify-center p-4">
       <div className="text-center mb-6">
         <div className="flex justify-center mb-3">
-          <div className="p-2 bg-white border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)]">
+          <div className="p-2.5 bg-white border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)]">
             <img
               src="/logo.png"
               alt="UMDSC Club Logo"
-              className="w-16 h-16 md:w-20 md:h-20 object-contain"
+              className="w-24 h-24 md:w-28 md:h-28 object-contain"
             />
           </div>
         </div>
