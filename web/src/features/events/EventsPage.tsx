@@ -7,7 +7,6 @@ import { PixelButton } from '../../components/ui/PixelButton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { useEvents } from './useCurrentEvent';
 import { EventCard } from './EventCard';
-import { FolderLinksHeader } from './FolderLinksHeader';
 
 export const EventsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -34,8 +33,6 @@ export const EventsPage: React.FC = () => {
           + NEW EVENT
         </PixelButton>
       </div>
-
-      <FolderLinksHeader />
 
       <section data-testid="active-events" className="space-y-3">
         <h2 className="font-display text-sm text-[var(--c-ink)]">ACTIVE EVENTS</h2>

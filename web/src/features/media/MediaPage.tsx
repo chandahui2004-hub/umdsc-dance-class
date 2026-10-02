@@ -11,6 +11,7 @@ import { UploadDialog } from './UploadDialog';
 import { ScanPanel } from './ScanPanel';
 import { MusicForm } from './MusicForm';
 import { SectionsEditor } from './SectionsEditor';
+import { VideoFolderHeader } from '../events/FolderLinksHeader';
 import type { ClassSession, DanceStyle, Video, Music } from '@umdsc/shared';
 
 export const MediaPage: React.FC = () => {
@@ -233,6 +234,8 @@ export const MediaPage: React.FC = () => {
           </PixelButton>
         </div>
       </div>
+
+      <VideoFolderHeader />
 
       {/* Style chips (the event comes from the picker) */}
       <div className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] p-4 shadow-[4px_4px_0_var(--c-ink)] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">

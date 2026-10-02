@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
-import { TabDef } from './TabBar';
+import { NavLink, useLocation } from 'react-router-dom';
+import { TabDef, NavSubItem } from './TabBar';
 import { UserInfoBoard } from './UserInfoBoard';
 
 export interface SidebarProps {
   nav: TabDef[];
+  moreItems?: NavSubItem[];
   title?: string;
   subtitle?: string;
   footer?: React.ReactNode;
@@ -15,11 +16,17 @@ const STORAGE_KEY = 'umdsc:sidebar-collapsed';
 
 export const Sidebar: React.FC<SidebarProps> = ({
   nav,
+  moreItems,
   title = 'UMDSC',
   subtitle = 'Dance Class',
   footer,
   defaultCollapsed = false
 }) => {
+  const location = useLocation();
+  const isAnyMoreActive = Boolean(
+    moreItems?.some(sub => location.pathname === sub.path || location.pathname.startsWith(sub.path + '/'))
+  );
+
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved !== null) {
@@ -27,6 +34,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
     return defaultCollapsed;
   });
+
+  const [isMoreExpanded, setIsMoreExpanded] = useState<boolean>(isAnyMoreActive);
+
+  useEffect(() => {
+    if (isAnyMoreActive) {
+      setIsMoreExpanded(true);
+    }
+  }, [isAnyMoreActive]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, String(isCollapsed));
@@ -88,41 +103,104 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Navigation Links */}
       <nav className="flex-1 p-2 space-y-2 overflow-y-auto overflow-x-hidden">
-        {nav.map(item => (
-          <NavLink
-            key={item.id}
-            to={item.path}
-            title={item.label}
-            aria-label={item.label}
-            className={({ isActive }) =>
-              `flex items-center ${
-                isCollapsed ? 'justify-center px-1' : 'justify-start gap-3 px-3'
-              } py-2.5 min-h-[44px] border-2 border-[var(--c-ink)] font-display text-xs select-none transition-none relative ${
-                isActive
-                  ? 'bg-[var(--c-yellow)] text-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] translate-x-[2px]'
-                  : 'bg-[var(--c-panel)] text-[var(--c-ink)] hover:bg-[var(--c-peach)]'
-              }`
-            }
-          >
-            <span className="w-5 h-5 flex items-center justify-center shrink-0">
-              {item.icon}
-            </span>
-            {!isCollapsed && (
-              <span className="flex-1 truncate">{item.label}</span>
-            )}
-            {item.badge !== undefined && (
-              <span
-                className={`${
-                  isCollapsed
-                    ? 'absolute -top-1 -right-1'
-                    : 'ml-auto'
-                } bg-[var(--c-red)] text-[var(--c-panel)] text-[8px] px-1 border border-[var(--c-ink)]`}
-              >
-                {item.badge}
+        {nav.map(item => {
+          const isMore = item.id === 'more';
+
+          if (isMore && moreItems && moreItems.length > 0) {
+            return (
+              <div key={item.id} className="space-y-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isCollapsed) setIsCollapsed(false);
+                    setIsMoreExpanded(prev => !prev);
+                  }}
+                  title={item.label}
+                  aria-label={item.label}
+                  data-testid="sidebar-more-toggle-btn"
+                  className={`w-full flex items-center ${
+                    isCollapsed ? 'justify-center px-1' : 'justify-between px-3'
+                  } py-2.5 min-h-[44px] border-2 border-[var(--c-ink)] font-display text-xs select-none transition-none cursor-pointer ${
+                    isAnyMoreActive || isMoreExpanded
+                      ? 'bg-[var(--c-yellow)] text-[var(--c-ink)] font-bold shadow-[2px_2px_0_var(--c-ink)]'
+                      : 'bg-[var(--c-panel)] text-[var(--c-ink)] hover:bg-[var(--c-peach)]'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <span className="w-5 h-5 flex items-center justify-center shrink-0">
+                      {item.icon}
+                    </span>
+                    {!isCollapsed && <span className="truncate">{item.label}</span>}
+                  </div>
+                  {!isCollapsed && (
+                    <span className="font-display text-[9px]">{isMoreExpanded ? '▲' : '▼'}</span>
+                  )}
+                </button>
+
+                {isMoreExpanded && !isCollapsed && (
+                  <div className="pl-3 pr-1 py-1 space-y-1.5 border-l-2 border-[var(--c-ink)] ml-4 animate-in fade-in duration-100">
+                    {moreItems.map(sub => (
+                      <NavLink
+                        key={sub.id}
+                        to={sub.path}
+                        title={sub.label}
+                        aria-label={sub.label}
+                        className={({ isActive }) =>
+                          `flex items-center gap-2 px-2 py-2 min-h-[38px] border-2 border-[var(--c-ink)] font-display text-[9px] select-none transition-none ${
+                            isActive
+                              ? 'bg-[var(--c-yellow)] text-[var(--c-ink)] font-bold shadow-[2px_2px_0_var(--c-ink)] translate-x-[2px]'
+                              : 'bg-[var(--c-bg)] text-[var(--c-ink)] hover:bg-[var(--c-peach)]'
+                          }`
+                        }
+                      >
+                        <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                          {sub.icon}
+                        </span>
+                        <span className="truncate">{sub.label}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          return (
+            <NavLink
+              key={item.id}
+              to={item.path}
+              title={item.label}
+              aria-label={item.label}
+              className={({ isActive }) =>
+                `flex items-center ${
+                  isCollapsed ? 'justify-center px-1' : 'justify-start gap-3 px-3'
+                } py-2.5 min-h-[44px] border-2 border-[var(--c-ink)] font-display text-xs select-none transition-none relative ${
+                  isActive
+                    ? 'bg-[var(--c-yellow)] text-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] translate-x-[2px]'
+                    : 'bg-[var(--c-panel)] text-[var(--c-ink)] hover:bg-[var(--c-peach)]'
+                }`
+              }
+            >
+              <span className="w-5 h-5 flex items-center justify-center shrink-0">
+                {item.icon}
               </span>
-            )}
-          </NavLink>
-        ))}
+              {!isCollapsed && (
+                <span className="flex-1 truncate">{item.label}</span>
+              )}
+              {item.badge !== undefined && (
+                <span
+                  className={`${
+                    isCollapsed
+                      ? 'absolute -top-1 -right-1'
+                      : 'ml-auto'
+                  } bg-[var(--c-red)] text-[var(--c-panel)] text-[8px] px-1 border border-[var(--c-ink)]`}
+                >
+                  {item.badge}
+                </span>
+              )}
+            </NavLink>
+          );
+        })}
       </nav>
 
       {/* Footer / User Information Board */}

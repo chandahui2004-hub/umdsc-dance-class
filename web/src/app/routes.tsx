@@ -75,38 +75,83 @@ const EventIcon = () => (
   </svg>
 );
 
-const DANCER_TABS: TabDef[] = [
+const StyleIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19H7v-2h2v2h2v-2h2v2h2.65l-.62-1.39C16.26 16.07 17 14.12 17 12c0-4.97-4.03-9-9-9zm-3 8c-.83 0-1.5-.67-1.5-1.5S8.17 8 9 8s1.5.67 1.5 1.5S9.83 11 9 11zm6 0c-.83 0-1.5-.67-1.5-1.5S14.17 8 15 8s1.5.67 1.5 1.5S15.83 11 15 11z" />
+  </svg>
+);
+
+const InstructorIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M9 11.75A3.25 3.25 0 109 5.25a3.25 3.25 0 000 6.5zm7 2.25H2v1a3 3 0 003 3h8a3 3 0 003-3v-1zm4.5-5h-3v2h3v3h2v-3h3v-2h-3v-3h-2v3z" />
+  </svg>
+);
+
+const RoleIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
+  </svg>
+);
+
+const SettingIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+  </svg>
+);
+
+export interface NavSubItem {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  path: string;
+}
+
+export const ADMIN_MORE_ITEMS: NavSubItem[] = [
+  { id: 'styles', label: 'Dance Styles', icon: <StyleIcon />, path: '/admin/styles' },
+  { id: 'instructors', label: 'Instructors', icon: <InstructorIcon />, path: '/admin/instructors' },
+  { id: 'roles', label: 'Roles & Permissions', icon: <RoleIcon />, path: '/admin/roles' },
+  { id: 'admins', label: 'Admin Accounts', icon: <UserIcon />, path: '/admin/admins' },
+  { id: 'settings', label: 'System Settings', icon: <SettingIcon />, path: '/admin/settings' },
+  { id: 'events', label: 'Events', icon: <EventIcon />, path: '/admin/events' }
+];
+
+export const DANCER_TABS: TabDef[] = [
   { id: 'calendar', label: 'Home', icon: <CalendarIcon />, path: '/' },
   { id: 'studio', label: 'Studio', icon: <MusicIcon />, path: '/studio' },
   { id: 'me', label: 'Me', icon: <UserIcon />, path: '/me' }
 ];
 
-const ADMIN_TABS: TabDef[] = [
-  { id: 'today', label: 'Today', icon: <TodayIcon />, path: '/admin/today' },
+export const ADMIN_TABS: TabDef[] = [
   { id: 'calendar', label: 'Calendar', icon: <CalendarIcon />, path: '/admin/calendar' },
-  { id: 'events', label: 'Events', icon: <EventIcon />, path: '/admin/events' },
   { id: 'attendance', label: 'Attendance', icon: <AttendanceIcon />, path: '/admin/attendance' },
   { id: 'media', label: 'Media', icon: <VideoIcon />, path: '/admin/media' },
-  { id: 'more', label: 'More', icon: <MoreIcon />, path: '/admin/more' }
+  { id: 'members', label: 'Dancers', icon: <UserIcon />, path: '/admin/members' },
+  { id: 'more', label: 'More', icon: <MoreIcon />, path: '#more' }
 ];
 
-export const ShellLayout: React.FC<{ tabs: TabDef[]; topBar?: React.ReactNode; children: React.ReactNode }> = ({
+export const ShellLayout: React.FC<{
+  tabs: TabDef[];
+  moreItems?: NavSubItem[];
+  topBar?: React.ReactNode;
+  children: React.ReactNode;
+}> = ({
   tabs,
+  moreItems,
   topBar,
   children
 }) => {
   const layout = useLayout();
   if (layout === 'desktop') {
-    return <DesktopShell nav={tabs} topBar={topBar}>{children}</DesktopShell>;
+    return <DesktopShell nav={tabs} moreItems={moreItems} topBar={topBar}>{children}</DesktopShell>;
   }
-  return <PhoneShell tabs={tabs} topBar={topBar}>{children}</PhoneShell>;
+  return <PhoneShell tabs={tabs} moreItems={moreItems} topBar={topBar}>{children}</PhoneShell>;
 };
 
 /** Admin shell: event picker on every page, and the 10-minute registration check. */
 const AdminShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   useEventAutoSync();
   return (
-    <ShellLayout tabs={ADMIN_TABS} topBar={<EventPicker />}>
+    <ShellLayout tabs={ADMIN_TABS} moreItems={ADMIN_MORE_ITEMS} topBar={<EventPicker />}>
       {children}
     </ShellLayout>
   );
@@ -128,7 +173,7 @@ export const AppRoutes: React.FC = () => {
           <RequireRole role="admin">
             <AdminShell>
               <Routes>
-                <Route path="today" element={<TodayPage />} />
+                <Route path="today" element={<Navigate to="/admin/calendar" replace />} />
                 <Route path="calendar" element={<ClassesPage />} />
                 <Route path="attendance" element={<AttendancePage />} />
                 <Route path="media" element={<MediaPage />} />
@@ -141,94 +186,8 @@ export const AppRoutes: React.FC = () => {
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="roles" element={<RolesPage />} />
                 <Route path="admins" element={<AdminsPage />} />
-                <Route
-                  path="more"
-                  element={
-                    <div className="space-y-4">
-                      <h1 className="font-display text-xl mb-4">More</h1>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <a
-                          href="/admin/events/new"
-                          className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] block hover:bg-[var(--c-bg)]"
-                        >
-                          <h2 className="font-display text-sm text-[var(--c-ink)] mb-1">
-                            NEW EVENT
-                          </h2>
-                          <p className="font-body text-xs text-[var(--c-darkgrey)]">
-                            Set up a monthly class, trial class or workshop from its registration form
-                          </p>
-                        </a>
-                        <a
-                          href="/admin/members"
-                          className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] block hover:bg-[var(--c-bg)]"
-                        >
-                          <h2 className="font-display text-sm text-[var(--c-ink)] mb-1">
-                            REGISTERED DANCERS
-                          </h2>
-                          <p className="font-body text-xs text-[var(--c-darkgrey)]">
-                            View member roster, contact info, styles, and export CSV
-                          </p>
-                        </a>
-                        <a
-                          href="/admin/styles"
-                          className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] block hover:bg-[var(--c-bg)]"
-                        >
-                          <h2 className="font-display text-sm text-[var(--c-ink)] mb-1">
-                            DANCE STYLES
-                          </h2>
-                          <p className="font-body text-xs text-[var(--c-darkgrey)]">
-                            Configure style metadata, aliases, colors, and folders
-                          </p>
-                        </a>
-                        <a
-                          href="/admin/instructors"
-                          className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] block hover:bg-[var(--c-bg)]"
-                        >
-                          <h2 className="font-display text-sm text-[var(--c-ink)] mb-1">
-                            INSTRUCTORS
-                          </h2>
-                          <p className="font-body text-xs text-[var(--c-darkgrey)]">
-                            Manage club dance instructors and contact details
-                          </p>
-                        </a>
-                        <a
-                          href="/admin/roles"
-                          className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] block hover:bg-[var(--c-bg)]"
-                        >
-                          <h2 className="font-display text-sm text-[var(--c-ink)] mb-1">
-                            ROLES & PERMISSIONS
-                          </h2>
-                          <p className="font-body text-xs text-[var(--c-darkgrey)]">
-                            Manage permissions matrix and dancer role assignments
-                          </p>
-                        </a>
-                        <a
-                          href="/admin/admins"
-                          className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] block hover:bg-[var(--c-bg)]"
-                        >
-                          <h2 className="font-display text-sm text-[var(--c-ink)] mb-1">
-                            ADMIN ACCOUNTS
-                          </h2>
-                          <p className="font-body text-xs text-[var(--c-darkgrey)]">
-                            Manage admin user accounts, roles, and passwords
-                          </p>
-                        </a>
-                        <a
-                          href="/admin/settings"
-                          className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] block hover:bg-[var(--c-bg)]"
-                        >
-                          <h2 className="font-display text-sm text-[var(--c-ink)] mb-1">
-                            SYSTEM SETTINGS
-                          </h2>
-                          <p className="font-body text-xs text-[var(--c-darkgrey)]">
-                            Google Drive folder links and update history
-                          </p>
-                        </a>
-                      </div>
-                    </div>
-                  }
-                />
-                <Route path="*" element={<Navigate to="/admin/today" replace />} />
+                <Route path="more" element={<Navigate to="/admin/styles" replace />} />
+                <Route path="*" element={<Navigate to="/admin/calendar" replace />} />
               </Routes>
             </AdminShell>
           </RequireRole>

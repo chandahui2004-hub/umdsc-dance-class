@@ -9,6 +9,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { RosterList } from './RosterList';
 import { AttendanceGrid } from './AttendanceGrid';
 import { useCurrentEvent } from '../events/useCurrentEvent';
+import { AttendanceFolderHeader } from '../events/FolderLinksHeader';
 import type { AttendanceGrid as AttendanceGridData, DanceStyle } from '@umdsc/shared';
 
 function downloadXlsx(fileName: string, base64: string): void {
@@ -183,6 +184,7 @@ export const AttendancePage: React.FC = () => {
     return (
       <div className="space-y-6">
         <h1 className="font-display text-lg tracking-wider text-[var(--c-ink)]">Attendance Tracker</h1>
+        <AttendanceFolderHeader />
         <div className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] space-y-3">
           <p className="font-display text-xs text-[var(--c-ink)]">SELECT AN EVENT TO TAKE ATTENDANCE</p>
           <p className="font-body text-sm text-[var(--c-darkgrey)]">
@@ -204,6 +206,7 @@ export const AttendancePage: React.FC = () => {
     return (
       <div className="space-y-6">
         <h1 className="font-display text-lg tracking-wider text-[var(--c-ink)]">Attendance Tracker</h1>
+        <AttendanceFolderHeader />
         <EmptyState
           title="NO EVENTS YET"
           description="Attendance is taken per event. Create an event from its registration form first."
@@ -257,7 +260,10 @@ export const AttendancePage: React.FC = () => {
         </div>
       </div>
 
+      <AttendanceFolderHeader />
+
       <div className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] p-4 shadow-[4px_4px_0_var(--c-ink)] flex gap-2 overflow-x-auto items-center">
+
         <span className="font-display text-xs text-[var(--c-ink)] uppercase mr-1 whitespace-nowrap">STYLE:</span>
         {styles.map(s => (
           <button

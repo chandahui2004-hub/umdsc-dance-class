@@ -91,21 +91,45 @@ const FolderRow: React.FC<{ folder: FolderSetting; value?: string }> = ({ folder
   );
 };
 
-/** The two master folder links, moved here from the Attendance page. */
-export const FolderLinksHeader: React.FC = () => {
+export const AttendanceFolderHeader: React.FC = () => {
   const { data: settings = {} } = useQuery({
     queryKey: ['settings'],
     queryFn: async () => (await call<Record<string, string>>('settings.get')).data || {}
   });
 
   return (
-    <div className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] p-4 space-y-3">
-      <p className="font-body text-sm text-[var(--c-darkgrey)]">
-        Each event gets its own folder inside these. Share both with the club Gmail as Editor.
-      </p>
-      {FOLDERS.map(f => (
-        <FolderRow key={f.key} folder={f} value={settings[f.key]} />
-      ))}
+    <div className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] p-3 space-y-2">
+      <FolderRow
+        folder={{
+          key: 'defaultAttendanceFolderId',
+          label: 'Attendance master folder',
+          button: 'CHANGE ATTENDANCE FOLDER'
+        }}
+        value={settings.defaultAttendanceFolderId}
+      />
     </div>
   );
 };
+
+export const VideoFolderHeader: React.FC = () => {
+  const { data: settings = {} } = useQuery({
+    queryKey: ['settings'],
+    queryFn: async () => (await call<Record<string, string>>('settings.get')).data || {}
+  });
+
+  return (
+    <div className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] p-3 space-y-2">
+      <FolderRow
+        folder={{
+          key: 'defaultVideoFolderId',
+          label: 'Video master folder',
+          button: 'CHANGE VIDEO FOLDER'
+        }}
+        value={settings.defaultVideoFolderId}
+      />
+    </div>
+  );
+};
+
+export { FolderRow, FOLDERS };
+export type { FolderSetting };

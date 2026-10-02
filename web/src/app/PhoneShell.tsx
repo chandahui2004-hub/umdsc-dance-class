@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { TabBar, TabDef } from '../components/ui/TabBar';
+import { TabBar, TabDef, NavSubItem } from '../components/ui/TabBar';
 import { UserInfoBoard } from '../components/ui/UserInfoBoard';
 import { LiveClock } from '../components/ui/LiveClock';
 import { session } from '../lib/session';
 
 export interface PhoneShellProps {
   tabs: TabDef[];
+  moreItems?: NavSubItem[];
   header?: React.ReactNode;
   /** Shown above the page content, e.g. the admin event picker. */
   topBar?: React.ReactNode;
@@ -14,6 +15,7 @@ export interface PhoneShellProps {
 
 export const PhoneShell: React.FC<PhoneShellProps> = ({
   tabs,
+  moreItems,
   header,
   topBar,
   children
@@ -126,7 +128,7 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
                 <span>▼</span>
               </button>
             </div>
-            <TabBar tabs={tabs} />
+            <TabBar tabs={tabs} moreItems={moreItems} />
           </div>
         ) : (
           /* Expand Button when TabBar is collapsed */
