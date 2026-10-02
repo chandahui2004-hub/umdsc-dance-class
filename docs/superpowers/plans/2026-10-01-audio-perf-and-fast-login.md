@@ -1,5 +1,7 @@
 # Audio-Only Enforcement, Fast YouTube Audio & Instant Dancer Login Implementation Plan
 
+> **SUPERSEDED (2026-10-02):** Task 1 is done. Tasks 2–4 are replaced by `docs/superpowers/plans/2026-10-02-media-playback-and-login-speed.md`, which fixes the verified root causes.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Enforce strict MP3/audio-only file selection (prevent MP4 video uploads in music features), optimize YouTube audio loading to be non-blocking and minimal bandwidth (144p quality), and accelerate dancer login from 15s to <500ms via Google Drive/Sheets server-side caching.
