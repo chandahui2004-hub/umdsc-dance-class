@@ -344,6 +344,7 @@ export function getEventRoutes(): Record<string, Route> {
         const folderId = ensureEventFolder(ctx, created);
         ensureMembersSheet(ctx, ctx.db.events.get(created.id)!, folderId);
         for (const s of sessions) {
+          const style = ctx.db.styles.find(st => st.id === s.styleId && st.active)[0];
           ctx.db.sessions.insert(
             {
               eventId: created.id,
@@ -352,8 +353,8 @@ export function getEventRoutes(): Record<string, Route> {
               date: s.date,
               start: s.start,
               end: s.end,
-              instructorId: '',
-              venue: s.venue || '',
+              instructorId: s.instructorId || style?.defaultInstructorId || '',
+              venue: s.venue || style?.defaultVenue || '',
               status: 'scheduled',
               note: ''
             },

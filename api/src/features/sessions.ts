@@ -115,8 +115,11 @@ export function getSessionRoutes(): Record<string, Route> {
         assertDateInEvent(getEvent(ctx, eventId), date);
 
         const actor = auth?.claims.sub || 'system';
+        const style = ctx.db.styles.find(st => st.id === styleId && st.active)[0];
+        const finalInstructorId = instructorId || style?.defaultInstructorId || '';
+        const finalVenue = venue || style?.defaultVenue || '';
         const inserted = ctx.db.sessions.insert(
-          { eventId, styleId, seq: Number(seq), date, start, end, instructorId, venue, status, note },
+          { eventId, styleId, seq: Number(seq), date, start, end, instructorId: finalInstructorId, venue: finalVenue, status, note },
           actor,
           ctx.now()
         );

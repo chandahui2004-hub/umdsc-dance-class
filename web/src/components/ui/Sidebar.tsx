@@ -63,13 +63,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="p-3 bg-[var(--c-navy)] text-[var(--c-panel)] border-b-4 border-[var(--c-ink)] flex items-center justify-between gap-2">
         {!isCollapsed ? (
           <>
-            <div className="overflow-hidden">
-              <h1 className="font-display text-sm tracking-wider uppercase text-[var(--c-yellow)] truncate">
-                {title}
-              </h1>
-              <p className="font-body text-xs text-[var(--c-peach)] tracking-wide mt-0.5 truncate">
-                {subtitle}
-              </p>
+            <div className="flex items-center gap-2.5 overflow-hidden">
+              <div className="p-1 bg-white border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] shrink-0">
+                <img
+                  src="/logo.png"
+                  alt="UMDSC Logo"
+                  className="w-7 h-7 object-contain"
+                />
+              </div>
+              <div className="overflow-hidden">
+                <h1 className="font-display text-sm tracking-wider uppercase text-[var(--c-yellow)] truncate">
+                  {title}
+                </h1>
+                <p className="font-body text-xs text-[var(--c-peach)] tracking-wide mt-0.5 truncate">
+                  {subtitle}
+                </p>
+              </div>
             </div>
             <button
               type="button"
@@ -83,10 +92,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           </>
         ) : (
-          <div className="w-full flex flex-col items-center gap-1">
-            <span className="font-display text-[10px] text-[var(--c-yellow)] uppercase">
-              UM
-            </span>
+          <div className="w-full flex flex-col items-center gap-1.5">
+            <div className="p-1 bg-white border-2 border-[var(--c-ink)] shadow-[1px_1px_0_var(--c-ink)]">
+              <img
+                src="/logo.png"
+                alt="UMDSC Logo"
+                className="w-6 h-6 object-contain"
+              />
+            </div>
             <button
               type="button"
               onClick={toggleCollapse}

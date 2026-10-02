@@ -4,6 +4,7 @@ import { musicAppLinks, canPractise, type ClassSession, type DanceStyle, type In
 import { STYLE_COLOR } from '../../theme/colors';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { streamUrl, downloadUrl, openInDriveUrl, previewUrl, folderUrl } from '../../lib/google/driveUrls';
+import { getInstructorPhotoUrl } from '../../lib/instructorPhotos';
 import { todayKL } from '../../lib/time';
 
 export interface ClassCardProps {
@@ -95,21 +96,80 @@ export const ClassCard: React.FC<ClassCardProps> = ({
         </div>
       </div>
 
-      {/* Class Meta: Time, Venue, Instructor */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono bg-[var(--c-bg)] p-2.5 border-2 border-[var(--c-ink)]">
-        <div>
-          <span className="font-display text-[10px] text-[var(--c-darkgrey)] block">TIME:</span>
-          <span className="font-bold text-[var(--c-ink)]">{session.start} - {session.end}</span>
-        </div>
-        <div>
-          <span className="font-display text-[10px] text-[var(--c-darkgrey)] block">VENUE:</span>
-          <span className="font-bold text-[var(--c-ink)]">{session.venue || 'Dance Studio'}</span>
-        </div>
-        <div className="sm:col-span-2">
-          <span className="font-display text-[10px] text-[var(--c-darkgrey)] block">INSTRUCTOR:</span>
-          <span className="font-bold text-[var(--c-ink)]">{instructor?.name || 'TBA'}</span>
-        </div>
-      </div>
+      {/* Class Meta & Instructor Focus Block: Photo Left, Information Right */}
+      {(() => {
+        const photoUrl = getInstructorPhotoUrl(instructor);
+        const instructorColor = instructor?.color?.startsWith('#')
+          ? instructor.color
+          : instructor?.color
+          ? `var(--c-${instructor.color})`
+          : color;
+
+        return (
+          <div className="bg-[var(--c-bg)] p-3 md:p-4 border-2 border-[var(--c-ink)] flex flex-col sm:flex-row gap-4 items-start">
+            {/* Instructor Portrait (Left - Focus Point) */}
+            <div className="relative w-28 sm:w-36 md:w-40 aspect-[4/5] shrink-0 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[3px_3px_0_var(--c-ink)] overflow-hidden self-center sm:self-start">
+              {photoUrl ? (
+                <img
+                  src={photoUrl}
+                  alt={instructor?.name || 'Instructor'}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-[var(--c-panel)]">
+                  <span className="font-display text-2xl text-[var(--c-darkgrey)] mb-1">👤</span>
+                  <span className="font-display text-[8px] text-[var(--c-darkgrey)] uppercase leading-tight">
+                    {instructor?.name ? instructor.name.slice(0, 2).toUpperCase() : 'TBA'}
+                  </span>
+                </div>
+              )}
+              {/* Retro Focus Ribbon */}
+              <div
+                className="absolute top-1.5 left-1.5 px-1.5 py-0.5 border border-[var(--c-ink)] font-display text-[8px] font-bold text-[var(--c-ink)] shadow-[1px_1px_0_var(--c-ink)]"
+                style={{ backgroundColor: instructorColor }}
+              >
+                INSTRUCTOR
+              </div>
+            </div>
+
+            {/* Information (Right) */}
+            <div className="flex-1 w-full space-y-3">
+              <div>
+                <span className="font-display text-[9px] text-[var(--c-darkgrey)] uppercase tracking-wider block">
+                  INSTRUCTOR
+                </span>
+                <h3 className="font-display text-base md:text-lg text-[var(--c-ink)] font-bold mt-0.5">
+                  {instructor?.name || 'TBA'}
+                </h3>
+                {instructor?.contact && (
+                  <p className="font-mono text-xs text-[var(--c-darkgrey)] mt-0.5 flex items-center gap-1">
+                    <span>📞</span> {instructor.contact}
+                  </p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-xs font-mono pt-2 border-t-2 border-[var(--c-ink)]/15">
+                <div>
+                  <span className="font-display text-[9px] text-[var(--c-darkgrey)] block">TIME:</span>
+                  <span className="font-bold text-[var(--c-ink)] text-sm">{session.start} - {session.end}</span>
+                </div>
+                <div>
+                  <span className="font-display text-[9px] text-[var(--c-darkgrey)] block">VENUE:</span>
+                  <span className="font-bold text-[var(--c-ink)] text-sm">{session.venue || 'Dance Studio'}</span>
+                </div>
+              </div>
+
+              {session.note && (
+                <div className="bg-[var(--c-panel)] p-2 border border-[var(--c-ink)] text-xs font-mono">
+                  <span className="font-display text-[8px] text-[var(--c-darkgrey)] block">CLASS NOTE:</span>
+                  <span className="text-[var(--c-ink)]">{session.note}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Videos Section */}
       <div className="space-y-2">

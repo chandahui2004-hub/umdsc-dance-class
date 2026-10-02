@@ -4,6 +4,7 @@ import { api, errorMessage } from '../../lib/api';
 import { Panel } from '../../components/ui/Panel';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { Field } from '../../components/ui/Field';
+import { ColorSwatchPicker } from '../../components/ui/ColorSwatchPicker';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import type { DanceStyle, Instructor } from '@umdsc/shared';
@@ -292,10 +293,10 @@ export const StylesPage: React.FC = () => {
       {/* Create / Edit Modal */}
       {(isCreating || editingStyle) && (
         <div className="fixed inset-0 bg-[var(--c-ink)]/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="w-full max-w-lg my-8">
+          <div className="w-full max-w-2xl my-8">
             <Panel
               title={isCreating ? 'CREATE DANCE STYLE' : `EDIT ${editingStyle?.name}`}
-              className="px-corners bg-[var(--c-panel)] space-y-4"
+              className="px-corners bg-[var(--c-panel)] p-4 sm:p-6 space-y-5"
             >
               {formError && (
                 <div
@@ -331,40 +332,24 @@ export const StylesPage: React.FC = () => {
                 />
               </Field>
 
-              {/* Color Swatch Picker */}
-              <div className="space-y-1">
-                <label className="font-display text-xs uppercase tracking-wider text-[var(--c-ink)]">
-                  Color Swatch
-                </label>
-                <div className="grid grid-cols-4 gap-2">
-                  {SWATCH_COLORS.map((c) => (
-                    <button
-                      key={c.key}
-                      type="button"
-                      onClick={() => setColorKey(c.key)}
-                      className={`min-h-[44px] p-2 border-2 flex items-center gap-2 cursor-pointer ${
-                        colorKey === c.key
-                          ? 'border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] font-bold'
-                          : 'border-transparent opacity-70 hover:opacity-100'
-                      }`}
-                    >
-                      <div
-                        className="w-4 h-4 border border-[var(--c-ink)] shrink-0"
-                        style={{ backgroundColor: c.css }}
-                      />
-                      <span className="font-mono text-xs">{c.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {/* Dynamic Color Swatch Picker with Custom Hex Insertion & Removal */}
+              <ColorSwatchPicker
+                value={colorKey}
+                onChange={setColorKey}
+                label="Color Swatch"
+              />
 
               {/* Default Schedule */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-4 pt-3 border-t-2 border-[var(--c-ink)]/20">
+                <h3 className="font-display text-xs text-[var(--c-ink)] tracking-wider">
+                  DEFAULT SCHEDULE & ASSIGNMENTS
+                </h3>
+
                 <Field label="Default Day">
                   <select
                     value={defaultWeekday}
                     onChange={(e) => setDefaultWeekday(Number(e.target.value))}
-                    className="w-full min-h-[44px] px-2 border-2 border-[var(--c-ink)] font-body text-sm bg-[var(--c-bg)]"
+                    className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-body text-base bg-[var(--c-bg)]"
                   >
                     {WEEKDAYS.map((w) => (
                       <option key={w.val} value={w.val}>
@@ -374,52 +359,54 @@ export const StylesPage: React.FC = () => {
                   </select>
                 </Field>
 
-                <Field label="Start Time">
-                  <input
-                    type="time"
-                    value={defaultStart}
-                    onChange={(e) => setDefaultStart(e.target.value)}
-                    className="w-full min-h-[44px] px-2 border-2 border-[var(--c-ink)] font-mono text-sm bg-[var(--c-bg)]"
-                  />
-                </Field>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field label="Start Time">
+                    <input
+                      type="time"
+                      value={defaultStart}
+                      onChange={(e) => setDefaultStart(e.target.value)}
+                      className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-mono text-base bg-[var(--c-bg)]"
+                    />
+                  </Field>
 
-                <Field label="End Time">
-                  <input
-                    type="time"
-                    value={defaultEnd}
-                    onChange={(e) => setDefaultEnd(e.target.value)}
-                    className="w-full min-h-[44px] px-2 border-2 border-[var(--c-ink)] font-mono text-sm bg-[var(--c-bg)]"
-                  />
-                </Field>
-              </div>
+                  <Field label="End Time">
+                    <input
+                      type="time"
+                      value={defaultEnd}
+                      onChange={(e) => setDefaultEnd(e.target.value)}
+                      className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-mono text-base bg-[var(--c-bg)]"
+                    />
+                  </Field>
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Field label="Default Instructor">
-                  <select
-                    value={defaultInstructorId}
-                    onChange={(e) => setDefaultInstructorId(e.target.value)}
-                    className="w-full min-h-[44px] px-2 border-2 border-[var(--c-ink)] font-body text-sm bg-[var(--c-bg)]"
-                  >
-                    <option value="">-- None --</option>
-                    {instructors.map((inst) => (
-                      <option key={inst.id} value={inst.id}>
-                        {inst.name}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field label="Default Instructor">
+                    <select
+                      value={defaultInstructorId}
+                      onChange={(e) => setDefaultInstructorId(e.target.value)}
+                      className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-body text-base bg-[var(--c-bg)]"
+                    >
+                      <option value="">-- None (TBA) --</option>
+                      {instructors.map((inst) => (
+                        <option key={inst.id} value={inst.id}>
+                          {inst.name}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
 
-                <Field label="Default Venue">
-                  <input
-                    id="style-default-venue"
-                    aria-label="Default Venue"
-                    type="text"
-                    value={defaultVenue}
-                    onChange={(e) => setDefaultVenue(e.target.value)}
-                    placeholder="e.g. Studio A"
-                    className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-body text-sm bg-[var(--c-bg)]"
-                  />
-                </Field>
+                  <Field label="Default Venue">
+                    <input
+                      id="style-default-venue"
+                      aria-label="Default Venue"
+                      type="text"
+                      value={defaultVenue}
+                      onChange={(e) => setDefaultVenue(e.target.value)}
+                      placeholder="e.g. Studio A"
+                      className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-body text-base bg-[var(--c-bg)]"
+                    />
+                  </Field>
+                </div>
               </div>
 
               {/* Folders */}

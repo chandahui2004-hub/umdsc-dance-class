@@ -216,7 +216,10 @@ const defaultCodecs = {
       updatedAt: c.updatedAt || '',
       active: parseBool(c.active),
       name: c.name || '',
-      contact: c.contact || ''
+      contact: c.contact || '',
+      color: c.color || '',
+      photoUrl: c.photoUrl || '',
+      photosJson: c.photosJson || '[]'
     })
   },
   sessions: {

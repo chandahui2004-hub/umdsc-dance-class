@@ -73,7 +73,16 @@ export const TitleScreen: React.FC = () => {
   return (
     <div className="min-h-screen bg-[var(--c-bg)] flex flex-col items-center justify-center p-4">
       {/* 8-bit Title Header */}
-      <div className="text-center mb-8">
+      <div className="text-center mb-6">
+        <div className="flex justify-center mb-3">
+          <div className="p-2 bg-white border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)]">
+            <img
+              src="/logo.png"
+              alt="UMDSC Club Logo"
+              className="w-20 h-20 md:w-24 md:h-24 object-contain"
+            />
+          </div>
+        </div>
         <div className="inline-block bg-[var(--c-navy)] text-[var(--c-yellow)] px-4 py-2 border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] mb-3">
           <span className="font-display text-xs md:text-sm tracking-widest">★ 8-BIT EDITION ★</span>
         </div>

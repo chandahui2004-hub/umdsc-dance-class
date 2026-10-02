@@ -22,7 +22,7 @@ export const Field: React.FC<FieldProps> = ({
   const helpText = helper || hint;
 
   return (
-    <div className="flex flex-col gap-1.5 w-full">
+    <div className="flex flex-col gap-2 w-full">
       <label
         htmlFor={inputId}
         className="font-display text-xs text-[var(--c-ink)] tracking-wider uppercase"

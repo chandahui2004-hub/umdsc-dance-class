@@ -45,7 +45,20 @@ export interface StyleVideoFolder {
 export interface RowMeta { id: string; version: number; updatedBy: string; updatedAt: string; active: boolean }
 export interface DanceStyle extends RowMeta { name: string; aliases: string[]; colorKey: string; defaultWeekday: number|null;
   defaultStart: HHmm; defaultEnd: HHmm; defaultInstructorId: string; defaultVenue: string; attendanceFolderId: string; videoFolderId: string; videoFoldersJson?: string }
-export interface Instructor extends RowMeta { name: string; contact: string }
+export interface InstructorPhoto {
+  id: string;
+  url: string;
+  active: boolean;
+  uploadedAt: string;
+}
+export interface Instructor extends RowMeta {
+  name: string;
+  contact: string;
+  color?: string;
+  photoUrl?: string;
+  photos?: InstructorPhoto[];
+  photosJson?: string;
+}
 export interface ClassSession extends RowMeta { eventId: string; styleId: string; seq: number; date: ISODate; start: HHmm; end: HHmm;
   instructorId: string; venue: string; status: 'scheduled'|'replacement'|'cancelled'; note: string }
 export interface Member { memberId: string; fullName: string; matricRaw: string; matricKey: string; nameKey: string; contact: string;

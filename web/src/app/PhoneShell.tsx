@@ -45,6 +45,13 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
           <div className="px-3 py-2 flex items-center justify-between gap-2 select-none">
             {/* Left: Brand + Role Badge */}
             <div className="flex items-center gap-1.5 overflow-hidden">
+              <div className="p-0.5 bg-white border border-[var(--c-ink)] shrink-0">
+                <img
+                  src="/logo.png"
+                  alt="UMDSC Logo"
+                  className="w-5 h-5 object-contain"
+                />
+              </div>
               <span className="font-display text-[10px] tracking-wider text-[var(--c-yellow)] uppercase">
                 UMDSC
               </span>

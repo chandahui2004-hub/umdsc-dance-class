@@ -311,7 +311,10 @@ export function getDancerBootstrap(
 
   const styles = ctx.db.styles.find(s => allDancerStyleIds.has(s.id) && s.active);
   const instructorIds = new Set(Array.from(sessionsMap.values()).map(s => s.instructorId).filter(Boolean));
-  const instructors = ctx.db.instructors.find(i => instructorIds.has(i.id) && i.active);
+  for (const st of styles) {
+    if (st.defaultInstructorId) instructorIds.add(st.defaultInstructorId);
+  }
+  const instructors = ctx.db.instructors.find(i => (instructorIds.size === 0 ? true : instructorIds.has(i.id)) && i.active);
 
   const result: DancerBootstrap = {
     profile: {
