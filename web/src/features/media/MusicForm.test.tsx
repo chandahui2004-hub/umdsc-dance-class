@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { DanceStyle, ResolvedLink } from '@umdsc/shared';
 import { MusicForm } from './MusicForm';
@@ -234,6 +234,28 @@ describe('MusicForm', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'SAVE AS LISTEN-ONLY' }));
     await waitFor(() => expect(saveButton()).toBeEnabled());
+  });
+
+  it('ignores a lookup that finishes after the admin cleared the link', async () => {
+    let finishLookup!: (value: unknown) => void;
+    post.mockImplementation((async (action: string) =>
+      action === 'music.resolveLink'
+        ? new Promise(resolve => {
+            finishLookup = resolve;
+          })
+        : { data: {}, dataVersion: 1 }) as never);
+    renderForm();
+
+    paste(SPOTIFY_URL);
+    await waitFor(() => expect(post).toHaveBeenCalledWith('music.resolveLink', expect.anything()));
+    paste('');
+    await act(async () => {
+      finishLookup({ data: spotifyResolved(), dataVersion: 1 });
+    });
+
+    expect(screen.queryByText(/Rick Astley/)).toBeNull();
+    expect(screen.getByPlaceholderText('e.g. Uptown Funk - Bruno Mars')).toHaveValue('');
+    expect(saveButton()).toBeDisabled();
   });
 
   it('shows why a link is unsupported and cannot be saved', async () => {

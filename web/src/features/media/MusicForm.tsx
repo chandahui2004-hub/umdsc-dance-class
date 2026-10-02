@@ -53,6 +53,8 @@ export const MusicForm: React.FC<MusicFormProps> = ({
   const latestLookup = useRef(0);
 
   useEffect(() => {
+    // Any change to the link (even clearing it) makes a lookup that is still running out of date.
+    const lookup = ++latestLookup.current;
     setResolved(null);
     setChoice(null);
     setLinkError(null);
@@ -71,7 +73,6 @@ export const MusicForm: React.FC<MusicFormProps> = ({
     }
 
     setStatus('checking');
-    const lookup = ++latestLookup.current;
     const timer = window.setTimeout(async () => {
       try {
         const res = await api.post<ResolvedLink>('music.resolveLink', { url: text });
