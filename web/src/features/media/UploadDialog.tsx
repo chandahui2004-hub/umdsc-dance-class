@@ -38,6 +38,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
   const [files, setFiles] = useState<File[]>([]);
   const [formatWarning, setFormatWarning] = useState<string | null>(null);
   const [warningIgnored, setWarningIgnored] = useState<boolean>(false);
+  const [checkingFormat, setCheckingFormat] = useState<boolean>(false);
 
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [currentFileIndex, setCurrentFileIndex] = useState<number>(0);
@@ -79,10 +80,17 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
 
       setFiles(selected);
       if (type === 'video') {
-        const warnings = selected.map(f => videoFormatWarning(f)).filter(Boolean);
-        if (warnings.length > 0) {
-          setFormatWarning(warnings[0]!);
-        }
+        // Reads the codec out of the file, so Upload stays disabled until the answer is in.
+        setCheckingFormat(true);
+        void Promise.all(selected.map(f => videoFormatWarning(f)))
+          .then(warnings => {
+            const first = warnings.find(Boolean);
+            if (first) setFormatWarning(first);
+          })
+          .catch(() => {
+            // An unreadable file simply gets no codec warning; the upload itself reports real problems.
+          })
+          .finally(() => setCheckingFormat(false));
       }
     }
   };
@@ -368,7 +376,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
               size="md"
               variant="primary"
               className="flex-1"
-              disabled={isUploading || files.length === 0 || (Boolean(formatWarning) && !warningIgnored)}
+              disabled={isUploading || checkingFormat || files.length === 0 || (Boolean(formatWarning) && !warningIgnored)}
               onClick={handleStartUpload}
             >
               {isUploading

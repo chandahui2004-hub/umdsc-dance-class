@@ -32,10 +32,25 @@ describe('resumableUpload helpers', () => {
     expect(nextOffsetFromRange('bytes 0-8388607')).toBe(8388608);
   });
 
-  it('videoFormatWarning flags MOV / QuickTime / HEVC files', () => {
-    expect(videoFormatWarning(new File([], 'a.MOV', { type: 'video/quicktime' }))).toMatch(/MP4/);
-    expect(videoFormatWarning(new File([], 'a.mov', { type: '' }))).toMatch(/MP4/);
-    expect(videoFormatWarning(new File([], 'a.mp4', { type: 'video/mp4' }))).toBeNull();
+  it('videoFormatWarning flags MOV / QuickTime / HEVC files', async () => {
+    expect(await videoFormatWarning(new File([], 'a.MOV', { type: 'video/quicktime' }))).toMatch(/MP4/);
+    expect(await videoFormatWarning(new File([], 'a.mov', { type: '' }))).toMatch(/MP4/);
+    expect(await videoFormatWarning(new File([], 'a.mp4', { type: 'video/mp4' }))).toBeNull();
+  });
+
+  it('videoFormatWarning warns for an .mp4 that contains HEVC, with re-export advice', async () => {
+    const bytes = new Uint8Array(1024);
+    bytes.set(new TextEncoder().encode('hvc1'), 500);
+    const warning = await videoFormatWarning(new File([bytes], 'class.mp4', { type: 'video/mp4' }));
+    expect(warning).toContain('H.265');
+    expect(warning).toContain('Most Compatible');
+    expect(warning).toContain('You can still upload it.');
+  });
+
+  it('videoFormatWarning stays quiet for an .mp4 that contains H.264', async () => {
+    const bytes = new Uint8Array(1024);
+    bytes.set(new TextEncoder().encode('avc1'), 500);
+    expect(await videoFormatWarning(new File([bytes], 'class.mp4', { type: 'video/mp4' }))).toBeNull();
   });
 
   it('makePublic sends POST request with anyone reader permission', async () => {

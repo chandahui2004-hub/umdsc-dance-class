@@ -1,3 +1,5 @@
+import { detectVideoCodec } from './videoCodec';
+
 export const CHUNK_SIZE = 8 * 1024 * 1024; // 8 MiB (multiple of 256 KiB)
 
 export function chunkRanges(total: number, chunk = CHUNK_SIZE): [number, number][] {
@@ -26,7 +28,12 @@ export function nextOffsetFromRange(rangeHeader: string | null): number {
   return 0;
 }
 
-export function videoFormatWarning(file: File): string | null {
+export const HEVC_WARNING =
+  'This video is H.265/HEVC. Many phones and Edge/Firefox show a black screen for it. ' +
+  'For every dancer to see it, re-export as H.264 MP4 (iPhone: Settings → Camera → Formats → Most Compatible; ' +
+  'CapCut: export 1080p H.264). You can still upload it.';
+
+export async function videoFormatWarning(file: File): Promise<string | null> {
   const name = file.name.toLowerCase();
   const type = (file.type || '').toLowerCase();
 
@@ -41,7 +48,8 @@ export function videoFormatWarning(file: File): string | null {
     );
   }
 
-  return null;
+  // An .mp4 can still hold H.265: look inside the file.
+  return (await detectVideoCodec(file)) === 'hevc' ? HEVC_WARNING : null;
 }
 
 export async function makePublic(token: string, fileId: string): Promise<void> {
