@@ -1,11 +1,11 @@
-import React from 'react';
+import type { ReactElement } from 'react';
 
 export interface BoomboxProps {
   size?: 32 | 64 | 96;
   className?: string;
 }
 
-export function Boombox({ size = 64, className = '' }: BoomboxProps): JSX.Element {
+export function Boombox({ size = 64, className = '' }: BoomboxProps): ReactElement {
   return (
     <img
       src="/art/a10-boombox.webp"

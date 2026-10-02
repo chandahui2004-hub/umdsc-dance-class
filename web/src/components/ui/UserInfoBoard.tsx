@@ -42,15 +42,15 @@ export const UserInfoBoard: React.FC<UserInfoBoardProps> = ({
     return (
       <div
         data-testid="user-info-board-compact"
-        className={`flex flex-col items-center gap-2 p-2 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] ${className}`}
+        className={`flex flex-col items-center gap-2 p-2 px-panel ${className}`}
       >
         {/* Compact Avatar / Role Icon */}
         <div
           title={`${username} (${isAdmin ? 'ADMIN' : 'DANCER'} - ${matriksNumber})`}
-          className={`w-9 h-9 border-2 border-[var(--c-ink)] flex items-center justify-center font-display text-[10px] shadow-[1px_1px_0_var(--c-ink)] select-none ${
+          className={`w-9 h-9 border-2 border-[var(--outline)] flex items-center justify-center font-display text-[10px] select-none ${
             isAdmin
-              ? 'bg-[var(--c-orange)] text-[var(--on-neon)]'
-              : 'bg-[var(--c-navy)] text-[var(--c-yellow)]'
+              ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold'
+              : 'bg-[var(--violet-2)] text-[var(--neon-cyan)] font-bold'
           }`}
         >
           {isAdmin ? 'ADM' : 'DAN'}
@@ -66,7 +66,7 @@ export const UserInfoBoard: React.FC<UserInfoBoardProps> = ({
           title="Sign Out"
           aria-label="Sign Out"
           data-testid="sign-out-btn-compact"
-          className="w-9 h-9 min-h-[36px] bg-[var(--c-red)] text-[var(--on-neon)] border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] hover:brightness-110 active:translate-x-[2px] active:translate-y-[2px] flex items-center justify-center cursor-pointer select-none"
+          className="w-9 h-9 min-h-[44px] min-w-[44px] bg-[var(--neon-red)] text-[var(--on-neon)] border-2 border-[var(--outline)] hover:brightness-110 active:translate-x-[2px] active:translate-y-[2px] flex items-center justify-center cursor-pointer select-none"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <path d="M16 13v-2H7V8l-5 4 5 4v-3h9zM20 3H10v2h10v14H10v2h10c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" />
@@ -79,19 +79,19 @@ export const UserInfoBoard: React.FC<UserInfoBoardProps> = ({
   return (
     <div
       data-testid="user-info-board"
-      className={`bg-[var(--c-panel)] border-4 border-[var(--c-ink)] p-3 shadow-[4px_4px_0_var(--c-ink)] space-y-3 ${className}`}
+      className={`px-panel p-3 space-y-3 ${className}`}
     >
       {/* Board Header & Role Badge */}
-      <div className="flex items-center justify-between border-b-2 border-[var(--c-ink)] pb-2">
-        <span className="font-display text-[10px] text-[var(--text-2)] tracking-wider uppercase">
+      <div className="flex items-center justify-between border-b-2 border-[var(--outline)] pb-2">
+        <span className="font-display text-[8px] text-[var(--text-2)] tracking-wider uppercase">
           PLAYER PROFILE
         </span>
         <span
           data-testid="user-role-badge"
-          className={`font-display text-[9px] uppercase px-2 py-0.5 border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] ${
+          className={`font-display text-[8px] uppercase px-2 py-0.5 border-2 border-[var(--outline)] ${
             isAdmin
-              ? 'bg-[var(--c-orange)] text-[var(--on-neon)] font-bold'
-              : 'bg-[var(--c-navy)] text-[var(--c-yellow)] font-bold'
+              ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold'
+              : 'bg-[var(--violet-2)] text-[var(--neon-cyan)] font-bold'
           }`}
         >
           {isAdmin ? 'ADMIN' : 'DANCER'}

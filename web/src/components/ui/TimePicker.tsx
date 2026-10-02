@@ -35,7 +35,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
     <div
       role="group"
       aria-label="Time Picker"
-      className="inline-flex items-center gap-2 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] p-2 shadow-[2px_2px_0_var(--c-ink)]"
+      className="inline-flex items-center gap-2 px-panel p-2"
     >
       {/* Hours Column */}
       <div className="flex flex-col items-center">

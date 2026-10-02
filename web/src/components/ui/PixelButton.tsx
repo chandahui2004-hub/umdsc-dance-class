@@ -21,20 +21,20 @@ export const PixelButton: React.FC<PixelButtonProps> = ({
     'inline-flex items-center justify-center font-display uppercase tracking-wider select-none cursor-pointer transition-none disabled:opacity-50 disabled:pointer-events-none text-center';
 
   const sizeStyles = {
-    sm: 'min-h-[36px] px-2.5 py-1 text-[10px]',
-    md: 'min-h-[44px] px-4 py-2 text-xs',
-    lg: 'min-h-[52px] px-6 py-3 text-sm'
+    sm: 'min-h-[44px] px-3 py-1 text-[8px]',
+    md: 'min-h-[48px] px-4 py-2 text-[12px]',
+    lg: 'min-h-[56px] px-6 py-3 text-[16px]',
   }[size];
 
   const variantStyles = {
     primary:
-      'bg-[var(--c-orange)] text-[var(--on-neon)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] hover:bg-[var(--c-yellow)] hover:text-[var(--on-neon)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
+      'bg-[var(--neon-pink)] text-[var(--on-neon)] border-4 border-[var(--outline)] shadow-[inset_2px_2px_0_var(--neon-pink-hi),inset_-2px_-2px_0_var(--neon-pink-lo),4px_4px_0_var(--outline)] hover:brightness-105 hover:shadow-[inset_2px_2px_0_var(--neon-pink-hi),inset_-2px_-2px_0_var(--neon-pink-lo),4px_4px_0_var(--outline),0_0_8px_var(--neon-pink)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-[inset_2px_2px_0_var(--neon-pink-hi),inset_-2px_-2px_0_var(--neon-pink-lo)]',
     secondary:
-      'bg-[var(--c-panel)] text-[var(--text-1)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] hover:bg-[var(--c-peach)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
+      'px-panel text-[var(--text-1)] border-4 border-[var(--outline)] shadow-[4px_4px_0_var(--outline)] hover:bg-[var(--violet-2)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
     danger:
-      'bg-[var(--c-red)] text-[var(--on-neon)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] hover:brightness-110 active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
+      'bg-[var(--neon-red)] text-[var(--on-neon)] border-4 border-[var(--outline)] shadow-[4px_4px_0_var(--outline)] hover:brightness-110 active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
     ghost:
-      'bg-transparent text-[var(--text-1)] border-2 border-dashed border-[var(--c-ink)] hover:bg-[var(--c-peach)] active:translate-x-[2px] active:translate-y-[2px]'
+      'bg-transparent text-[var(--text-2)] border-2 border-dashed border-[var(--violet-4)] hover:text-[var(--neon-cyan)] hover:border-[var(--neon-cyan)] active:translate-x-[2px] active:translate-y-[2px]',
   }[variant];
 
   return (

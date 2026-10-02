@@ -32,9 +32,9 @@ export const LiveClock: React.FC<LiveClockProps> = ({
       <div
         data-testid="live-clock-compact"
         title={`Kuala Lumpur Time (UTC+8): ${dateStr} ${timeStr}`}
-        className={`inline-flex items-center gap-1.5 px-2 py-0.5 bg-[var(--c-ink)] text-[var(--c-yellow)] font-mono text-xs tracking-wider border-2 border-[var(--c-ink)] select-none shadow-[2px_2px_0_var(--c-ink)] ${className}`}
+        className={`inline-flex items-center gap-1.5 px-2 py-0.5 bg-[var(--night-2)] text-[var(--neon-gold)] font-mono text-[20px] tracking-wider border-2 border-[var(--outline)] select-none ${className}`}
       >
-        <span className="text-[10px]" aria-hidden="true">⏰</span>
+        <span className="text-[12px]" aria-hidden="true">⏰</span>
         <span className="font-bold">{timeStr}</span>
       </div>
     );
@@ -44,19 +44,19 @@ export const LiveClock: React.FC<LiveClockProps> = ({
     <div
       data-testid="live-clock"
       aria-label={`Current Time: ${timeStr}, ${dateStr}`}
-      className={`bg-[var(--c-ink)] text-[var(--c-yellow)] p-2.5 border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] font-mono select-none ${className}`}
+      className={`bg-[var(--night-2)] text-[var(--neon-gold)] p-2.5 border-2 border-[var(--outline)] font-mono select-none ${className}`}
     >
-      <div className="flex items-center justify-between text-xs tracking-wider">
+      <div className="flex items-center justify-between tracking-wider">
         <span className="flex items-center gap-1.5 font-bold">
           <span className="text-xs" aria-hidden="true">⏰</span>
-          <span className="text-sm font-bold text-[var(--c-yellow)] tracking-widest">{timeStr}</span>
+          <span className="text-[24px] font-bold text-[var(--neon-gold)] tracking-widest">{timeStr}</span>
         </span>
-        <span className="text-[8px] uppercase px-1.5 py-0.5 bg-[var(--c-navy)] text-[var(--text-2)] border border-[var(--c-yellow)] font-display">
+        <span className="text-[8px] uppercase px-1.5 py-0.5 bg-[var(--night-0)] text-[var(--text-2)] border border-[var(--neon-gold)] font-display">
           KL (UTC+8)
         </span>
       </div>
       {showDate && (
-        <div className="text-[11px] text-[var(--text-2)] mt-1 tracking-wide flex items-center justify-between border-t border-[var(--c-darkgrey)] pt-1">
+        <div className="text-[14px] text-[var(--text-2)] mt-1 tracking-wide flex items-center justify-between border-t border-[var(--outline)] pt-1">
           <span>{dateStr}</span>
         </div>
       )}

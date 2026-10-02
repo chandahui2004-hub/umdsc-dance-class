@@ -15,12 +15,12 @@ export const Panel: React.FC<PanelProps> = ({
 }) => {
   return (
     <div
-      className={`bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] ${className}`}
+      className={`px-panel px-corners ${className}`}
       {...props}
     >
       {title && (
-        <div className="bg-[var(--c-navy)] text-[var(--text-1)] px-4 py-2 border-b-4 border-[var(--c-ink)] flex items-center justify-between font-display text-xs tracking-wider">
-          <span>{title}</span>
+        <div className="bg-[var(--night-2)] text-[var(--text-1)] px-4 py-2 border-b-2 border-[var(--neon-cyan)] flex items-center justify-between font-display text-[12px] tracking-wider">
+          <span className="px-glow-text">{title}</span>
           {headerRight && <div>{headerRight}</div>}
         </div>
       )}

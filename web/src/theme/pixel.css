@@ -186,3 +186,33 @@ body, table, th, td, button, input, select, textarea, p, span, h1, h2, h3, h4, h
   scrollbar-width: thin;
   scrollbar-color: var(--violet-3) var(--night-1);
 }
+
+/* Custom well focus-visible glow (spec §8) */
+.px-well:focus-visible {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 0 2px var(--outline),
+    0 0 0 4px color-mix(in srgb, var(--neon-cyan) 45%, transparent),
+    0 0 0 6px color-mix(in srgb, var(--neon-cyan) 18%, transparent) !important;
+}
+
+/* Sheet slide-up animation for mobile (spec §8) */
+@keyframes px-sheet-in {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@media (max-width: 639px) {
+  .px-sheet-animated {
+    animation: px-sheet-in 160ms ease-out forwards;
+  }
+}
+
+/* Toast enter animation (spec §8) */
+@keyframes px-toast-in {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.px-toast-animated {
+  animation: px-toast-in 200ms steps(4) forwards;
+}

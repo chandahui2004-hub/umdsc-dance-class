@@ -1,6 +1,6 @@
-import React from 'react';
+import type { ReactElement } from 'react';
 
-export function SkylineStrip(): JSX.Element {
+export function SkylineStrip(): ReactElement {
   return (
     <div
       data-testid="skyline-strip"

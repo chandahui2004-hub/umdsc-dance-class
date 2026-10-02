@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 
-export function CityBackdrop(): JSX.Element {
+export function CityBackdrop(): ReactElement {
   const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {

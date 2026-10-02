@@ -25,7 +25,7 @@ export const Field: React.FC<FieldProps> = ({
     <div className="flex flex-col gap-2 w-full">
       <label
         htmlFor={inputId}
-        className="font-display text-xs text-[var(--text-1)] tracking-wider uppercase"
+        className="font-display text-[8px] text-[var(--text-2)] tracking-wider uppercase"
       >
         {label}
       </label>
@@ -34,19 +34,19 @@ export const Field: React.FC<FieldProps> = ({
       ) : (
         <input
           id={inputId}
-          className={`w-full min-h-[44px] px-3 py-2 bg-[var(--c-panel)] text-[var(--text-1)] border-4 border-[var(--c-ink)] font-body text-base shadow-[2px_2px_0_var(--c-ink)] focus:outline-none focus:border-[var(--c-navy)] disabled:bg-[var(--c-grey)] disabled:opacity-75 ${
-            error ? 'border-[var(--c-red)] bg-[var(--c-peach)]' : ''
+          className={`w-full min-h-[44px] px-3 py-2 px-well text-[16px] font-body text-[var(--text-1)] placeholder:text-[var(--text-3)] disabled:opacity-50 ${
+            error ? 'border-[var(--neon-red)]' : ''
           } ${className}`}
           {...props}
         />
       )}
       {error && (
-        <span className="font-body text-xs text-[var(--c-red)] font-bold">
+        <span className="font-body text-[14px] text-[var(--neon-red)] font-bold">
           {error}
         </span>
       )}
       {!error && helpText && (
-        <span className="font-body text-xs text-[var(--text-2)]">
+        <span className="font-body text-[14px] text-[var(--text-2)]">
           {helpText}
         </span>
       )}

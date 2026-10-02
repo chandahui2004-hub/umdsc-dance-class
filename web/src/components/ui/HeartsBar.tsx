@@ -28,7 +28,7 @@ export const HeartsBar: React.FC<HeartsBarProps> = ({
             data-filled={isFilled ? 'true' : 'false'}
             className="inline-block transition-transform select-none"
             style={{
-              color: isFilled ? 'var(--c-red)' : 'var(--c-grey)'
+              color: isFilled ? 'var(--neon-pink)' : 'var(--violet-4)'
             }}
           >
             {/* 8-bit Pixel Heart SVG (16x16) */}
@@ -53,20 +53,20 @@ export const HeartsBar: React.FC<HeartsBarProps> = ({
               ) : (
                 <>
                   {/* Outline heart */}
-                  <rect x="2" y="3" width="4" height="1" fill="var(--c-ink)" />
-                  <rect x="10" y="3" width="4" height="1" fill="var(--c-ink)" />
-                  <rect x="1" y="4" width="1" height="5" fill="var(--c-ink)" />
-                  <rect x="14" y="4" width="1" height="5" fill="var(--c-ink)" />
-                  <rect x="6" y="4" width="4" height="1" fill="var(--c-ink)" />
-                  <rect x="2" y="9" width="2" height="2" fill="var(--c-ink)" />
-                  <rect x="12" y="9" width="2" height="2" fill="var(--c-ink)" />
-                  <rect x="4" y="11" width="2" height="2" fill="var(--c-ink)" />
-                  <rect x="10" y="11" width="2" height="2" fill="var(--c-ink)" />
-                  <rect x="6" y="13" width="4" height="1" fill="var(--c-ink)" />
+                  <rect x="2" y="3" width="4" height="1" fill="var(--outline)" />
+                  <rect x="10" y="3" width="4" height="1" fill="var(--outline)" />
+                  <rect x="1" y="4" width="1" height="5" fill="var(--outline)" />
+                  <rect x="14" y="4" width="1" height="5" fill="var(--outline)" />
+                  <rect x="6" y="4" width="4" height="1" fill="var(--outline)" />
+                  <rect x="2" y="9" width="2" height="2" fill="var(--outline)" />
+                  <rect x="12" y="9" width="2" height="2" fill="var(--outline)" />
+                  <rect x="4" y="11" width="2" height="2" fill="var(--outline)" />
+                  <rect x="10" y="11" width="2" height="2" fill="var(--outline)" />
+                  <rect x="6" y="13" width="4" height="1" fill="var(--outline)" />
                   {/* Empty interior */}
-                  <rect x="2" y="4" width="4" height="5" fill="var(--c-grey)" />
-                  <rect x="10" y="4" width="4" height="5" fill="var(--c-grey)" />
-                  <rect x="4" y="5" width="8" height="6" fill="var(--c-grey)" />
+                  <rect x="2" y="4" width="4" height="5" fill="var(--violet-4)" />
+                  <rect x="10" y="4" width="4" height="5" fill="var(--violet-4)" />
+                  <rect x="4" y="5" width="8" height="6" fill="var(--violet-4)" />
                 </>
               )}
             </svg>

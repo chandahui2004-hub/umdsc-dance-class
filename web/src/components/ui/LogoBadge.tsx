@@ -1,11 +1,11 @@
-import React from 'react';
+import type { ReactElement } from 'react';
 
 export interface LogoBadgeProps {
   height?: number;
   className?: string;
 }
 
-export function LogoBadge({ height = 96, className = '' }: LogoBadgeProps): JSX.Element {
+export function LogoBadge({ height = 96, className = '' }: LogoBadgeProps): ReactElement {
   const width = Math.round((height * 4) / 3);
 
   return (

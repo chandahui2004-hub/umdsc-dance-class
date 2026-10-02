@@ -14,7 +14,7 @@ export const EventPicker: React.FC = () => {
     return (
       <Link
         to="/admin/events/new"
-        className="inline-flex items-center min-h-[44px] px-3 border-2 border-[var(--c-ink)] bg-[var(--c-yellow)] text-[var(--on-neon)] font-display text-xs no-underline"
+        className="inline-flex items-center min-h-[44px] px-3 border-2 border-[var(--outline)] bg-[var(--neon-gold)] text-[var(--on-neon)] font-display text-xs no-underline"
       >
         NO EVENTS YET — CREATE ONE
       </Link>
@@ -31,7 +31,7 @@ export const EventPicker: React.FC = () => {
         aria-label="Current event"
         value={isAll ? 'ALL' : (current?.id || '')}
         onChange={e => setCurrentId(e.target.value)}
-        className="min-h-[44px] min-w-0 flex-1 px-2 border-2 border-[var(--c-ink)] bg-[var(--c-panel)] font-body text-base text-[var(--text-1)] focus:outline-none focus:ring-4 focus:ring-[var(--c-yellow)]"
+        className="min-h-[44px] min-w-0 flex-1 px-2 px-well font-body text-[16px] text-[var(--text-1)]"
       >
         <option value="ALL">ALL EVENTS</option>
         {active.map(e => (

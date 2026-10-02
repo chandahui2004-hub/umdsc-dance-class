@@ -123,7 +123,7 @@ export const ColorSwatchPicker: React.FC<ColorSwatchPickerProps> = ({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="font-display text-xs uppercase tracking-wider text-[var(--text-1)]">
+        <label className="font-display text-[8px] uppercase tracking-wider text-[var(--text-1)]">
           {label}
         </label>
         <button
@@ -140,7 +140,7 @@ export const ColorSwatchPicker: React.FC<ColorSwatchPickerProps> = ({
 
       {/* Add New Color Form */}
       {isAdding && (
-        <div className="p-3 bg-[var(--c-bg)] border-2 border-dashed border-[var(--c-ink)] space-y-2">
+        <div className="p-3 px-panel border-2 border-dashed border-[var(--violet-4)] space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <input
               type="color"
@@ -149,7 +149,7 @@ export const ColorSwatchPicker: React.FC<ColorSwatchPickerProps> = ({
                 setNewHex(e.target.value.toUpperCase());
                 setHexError(null);
               }}
-              className="w-10 h-10 border-2 border-[var(--c-ink)] cursor-pointer bg-transparent p-0"
+              className="w-10 h-10 border-2 border-[var(--outline)] cursor-pointer bg-transparent p-0"
               title="Pick color"
             />
             <input
@@ -160,18 +160,18 @@ export const ColorSwatchPicker: React.FC<ColorSwatchPickerProps> = ({
                 setHexError(null);
               }}
               placeholder="#FF5500"
-              className="w-32 min-h-[38px] px-2.5 font-mono text-sm border-2 border-[var(--c-ink)] bg-[var(--c-panel)]"
+              className="w-32 min-h-[38px] px-2.5 font-mono text-sm px-well"
             />
             <button
               type="button"
               onClick={handleAddColor}
-              className="px-3 min-h-[38px] bg-[var(--c-ink)] text-[var(--c-yellow)] font-display text-[10px] font-bold border-2 border-[var(--c-ink)] hover:bg-[var(--c-darkgrey)] active:translate-x-[1px] active:translate-y-[1px] cursor-pointer"
+              className="px-3 min-h-[38px] bg-[var(--neon-pink)] text-[var(--on-neon)] font-display text-[10px] font-bold border-2 border-[var(--outline)] hover:brightness-110 active:translate-x-[1px] active:translate-y-[1px] cursor-pointer"
             >
               SAVE COLOR
             </button>
           </div>
           {hexError && (
-            <p className="font-body text-xs text-[var(--c-red)] font-bold">{hexError}</p>
+            <p className="font-body text-xs text-[var(--neon-red)] font-bold">{hexError}</p>
           )}
           <p className="font-body text-[10px] text-[var(--text-2)]">
             Insert any hex color code (e.g. #FF5722, #9C27B0). Custom colors can be removed anytime.
@@ -190,16 +190,17 @@ export const ColorSwatchPicker: React.FC<ColorSwatchPickerProps> = ({
                 onClick={() => onChange(c.key)}
                 className={`w-full min-h-[44px] p-2 border-2 flex items-center justify-between gap-2 cursor-pointer transition-all ${
                   selected
-                    ? 'border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] font-bold bg-[var(--c-panel)]'
-                    : 'border-[var(--c-ink)]/30 opacity-75 hover:opacity-100 bg-[var(--c-panel)]/50'
+                    ? 'px-panel px-neon border-[var(--outline)] font-bold'
+                    : 'px-panel border-[var(--outline)]/50 opacity-75 hover:opacity-100'
                 }`}
+                style={selected ? ({ ['--glow' as any]: c.css } as React.CSSProperties) : undefined}
               >
                 <div className="flex items-center gap-2 overflow-hidden">
                   <div
-                    className="w-4 h-4 border border-[var(--c-ink)] shrink-0"
+                    className="w-8 h-8 border-2 border-[var(--outline)] shrink-0"
                     style={{ backgroundColor: c.css }}
                   />
-                  <span className="font-mono text-xs truncate">{c.label}</span>
+                  <span className="font-mono text-xs truncate text-[var(--text-1)]">{c.label}</span>
                 </div>
                 {selected && (
                   <span className="text-[10px] font-display text-[var(--text-1)]">✓</span>
@@ -213,7 +214,7 @@ export const ColorSwatchPicker: React.FC<ColorSwatchPickerProps> = ({
                   onClick={(e) => handleRemoveCustomColor(e, c.key)}
                   title={`Remove ${c.label}`}
                   aria-label={`Remove color ${c.label}`}
-                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[var(--c-red)] text-white font-display text-[8px] flex items-center justify-center border border-[var(--c-ink)] shadow-[1px_1px_0_var(--c-ink)] hover:bg-red-700 active:scale-95 cursor-pointer z-10"
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[var(--neon-red)] text-[var(--on-neon)] font-display text-[8px] flex items-center justify-center border border-[var(--outline)] shadow-[1px_1px_0_var(--outline)] hover:brightness-110 active:scale-95 cursor-pointer z-10"
                 >
                   ✕
                 </button>
