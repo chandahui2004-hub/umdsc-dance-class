@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { ClassSession, DanceStyle, Instructor, VideoItem, MusicItem } from '@umdsc/shared';
+import { musicAppLinks, canPractise, type ClassSession, type DanceStyle, type Instructor, type VideoItem, type MusicItem } from '@umdsc/shared';
 import { STYLE_COLOR } from '../../theme/colors';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { streamUrl, downloadUrl, openInDriveUrl, previewUrl, folderUrl } from '../../lib/google/driveUrls';
@@ -315,16 +315,30 @@ export const ClassCard: React.FC<ClassCardProps> = ({
                   />
                 )}
 
-                {/* Studio Practice Action */}
-                <div className="pt-1">
-                  <PixelButton
-                    size="sm"
-                    variant="primary"
-                    onClick={() => navigate(`/studio?music=${m.id}`)}
-                    className="w-full sm:w-auto"
-                  >
-                    ▶ PRACTISE IN STUDIO
-                  </PixelButton>
+                {/* Studio practice, plus the song in the dancer's own app */}
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {canPractise(m) && (
+                    <PixelButton
+                      size="sm"
+                      variant="primary"
+                      onClick={() => navigate(`/studio?music=${m.id}`)}
+                      className="w-full sm:w-auto"
+                    >
+                      ▶ PRACTISE IN STUDIO
+                    </PixelButton>
+                  )}
+                  {musicAppLinks(m).map(link => (
+                    <a
+                      key={link.label}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 border-2 border-[var(--c-ink)] bg-[var(--c-panel)] px-3 py-1.5 font-display text-[10px] font-bold text-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] hover:bg-[var(--c-yellow)]"
+                    >
+                      {link.label === 'Download MP3' ? 'Download MP3' : `Open in ${link.label}`}
+                      <span aria-hidden="true">↗</span>
+                    </a>
+                  ))}
                 </div>
               </div>
             ))}

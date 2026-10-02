@@ -25,10 +25,50 @@ function renderCard(items: MusicItem[]) {
 }
 
 describe('ClassCard practice music', () => {
+  const SPOTIFY = 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT';
+  const SOUNDCLOUD = 'https://soundcloud.com/forss/flickermood';
+
   it('shows no embedded video for a YouTube track, only the practise button', () => {
     const { container } = renderCard([music({})]);
     expect(container.querySelector('iframe[src*="youtube"]')).toBeNull();
     expect(screen.getByRole('button', { name: /PRACTISE IN STUDIO/i })).toBeInTheDocument();
+  });
+
+  it('offers Open in YouTube in a new tab for a YouTube track', () => {
+    renderCard([music({})]);
+    const link = screen.getByRole('link', { name: 'Open in YouTube' });
+    expect(link).toHaveAttribute('href', 'https://www.youtube.com/watch?v=4_KN-gA6uXY');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
+  it('offers both Spotify and YouTube for a Spotify song with a YouTube practice version', () => {
+    renderCard([music({ spotifyUrl: SPOTIFY })]);
+    expect(screen.getByRole('link', { name: 'Open in Spotify' })).toHaveAttribute('href', SPOTIFY);
+    expect(screen.getByRole('link', { name: 'Open in YouTube' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /PRACTISE IN STUDIO/i })).toBeInTheDocument();
+  });
+
+  it('has no practise button for a listen-only Spotify song, only Open in Spotify', () => {
+    renderCard([music({ sourceType: 'spotify', youtubeId: '', spotifyUrl: SPOTIFY })]);
+    expect(screen.queryByRole('button', { name: /PRACTISE IN STUDIO/i })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Open in Spotify' })).toHaveAttribute('href', SPOTIFY);
+  });
+
+  it('offers Open in SoundCloud for a SoundCloud song and still lets the dancer practise', () => {
+    const { container } = renderCard([music({ sourceType: 'soundcloud', youtubeId: '', soundcloudUrl: SOUNDCLOUD })]);
+    expect(screen.getByRole('link', { name: 'Open in SoundCloud' })).toHaveAttribute('href', SOUNDCLOUD);
+    expect(screen.getByRole('button', { name: /PRACTISE IN STUDIO/i })).toBeInTheDocument();
+    expect(container.querySelector('audio')).toBeNull();
+  });
+
+  it('offers a download and a player for an MP3', () => {
+    const { container } = renderCard([music({ sourceType: 'mp3', youtubeId: '', driveFileId: 'drive-mp3-1' })]);
+    expect(screen.getByRole('link', { name: 'Download MP3' })).toHaveAttribute(
+      'href',
+      'https://drive.google.com/uc?export=download&id=drive-mp3-1'
+    );
+    expect(container.querySelector('audio')).not.toBeNull();
   });
 });
 
