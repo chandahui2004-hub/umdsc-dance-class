@@ -6,7 +6,7 @@ import { verifyPassword } from '../security/passwords';
 import { signToken } from '../security/tokens';
 import { resolvePermissions } from '../logic/permissions';
 import { TokenClaims, PermissionCode } from '@umdsc/shared';
-import { getAdminBootstrap } from './bootstrap';
+import { getAdminBootstrap, peekDancerBootstrap } from './bootstrap';
 import { createTimer, logTimings } from '../logic/timing';
 
 export function getAuthRoutes(): Record<string, Route> {
@@ -155,10 +155,17 @@ export function getAuthRoutes(): Record<string, Route> {
         const token = signToken(claims, (ctx as any)._secrets?.tokenSecret, hmac);
         timer.mark('sign');
 
-        // Token only: the calendar (dancer.bootstrap) and attendance (dancer.attendance) load afterwards.
+        // Token first: the calendar (dancer.bootstrap) and attendance (dancer.attendance) load afterwards.
+        // If the calendar is already cached it rides along for free, saving a round trip.
+        const bootstrap = peekDancerBootstrap(ctx, matricKey);
         const timings = timer.result();
         logTimings('auth.dancerLogin', timings);
-        return { token, claims, ...(payload?.debugTimings === true ? { timings } : {}) };
+        return {
+          token,
+          claims,
+          ...(bootstrap ? { bootstrap } : {}),
+          ...(payload?.debugTimings === true ? { timings } : {})
+        };
       }
     },
 

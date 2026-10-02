@@ -284,4 +284,23 @@ describe('Feature: Bootstrap with Caching (features/bootstrap)', () => {
       expect((res.data as any).styles.map((st: any) => st.name)).toEqual(['Popping']);
     }
   });
+
+  it('dancerLogin includes the calendar when it is already cached, so a repeat login needs one round trip', () => {
+    handleRequest({ action: 'dancer.bootstrap', token: dancerToken }, ctx, secrets); // fills the cache
+
+    const res = handleRequest({ action: 'auth.dancerLogin', payload: { matric: '22001111', fullName: 'Popper Ali' } }, ctx, secrets);
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      const data = res.data as any;
+      expect(data.bootstrap.profile.matricKey).toBe('22001111');
+      expect(data.bootstrap.videos.length).toBe(1);
+    }
+  });
+
+  it('dancerLogin never reads sheets for the calendar when it is not cached', () => {
+    const open = vi.spyOn(ctx.drive, 'openSpreadsheet');
+    handleRequest({ action: 'auth.dancerLogin', payload: { matric: '22001111', fullName: 'Popper Ali' } }, ctx, secrets);
+    expect(open).not.toHaveBeenCalledWith(event.membersSpreadsheetId);
+  });
 });

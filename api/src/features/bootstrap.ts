@@ -233,6 +233,21 @@ export function getDancerChunk(ctx: Ctx, eventId: string, styleId: string, dataV
   return chunkData;
 }
 
+/**
+ * The dancer's calendar data only if it is already cached for the current data version. Never reads
+ * a sheet, so login can include it for free on a repeat visit and skip a second round trip.
+ */
+export function peekDancerBootstrap(ctx: Ctx, matricKey: string): DancerBootstrap | null {
+  const dataVersion = Number(ctx.props.get('DATA_VERSION') || 1);
+  const cached = ctx.cache.get(`boot:dancer:${matricKey}:${dataVersion}`);
+  if (!cached) return null;
+  try {
+    return JSON.parse(cached);
+  } catch {
+    return null;
+  }
+}
+
 export function getDancerBootstrap(
   ctx: Ctx,
   matricKey: string,
