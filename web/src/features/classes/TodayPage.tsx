@@ -7,6 +7,7 @@ import { Panel } from '../../components/ui/Panel';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { PixelPortraitFrame } from '../../components/ui/PixelPortraitFrame';
 import { todayKL } from '../../lib/time';
 import { STYLE_COLOR } from '../../theme/colors';
 import type { TodayClass } from '@umdsc/shared';
@@ -123,16 +124,13 @@ export const TodayPage: React.FC = () => {
                 </div>
 
                 <div className="flex items-start gap-3">
-                  {photoUrl ? (
-                    <img
-                      src={photoUrl}
-                      alt={instructor?.name || 'Instructor'}
-                      className="w-12 h-[60px] object-cover border-2 border-[var(--c-ink)] flex-shrink-0"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <span className="w-12 h-[60px] flex items-center justify-center bg-[var(--c-bg)] border-2 border-[var(--c-ink)] font-display text-sm text-[var(--text-2)] flex-shrink-0">👤</span>
-                  )}
+                  <PixelPortraitFrame
+                    src={photoUrl || ''}
+                    alt={instructor?.name || 'Instructor'}
+                    name={instructor?.name || 'TBA'}
+                    glow={colorVar}
+                    size="sm"
+                  />
                   <div className="space-y-1 font-body text-sm text-[var(--text-1)]">
                     <div>
                       <strong>Time:</strong> <span className="font-mono">{session.start} - {session.end}</span>

@@ -5,6 +5,8 @@ import { session } from '../../lib/session';
 import { Panel } from '../../components/ui/Panel';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { Field } from '../../components/ui/Field';
+import { CityBackdrop } from '../../components/art/CityBackdrop';
+import { LogoBadge } from '../../components/ui/LogoBadge';
 import type { TokenClaims, AdminBootstrap } from '@umdsc/shared';
 
 interface AdminLoginResponse {
@@ -59,93 +61,90 @@ export const AdminLogin: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--c-bg)] flex flex-col items-center justify-center p-4">
-      <div className="text-center mb-6">
-        <div className="flex justify-center mb-3">
-          <div className="p-2.5 bg-white border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)]">
-            <img
-              src="/logo.png"
-              alt="UMDSC Club Logo"
-              className="w-24 h-24 md:w-28 md:h-28 object-contain"
-            />
+    <div className="relative min-h-[100dvh] w-full overflow-x-hidden">
+      <CityBackdrop />
+      <div className="relative z-[var(--z-content)] min-h-[100dvh] flex flex-col items-center justify-end p-4 mb-[calc(24px+env(safe-area-inset-bottom))]">
+        <div className="text-center mb-6 flex flex-col items-center">
+          <div className="flex justify-center mb-3">
+            <LogoBadge height={96} />
           </div>
+          <div className="inline-block bg-[var(--night-2)] text-[var(--neon-gold)] px-3 py-1 border-2 border-[var(--outline)] shadow-[4px_4px_0_var(--outline)] mb-2">
+            <span className="font-display text-[8px] md:text-[12px] tracking-widest">★ SYSTEM CONSOLE ★</span>
+          </div>
+          <h1 className="font-display text-xl md:text-2xl text-[var(--text-1)] px-glow-text" style={{ '--glow': 'var(--neon-cyan)' } as React.CSSProperties}>
+            ADMIN ACCESS
+          </h1>
         </div>
-        <div className="inline-block bg-[var(--c-navy)] text-[var(--c-yellow)] px-3 py-1 border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] mb-2">
-          <span className="font-display text-xs tracking-widest">★ SYSTEM CONSOLE ★</span>
-        </div>
-        <h1 className="font-display text-xl md:text-2xl text-[var(--text-1)]">
-          ADMIN ACCESS
-        </h1>
-      </div>
 
-      <div className="w-full max-w-md">
-        <Panel title="AUTHENTICATION" className="px-corners">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div
-                role="alert"
-                className="bg-[var(--c-peach)] border-2 border-[var(--c-red)] text-[var(--c-red)] p-3 text-xs font-body font-bold"
-              >
-                {error}
-              </div>
-            )}
+        <div className="w-full max-w-md">
+          <Panel title="AUTHENTICATION" className="px-corners">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div
+                  role="alert"
+                  className="bg-[var(--night-2)] border-2 border-[var(--neon-red)] text-[var(--neon-red)] p-3 text-[14px] font-body font-bold"
+                >
+                  {error}
+                </div>
+              )}
 
-            <Field
-              label="Username"
-              type="text"
-              autoComplete="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="admin"
-              disabled={loading}
-              required
-            />
-
-            <Field
-              label="Password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-              required
-            />
-
-            <div className="flex items-center min-h-[44px]">
-              <input
-                id="remember"
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-                className="w-5 h-5 accent-[var(--c-navy)] border-2 border-[var(--c-ink)] mr-3 cursor-pointer"
-              />
-              <label htmlFor="remember" className="font-display text-[10px] text-[var(--text-1)] cursor-pointer select-none">
-                REMEMBER ME
-              </label>
-            </div>
-
-            <div className="pt-2">
-              <PixelButton
-                variant="primary"
-                size="lg"
-                type="submit"
+              <Field
+                label="Username"
+                type="text"
+                autoComplete="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="admin"
                 disabled={loading}
-                className="w-full"
-              >
-                {loading ? 'AUTHENTICATING...' : 'LOGIN'}
-              </PixelButton>
-            </div>
-          </form>
+                required
+              />
 
-          <div className="mt-6 pt-4 border-t-2 border-[var(--c-grey)] text-center">
-            <Link
-              to="/login"
-              className="font-display text-[10px] text-[var(--c-blue)] hover:text-[var(--neon-cyan)] underline inline-block py-2 min-h-[44px] flex items-center justify-center"
-            >
-              [ &lt; DANCER MODE ]
-            </Link>
-          </div>
-        </Panel>
+              <Field
+                label="Password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                required
+              />
+
+              <div className="flex items-center min-h-[44px]">
+                <input
+                  id="remember"
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  className="w-5 h-5 accent-[var(--neon-gold)] border-2 border-[var(--outline)] mr-3 cursor-pointer"
+                />
+                <label htmlFor="remember" className="font-display text-[12px] text-[var(--text-1)] cursor-pointer select-none">
+                  REMEMBER ME
+                </label>
+              </div>
+
+              <div className="pt-2">
+                <PixelButton
+                  variant="primary"
+                  size="lg"
+                  type="submit"
+                  disabled={loading}
+                  className="w-full"
+                >
+                  {loading ? 'AUTHENTICATING...' : 'LOGIN'}
+                </PixelButton>
+              </div>
+            </form>
+
+            <div className="mt-6 pt-4 border-t-2 border-[var(--outline)] text-center">
+              <Link
+                to="/login"
+                className="font-display text-[12px] text-[var(--neon-cyan)] hover:underline inline-flex items-center justify-center py-2 min-h-[44px]"
+              >
+                [ &lt; DANCER MODE ]
+              </Link>
+            </div>
+          </Panel>
+        </div>
       </div>
     </div>
   );

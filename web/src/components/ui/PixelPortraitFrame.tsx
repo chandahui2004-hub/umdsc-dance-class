@@ -42,13 +42,22 @@ export function PixelPortraitFrame({
         <div className="absolute inset-0 px-starfield pointer-events-none" />
 
         {/* Photo */}
-        <img
-          src={src}
-          alt={alt}
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ imageRendering: 'auto' }}
-          draggable={false}
-        />
+        {src ? (
+          <img
+            src={src}
+            alt={alt}
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ imageRendering: 'auto' }}
+            draggable={false}
+          />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-2 text-center">
+            <span className="font-display text-2xl text-[var(--text-2)] mb-1">👤</span>
+            <span className="font-display text-[8px] text-[var(--text-2)] uppercase leading-tight">
+              {name ? name.slice(0, 2).toUpperCase() : 'TBA'}
+            </span>
+          </div>
+        )}
 
         {/* Scanlines overlay */}
         <div className="absolute inset-0 px-scanlines pointer-events-none" />

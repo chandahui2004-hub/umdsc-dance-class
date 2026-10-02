@@ -91,10 +91,10 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
   return (
     <div
       ref={containerRef}
-      className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] p-3 md:p-4 select-none w-full"
+      className="px-panel px-corners p-3 md:p-4 select-none w-full"
     >
       {/* Month Navigation Header */}
-      <div className="flex items-center justify-between pb-3 mb-3 border-b-4 border-[var(--c-ink)]">
+      <div className="flex items-center justify-between pb-3 mb-3 border-b-2 border-[var(--outline)]">
         <div>
           {canGoPrev && (
             <PixelButton
@@ -108,7 +108,10 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
           )}
         </div>
 
-        <h2 className="font-display text-sm md:text-base text-[var(--text-1)] tracking-wider">
+        <h2
+          className="font-display text-[12px] md:text-[16px] text-[var(--text-1)] tracking-wider px-glow-text"
+          style={{ '--glow': 'var(--neon-cyan)' } as React.CSSProperties}
+        >
           {monthTitle}
         </h2>
 
@@ -131,7 +134,7 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
         {WEEKDAYS.map((day) => (
           <div
             key={day}
-            className="font-display text-[10px] md:text-xs text-[var(--text-2)] py-1"
+            className="font-display text-[8px] text-[var(--text-2)] py-1"
           >
             {day}
           </div>
@@ -162,35 +165,38 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
               aria-label={ariaLabel}
               onClick={() => onSelect?.(dateStr)}
               onKeyDown={(e) => handleKeyDown(e, dateStr)}
-              className={`min-h-[44px] min-w-[44px] p-1 flex flex-col justify-between items-center border-2 border-[var(--c-ink)] transition-none font-display text-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--c-yellow)] ${
+              style={isToday && !isSelected ? ({ '--glow': 'var(--neon-cyan)' } as React.CSSProperties) : undefined}
+              className={`px-well min-h-[44px] min-w-[44px] p-1 flex flex-col justify-between items-center transition-none font-display text-[8px] md:text-[12px] cursor-pointer focus:outline-none ${
                 isSelected
-                  ? 'bg-[var(--c-yellow)] shadow-[2px_2px_0_var(--c-ink)]'
+                  ? 'bg-[var(--violet-2)] border-[var(--neon-gold)] shadow-[2px_2px_0_var(--outline)]'
                   : isToday
-                  ? 'bg-[var(--c-peach)]'
+                  ? 'border-[var(--neon-cyan)] px-neon'
                   : isCurrentMonth
-                  ? 'bg-[var(--c-panel)] hover:bg-[var(--c-bg)]'
-                  : 'bg-[var(--c-bg)] opacity-40'
+                  ? 'hover:bg-[var(--violet-1)]'
+                  : 'opacity-30'
               }`}
             >
               {/* Day Number */}
               <span
-                className={`text-[10px] md:text-xs leading-none ${
-                  isCurrentMonth ? 'text-[var(--text-1)]' : 'text-[var(--text-2)]'
+                className={`text-[8px] md:text-[12px] leading-none ${
+                  isCurrentMonth ? 'text-[var(--text-1)]' : 'text-[var(--text-3)]'
                 }`}
               >
                 {dayNum}
               </span>
 
-              {/* Coloured Markers */}
-              <div className="flex gap-1 flex-wrap justify-center w-full min-h-[8px]">
-                {dayMarks.map((m, idx) => {
-                  const colorVar = STYLE_COLOR[m.colorKey] || `var(--c-${m.colorKey})`;
+              {/* Coloured Markers (up to 4 square dots) */}
+              <div className="flex gap-1 flex-wrap justify-center w-full min-h-[4px]">
+                {dayMarks.slice(0, 4).map((m, idx) => {
+                  const colorVar = m.colorKey?.startsWith('#')
+                    ? m.colorKey
+                    : (STYLE_COLOR[m.colorKey?.toLowerCase()] || `var(--c-${m.colorKey})`);
                   return (
                     <span
                       key={idx}
                       data-marker="true"
                       style={{ backgroundColor: colorVar }}
-                      className="w-2 h-2 inline-block border border-[var(--c-ink)]"
+                      className="w-1 h-1 inline-block border-none"
                       title={m.label || m.kind}
                     />
                   );

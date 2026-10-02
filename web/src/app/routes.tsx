@@ -10,6 +10,7 @@ import { AdminLogin } from '../features/auth/AdminLogin';
 import { SetupPage } from '../features/setup/SetupPage';
 import { MembersPage } from '../features/members/MembersPage';
 import { ClassesPage } from '../features/classes/ClassesPage';
+import { TodayPage } from '../features/classes/TodayPage';
 import { StylesPage } from '../features/masterdata/StylesPage';
 import { InstructorsPage } from '../features/masterdata/InstructorsPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
@@ -165,7 +166,7 @@ export const AppRoutes: React.FC = () => {
           <RequireRole role="admin">
             <AdminShell>
               <Routes>
-                <Route path="today" element={<Navigate to="/admin/calendar" replace />} />
+                <Route path="today" element={<TodayPage />} />
                 <Route path="calendar" element={<ClassesPage />} />
                 <Route path="attendance" element={<AttendancePage />} />
                 <Route path="media" element={<MediaPage />} />

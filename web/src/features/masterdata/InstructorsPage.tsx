@@ -7,6 +7,7 @@ import { Field } from '../../components/ui/Field';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ColorSwatchPicker } from '../../components/ui/ColorSwatchPicker';
+import { PixelPortraitFrame } from '../../components/ui/PixelPortraitFrame';
 import { getInstructorPhotoUrl, STANDARD_PHOTO_HINT } from '../../lib/instructorPhotos';
 import type { Instructor, InstructorPhoto } from '@umdsc/shared';
 
@@ -238,50 +239,38 @@ export const InstructorsPage: React.FC = () => {
             return (
               <div
                 key={inst.id}
-                className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] p-4 flex flex-col justify-between gap-4"
+                className="px-panel p-4 flex flex-col justify-between gap-4"
               >
-                <div className="space-y-3">
-                  {/* Portrait photo (1080x1350 4:5 aspect ratio) */}
-                  <div className="w-full aspect-[4/5] bg-[var(--c-bg)] border-2 border-[var(--c-ink)] overflow-hidden flex items-center justify-center">
-                    {photoUrl ? (
-                      <img
-                        src={photoUrl}
-                        alt={inst.name}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="flex flex-col items-center justify-center p-4 text-center">
-                        <span className="font-display text-3xl text-[var(--text-2)] mb-2">
-                          👤
-                        </span>
-                        <span className="font-display text-[9px] text-[var(--text-2)] uppercase">
-                          No Photo
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                <div className="space-y-3 flex flex-col items-center sm:items-start">
+                  {/* Portrait photo frame */}
+                  <PixelPortraitFrame
+                    src={photoUrl || ''}
+                    alt={inst.name}
+                    name="INSTRUCTOR"
+                    glow="var(--neon-cyan)"
+                    size="sm"
+                  />
                   {/* Instructor Color Banner below picture */}
                   <div
-                    className="w-full py-1 text-center border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] font-display text-[9px] font-bold text-[var(--text-1)] uppercase tracking-wider"
+                    className="w-full py-1 text-center border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] font-display text-[8px] font-bold text-[var(--on-neon)] uppercase tracking-wider"
                     style={{ backgroundColor: instColor }}
                   >
                     INSTRUCTOR · {inst.color?.toUpperCase() || 'DEFAULT'}
                   </div>
 
                   {/* Instructor Meta */}
-                  <div>
-                    <h3 className="font-display text-sm text-[var(--text-1)] font-bold truncate">
+                  <div className="w-full">
+                    <h3 className="font-display text-[12px] text-[var(--text-1)] font-bold truncate">
                       {inst.name}
                     </h3>
-                    <p className="font-mono text-xs text-[var(--text-2)] mt-1 truncate">
+                    <p className="font-mono text-[14px] text-[var(--text-2)] mt-1 truncate">
                       📞 {inst.contact || 'No contact specified'}
                     </p>
                   </div>
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-2 pt-3 border-t-2 border-[var(--c-ink)]">
+                <div className="flex gap-2 pt-3 border-t-2 border-[var(--outline)]">
                   <PixelButton
                     size="sm"
                     variant="secondary"
@@ -310,16 +299,16 @@ export const InstructorsPage: React.FC = () => {
 
       {/* Create / Edit Modal */}
       {(isCreating || editingInstructor) && (
-        <div className="fixed inset-0 bg-[var(--c-ink)]/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 bg-[var(--night-0)]/80 px-dither z-[var(--z-modal)] flex items-center justify-center p-4 overflow-y-auto">
           <div className="w-full max-w-2xl my-8">
             <Panel
               title={isCreating ? 'CREATE INSTRUCTOR' : `EDIT ${editingInstructor?.name}`}
-              className="px-corners bg-[var(--c-panel)] p-4 sm:p-6 space-y-5"
+              className="px-corners p-4 sm:p-6 space-y-5"
             >
               {formError && (
                 <div
                   role="alert"
-                  className="bg-[var(--c-peach)] border-4 border-[var(--c-red)] p-3 text-[var(--c-red)] font-body font-bold text-sm"
+                  className="bg-[var(--night-2)] border-2 border-[var(--neon-red)] text-[var(--neon-red)] p-3 text-[14px] font-body font-bold"
                 >
                   {formError}
                 </div>
@@ -333,7 +322,7 @@ export const InstructorsPage: React.FC = () => {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Lam Hong Woh"
-                  className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-body text-base bg-[var(--c-bg)]"
+                  className="px-well w-full min-h-[44px] px-3 font-body text-[16px]"
                   required
                 />
               </Field>
@@ -346,7 +335,7 @@ export const InstructorsPage: React.FC = () => {
                   value={contact}
                   onChange={(e) => setContact(e.target.value)}
                   placeholder="e.g. +60123456789"
-                  className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-mono text-base bg-[var(--c-bg)]"
+                  className="px-well w-full min-h-[44px] px-3 font-mono text-[16px]"
                 />
               </Field>
 
@@ -358,23 +347,24 @@ export const InstructorsPage: React.FC = () => {
               />
 
               {/* Photo Management Section */}
-              <div className="space-y-3 pt-3 border-t-2 border-[var(--c-ink)]/20">
+              <div className="space-y-3 pt-3 border-t-2 border-[var(--outline)]">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                   <div>
-                    <h3 className="font-display text-xs text-[var(--text-1)] tracking-wider">
+                    <h3 className="font-display text-[12px] text-[var(--text-1)] tracking-wider">
                       INSTRUCTOR PICTURE
                     </h3>
-                    <p className="font-body text-xs text-[var(--text-2)] mt-0.5">
+                    <p className="font-body text-[14px] text-[var(--text-2)] mt-0.5">
                       {STANDARD_PHOTO_HINT}
                     </p>
                   </div>
-                  <button
+                  <PixelButton
+                    size="sm"
+                    variant="secondary"
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="self-start sm:self-auto px-3 py-1.5 bg-[var(--c-ink)] text-[var(--c-yellow)] font-display text-[9px] font-bold border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] hover:bg-[var(--c-darkgrey)] active:translate-x-[1px] active:translate-y-[1px] cursor-pointer"
                   >
                     + UPLOAD PICTURE
-                  </button>
+                  </PixelButton>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -386,17 +376,17 @@ export const InstructorsPage: React.FC = () => {
 
                 {/* Active Photo Preview & Gallery */}
                 {photos.length === 0 && !activePhotoUrl ? (
-                  <div className="p-4 bg-[var(--c-bg)] border-2 border-dashed border-[var(--c-ink)] text-center space-y-1">
-                    <p className="font-display text-[10px] text-[var(--text-2)]">
+                  <div className="px-well p-4 text-center space-y-1">
+                    <p className="font-display text-[8px] md:text-[12px] text-[var(--text-2)]">
                       NO PICTURE UPLOADED YET
                     </p>
-                    <p className="font-body text-xs text-[var(--text-2)]">
+                    <p className="font-body text-[14px] text-[var(--text-3)]">
                       Upload a 1080 × 1350 px portrait for this instructor to display on the calendar.
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <div className="text-[10px] font-display text-[var(--text-1)]">
+                    <div className="text-[12px] font-display text-[var(--text-1)]">
                       PICTURE GALLERY ({photos.length})
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -405,10 +395,10 @@ export const InstructorsPage: React.FC = () => {
                         return (
                           <div
                             key={p.id}
-                            className={`relative aspect-[4/5] bg-[var(--c-bg)] border-2 ${
+                            className={`relative aspect-[4/5] bg-[var(--night-2)] border-2 ${
                               isActive
-                                ? 'border-[var(--c-ink)] shadow-[3px_3px_0_var(--c-ink)] ring-2 ring-[var(--c-yellow)]'
-                                : 'border-[var(--c-ink)]/40 opacity-75 hover:opacity-100'
+                                ? 'border-[var(--neon-gold)] shadow-[3px_3px_0_var(--outline)] ring-2 ring-[var(--neon-gold)]'
+                                : 'border-[var(--outline)] opacity-75 hover:opacity-100'
                             } overflow-hidden group flex flex-col justify-between p-1`}
                           >
                             <img
@@ -420,14 +410,14 @@ export const InstructorsPage: React.FC = () => {
                             {/* Badge */}
                             <div className="relative z-10">
                               {isActive ? (
-                                <span className="bg-[var(--c-yellow)] text-[var(--on-neon)] px-1.5 py-0.5 border border-[var(--c-ink)] font-display text-[8px] font-bold">
+                                <span className="bg-[var(--neon-gold)] text-[var(--on-neon)] px-1.5 py-0.5 border border-[var(--outline)] font-display text-[8px] font-bold">
                                   ACTIVE
                                 </span>
                               ) : (
                                 <button
                                   type="button"
                                   onClick={() => handleSetActivePhoto(p.id)}
-                                  className="bg-[var(--c-panel)] text-[var(--text-1)] px-1.5 py-0.5 border border-[var(--c-ink)] font-display text-[8px] hover:bg-[var(--c-yellow)] hover:text-[var(--on-neon)] cursor-pointer"
+                                  className="bg-[var(--night-2)] text-[var(--text-1)] px-1.5 py-0.5 border border-[var(--outline)] font-display text-[8px] hover:bg-[var(--neon-gold)] hover:text-[var(--on-neon)] cursor-pointer"
                                 >
                                   SET ACTIVE
                                 </button>
@@ -441,7 +431,7 @@ export const InstructorsPage: React.FC = () => {
                                 onClick={() => handleDeletePhoto(p.id)}
                                 title="Remove photo"
                                 aria-label="Remove photo"
-                                className="w-5 h-5 bg-[var(--c-red)] text-white font-display text-[8px] flex items-center justify-center border border-[var(--c-ink)] shadow-[1px_1px_0_var(--c-ink)] hover:bg-red-700 cursor-pointer"
+                                className="w-6 h-6 bg-[var(--neon-red)] text-white font-display text-[8px] flex items-center justify-center border border-[var(--outline)] shadow-[1px_1px_0_var(--outline)] hover:opacity-90 cursor-pointer"
                               >
                                 ✕
                               </button>
@@ -454,7 +444,7 @@ export const InstructorsPage: React.FC = () => {
                 )}
               </div>
 
-              <div className="flex gap-3 pt-3 border-t-2 border-[var(--c-ink)]">
+              <div className="flex gap-3 pt-3 border-t-2 border-[var(--outline)]">
                 <PixelButton
                   size="md"
                   variant="primary"

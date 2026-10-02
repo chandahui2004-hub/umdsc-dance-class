@@ -737,7 +737,7 @@ if (process.argv[1] && process.argv[1].endsWith('pixelize.mjs')) {
 **Interfaces:**
 - Consumes: `CityBackdrop`, `Boombox`, `LogoBadge` (Task 6); `NeonSign`, `PixelPortraitFrame`, `PixelButton`, `Panel`, `Sheet` (Task 7); `getStyleColor(colorKey)` from `web/src/theme/colors.ts` (unchanged).
 
-- [ ] **Step 1: TitleScreen (dancer login) and AdminLogin:**
+- [x] **Step 1: TitleScreen (dancer login) and AdminLogin:**
   - The root renders `<CityBackdrop />` first.
   - Content is in a `relative z-[var(--z-content)] min-h-[100dvh] flex flex-col items-center justify-end` column, so the card sits in the lower thumb zone with the city visible above.
   - `<LogoBadge height={120} />` in the upper third (at 360px wide: `height={96}`).
@@ -745,28 +745,28 @@ if (process.argv[1] && process.argv[1].endsWith('pixelize.mjs')) {
   - The login card is a `Panel`; its inputs are `Field`s and its submit button is `PixelButton` `primary` `lg`, full width.
   - Keep all wording, labels and test ids.
   - Bottom margin: `mb-[calc(24px+env(safe-area-inset-bottom))]`.
-- [ ] **Step 2: MonthCalendar** (spec §8):
+- [x] **Step 2: MonthCalendar** (spec §8):
   - Day cells: `px-well`, at least 44×44.
   - Today: `border-[var(--neon-cyan)]` + `px-neon`.
   - Selected: `bg-[var(--violet-2)] border-[var(--neon-gold)]`.
   - Class dots: 4×4 squares (not circles) in `getStyleColor(style.colorKey)`, up to 4 per cell, in a row at the bottom.
   - Weekday header: `font-display text-[8px] text-[var(--text-2)]`.
-- [ ] **Step 3: ClassCard and DaySheet:**
+- [x] **Step 3: ClassCard and DaySheet:**
   - The card is `px-panel` with a 4px left border in the style colour.
   - The style name renders as `<NeonSign text={style.name} color={getStyleColor(style.colorKey)} size="sm" />`.
   - Time: `font-mono text-[24px] text-[var(--neon-gold)]`.
   - Venue and instructor: 16px `--text-2`.
   - A class happening now gets `px-neon` with `--glow` = the style colour (this counts towards the two-glow limit).
-- [ ] **Step 4: Instructor portraits.**
+- [x] **Step 4: Instructor portraits.**
   - Wherever the instructor photo is shown, replace the bare `<img>` with `<PixelPortraitFrame src=… alt={instructor.name} name={instructor.name} glow={getStyleColor(style.colorKey)} size="lg" />`. The places are: the pop-up from the calendar, which per the owner has the photo on the left and info on the right on wide screens and the photo on top on phones, and the instructor list.
   - On `InstructorsPage` (no style context), use `size="sm"` and `glow="var(--neon-cyan)"`.
   - Keep the upload, active-picture and remove controls exactly as the instructor-photo task built them; only restyle them with `PixelButton` variants.
-- [ ] **Step 5: Look at the screens.** Check `/login`, `/` (dancer home, then open a day) and `/admin/instructors` at 390×844 and 360×780. Expected:
+- [x] **Step 5: Look at the screens.** Check `/login`, `/` (dancer home, then open a day) and `/admin/instructors` at 390×844 and 360×780. Expected:
   - the city fills the login screen behind the card;
   - the portrait frame glows in the style colour;
   - instructor names truncate with "…" and do not wrap the frame wider.
-- [ ] **Step 6: Run the tests.** Run `npm test -w web` and `npm run e2e -w web -- login.spec.ts dancer-home.spec.ts admin-masterdata.spec.ts`. Expected: same as the Baseline.
-- [ ] **Step 7: Commit.** `git add web/src && git commit -m "feat(ui): neon login city, calendar, class cards, instructor portrait frames"`
+- [x] **Step 6: Run the tests.** Run `npm test -w web` and `npm run e2e -w web -- login.spec.ts dancer-home.spec.ts admin-masterdata.spec.ts`. Expected: same as the Baseline.
+- [x] **Step 7: Commit.** `git add web/src && git commit -m "feat(ui): neon login city, calendar, class cards, instructor portrait frames"`
 
 ---
 

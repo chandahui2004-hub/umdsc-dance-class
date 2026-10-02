@@ -44,11 +44,11 @@ export const DaySheet: React.FC<DaySheetProps> = ({
     <Sheet isOpen={isOpen} onClose={onClose} title={formattedTitle}>
       <div className="space-y-4">
         {daySessions.length === 0 ? (
-          <div className="p-6 text-center bg-[var(--c-bg)] border-2 border-dashed border-[var(--c-ink)] space-y-2">
-            <p className="font-display text-xs text-[var(--text-2)]">
+          <div className="p-6 text-center px-well space-y-2">
+            <p className="font-display text-[12px] text-[var(--text-2)]">
               NO CLASSES SCHEDULED FOR THIS DAY
             </p>
-            <p className="font-body text-xs text-[var(--text-2)]">
+            <p className="font-body text-[16px] text-[var(--text-3)]">
               Tap another highlighted calendar day to see class details and videos.
             </p>
           </div>

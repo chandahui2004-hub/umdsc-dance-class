@@ -121,18 +121,18 @@ export const DancerHome: React.FC = () => {
   if (isLoading && !bootstrap) {
     return (
       <div className="space-y-4">
-        <div className="flex flex-col gap-1 pb-2 border-b-4 border-[var(--c-ink)]">
+        <div className="flex flex-col gap-1 pb-2 border-b-2 border-[var(--outline)]">
           <h1 className="font-display text-xl md:text-2xl text-[var(--text-1)]">
             Calendar
           </h1>
           {dancerName && (
-            <p className="font-display text-xs text-[var(--c-orange)] tracking-wide">
+            <p className="font-display text-[12px] text-[var(--neon-gold)] tracking-wide">
               {dancerName}
             </p>
           )}
         </div>
-        <div className="p-8 text-center bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)]">
-          <p className="font-display text-xs text-[var(--text-2)] animate-pulse">
+        <div className="p-8 text-center px-panel">
+          <p className="font-display text-[12px] text-[var(--text-2)] animate-pulse">
             LOADING CALENDAR DATA…
           </p>
         </div>
@@ -143,21 +143,21 @@ export const DancerHome: React.FC = () => {
   if (events.length === 0) {
     return (
       <div className="space-y-4">
-        <div className="flex flex-col gap-1 pb-2 border-b-4 border-[var(--c-ink)]">
+        <div className="flex flex-col gap-1 pb-2 border-b-2 border-[var(--outline)]">
           <h1 className="font-display text-xl md:text-2xl text-[var(--text-1)]">
             Calendar
           </h1>
           {dancerName && (
-            <p className="font-display text-xs text-[var(--c-orange)] tracking-wide">
+            <p className="font-display text-[12px] text-[var(--neon-gold)] tracking-wide">
               {dancerName}
             </p>
           )}
         </div>
-        <div className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] p-8 text-center space-y-3">
-          <p className="font-display text-sm text-[var(--c-red)] font-bold">
+        <div className="px-panel p-8 text-center space-y-3">
+          <p className="font-display text-[12px] text-[var(--neon-red)] font-bold">
             NO REGISTERED EVENTS
           </p>
-          <p className="font-body text-sm text-[var(--text-2)]">
+          <p className="font-body text-[16px] text-[var(--text-2)]">
             You are not enrolled in any dance classes or events yet. Please register using the official club form.
           </p>
         </div>
@@ -168,13 +168,13 @@ export const DancerHome: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Top Header: Title & Event Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b-4 border-[var(--c-ink)]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b-2 border-[var(--outline)]">
         <div>
           <h1 className="font-display text-xl md:text-2xl text-[var(--text-1)]">
             Calendar
           </h1>
           {dancerName && (
-            <p className="font-display text-[10px] md:text-xs text-[var(--c-orange)] tracking-wide">
+            <p className="font-display text-[12px] text-[var(--neon-gold)] tracking-wide">
               {dancerName}
             </p>
           )}
@@ -182,7 +182,7 @@ export const DancerHome: React.FC = () => {
 
         {/* Event Switcher */}
         <div className="flex items-center gap-2">
-          <label htmlFor="dancer-event-select" className="font-display text-[10px] text-[var(--text-1)] font-bold whitespace-nowrap">
+          <label htmlFor="dancer-event-select" className="font-display text-[8px] text-[var(--text-2)] font-bold uppercase whitespace-nowrap">
             EVENT:
           </label>
           <select
@@ -198,7 +198,7 @@ export const DancerHome: React.FC = () => {
                 }
               }
             }}
-            className="min-h-[44px] px-3 border-2 border-[var(--c-ink)] bg-[var(--c-panel)] font-display text-xs text-[var(--text-1)] font-bold shadow-[2px_2px_0_var(--c-ink)] cursor-pointer"
+            className="px-well min-h-[44px] px-3 font-display text-[12px] text-[var(--text-1)] cursor-pointer"
           >
             <option value="all">ALL EVENTS</option>
             {events.map((ev) => (
@@ -212,9 +212,9 @@ export const DancerHome: React.FC = () => {
 
       {/* Event Details Banner */}
       {currentEvent ? (
-        <div data-testid="event-banner" className="bg-[var(--c-panel)] border-2 border-[var(--c-ink)] p-2.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono shadow-[2px_2px_0_var(--c-ink)]">
+        <div data-testid="event-banner" className="px-panel p-2.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
           <div className="flex items-center gap-2">
-            <span className="font-display text-[10px] px-1.5 py-0.5 bg-[var(--c-yellow)] text-[var(--on-neon)] border border-[var(--c-ink)] font-bold">
+            <span className="font-display text-[8px] px-1.5 py-0.5 bg-[var(--neon-gold)] text-[var(--on-neon)] border border-[var(--outline)] font-bold">
               {currentEvent.type.toUpperCase()}
             </span>
             <span className="font-bold text-[var(--text-1)]">
@@ -226,9 +226,9 @@ export const DancerHome: React.FC = () => {
           </span>
         </div>
       ) : (
-        <div data-testid="all-events-banner" className="bg-[var(--c-panel)] border-2 border-[var(--c-ink)] p-2.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono shadow-[2px_2px_0_var(--c-ink)]">
+        <div data-testid="all-events-banner" className="px-panel p-2.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
           <div className="flex items-center gap-2">
-            <span className="font-display text-[10px] px-1.5 py-0.5 bg-[var(--c-navy)] text-[var(--c-yellow)] border border-[var(--c-ink)] font-bold">
+            <span className="font-display text-[8px] px-1.5 py-0.5 bg-[var(--night-2)] text-[var(--neon-gold)] border border-[var(--outline)] font-bold">
               ALL EVENTS
             </span>
             <span className="font-bold text-[var(--text-1)]">
@@ -254,8 +254,8 @@ export const DancerHome: React.FC = () => {
       />
 
       {/* Style & Attendance Legend */}
-      <div className="bg-[var(--c-panel)] border-2 border-[var(--c-ink)] p-3 space-y-2">
-        <span className="font-display text-[10px] text-[var(--text-2)] font-bold block">
+      <div className="px-panel p-3 space-y-2">
+        <span className="font-display text-[8px] text-[var(--text-2)] font-bold uppercase block">
           LEGEND:
         </span>
         <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
@@ -264,7 +264,7 @@ export const DancerHome: React.FC = () => {
             return (
               <div key={style.id} className="flex items-center gap-1.5">
                 <span
-                  className="w-3 h-3 border border-[var(--c-ink)] inline-block flex-shrink-0"
+                  className="w-3 h-3 border border-[var(--outline)] inline-block flex-shrink-0"
                   style={{ backgroundColor: colorVar }}
                 />
                 <span className="font-bold text-[var(--text-1)]">{style.name}</span>
@@ -272,19 +272,19 @@ export const DancerHome: React.FC = () => {
             );
           })}
           <div className="flex items-center gap-1">
-            <span className="w-3.5 h-3.5 bg-[var(--c-green)] text-[var(--on-neon)] border border-[var(--c-ink)] inline-flex items-center justify-center font-bold text-[9px]">
+            <span className="w-3.5 h-3.5 bg-[var(--neon-green)] text-[var(--on-neon)] border border-[var(--outline)] inline-flex items-center justify-center font-bold text-[9px]">
               ✓
             </span>
             <span className="text-[var(--text-2)]">Attended</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="w-3.5 h-3.5 bg-[var(--c-panel)] text-[var(--text-2)] border border-[var(--c-ink)] inline-flex items-center justify-center font-bold text-[9px]">
+            <span className="w-3.5 h-3.5 bg-[var(--night-2)] text-[var(--neon-red)] border border-[var(--neon-red)] inline-flex items-center justify-center font-bold text-[9px]">
               ✕
             </span>
             <span className="text-[var(--text-2)]">Absent</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="w-3.5 h-3.5 bg-[var(--c-yellow)] border border-[var(--c-ink)] inline-block animate-pulse" />
+            <span className="w-3.5 h-3.5 bg-[var(--neon-gold)] border border-[var(--outline)] inline-block animate-pulse" />
             <span className="text-[var(--text-2)]">Upcoming</span>
           </div>
         </div>

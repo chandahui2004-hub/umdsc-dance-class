@@ -5,6 +5,9 @@ import { session } from '../../lib/session';
 import { Panel } from '../../components/ui/Panel';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { Field } from '../../components/ui/Field';
+import { CityBackdrop } from '../../components/art/CityBackdrop';
+import { Boombox } from '../../components/art/Boombox';
+import { LogoBadge } from '../../components/ui/LogoBadge';
 import type { TokenClaims, DancerBootstrap } from '@umdsc/shared';
 
 interface DancerLoginResponse {
@@ -71,92 +74,101 @@ export const TitleScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--c-bg)] flex flex-col items-center justify-center p-4">
-      {/* 8-bit Title Header */}
-      <div className="text-center mb-6">
-        <div className="flex justify-center mb-3">
-          <div className="p-2.5 bg-white border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)]">
-            <img
-              src="/logo.png"
-              alt="UMDSC Club Logo"
-              className="w-28 h-28 md:w-36 md:h-36 object-contain"
-            />
-          </div>
-        </div>
-        <div className="inline-block bg-[var(--c-navy)] text-[var(--c-yellow)] px-4 py-2 border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] mb-3">
-          <span className="font-display text-xs md:text-sm tracking-widest">★ 8-BIT EDITION ★</span>
-        </div>
-        <h1 className="font-display text-2xl md:text-4xl text-[var(--text-1)] tracking-wider mb-2 drop-shadow-[2px_2px_0_var(--c-yellow)]">
-          UMDSC
-        </h1>
-        <p className="font-display text-xs md:text-sm text-[var(--text-2)]">
-          DANCE CLASS SYSTEM
-        </p>
-        <div className="mt-4 px-blink">
-          <span className="font-display text-xs text-[var(--c-orange)] tracking-widest">
-            ▼ PRESS START ▼
-          </span>
-        </div>
-      </div>
-
-      {/* Player Select Panel */}
-      <div className="w-full max-w-md">
-        <Panel title="PLAYER SELECT" className="px-corners">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div
-                role="alert"
-                className="bg-[var(--c-peach)] border-2 border-[var(--c-red)] text-[var(--c-red)] p-3 text-xs font-body font-bold"
-              >
-                {error}
-              </div>
-            )}
-
-            <Field
-              label="Full Name"
-              type="text"
-              autoComplete="name"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="e.g. SARAH BINTI AHMAD"
-              disabled={loading}
-              required
-            />
-
-            <Field
-              label="Matric Number"
-              type="text"
-              autoComplete="username"
-              value={matricRaw}
-              onChange={(e) => setMatricRaw(e.target.value)}
-              placeholder="e.g. 17201234"
-              disabled={loading}
-              helper="e.g. 17201234 or U2000000"
-              required
-            />
-
-            <div className="pt-2">
-              <PixelButton
-                variant="primary"
-                size="lg"
-                type="submit"
-                disabled={loading}
-                className="w-full"
-              >
-                {loading ? 'LOADING...' : 'ENTER'}
-              </PixelButton>
+    <div className="relative min-h-[100dvh] w-full overflow-x-hidden">
+      <CityBackdrop />
+      <div className="relative z-[var(--z-content)] min-h-[100dvh] flex flex-col items-center justify-end p-4 mb-[calc(24px+env(safe-area-inset-bottom))]">
+        {/* 8-bit Title Header */}
+        <div className="text-center mb-6 flex flex-col items-center">
+          <div className="flex justify-center mb-3">
+            <div className="hidden sm:block">
+              <LogoBadge height={120} />
             </div>
-          </form>
-
-          <div className="mt-6 pt-4 border-t-2 border-[var(--c-grey)] text-center">
-            <Link
-              to="/admin/login"
-              className="font-display text-[10px] text-[var(--c-blue)] hover:text-[var(--neon-cyan)] underline inline-block py-2 min-h-[44px] flex items-center justify-center"
-            >
-              [ ADMIN MODE ]
-            </Link>
+            <div className="sm:hidden">
+              <LogoBadge height={96} />
+            </div>
           </div>
-        </Panel>
+          <div className="inline-block bg-[var(--night-2)] text-[var(--neon-gold)] px-4 py-2 border-2 border-[var(--outline)] shadow-[4px_4px_0_var(--outline)] mb-3">
+            <span className="font-display text-[8px] md:text-[12px] tracking-widest">★ 8-BIT EDITION ★</span>
+          </div>
+          <h1
+            className="font-display text-2xl md:text-4xl text-[var(--text-1)] tracking-wider mb-2 px-glow-text"
+            style={{ '--glow': 'var(--neon-gold)' } as React.CSSProperties}
+          >
+            UMDSC
+          </h1>
+          <p className="font-display text-[8px] md:text-[12px] text-[var(--text-2)]">
+            DANCE CLASS SYSTEM
+          </p>
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <Boombox size={64} />
+            <span
+              className="font-display text-[12px] text-[var(--neon-gold)] px-glow-text px-blink tracking-widest"
+              style={{ '--glow': 'var(--neon-gold)' } as React.CSSProperties}
+            >
+              ▼ PRESS START ▼
+            </span>
+          </div>
+        </div>
+
+        {/* Player Select Panel */}
+        <div className="w-full max-w-md">
+          <Panel title="PLAYER SELECT" className="px-corners">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div
+                  role="alert"
+                  className="bg-[var(--night-2)] border-2 border-[var(--neon-red)] text-[var(--neon-red)] p-3 text-[14px] font-body font-bold"
+                >
+                  {error}
+                </div>
+              )}
+
+              <Field
+                label="Full Name"
+                type="text"
+                autoComplete="name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="e.g. SARAH BINTI AHMAD"
+                disabled={loading}
+                required
+              />
+
+              <Field
+                label="Matric Number"
+                type="text"
+                autoComplete="username"
+                value={matricRaw}
+                onChange={(e) => setMatricRaw(e.target.value)}
+                placeholder="e.g. 17201234"
+                disabled={loading}
+                helper="e.g. 17201234 or U2000000"
+                required
+              />
+
+              <div className="pt-2">
+                <PixelButton
+                  variant="primary"
+                  size="lg"
+                  type="submit"
+                  disabled={loading}
+                  className="w-full"
+                >
+                  {loading ? 'LOADING...' : 'ENTER'}
+                </PixelButton>
+              </div>
+            </form>
+
+            <div className="mt-6 pt-4 border-t-2 border-[var(--outline)] text-center">
+              <Link
+                to="/admin/login"
+                className="font-display text-[12px] text-[var(--neon-cyan)] hover:underline inline-flex items-center justify-center py-2 min-h-[44px]"
+              >
+                [ ADMIN MODE ]
+              </Link>
+            </div>
+          </Panel>
+        </div>
       </div>
     </div>
   );
