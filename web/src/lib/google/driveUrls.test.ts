@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { streamUrl, downloadUrl, openInDriveUrl } from './driveUrls';
+import { streamUrl, downloadUrl, openInDriveUrl, previewUrl, folderUrl } from './driveUrls';
 
 describe('driveUrls', () => {
   it('streamUrl formats correctly with API key', () => {
@@ -15,4 +15,13 @@ describe('driveUrls', () => {
   it('openInDriveUrl formats correctly', () => {
     expect(openInDriveUrl('abc')).toBe('https://drive.google.com/file/d/abc/view');
   });
+
+  it('previewUrl formats Google Drive preview iframe link correctly', () => {
+    expect(previewUrl('abc')).toBe('https://drive.google.com/file/d/abc/preview');
+  });
+
+  it('folderUrl formats Google Drive folder link correctly', () => {
+    expect(folderUrl('fld-123')).toBe('https://drive.google.com/drive/folders/fld-123');
+  });
 });
+

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { ClassSession, DanceStyle, Instructor, VideoItem, MusicItem } from '@umdsc/shared';
 import { STYLE_COLOR } from '../../theme/colors';
 import { PixelButton } from '../../components/ui/PixelButton';
-import { streamUrl, downloadUrl, openInDriveUrl } from '../../lib/google/driveUrls';
+import { streamUrl, downloadUrl, openInDriveUrl, previewUrl, folderUrl } from '../../lib/google/driveUrls';
 import { todayKL } from '../../lib/time';
 
 export interface ClassCardProps {
@@ -124,9 +124,23 @@ export const ClassCard: React.FC<ClassCardProps> = ({
         </div>
 
         {videos.length === 0 ? (
-          <p className="font-body text-xs text-[var(--c-darkgrey)] italic bg-[var(--c-bg)] p-2 border border-dashed border-[var(--c-ink)]">
-            No recap videos uploaded yet.
-          </p>
+          <div className="bg-[var(--c-bg)] p-3 border border-dashed border-[var(--c-ink)] space-y-2">
+            <p className="font-body text-xs text-[var(--c-darkgrey)] italic">
+              No individual recap videos tagged for this class yet.
+            </p>
+            {style?.videoFolderId && (
+              <div className="pt-1">
+                <a
+                  href={folderUrl(style.videoFolderId)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--c-yellow)] text-[var(--c-ink)] border-2 border-[var(--c-ink)] font-display text-[10px] font-bold shadow-[2px_2px_0_var(--c-ink)] hover:bg-[var(--c-yellow)]/90"
+                >
+                  📁 OPEN {style.name.toUpperCase()} VIDEO FOLDER IN DRIVE ↗
+                </a>
+              </div>
+            )}
+          </div>
         ) : (
           <div className="space-y-3">
             {videos.map((v) => {
@@ -207,14 +221,14 @@ export const ClassCard: React.FC<ClassCardProps> = ({
                     </span>
                   </div>
 
-                  {/* Inline Video Player */}
+                  {/* Inline Video Player: Official Google Drive Preview Iframe */}
                   <div className="relative aspect-video bg-black border-2 border-[var(--c-ink)] overflow-hidden">
-                    <video
-                      src={streamUrl(v.driveFileId)}
-                      controls
-                      playsInline
-                      preload="metadata"
-                      className="w-full h-full object-contain"
+                    <iframe
+                      src={previewUrl(v.driveFileId)}
+                      title={v.title}
+                      className="w-full h-full border-0"
+                      allow="autoplay; encrypted-media; fullscreen"
+                      allowFullScreen
                     />
                   </div>
 
@@ -241,6 +255,19 @@ export const ClassCard: React.FC<ClassCardProps> = ({
                 </div>
               );
             })}
+
+            {style?.videoFolderId && (
+              <div className="pt-1">
+                <a
+                  href={folderUrl(style.videoFolderId)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--c-panel)] text-[var(--c-ink)] border-2 border-[var(--c-ink)] font-display text-[10px] font-bold shadow-[2px_2px_0_var(--c-ink)] hover:bg-[var(--c-yellow)]"
+                >
+                  📁 BROWSE ALL {style.name.toUpperCase()} VIDEOS IN DRIVE FOLDER ↗
+                </a>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -279,17 +306,6 @@ export const ClassCard: React.FC<ClassCardProps> = ({
                     preload="metadata"
                     className="w-full"
                   />
-                )}
-                {m.sourceType === 'youtube' && m.youtubeId && (
-                  <div className="relative aspect-video bg-black border-2 border-[var(--c-ink)] overflow-hidden">
-                    <iframe
-                      src={`https://www.youtube-nocookie.com/embed/${m.youtubeId}`}
-                      title={m.title}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      className="w-full h-full"
-                    />
-                  </div>
                 )}
 
                 {/* Studio Practice Action */}

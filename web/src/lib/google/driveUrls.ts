@@ -10,3 +10,12 @@ export function downloadUrl(fileId: string): string {
 export function openInDriveUrl(fileId: string): string {
   return `https://drive.google.com/file/d/${fileId}/view`;
 }
+
+export function previewUrl(fileId: string): string {
+  return `https://drive.google.com/file/d/${fileId}/preview`;
+}
+
+export function folderUrl(folderId: string): string {
+  return `https://drive.google.com/drive/folders/${folderId}`;
+}
+

@@ -27,6 +27,8 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
   const [videoDuration, setVideoDuration] = useState<number>(0);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [showAllVideos, setShowAllVideos] = useState<boolean>(false);
+  // True when the file loaded (sound works) but the browser cannot decode its picture, e.g. H.265.
+  const [noPicture, setNoPicture] = useState<boolean>(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -58,6 +60,10 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
     () => videos.find(v => v.id === selectedVideoId) || null,
     [videos, selectedVideoId]
   );
+
+  useEffect(() => {
+    setNoPicture(false);
+  }, [selectedVideoId]);
 
   const { muted, setMuted, status } = useSyncedVideo({
     master,
@@ -168,8 +174,20 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
               playsInline
               muted={muted}
               src={streamUrl(selectedVideo.driveFileId)}
+              onLoadedData={e => {
+                const el = e.currentTarget;
+                setNoPicture(el.videoWidth === 0 && el.videoHeight === 0);
+              }}
               className="w-full h-full object-contain"
             />
+            {noPicture && (
+              <div
+                role="alert"
+                className="absolute inset-0 flex items-center justify-center bg-black/85 p-4 text-center text-[12px] min-text-5px font-mono text-[#FFEC27]"
+              >
+                This device can't show this video's format (H.265). Ask an admin to re-upload it as H.264 MP4.
+              </div>
+            )}
             {muted && (
               <div className="absolute top-2 right-2 bg-black/80 border border-[#FFEC27] px-2 py-0.5 text-[9px] min-text-5px text-[#FFEC27] font-mono">
                 MUTED
