@@ -462,7 +462,23 @@
 
 ## Measurements
 
-_(Tasks 10 and 18 add their rows below.)_
+_(Task 18 adds its rows below.)_
+
+**Task 10 — live, deployment v12 then v13 (2026-10-02, about 10 pm MYT), same account, curl from the dev PC:**
+
+| What | Before (v10/v11) | After |
+|---|---|---|
+| Login, calendar not cached | 10.85 s (one call, did everything) | 4.2 s (token only; v12) |
+| Login, calendar cached | 3.2–4.4 s | 3.2–4.9 s with the calendar included (v13, 4 runs) |
+| `dancer.bootstrap`, cold | inside the login | 7.2 s (v12, before eventStyles was backfilled) |
+| `dancer.bootstrap`, cached | inside the login | 1.6–2.2 s |
+| `dancer.attendance`, cold / cached | inside the login (2.6 s step) | 7.2 s / 3.5 s |
+
+Reading:
+- The login never waits on sheets for the calendar now. A cold login is a token in about 4 s, and the calendar then loads behind the loading screen.
+- The cold 7.2 s is the Members-sheet fallback: live MemberIndex rows have no `eventStyles` yet. It disappears once the 5-minute warm-up trigger has run once (backfill) or each event is synced; **the owner must run `installWarmTrigger` once in the Apps Script editor** (`clasp run` is not set up for this project, so it could not be done remotely). Re-measure after that.
+- About 2 s of every number is Apps Script's fixed per-request cost, which no change here can remove.
+- Not done, and the next biggest cost: every request still re-reads each table (events, styles, member roles) from its sheet at 200–500 ms each.
 
 **Task 6 — live login of the owner's account, deployment v11 (2026-10-02, 9:33 pm MYT), ms per step:**
 
