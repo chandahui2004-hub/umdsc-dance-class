@@ -14,10 +14,10 @@ export const Toast: React.FC<ToastProps> = ({
   onClose
 }) => {
   const bgColors = {
-    info: 'bg-[var(--c-blue)] text-[var(--c-panel)]',
-    success: 'bg-[var(--c-green)] text-[var(--c-ink)]',
-    error: 'bg-[var(--c-red)] text-[var(--c-panel)]',
-    warning: 'bg-[var(--c-yellow)] text-[var(--c-ink)]'
+    info: 'bg-[var(--c-blue)] text-[var(--on-neon)]',
+    success: 'bg-[var(--c-green)] text-[var(--on-neon)]',
+    error: 'bg-[var(--c-red)] text-[var(--on-neon)]',
+    warning: 'bg-[var(--c-yellow)] text-[var(--on-neon)]'
   }[type];
 
   return (

@@ -24,8 +24,8 @@ export const EventsPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-xl md:text-2xl text-[var(--c-ink)]">Events</h1>
-          <p className="font-body text-sm text-[var(--c-darkgrey)]">
+          <h1 className="font-display text-xl md:text-2xl text-[var(--text-1)]">Events</h1>
+          <p className="font-body text-sm text-[var(--text-2)]">
             Monthly classes, trial classes and workshops — one registration form each.
           </p>
         </div>
@@ -35,9 +35,9 @@ export const EventsPage: React.FC = () => {
       </div>
 
       <section data-testid="active-events" className="space-y-3">
-        <h2 className="font-display text-sm text-[var(--c-ink)]">ACTIVE EVENTS</h2>
+        <h2 className="font-display text-sm text-[var(--text-1)]">ACTIVE EVENTS</h2>
         {isLoading ? (
-          <p className="font-display text-xs text-[var(--c-ink)]">LOADING…</p>
+          <p className="font-display text-xs text-[var(--text-1)]">LOADING…</p>
         ) : active.length === 0 ? (
           <EmptyState
             title="NO ACTIVE EVENTS"

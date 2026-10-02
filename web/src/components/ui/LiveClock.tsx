@@ -51,12 +51,12 @@ export const LiveClock: React.FC<LiveClockProps> = ({
           <span className="text-xs" aria-hidden="true">⏰</span>
           <span className="text-sm font-bold text-[var(--c-yellow)] tracking-widest">{timeStr}</span>
         </span>
-        <span className="text-[8px] uppercase px-1.5 py-0.5 bg-[var(--c-navy)] text-[var(--c-peach)] border border-[var(--c-yellow)] font-display">
+        <span className="text-[8px] uppercase px-1.5 py-0.5 bg-[var(--c-navy)] text-[var(--text-2)] border border-[var(--c-yellow)] font-display">
           KL (UTC+8)
         </span>
       </div>
       {showDate && (
-        <div className="text-[11px] text-[var(--c-peach)] mt-1 tracking-wide flex items-center justify-between border-t border-[var(--c-darkgrey)] pt-1">
+        <div className="text-[11px] text-[var(--text-2)] mt-1 tracking-wide flex items-center justify-between border-t border-[var(--c-darkgrey)] pt-1">
           <span>{dateStr}</span>
         </div>
       )}

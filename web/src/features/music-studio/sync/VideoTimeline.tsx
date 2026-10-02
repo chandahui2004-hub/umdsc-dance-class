@@ -108,17 +108,17 @@ export const VideoTimeline: React.FC<VideoTimelineProps> = ({
   const startFlagPercent = Math.min(100, Math.max(0, (videoStart / safeDuration) * 100));
 
   return (
-    <div className="w-full select-none bg-[#111827] p-2 border-2 border-black">
+    <div className="w-full select-none bg-[var(--night-1)] p-2 border-2 border-black">
       {/* Timecode header */}
-      <div className="flex justify-between items-center text-[10px] min-text-5px font-mono text-[#00E436] mb-1.5">
+      <div className="flex justify-between items-center text-[10px] min-text-5px font-mono text-[var(--neon-green)] mb-1.5">
         <div className="flex items-center gap-1.5">
-          <span className="text-[#C2C3C7]">VIDEO:</span>
+          <span className="text-[var(--text-2)]">VIDEO:</span>
           <span>{formatTime(currentTime)}</span>
-          <span className="text-[#5F574F]">/</span>
-          <span className="text-[#C2C3C7]">{formatTime(duration)}</span>
+          <span className="text-[var(--violet-4)]">/</span>
+          <span className="text-[var(--text-2)]">{formatTime(duration)}</span>
         </div>
-        <div className="flex items-center gap-1 bg-black px-1.5 py-0.5 border border-[#FFEC27]">
-          <span className="text-[#FFEC27]">⚑ START:</span>
+        <div className="flex items-center gap-1 bg-black px-1.5 py-0.5 border border-[var(--neon-gold)]">
+          <span className="text-[var(--neon-gold)]">⚑ START:</span>
           <span className="text-white font-bold">{formatTime(videoStart)}</span>
         </div>
       </div>
@@ -127,12 +127,12 @@ export const VideoTimeline: React.FC<VideoTimelineProps> = ({
       <div
         ref={barRef}
         onClick={handleBarClick}
-        className="relative h-6 bg-[#1f2937] border-2 border-black cursor-pointer overflow-visible"
+        className="relative h-6 bg-[var(--violet-1)] border-2 border-black cursor-pointer overflow-visible"
         title="Click to seek video; drag yellow flag to set alignment start"
       >
         {/* Playhead bar */}
         <div
-          className="absolute top-0 bottom-0 bg-[#29ADFF]/40 border-r-2 border-[#29ADFF] transition-[width] duration-75"
+          className="absolute top-0 bottom-0 bg-[var(--neon-cyan)]/40 border-r-2 border-[var(--neon-cyan)] transition-[width] duration-75"
           style={{ width: `${playheadPercent}%` }}
         />
 
@@ -148,30 +148,30 @@ export const VideoTimeline: React.FC<VideoTimelineProps> = ({
         >
           {/* Tooltip on hover/drag */}
           <div
-            className={`absolute -top-6 px-1.5 py-0.5 bg-black border border-[#FFEC27] text-[8px] font-mono text-[#FFEC27] whitespace-nowrap shadow-[1px_1px_0_#000] pointer-events-none ${
+            className={`absolute -top-6 px-1.5 py-0.5 bg-black border border-[var(--neon-gold)] text-[8px] font-mono text-[var(--neon-gold)] whitespace-nowrap shadow-[1px_1px_0_#000] pointer-events-none ${
               isHoveringFlag ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
             } transition-opacity`}
           >
             Start: {formatTime(videoStart)}
           </div>
           {/* Flag pennant */}
-          <div className="w-4 h-3 bg-[#FFEC27] border border-black flex items-center justify-center shadow-[1px_1px_0_#000]">
+          <div className="w-4 h-3 bg-[var(--neon-gold)] border border-black flex items-center justify-center shadow-[1px_1px_0_#000]">
             <span className="text-[7px] min-text-5px font-bold text-black leading-none">⚑</span>
           </div>
           {/* Flag pole line */}
-          <div className="w-1 flex-1 bg-[#FFEC27] border-x border-black" />
+          <div className="w-1 flex-1 bg-[var(--neon-gold)] border-x border-black" />
         </div>
 
         {/* Playhead marker indicator */}
         <div
-          className="absolute top-0 bottom-0 w-1 bg-[#29ADFF] -ml-0.5 z-10 pointer-events-none"
+          className="absolute top-0 bottom-0 w-1 bg-[var(--neon-cyan)] -ml-0.5 z-10 pointer-events-none"
           style={{ left: `${playheadPercent}%` }}
         />
       </div>
 
-      <div className="flex justify-between items-center mt-1 text-[8px] min-text-5px text-[#C2C3C7]">
+      <div className="flex justify-between items-center mt-1 text-[8px] min-text-5px text-[var(--text-2)]">
         <span>00:00</span>
-        <span className="text-[7px] text-[#FFA300]">DRAG ⚑ TO ALIGN VIDEO START</span>
+        <span className="text-[7px] text-[var(--neon-orange)]">DRAG ⚑ TO ALIGN VIDEO START</span>
         <span>{formatTime(duration)}</span>
       </div>
     </div>

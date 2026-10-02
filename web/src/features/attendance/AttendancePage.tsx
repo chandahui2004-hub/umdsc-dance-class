@@ -209,11 +209,11 @@ export const AttendancePage: React.FC = () => {
   if (!eventsLoading && isAll && events.length > 0) {
     return (
       <div className="space-y-6">
-        <h1 className="font-display text-lg tracking-wider text-[var(--c-ink)]">Attendance Tracker</h1>
+        <h1 className="font-display text-lg tracking-wider text-[var(--text-1)]">Attendance Tracker</h1>
         <AttendanceFolderHeader />
         <div className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] space-y-3">
-          <p className="font-display text-xs text-[var(--c-ink)]">SELECT AN EVENT TO TAKE ATTENDANCE</p>
-          <p className="font-body text-sm text-[var(--c-darkgrey)]">
+          <p className="font-display text-xs text-[var(--text-1)]">SELECT AN EVENT TO TAKE ATTENDANCE</p>
+          <p className="font-body text-sm text-[var(--text-2)]">
             Attendance sheets are organized by event. Choose an event from the top bar or pick one below:
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
@@ -231,7 +231,7 @@ export const AttendancePage: React.FC = () => {
   if (!eventsLoading && !event) {
     return (
       <div className="space-y-6">
-        <h1 className="font-display text-lg tracking-wider text-[var(--c-ink)]">Attendance Tracker</h1>
+        <h1 className="font-display text-lg tracking-wider text-[var(--text-1)]">Attendance Tracker</h1>
         <AttendanceFolderHeader />
         <EmptyState
           title="NO EVENTS YET"
@@ -239,7 +239,7 @@ export const AttendancePage: React.FC = () => {
           action={
             <Link
               to="/admin/events/new"
-              className="inline-flex items-center min-h-[44px] px-4 border-2 border-[var(--c-ink)] bg-[var(--c-orange)] text-[var(--c-ink)] font-display text-xs no-underline"
+              className="inline-flex items-center min-h-[44px] px-4 border-2 border-[var(--c-ink)] bg-[var(--c-orange)] text-[var(--on-neon)] font-display text-xs no-underline"
             >
               CREATE AN EVENT
             </Link>
@@ -253,15 +253,15 @@ export const AttendancePage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="font-display text-lg tracking-wider text-[var(--c-ink)]">Attendance Tracker</h1>
-          <p className="font-body text-base text-[var(--c-darkgrey)] mt-1">
+          <h1 className="font-display text-lg tracking-wider text-[var(--text-1)]">Attendance Tracker</h1>
+          <p className="font-body text-base text-[var(--text-2)] mt-1">
             {event ? `${event.name} · ${event.startDate} → ${event.endDate}` : 'Loading event…'}
           </p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
           {pendingCount > 0 && (
-            <div className="px-3 py-1 bg-[var(--c-yellow)] border-2 border-[var(--c-ink)] font-display text-xs text-[var(--c-ink)] font-bold animate-pulse shadow-[2px_2px_0_var(--c-ink)]">
+            <div className="px-3 py-1 bg-[var(--c-yellow)] border-2 border-[var(--c-ink)] font-display text-xs text-[var(--on-neon)] font-bold animate-pulse shadow-[2px_2px_0_var(--c-ink)]">
               SAVING… {pendingCount}
             </div>
           )}
@@ -270,7 +270,7 @@ export const AttendancePage: React.FC = () => {
               href={`https://docs.google.com/spreadsheets/d/${gridData.spreadsheetId}`}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center min-h-[44px] px-3 border-2 border-[var(--c-ink)] bg-[var(--c-green)] text-[var(--c-ink)] font-display text-xs no-underline shadow-[2px_2px_0_var(--c-ink)]"
+              className="inline-flex items-center min-h-[44px] px-3 border-2 border-[var(--c-ink)] bg-[var(--c-green)] text-[var(--on-neon)] font-display text-xs no-underline shadow-[2px_2px_0_var(--c-ink)]"
             >
               OPEN {activeStyle?.name.toUpperCase() || 'STYLE'} SHEET ↗
             </a>
@@ -299,7 +299,7 @@ export const AttendancePage: React.FC = () => {
 
       <div className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] p-4 shadow-[4px_4px_0_var(--c-ink)] flex gap-2 overflow-x-auto pixel-scrollbar items-center">
 
-        <span className="font-display text-xs text-[var(--c-ink)] uppercase mr-1 whitespace-nowrap">STYLE:</span>
+        <span className="font-display text-xs text-[var(--text-1)] uppercase mr-1 whitespace-nowrap">STYLE:</span>
         {styles.map(s => (
           <button
             key={s.id}
@@ -307,8 +307,8 @@ export const AttendancePage: React.FC = () => {
             onClick={() => setStyleId(s.id)}
             className={`min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-display text-xs cursor-pointer select-none whitespace-nowrap transition-none ${
               styleId === s.id
-                ? 'bg-[var(--c-orange)] text-[var(--c-ink)] font-bold shadow-[2px_2px_0_var(--c-ink)]'
-                : 'bg-[var(--c-bg)] text-[var(--c-ink)] hover:bg-[var(--c-panel)]'
+                ? 'bg-[var(--c-orange)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--c-ink)]'
+                : 'bg-[var(--c-bg)] text-[var(--text-1)] hover:bg-[var(--c-panel)]'
             }`}
           >
             {s.name}
@@ -328,7 +328,7 @@ export const AttendancePage: React.FC = () => {
                 editing ? 'bg-[var(--c-yellow)]' : 'bg-[var(--c-panel)]'
               }`}
             >
-              <div className="font-display text-xs text-[var(--c-ink)]">
+              <div className="font-display text-xs text-[var(--text-1)]">
                 {editing
                   ? unsavedChanges.length === 0
                     ? 'EDITING — TICK PRESENT DANCERS, THEN SUBMIT'
@@ -394,10 +394,10 @@ export const AttendancePage: React.FC = () => {
               {/* Header */}
               <div className="flex justify-between items-center bg-[var(--c-panel)] border-4 border-[var(--c-ink)] p-3 shadow-[4px_4px_0_var(--c-ink)] flex-wrap gap-2">
                 <div className="flex items-center gap-3">
-                  <h2 className="font-display text-xs text-[var(--c-ink)]">
+                  <h2 className="font-display text-xs text-[var(--text-1)]">
                     ATTENDANCE · {activeStyle?.name.toUpperCase() || 'STYLE'}
                   </h2>
-                  <span className="font-mono text-xs text-[var(--c-darkgrey)] min-text-5px">
+                  <span className="font-mono text-xs text-[var(--text-2)] min-text-5px">
                     ({sessions.length} sessions, {members.length} dancers)
                   </span>
                 </div>
@@ -433,7 +433,7 @@ export const AttendancePage: React.FC = () => {
 
               {/* Style selector inside fullscreen */}
               <div className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] p-2 shadow-[2px_2px_0_var(--c-ink)] flex gap-2 overflow-x-auto pixel-scrollbar items-center">
-                <span className="font-display text-[10px] min-text-5px text-[var(--c-ink)] uppercase mr-1 whitespace-nowrap">
+                <span className="font-display text-[10px] min-text-5px text-[var(--text-1)] uppercase mr-1 whitespace-nowrap">
                   STYLE:
                 </span>
                 {styles.map(s => (
@@ -443,8 +443,8 @@ export const AttendancePage: React.FC = () => {
                     onClick={() => setStyleId(s.id)}
                     className={`min-h-[36px] px-3 border-2 border-[var(--c-ink)] font-display text-[10px] min-text-5px cursor-pointer select-none whitespace-nowrap ${
                       styleId === s.id
-                        ? 'bg-[var(--c-orange)] text-[var(--c-ink)] font-bold shadow-[2px_2px_0_var(--c-ink)]'
-                        : 'bg-[var(--c-bg)] text-[var(--c-ink)] hover:bg-[var(--c-panel)]'
+                        ? 'bg-[var(--c-orange)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--c-ink)]'
+                        : 'bg-[var(--c-bg)] text-[var(--text-1)] hover:bg-[var(--c-panel)]'
                     }`}
                   >
                     {s.name}

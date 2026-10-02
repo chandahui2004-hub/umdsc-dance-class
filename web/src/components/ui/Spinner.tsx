@@ -38,7 +38,7 @@ export const Spinner: React.FC<SpinnerProps> = ({
         <rect x="2" y="10" width="4" height="4" fill="var(--c-blue)" />
       </svg>
       {label && (
-        <span className="font-display text-[10px] text-[var(--c-ink)] tracking-wider">
+        <span className="font-display text-[10px] text-[var(--text-1)] tracking-wider">
           {label}
         </span>
       )}

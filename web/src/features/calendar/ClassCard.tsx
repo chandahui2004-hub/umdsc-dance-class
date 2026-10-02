@@ -58,17 +58,17 @@ export const ClassCard: React.FC<ClassCardProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b-2 border-[var(--c-ink)]">
         <div className="flex flex-wrap items-center gap-2">
           <span
-            className="w-4 h-4 rounded-none border border-[var(--c-ink)] inline-block flex-shrink-0"
+            className="w-4 h-4 border border-[var(--c-ink)] inline-block flex-shrink-0"
             style={{ backgroundColor: color }}
           />
-          <span className="font-display text-sm md:text-base text-[var(--c-ink)] font-bold">
+          <span className="font-display text-sm md:text-base text-[var(--text-1)] font-bold">
             {style?.name.toUpperCase() || 'CLASS'}
           </span>
-          <span className="font-mono text-xs text-[var(--c-darkgrey)]">
+          <span className="font-mono text-xs text-[var(--text-2)]">
             #{session.seq}
           </span>
           {eventName && (
-            <span className="font-display text-[9px] px-1.5 py-0.5 bg-[var(--c-bg)] border border-[var(--c-ink)] text-[var(--c-navy)] font-bold">
+            <span className="font-display text-[9px] px-1.5 py-0.5 bg-[var(--c-bg)] border border-[var(--c-ink)] text-[var(--neon-cyan)] font-bold">
               {eventName}
             </span>
           )}
@@ -77,19 +77,19 @@ export const ClassCard: React.FC<ClassCardProps> = ({
         {/* Attendance Status */}
         <div>
           {attendancePresent === true ? (
-            <span className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--c-green)] text-[var(--c-ink)] border-2 border-[var(--c-ink)] font-display text-[10px] font-bold">
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--c-green)] text-[var(--on-neon)] border-2 border-[var(--c-ink)] font-display text-[10px] font-bold">
               ✓ ATTENDED
             </span>
           ) : isPast && attendanceLoading ? (
-            <span className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--c-bg)] text-[var(--c-darkgrey)] border-2 border-[var(--c-ink)] font-display text-[10px] font-bold animate-pulse">
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--c-bg)] text-[var(--text-2)] border-2 border-[var(--c-ink)] font-display text-[10px] font-bold animate-pulse">
               CHECKING…
             </span>
           ) : isPast ? (
-            <span className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--c-darkgrey)] text-[var(--c-panel)] border-2 border-[var(--c-ink)] font-display text-[10px] font-bold">
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--c-darkgrey)] text-[var(--text-1)] border-2 border-[var(--c-ink)] font-display text-[10px] font-bold">
               ✕ ABSENT
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--c-yellow)] text-[var(--c-ink)] border-2 border-[var(--c-ink)] font-display text-[10px] font-bold animate-pulse">
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--c-yellow)] text-[var(--on-neon)] border-2 border-[var(--c-ink)] font-display text-[10px] font-bold animate-pulse">
               UPCOMING
             </span>
           )}
@@ -119,8 +119,8 @@ export const ClassCard: React.FC<ClassCardProps> = ({
                   />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-[var(--c-panel)]">
-                    <span className="font-display text-2xl text-[var(--c-darkgrey)] mb-1">👤</span>
-                    <span className="font-display text-[8px] text-[var(--c-darkgrey)] uppercase leading-tight">
+                    <span className="font-display text-2xl text-[var(--text-2)] mb-1">👤</span>
+                    <span className="font-display text-[8px] text-[var(--text-2)] uppercase leading-tight">
                       {instructor?.name ? instructor.name.slice(0, 2).toUpperCase() : 'TBA'}
                     </span>
                   </div>
@@ -128,7 +128,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
               </div>
               {/* Instructor Bar Below Picture */}
               <div
-                className="w-full py-1 text-center border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] font-display text-[9px] font-bold text-[var(--c-ink)] uppercase tracking-wider"
+                className="w-full py-1 text-center border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] font-display text-[9px] font-bold text-[var(--text-1)] uppercase tracking-wider"
                 style={{ backgroundColor: instructorColor }}
               >
                 INSTRUCTOR
@@ -138,14 +138,14 @@ export const ClassCard: React.FC<ClassCardProps> = ({
             {/* Information (Right) */}
             <div className="flex-1 w-full space-y-3">
               <div>
-                <span className="font-display text-[9px] text-[var(--c-darkgrey)] uppercase tracking-wider block">
+                <span className="font-display text-[9px] text-[var(--text-2)] uppercase tracking-wider block">
                   INSTRUCTOR
                 </span>
-                <h3 className="font-display text-base md:text-lg text-[var(--c-ink)] font-bold mt-0.5">
+                <h3 className="font-display text-base md:text-lg text-[var(--text-1)] font-bold mt-0.5">
                   {instructor?.name || 'TBA'}
                 </h3>
                 {instructor?.contact && (
-                  <p className="font-mono text-xs text-[var(--c-darkgrey)] mt-0.5 flex items-center gap-1">
+                  <p className="font-mono text-xs text-[var(--text-2)] mt-0.5 flex items-center gap-1">
                     <span>📞</span> {instructor.contact}
                   </p>
                 )}
@@ -153,19 +153,19 @@ export const ClassCard: React.FC<ClassCardProps> = ({
 
               <div className="grid grid-cols-2 gap-3 text-xs font-mono pt-2 border-t-2 border-[var(--c-ink)]/15">
                 <div>
-                  <span className="font-display text-[9px] text-[var(--c-darkgrey)] block">TIME:</span>
-                  <span className="font-bold text-[var(--c-ink)] text-sm">{session.start} - {session.end}</span>
+                  <span className="font-display text-[9px] text-[var(--text-2)] block">TIME:</span>
+                  <span className="font-bold text-[var(--text-1)] text-sm">{session.start} - {session.end}</span>
                 </div>
                 <div>
-                  <span className="font-display text-[9px] text-[var(--c-darkgrey)] block">VENUE:</span>
-                  <span className="font-bold text-[var(--c-ink)] text-sm">{session.venue || 'Dance Studio'}</span>
+                  <span className="font-display text-[9px] text-[var(--text-2)] block">VENUE:</span>
+                  <span className="font-bold text-[var(--text-1)] text-sm">{session.venue || 'Dance Studio'}</span>
                 </div>
               </div>
 
               {session.note && (
                 <div className="bg-[var(--c-panel)] p-2 border border-[var(--c-ink)] text-xs font-mono">
-                  <span className="font-display text-[8px] text-[var(--c-darkgrey)] block">CLASS NOTE:</span>
-                  <span className="text-[var(--c-ink)]">{session.note}</span>
+                  <span className="font-display text-[8px] text-[var(--text-2)] block">CLASS NOTE:</span>
+                  <span className="text-[var(--text-1)]">{session.note}</span>
                 </div>
               )}
             </div>
@@ -176,7 +176,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
       {/* Videos Section */}
       <div className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h4 className="font-display text-xs text-[var(--c-ink)] tracking-wider">
+          <h4 className="font-display text-xs text-[var(--text-1)] tracking-wider">
             CLASS RECAP VIDEOS ({videos.length})
           </h4>
           {videos.length > 0 && (
@@ -194,7 +194,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
 
         {videos.length === 0 ? (
           <div className="bg-[var(--c-bg)] p-3 border border-dashed border-[var(--c-ink)] space-y-2">
-            <p className="font-body text-xs text-[var(--c-darkgrey)] italic">
+            <p className="font-body text-xs text-[var(--text-2)] italic">
               No individual recap videos tagged for this class yet.
             </p>
             {style?.videoFolderId && (
@@ -203,7 +203,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
                   href={folderUrl(style.videoFolderId)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--c-yellow)] text-[var(--c-ink)] border-2 border-[var(--c-ink)] font-display text-[10px] font-bold shadow-[2px_2px_0_var(--c-ink)] hover:bg-[var(--c-yellow)]/90"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--c-yellow)] text-[var(--on-neon)] border-2 border-[var(--c-ink)] font-display text-[10px] font-bold shadow-[2px_2px_0_var(--c-ink)] hover:bg-[var(--c-yellow)] hover:text-[var(--on-neon)]/90"
                 >
                   📁 OPEN {style.name.toUpperCase()} VIDEO FOLDER IN DRIVE ↗
                 </a>
@@ -229,15 +229,15 @@ export const ClassCard: React.FC<ClassCardProps> = ({
                       <button
                         type="button"
                         onClick={() => toggleVideoCollapse(v.id)}
-                        className="font-display text-[9px] px-1.5 py-0.5 bg-[var(--c-panel)] border border-[var(--c-ink)] hover:bg-[var(--c-yellow)] cursor-pointer select-none"
+                        className="font-display text-[9px] px-1.5 py-0.5 bg-[var(--c-panel)] border border-[var(--c-ink)] hover:bg-[var(--c-yellow)] hover:text-[var(--on-neon)] cursor-pointer select-none"
                         aria-label={`Expand video ${v.title}`}
                       >
                         ▼ EXPAND
                       </button>
-                      <span className="font-display text-xs text-[var(--c-ink)] font-bold truncate">
+                      <span className="font-display text-xs text-[var(--text-1)] font-bold truncate">
                         {v.title}
                       </span>
-                      <span className="font-mono text-[10px] text-[var(--c-darkgrey)] shrink-0">
+                      <span className="font-mono text-[10px] text-[var(--text-2)] shrink-0">
                         {(v.sizeBytes / (1024 * 1024)).toFixed(1)} MB
                       </span>
                     </div>
@@ -256,7 +256,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
                         download
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-mono text-xs text-[var(--c-ink)] underline font-bold"
+                        className="font-mono text-xs text-[var(--text-1)] underline font-bold"
                       >
                         Download ⬇
                       </a>
@@ -276,16 +276,16 @@ export const ClassCard: React.FC<ClassCardProps> = ({
                       <button
                         type="button"
                         onClick={() => toggleVideoCollapse(v.id)}
-                        className="font-display text-[9px] px-1.5 py-0.5 bg-[var(--c-panel)] border border-[var(--c-ink)] hover:bg-[var(--c-yellow)] cursor-pointer select-none"
+                        className="font-display text-[9px] px-1.5 py-0.5 bg-[var(--c-panel)] border border-[var(--c-ink)] hover:bg-[var(--c-yellow)] hover:text-[var(--on-neon)] cursor-pointer select-none"
                         aria-label={`Collapse video ${v.title}`}
                       >
                         ▲ COLLAPSE
                       </button>
-                      <span className="font-display text-xs text-[var(--c-ink)] font-bold truncate">
+                      <span className="font-display text-xs text-[var(--text-1)] font-bold truncate">
                         {v.title}
                       </span>
                     </div>
-                    <span className="font-mono text-[10px] text-[var(--c-darkgrey)] flex-shrink-0">
+                    <span className="font-mono text-[10px] text-[var(--text-2)] flex-shrink-0">
                       {(v.sizeBytes / (1024 * 1024)).toFixed(1)} MB
                     </span>
                   </div>
@@ -308,7 +308,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
                       download
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center font-display uppercase tracking-wider select-none cursor-pointer transition-none text-center min-h-[36px] px-2.5 py-1 text-[10px] bg-[var(--c-panel)] text-[var(--c-ink)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] hover:bg-[var(--c-peach)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none"
+                      className="inline-flex items-center justify-center font-display uppercase tracking-wider select-none cursor-pointer transition-none text-center min-h-[36px] px-2.5 py-1 text-[10px] bg-[var(--c-panel)] text-[var(--text-1)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] hover:bg-[var(--c-peach)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none"
                     >
                       DOWNLOAD
                     </a>
@@ -316,7 +316,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
                       href={openInDriveUrl(v.driveFileId)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center font-display uppercase tracking-wider select-none cursor-pointer transition-none text-center min-h-[36px] px-2.5 py-1 text-[10px] bg-transparent text-[var(--c-ink)] border-2 border-dashed border-[var(--c-ink)] hover:bg-[var(--c-peach)] active:translate-x-[2px] active:translate-y-[2px]"
+                      className="inline-flex items-center justify-center font-display uppercase tracking-wider select-none cursor-pointer transition-none text-center min-h-[36px] px-2.5 py-1 text-[10px] bg-transparent text-[var(--text-1)] border-2 border-dashed border-[var(--c-ink)] hover:bg-[var(--c-peach)] active:translate-x-[2px] active:translate-y-[2px]"
                     >
                       OPEN IN DRIVE ↗
                     </a>
@@ -331,7 +331,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
                   href={folderUrl(style.videoFolderId)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--c-panel)] text-[var(--c-ink)] border-2 border-[var(--c-ink)] font-display text-[10px] font-bold shadow-[2px_2px_0_var(--c-ink)] hover:bg-[var(--c-yellow)]"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--c-panel)] text-[var(--text-1)] border-2 border-[var(--c-ink)] font-display text-[10px] font-bold shadow-[2px_2px_0_var(--c-ink)] hover:bg-[var(--c-yellow)] hover:text-[var(--on-neon)]"
                 >
                   📁 BROWSE ALL {style.name.toUpperCase()} VIDEOS IN DRIVE FOLDER ↗
                 </a>
@@ -343,12 +343,12 @@ export const ClassCard: React.FC<ClassCardProps> = ({
 
       {/* Music Section */}
       <div className="space-y-2">
-        <h4 className="font-display text-xs text-[var(--c-ink)] tracking-wider">
+        <h4 className="font-display text-xs text-[var(--text-1)] tracking-wider">
           PRACTICE MUSIC ({music.length})
         </h4>
 
         {music.length === 0 ? (
-          <p className="font-body text-xs text-[var(--c-darkgrey)] italic bg-[var(--c-bg)] p-2 border border-dashed border-[var(--c-ink)]">
+          <p className="font-body text-xs text-[var(--text-2)] italic bg-[var(--c-bg)] p-2 border border-dashed border-[var(--c-ink)]">
             No practice tracks added yet.
           </p>
         ) : (
@@ -359,10 +359,10 @@ export const ClassCard: React.FC<ClassCardProps> = ({
                 className="bg-[var(--c-bg)] p-2.5 border-2 border-[var(--c-ink)] space-y-2"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-display text-xs text-[var(--c-ink)] font-bold truncate">
+                  <span className="font-display text-xs text-[var(--text-1)] font-bold truncate">
                     {m.title}
                   </span>
-                  <span className="font-mono text-[10px] uppercase px-1.5 py-0.5 bg-[var(--c-navy)] text-[var(--c-peach)] border border-[var(--c-ink)]">
+                  <span className="font-mono text-[10px] uppercase px-1.5 py-0.5 bg-[var(--c-navy)] text-[var(--text-2)] border border-[var(--c-ink)]">
                     {m.sourceType}
                   </span>
                 </div>
@@ -395,7 +395,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
                       href={link.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 border-2 border-[var(--c-ink)] bg-[var(--c-panel)] px-3 py-1.5 font-display text-[10px] font-bold text-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] hover:bg-[var(--c-yellow)]"
+                      className="inline-flex items-center gap-1.5 border-2 border-[var(--c-ink)] bg-[var(--c-panel)] px-3 py-1.5 font-display text-[10px] font-bold text-[var(--text-1)] shadow-[2px_2px_0_var(--c-ink)] hover:bg-[var(--c-yellow)] hover:text-[var(--on-neon)]"
                     >
                       {link.label === 'Download MP3' ? 'Download MP3' : `Open in ${link.label}`}
                       <span aria-hidden="true">↗</span>

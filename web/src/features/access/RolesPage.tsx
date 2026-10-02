@@ -143,10 +143,10 @@ export const RolesPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="font-display text-lg tracking-wider text-[var(--c-ink)]">
+          <h1 className="font-display text-lg tracking-wider text-[var(--text-1)]">
             Roles & Permissions
           </h1>
-          <p className="font-body text-base text-[var(--c-darkgrey)] mt-1">
+          <p className="font-body text-base text-[var(--text-2)] mt-1">
             Configure system roles, access permission matrices, and assign dancers.
           </p>
         </div>
@@ -157,10 +157,10 @@ export const RolesPage: React.FC = () => {
 
       {/* Relogin notification banner */}
       <div className="bg-[var(--c-peach)] border-4 border-[var(--c-ink)] p-4 shadow-[4px_4px_0_var(--c-ink)] space-y-1">
-        <h4 className="font-display text-xs text-[var(--c-ink)] uppercase">
+        <h4 className="font-display text-xs text-[var(--text-1)] uppercase">
           SESSION PERMISSION NOTICE
         </h4>
-        <p className="font-body text-base text-[var(--c-darkgrey)]">
+        <p className="font-body text-base text-[var(--text-2)]">
           Changes to roles and permissions take effect when users log in. Dancers and admins with active sessions keep their current permissions until their next login.
         </p>
       </div>
@@ -191,28 +191,28 @@ export const RolesPage: React.FC = () => {
                 <span
                   className={`px-2 py-0.5 border-2 border-[var(--c-ink)] font-mono text-xs font-bold uppercase ${
                     role.loginType === 'admin'
-                      ? 'bg-[var(--c-lavender)] text-[var(--c-panel)]'
-                      : 'bg-[var(--c-green)] text-[var(--c-ink)]'
+                      ? 'bg-[var(--c-lavender)] text-[var(--on-neon)]'
+                      : 'bg-[var(--c-green)] text-[var(--on-neon)]'
                   }`}
                 >
                   {role.loginType} LOGIN
                 </span>
                 {role.isSystem && (
-                  <span className="px-2 py-0.5 border-2 border-[var(--c-ink)] bg-[var(--c-yellow)] text-[var(--c-ink)] font-mono text-xs font-bold uppercase">
+                  <span className="px-2 py-0.5 border-2 border-[var(--c-ink)] bg-[var(--c-yellow)] text-[var(--on-neon)] font-mono text-xs font-bold uppercase">
                     SYSTEM ROLE
                   </span>
                 )}
               </div>
 
               {role.description && (
-                <p className="font-body text-base text-[var(--c-darkgrey)]">
+                <p className="font-body text-base text-[var(--text-2)]">
                   {role.description}
                 </p>
               )}
 
-              <div className="font-mono text-xs text-[var(--c-darkgrey)]">
+              <div className="font-mono text-xs text-[var(--text-2)]">
                 Granted Permissions:{' '}
-                <strong className="text-[var(--c-ink)] font-display text-xs">
+                <strong className="text-[var(--text-1)] font-display text-xs">
                   {role.permissions?.length || 0}
                 </strong>
               </div>
@@ -263,11 +263,11 @@ export const RolesPage: React.FC = () => {
               <div className="flex justify-between items-center">
                 <div className="font-mono text-xs">
                   Login Type:{' '}
-                  <span className="font-bold uppercase text-[var(--c-ink)]">
+                  <span className="font-bold uppercase text-[var(--text-1)]">
                     {selectedRole.loginType}
                   </span>
                 </div>
-                <div className="font-mono text-xs text-[var(--c-darkgrey)]">
+                <div className="font-mono text-xs text-[var(--text-2)]">
                   {matrixPermissions.length} selected
                 </div>
               </div>
@@ -285,7 +285,7 @@ export const RolesPage: React.FC = () => {
               <div className="space-y-4 max-h-[50vh] overflow-y-auto p-2 border-2 border-[var(--c-ink)] bg-[var(--c-bg)]">
                 {Object.entries(groupedPerms).map(([group, perms]) => (
                   <div key={group} className="space-y-2">
-                    <h4 className="font-display text-xs text-[var(--c-navy)] uppercase tracking-wider border-b-2 border-[var(--c-ink)] pb-1">
+                    <h4 className="font-display text-xs text-[var(--neon-cyan)] uppercase tracking-wider border-b-2 border-[var(--c-ink)] pb-1">
                       {group}
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -319,7 +319,7 @@ export const RolesPage: React.FC = () => {
                               className="w-4 h-4 cursor-pointer disabled:cursor-not-allowed"
                             />
                             <div className="flex flex-col">
-                              <span className="font-bold text-[var(--c-ink)]">
+                              <span className="font-bold text-[var(--text-1)]">
                                 {p.code}
                               </span>
                               {isDisabled && (

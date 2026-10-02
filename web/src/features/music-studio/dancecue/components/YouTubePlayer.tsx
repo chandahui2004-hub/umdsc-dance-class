@@ -264,7 +264,7 @@ export function YouTubePlayer({
       </div>
       {isVisible ? (
         <section
-          className="rounded-3xl border border-white/10 bg-black/25 px-4 py-3 shadow-lg shadow-black/20"
+          className=" border border-white/10 bg-black/25 px-4 py-3 shadow-lg shadow-black/20"
           aria-label="YouTube audio status"
           role={errorMessage ? "alert" : "status"}
         >

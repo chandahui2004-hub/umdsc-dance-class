@@ -79,7 +79,7 @@ export const ScanPanel: React.FC<ScanPanelProps> = ({
           title={`SCAN FOLDER: ${style.name} (${eventName})`}
           className="px-corners bg-[var(--c-panel)] flex-1 overflow-y-auto space-y-4"
         >
-          <p className="font-body text-sm text-[var(--c-darkgrey)]">
+          <p className="font-body text-sm text-[var(--text-2)]">
             Scan your Google Drive folder for class videos and automatically link them to scheduled sessions.
           </p>
 
@@ -113,16 +113,16 @@ export const ScanPanel: React.FC<ScanPanelProps> = ({
                     className="p-3 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] shadow-[2px_2px_0_var(--c-ink)] space-y-2"
                   >
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1">
-                      <span className="font-display text-xs text-[var(--c-ink)] font-bold truncate">
+                      <span className="font-display text-xs text-[var(--text-1)] font-bold truncate">
                         {item.name}
                       </span>
-                      <span className="font-mono text-xs text-[var(--c-darkgrey)]">
+                      <span className="font-mono text-xs text-[var(--text-2)]">
                         {sizeMb} MB
                       </span>
                     </div>
 
                     {item.reason && (
-                      <p className="font-mono text-[11px] text-[var(--c-navy)] italic">
+                      <p className="font-mono text-[11px] text-[var(--neon-cyan)] italic">
                         {item.reason}
                       </p>
                     )}

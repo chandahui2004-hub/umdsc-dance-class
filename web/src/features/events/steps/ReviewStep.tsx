@@ -99,7 +99,7 @@ export const ReviewStep: React.FC<StepProps> = ({ draft, onBack, isEdit, event, 
 
   return (
     <div className="space-y-4">
-      <dl className="grid grid-cols-1 sm:grid-cols-[max-content_1fr] gap-x-4 gap-y-2 font-body text-base text-[var(--c-ink)]">
+      <dl className="grid grid-cols-1 sm:grid-cols-[max-content_1fr] gap-x-4 gap-y-2 font-body text-base text-[var(--text-1)]">
         <dt className="font-display text-[10px] pt-1">NAME</dt>
         <dd className="font-bold">{fields.name}</dd>
         <dt className="font-display text-[10px] pt-1">TYPE</dt>

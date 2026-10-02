@@ -168,10 +168,10 @@ export const MediaPage: React.FC = () => {
   if (isAll && events.length > 0) {
     return (
       <div className="space-y-6">
-        <h1 className="font-display text-lg tracking-wider text-[var(--c-ink)]">Media Management</h1>
+        <h1 className="font-display text-lg tracking-wider text-[var(--text-1)]">Media Management</h1>
         <div className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] space-y-3">
-          <p className="font-display text-xs text-[var(--c-ink)]">SELECT AN EVENT FOR MEDIA MANAGEMENT</p>
-          <p className="font-body text-sm text-[var(--c-darkgrey)]">
+          <p className="font-display text-xs text-[var(--text-1)]">SELECT AN EVENT FOR MEDIA MANAGEMENT</p>
+          <p className="font-body text-sm text-[var(--text-2)]">
             Class recap videos and music tracks are organized by event. Select an active event below to manage its media:
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
@@ -191,10 +191,10 @@ export const MediaPage: React.FC = () => {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="font-display text-lg tracking-wider text-[var(--c-ink)]">
+          <h1 className="font-display text-lg tracking-wider text-[var(--text-1)]">
             Media Management
           </h1>
-          <p className="font-body text-base text-[var(--c-darkgrey)] mt-1">
+          <p className="font-body text-base text-[var(--text-2)] mt-1">
             Upload class recap videos, scan Google Drive folders, and manage dance music tracks for each class.
           </p>
         </div>
@@ -241,7 +241,7 @@ export const MediaPage: React.FC = () => {
       <div className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] p-4 shadow-[4px_4px_0_var(--c-ink)] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         {/* Style Chips */}
         <div className="flex gap-2 overflow-x-auto pb-1 items-center">
-          <span className="font-display text-xs text-[var(--c-ink)] uppercase mr-1 whitespace-nowrap">
+          <span className="font-display text-xs text-[var(--text-1)] uppercase mr-1 whitespace-nowrap">
             STYLE:
           </span>
           {styles.map((s) => (
@@ -254,8 +254,8 @@ export const MediaPage: React.FC = () => {
               }}
               className={`min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-display text-xs cursor-pointer select-none whitespace-nowrap transition-none ${
                 styleId === s.id
-                  ? 'bg-[var(--c-orange)] text-[var(--c-ink)] font-bold shadow-[2px_2px_0_var(--c-ink)]'
-                  : 'bg-[var(--c-bg)] text-[var(--c-ink)] hover:bg-[var(--c-panel)]'
+                  ? 'bg-[var(--c-orange)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--c-ink)]'
+                  : 'bg-[var(--c-bg)] text-[var(--text-1)] hover:bg-[var(--c-panel)]'
               }`}
             >
               {s.name}
@@ -272,12 +272,12 @@ export const MediaPage: React.FC = () => {
       >
         {sessions.length === 0 ? (
           <div className="p-6 bg-[var(--c-peach)] border-2 border-[var(--c-orange)] shadow-[2px_2px_0_var(--c-ink)] space-y-3">
-            <h3 className="font-display text-xs text-[var(--c-ink)] font-bold">
+            <h3 className="font-display text-xs text-[var(--text-1)] font-bold">
               {event
                 ? `NO ${activeStyle?.name.toUpperCase() || ''} CLASSES IN ${event.name.toUpperCase()}`
                 : 'NO EVENT CHOSEN'}
             </h3>
-            <p className="font-body text-sm text-[var(--c-darkgrey)]">
+            <p className="font-body text-sm text-[var(--text-2)]">
               Media is stored per class. Add classes to the event first.
             </p>
             <PixelButton
@@ -291,7 +291,7 @@ export const MediaPage: React.FC = () => {
         ) : (
           <div className="space-y-3">
             <div className="flex justify-between items-center pb-1">
-              <span className="font-display text-xs text-[var(--c-ink)] uppercase">
+              <span className="font-display text-xs text-[var(--text-1)] uppercase">
                 Select a class to view & upload media:
               </span>
               <PixelButton
@@ -317,8 +317,8 @@ export const MediaPage: React.FC = () => {
                     onClick={() => setSelectedSessionId(sess.id)}
                     className={`p-3 border-4 border-[var(--c-ink)] text-left cursor-pointer transition-none select-none ${
                       isSelected
-                        ? 'bg-[var(--c-orange)] text-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)]'
-                        : 'bg-[var(--c-bg)] text-[var(--c-ink)] hover:bg-[var(--c-panel)] shadow-[2px_2px_0_var(--c-ink)]'
+                        ? 'bg-[var(--c-orange)] text-[var(--on-neon)] shadow-[4px_4px_0_var(--c-ink)]'
+                        : 'bg-[var(--c-bg)] text-[var(--text-1)] hover:bg-[var(--c-panel)] shadow-[2px_2px_0_var(--c-ink)]'
                     }`}
                   >
                     <div className="flex justify-between items-center border-b-2 border-[var(--c-ink)] pb-1 mb-2">
@@ -333,7 +333,7 @@ export const MediaPage: React.FC = () => {
                     <div className="font-body text-xs font-bold truncate">
                       {formatDayLabel(sess.date)}
                     </div>
-                    <div className="font-mono text-[11px] text-[var(--c-darkgrey)]">
+                    <div className="font-mono text-[11px] text-[var(--text-2)]">
                       {sess.start} - {sess.end}
                     </div>
 
@@ -341,13 +341,13 @@ export const MediaPage: React.FC = () => {
                       <span
                         className={`px-1.5 py-0.5 border border-[var(--c-ink)] font-bold ${
                           sessVideos.length > 0
-                            ? 'bg-[var(--c-green)] text-[var(--c-ink)]'
-                            : 'bg-[var(--c-panel)] text-[var(--c-darkgrey)]'
+                            ? 'bg-[var(--c-green)] text-[var(--on-neon)]'
+                            : 'bg-[var(--c-panel)] text-[var(--text-2)]'
                         }`}
                       >
                         {sessVideos.length > 0 ? '✓ RECAP' : 'NO VIDEO'}
                       </span>
-                      <span className="text-[var(--c-navy)] font-bold">
+                      <span className="text-[var(--neon-cyan)] font-bold">
                         {sessMusic.length} {sessMusic.length === 1 ? 'Track' : 'Tracks'}
                       </span>
                     </div>
@@ -380,7 +380,7 @@ export const MediaPage: React.FC = () => {
         >
           <div className="flex flex-wrap justify-between items-center gap-2 pb-2 border-b-2 border-[var(--c-ink)]">
             <div className="flex items-center gap-2">
-              <span className="font-display text-xs text-[var(--c-ink)]">
+              <span className="font-display text-xs text-[var(--text-1)]">
                 {selectedSession ? `Class #${selectedSession.seq} Recap` : 'All Recaps'}
               </span>
               {filteredVideos.length > 0 && (
@@ -405,10 +405,10 @@ export const MediaPage: React.FC = () => {
 
           {filteredVideos.length === 0 ? (
             <div className="p-8 text-center border-2 border-[var(--c-ink)] bg-[var(--c-bg)] space-y-2">
-              <p className="font-display text-xs text-[var(--c-darkgrey)]">
+              <p className="font-display text-xs text-[var(--text-2)]">
                 NO RECAP VIDEO FOR THIS CLASS YET
               </p>
-              <p className="font-body text-xs text-[var(--c-darkgrey)]">
+              <p className="font-body text-xs text-[var(--text-2)]">
                 Upload your class routine video so dancers can practise at home.
               </p>
               <PixelButton
@@ -441,18 +441,18 @@ export const MediaPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => toggleVideoCollapse(vid.id)}
-                          className="font-display text-[9px] px-1.5 py-0.5 bg-[var(--c-panel)] border border-[var(--c-ink)] hover:bg-[var(--c-yellow)] cursor-pointer"
+                          className="font-display text-[9px] px-1.5 py-0.5 bg-[var(--c-panel)] border border-[var(--c-ink)] hover:bg-[var(--c-yellow)] hover:text-[var(--on-neon)] cursor-pointer"
                           aria-label="Expand video"
                         >
                           ▼ EXPAND
                         </button>
-                        <h4 className="font-display text-xs text-[var(--c-ink)] font-bold truncate">
+                        <h4 className="font-display text-xs text-[var(--text-1)] font-bold truncate">
                           {vid.title}
                         </h4>
                       </div>
                       <div className="flex items-center gap-3">
                         {sess && (
-                          <span className="font-mono text-xs text-[var(--c-navy)] font-bold">
+                          <span className="font-mono text-xs text-[var(--neon-cyan)] font-bold">
                             Class #{sess.seq} ({sess.date})
                           </span>
                         )}
@@ -492,17 +492,17 @@ export const MediaPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => toggleVideoCollapse(vid.id)}
-                          className="font-display text-[9px] px-1.5 py-0.5 bg-[var(--c-panel)] border border-[var(--c-ink)] hover:bg-[var(--c-yellow)] cursor-pointer"
+                          className="font-display text-[9px] px-1.5 py-0.5 bg-[var(--c-panel)] border border-[var(--c-ink)] hover:bg-[var(--c-yellow)] hover:text-[var(--on-neon)] cursor-pointer"
                           aria-label="Collapse video"
                         >
                           ▲ COLLAPSE
                         </button>
-                        <h4 className="font-display text-xs text-[var(--c-ink)] font-bold truncate">
+                        <h4 className="font-display text-xs text-[var(--text-1)] font-bold truncate">
                           {vid.title}
                         </h4>
                       </div>
                       {sess && (
-                        <span className="font-mono text-xs text-[var(--c-navy)] font-bold">
+                        <span className="font-mono text-xs text-[var(--neon-cyan)] font-bold">
                           Class #{sess.seq} ({sess.date})
                         </span>
                       )}
@@ -555,7 +555,7 @@ export const MediaPage: React.FC = () => {
           className="px-corners bg-[var(--c-panel)] space-y-4"
         >
           <div className="flex justify-between items-center pb-2 border-b-2 border-[var(--c-ink)]">
-            <span className="font-display text-xs text-[var(--c-ink)]">
+            <span className="font-display text-xs text-[var(--text-1)]">
               {selectedSession ? `Class #${selectedSession.seq} Tracks` : 'All Tracks'}
             </span>
             <div className="flex gap-2">
@@ -580,10 +580,10 @@ export const MediaPage: React.FC = () => {
 
           {filteredMusic.length === 0 ? (
             <div className="p-8 text-center border-2 border-[var(--c-ink)] bg-[var(--c-bg)] space-y-2">
-              <p className="font-display text-xs text-[var(--c-darkgrey)]">
+              <p className="font-display text-xs text-[var(--text-2)]">
                 NO MUSIC TRACKS ADDED YET
               </p>
-              <p className="font-body text-xs text-[var(--c-darkgrey)]">
+              <p className="font-body text-xs text-[var(--text-2)]">
                 Add YouTube audio links or upload MP3s for Studio practice.
               </p>
               <div className="flex justify-center gap-2 pt-1">
@@ -616,7 +616,7 @@ export const MediaPage: React.FC = () => {
                     className="p-3 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] shadow-[2px_2px_0_var(--c-ink)] space-y-3"
                   >
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1">
-                      <h4 className="font-display text-xs text-[var(--c-ink)] font-bold truncate">
+                      <h4 className="font-display text-xs text-[var(--text-1)] font-bold truncate">
                         {item.title}
                       </h4>
                       <span className="px-2 py-0.5 border border-[var(--c-ink)] bg-[var(--c-yellow)] font-mono text-[10px] font-bold">
@@ -625,7 +625,7 @@ export const MediaPage: React.FC = () => {
                     </div>
 
                     {sess && (
-                      <p className="font-mono text-xs text-[var(--c-darkgrey)]">
+                      <p className="font-mono text-xs text-[var(--text-2)]">
                         Linked: Class #{sess.seq} ({sess.date})
                       </p>
                     )}

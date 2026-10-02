@@ -83,7 +83,7 @@ export const MemberRolesPanel: React.FC<MemberRolesPanelProps> = ({ role, styles
       className="px-corners space-y-4"
     >
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <p className="font-body text-sm text-[var(--c-darkgrey)]">
+        <p className="font-body text-sm text-[var(--text-2)]">
           Dancers granted this role will receive these permissions when logging in.
         </p>
         {!isAssigning && (
@@ -99,7 +99,7 @@ export const MemberRolesPanel: React.FC<MemberRolesPanelProps> = ({ role, styles
 
       {isAssigning && (
         <div className="bg-[var(--c-bg)] border-2 border-[var(--c-ink)] p-4 space-y-3">
-          <h4 className="font-display text-xs text-[var(--c-ink)] uppercase">
+          <h4 className="font-display text-xs text-[var(--text-1)] uppercase">
             ASSIGN DANCER TO {role.name}
           </h4>
 
@@ -126,7 +126,7 @@ export const MemberRolesPanel: React.FC<MemberRolesPanelProps> = ({ role, styles
           </Field>
 
           <div className="space-y-1">
-            <span className="font-display text-xs text-[var(--c-ink)] uppercase">
+            <span className="font-display text-xs text-[var(--text-1)] uppercase">
               Style Scopes (Leave unselected for all styles)
             </span>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
@@ -175,14 +175,14 @@ export const MemberRolesPanel: React.FC<MemberRolesPanelProps> = ({ role, styles
           <Spinner />
         </div>
       ) : assignments.length === 0 ? (
-        <p className="font-body text-sm text-[var(--c-darkgrey)] italic py-2">
+        <p className="font-body text-sm text-[var(--text-2)] italic py-2">
           No dancers are currently assigned to this role.
         </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left font-body text-sm border-collapse">
             <thead>
-              <tr className="border-b-4 border-[var(--c-ink)] bg-[var(--c-bg)] font-display text-[10px] text-[var(--c-ink)]">
+              <tr className="border-b-4 border-[var(--c-ink)] bg-[var(--c-bg)] font-display text-[10px] text-[var(--text-1)]">
                 <th className="p-2">MATRIC</th>
                 <th className="p-2">SCOPED STYLES</th>
                 <th className="p-2 text-right">ACTION</th>

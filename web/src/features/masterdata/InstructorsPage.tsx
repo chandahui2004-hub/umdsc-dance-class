@@ -201,10 +201,10 @@ export const InstructorsPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="font-display text-lg tracking-wider text-[var(--c-ink)]">
+          <h1 className="font-display text-lg tracking-wider text-[var(--text-1)]">
             Instructors
           </h1>
-          <p className="font-body text-base text-[var(--c-darkgrey)] mt-1">
+          <p className="font-body text-base text-[var(--text-2)] mt-1">
             Manage club instructors, signature colors, and standardized portraits.
           </p>
         </div>
@@ -252,10 +252,10 @@ export const InstructorsPage: React.FC = () => {
                       />
                     ) : (
                       <div className="flex flex-col items-center justify-center p-4 text-center">
-                        <span className="font-display text-3xl text-[var(--c-darkgrey)] mb-2">
+                        <span className="font-display text-3xl text-[var(--text-2)] mb-2">
                           👤
                         </span>
-                        <span className="font-display text-[9px] text-[var(--c-darkgrey)] uppercase">
+                        <span className="font-display text-[9px] text-[var(--text-2)] uppercase">
                           No Photo
                         </span>
                       </div>
@@ -263,7 +263,7 @@ export const InstructorsPage: React.FC = () => {
                   </div>
                   {/* Instructor Color Banner below picture */}
                   <div
-                    className="w-full py-1 text-center border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] font-display text-[9px] font-bold text-[var(--c-ink)] uppercase tracking-wider"
+                    className="w-full py-1 text-center border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] font-display text-[9px] font-bold text-[var(--text-1)] uppercase tracking-wider"
                     style={{ backgroundColor: instColor }}
                   >
                     INSTRUCTOR · {inst.color?.toUpperCase() || 'DEFAULT'}
@@ -271,10 +271,10 @@ export const InstructorsPage: React.FC = () => {
 
                   {/* Instructor Meta */}
                   <div>
-                    <h3 className="font-display text-sm text-[var(--c-ink)] font-bold truncate">
+                    <h3 className="font-display text-sm text-[var(--text-1)] font-bold truncate">
                       {inst.name}
                     </h3>
-                    <p className="font-mono text-xs text-[var(--c-darkgrey)] mt-1 truncate">
+                    <p className="font-mono text-xs text-[var(--text-2)] mt-1 truncate">
                       📞 {inst.contact || 'No contact specified'}
                     </p>
                   </div>
@@ -361,10 +361,10 @@ export const InstructorsPage: React.FC = () => {
               <div className="space-y-3 pt-3 border-t-2 border-[var(--c-ink)]/20">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                   <div>
-                    <h3 className="font-display text-xs text-[var(--c-ink)] tracking-wider">
+                    <h3 className="font-display text-xs text-[var(--text-1)] tracking-wider">
                       INSTRUCTOR PICTURE
                     </h3>
-                    <p className="font-body text-xs text-[var(--c-darkgrey)] mt-0.5">
+                    <p className="font-body text-xs text-[var(--text-2)] mt-0.5">
                       {STANDARD_PHOTO_HINT}
                     </p>
                   </div>
@@ -387,16 +387,16 @@ export const InstructorsPage: React.FC = () => {
                 {/* Active Photo Preview & Gallery */}
                 {photos.length === 0 && !activePhotoUrl ? (
                   <div className="p-4 bg-[var(--c-bg)] border-2 border-dashed border-[var(--c-ink)] text-center space-y-1">
-                    <p className="font-display text-[10px] text-[var(--c-darkgrey)]">
+                    <p className="font-display text-[10px] text-[var(--text-2)]">
                       NO PICTURE UPLOADED YET
                     </p>
-                    <p className="font-body text-xs text-[var(--c-darkgrey)]">
+                    <p className="font-body text-xs text-[var(--text-2)]">
                       Upload a 1080 × 1350 px portrait for this instructor to display on the calendar.
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <div className="text-[10px] font-display text-[var(--c-ink)]">
+                    <div className="text-[10px] font-display text-[var(--text-1)]">
                       PICTURE GALLERY ({photos.length})
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -420,14 +420,14 @@ export const InstructorsPage: React.FC = () => {
                             {/* Badge */}
                             <div className="relative z-10">
                               {isActive ? (
-                                <span className="bg-[var(--c-yellow)] text-[var(--c-ink)] px-1.5 py-0.5 border border-[var(--c-ink)] font-display text-[8px] font-bold">
+                                <span className="bg-[var(--c-yellow)] text-[var(--on-neon)] px-1.5 py-0.5 border border-[var(--c-ink)] font-display text-[8px] font-bold">
                                   ACTIVE
                                 </span>
                               ) : (
                                 <button
                                   type="button"
                                   onClick={() => handleSetActivePhoto(p.id)}
-                                  className="bg-[var(--c-panel)] text-[var(--c-ink)] px-1.5 py-0.5 border border-[var(--c-ink)] font-display text-[8px] hover:bg-[var(--c-yellow)] cursor-pointer"
+                                  className="bg-[var(--c-panel)] text-[var(--text-1)] px-1.5 py-0.5 border border-[var(--c-ink)] font-display text-[8px] hover:bg-[var(--c-yellow)] hover:text-[var(--on-neon)] cursor-pointer"
                                 >
                                   SET ACTIVE
                                 </button>

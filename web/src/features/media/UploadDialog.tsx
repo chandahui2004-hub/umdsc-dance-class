@@ -216,10 +216,10 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
 
           {sessions.length === 0 ? (
             <div className="p-4 bg-[var(--c-peach)] border-2 border-[var(--c-orange)] space-y-3">
-              <h4 className="font-display text-xs text-[var(--c-ink)] font-bold">
+              <h4 className="font-display text-xs text-[var(--text-1)] font-bold">
                 NO CLASSES IN {eventName.toUpperCase()} FOR {style.name.toUpperCase()}
               </h4>
-              <p className="font-body text-sm text-[var(--c-darkgrey)]">
+              <p className="font-body text-sm text-[var(--text-2)]">
                 Media files are organized inside each class&apos;s folder. Add {style.name} classes to this event first.
               </p>
               <div className="pt-2">
@@ -274,7 +274,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
                 <span>
                   {files.length} {files.length === 1 ? 'FILE' : 'FILES'} SELECTED:
                 </span>
-                <span className="font-mono text-[11px] text-[var(--c-darkgrey)]">
+                <span className="font-mono text-[11px] text-[var(--text-2)]">
                   {(totalBytes / (1024 * 1024)).toFixed(1)} MB total
                 </span>
               </div>
@@ -287,7 +287,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
                     #{idx + 1} {f.name}
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-[var(--c-darkgrey)]">
+                    <span className="text-[11px] text-[var(--text-2)]">
                       {(f.size / (1024 * 1024)).toFixed(1)} MB
                     </span>
                     {!isUploading && (
@@ -308,7 +308,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
 
           {/* Video Format Warning Alert */}
           {formatWarning && !warningIgnored && (
-            <div className="p-3 bg-[var(--c-peach)] border-2 border-[var(--c-orange)] text-[var(--c-ink)] space-y-2 text-xs">
+            <div className="p-3 bg-[var(--c-peach)] border-2 border-[var(--c-orange)] text-[var(--text-1)] space-y-2 text-xs">
               <p className="font-bold text-[var(--c-brown)]">VIDEO FORMAT WARNING</p>
               <p>{formatWarning}</p>
               <div className="flex gap-2 pt-1">
@@ -336,9 +336,9 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
           {/* Upload Progress Bar */}
           {isUploading && (
             <div className="p-4 bg-[var(--c-bg)] border-2 border-[var(--c-ink)] space-y-2">
-              <div className="flex justify-between font-display text-xs text-[var(--c-ink)]">
+              <div className="flex justify-between font-display text-xs text-[var(--text-1)]">
                 <span className="truncate max-w-[300px]">{uploadStatus}</span>
-                <span className="font-bold text-[var(--c-navy)]">{progressPercent}%</span>
+                <span className="font-bold text-[var(--neon-cyan)]">{progressPercent}%</span>
               </div>
               <div className="w-full h-4 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] overflow-hidden">
                 <div
@@ -347,7 +347,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
                 />
               </div>
               {files.length > 1 && (
-                <div className="flex justify-between font-mono text-xs text-[var(--c-darkgrey)]">
+                <div className="flex justify-between font-mono text-xs text-[var(--text-2)]">
                   <span>
                     File {currentFileIndex + 1} of {files.length}
                   </span>
@@ -356,7 +356,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
                   </span>
                 </div>
               )}
-              <div className="p-2 bg-[var(--c-yellow)] border border-[var(--c-ink)] text-center font-display text-[10px] text-[var(--c-ink)] font-bold animate-pulse">
+              <div className="p-2 bg-[var(--c-yellow)] border border-[var(--c-ink)] text-center font-display text-[10px] text-[var(--on-neon)] font-bold animate-pulse">
                 UPLOADING TO GOOGLE DRIVE · SCREEN WAKE LOCK ACTIVE
               </div>
             </div>

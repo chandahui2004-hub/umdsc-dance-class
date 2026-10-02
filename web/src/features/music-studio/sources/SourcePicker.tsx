@@ -16,15 +16,15 @@ interface SourcePickerProps {
 }
 
 const panelClass =
-  'rounded-3xl border border-white/15 bg-white/[0.08] p-4 shadow-[0_0_32px_rgba(235,178,255,0.12),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-xl';
+  ' border border-white/15 bg-white/[0.08] p-4 shadow-[0_0_32px_rgba(235,178,255,0.12),inset_0_1px_0_rgba(255,255,255,0.12)]';
 const inputClass =
-  'min-h-12 min-w-0 rounded-lg border border-white/10 bg-white/[0.07] px-4 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] outline-none placeholder:text-zinc-500 focus:border-cyan-200/55 focus:bg-white/[0.1] focus:ring-4 focus:ring-cyan-300/10';
+  'min-h-12 min-w-0 border border-white/10 bg-white/[0.07] px-4 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] outline-none placeholder:text-zinc-500 focus:border-cyan-200/55 focus:bg-white/[0.1] focus:ring-4 focus:ring-cyan-300/10';
 const buttonClass =
-  'min-h-12 shrink-0 rounded-lg border border-cyan-200/25 bg-cyan-200/12 px-4 text-sm font-black text-cyan-50 transition hover:border-cyan-100/50 hover:bg-cyan-200/18 active:translate-y-px';
+  'min-h-12 shrink-0 border border-cyan-200/25 bg-cyan-200/12 px-4 text-sm font-black text-cyan-50 transition hover:border-cyan-100/50 hover:bg-cyan-200/18 active:translate-y-px';
 const fileButtonClass =
-  'inline-flex min-h-12 cursor-pointer items-center justify-center rounded-lg border border-fuchsia-200/25 bg-fuchsia-200/12 px-4 text-sm font-black text-fuchsia-50 transition hover:border-fuchsia-100/50 hover:bg-fuchsia-200/18 active:translate-y-px';
+  'inline-flex min-h-12 cursor-pointer items-center justify-center border border-fuchsia-200/25 bg-fuchsia-200/12 px-4 text-sm font-black text-fuchsia-50 transition hover:border-fuchsia-100/50 hover:bg-fuchsia-200/18 active:translate-y-px';
 const tabClass =
-  'min-h-10 rounded-lg border px-3 text-xs sm:text-sm font-black transition active:translate-y-px';
+  'min-h-10 border px-3 text-xs sm:text-sm font-black transition active:translate-y-px';
 
 export const SourcePicker: React.FC<SourcePickerProps> = ({
   activeSource,
@@ -64,7 +64,7 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({
       </div>
 
       {/* Tabs: CLASS MUSIC | MY MP3 | LINK (YouTube or SoundCloud) */}
-      <div className="mt-4 grid grid-cols-3 gap-1.5 rounded-xl border border-white/10 bg-black/20 p-1">
+      <div className="mt-4 grid grid-cols-3 gap-1.5 border border-white/10 bg-black/20 p-1">
         <button
           className={`${tabClass} ${
             sourceMode === 'class'

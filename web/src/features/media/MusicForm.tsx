@@ -148,7 +148,7 @@ export const MusicForm: React.FC<MusicFormProps> = ({
           </Field>
 
           {status === 'checking' && (
-            <p className="font-body text-xs text-[var(--c-darkgrey)] animate-pulse">Checking link…</p>
+            <p className="font-body text-xs text-[var(--text-2)] animate-pulse">Checking link…</p>
           )}
           {status === 'error' && linkError && (
             <p role="alert" className="font-body text-xs font-bold text-[var(--c-red)]">
@@ -156,7 +156,7 @@ export const MusicForm: React.FC<MusicFormProps> = ({
             </p>
           )}
           {resolved?.kind === 'youtube' && !resolved.embeddable && (
-            <p role="alert" className="border-2 border-[var(--c-orange)] bg-[var(--c-peach)] p-2 text-xs font-bold text-[var(--c-ink)]">
+            <p role="alert" className="border-2 border-[var(--c-orange)] bg-[var(--c-peach)] p-2 text-xs font-bold text-[var(--text-1)]">
               {NOT_EMBEDDABLE_WARNING}
             </p>
           )}
@@ -178,7 +178,7 @@ export const MusicForm: React.FC<MusicFormProps> = ({
             />
           </Field>
 
-          <p className="font-body text-xs text-[var(--c-darkgrey)]">
+          <p className="font-body text-xs text-[var(--text-2)]">
             Tip: upload an MP3 for the most reliable practice playback (works offline, on every phone).
           </p>
 

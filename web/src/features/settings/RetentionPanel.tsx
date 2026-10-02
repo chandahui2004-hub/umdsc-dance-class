@@ -43,7 +43,7 @@ export const RetentionPanel: React.FC = () => {
 
   return (
     <Panel title="DATA RETENTION (3 YEARS)" className="px-corners space-y-3">
-      <p className="font-body text-base text-[var(--c-ink)]">
+      <p className="font-body text-base text-[var(--text-1)]">
         Dancer details are kept for 3 years after the last event they joined. Removing them keeps attendance counts, but
         the dancer can no longer log in unless they register again.
       </p>
@@ -52,7 +52,7 @@ export const RetentionPanel: React.FC = () => {
       </PixelButton>
 
       {preview && preview.due.length === 0 && (
-        <p className="font-body text-base text-[var(--c-ink)]">No dancer data is due for removal.</p>
+        <p className="font-body text-base text-[var(--text-1)]">No dancer data is due for removal.</p>
       )}
 
       {preview && preview.due.length > 0 && (
@@ -90,13 +90,13 @@ export const RetentionPanel: React.FC = () => {
 
           {preview.formsToClean.length > 0 && (
             <div className="border-2 border-[var(--c-ink)] bg-[var(--c-peach)] p-3 space-y-1">
-              <p className="font-body text-sm text-[var(--c-ink)]">
+              <p className="font-body text-sm text-[var(--text-1)]">
                 These registration forms only hold dancers being removed. Delete their old responses in Google Forms too:
               </p>
               <ul className="list-disc pl-5 font-body text-sm">
                 {preview.formsToClean.map(f => (
                   <li key={f.sourceSheetId}>
-                    <a href={`https://docs.google.com/spreadsheets/d/${f.sourceSheetId}`} target="_blank" rel="noreferrer" className="underline text-[var(--c-navy)]">
+                    <a href={`https://docs.google.com/spreadsheets/d/${f.sourceSheetId}`} target="_blank" rel="noreferrer" className="underline text-[var(--neon-cyan)]">
                       {f.eventName}
                     </a>
                   </li>
@@ -120,7 +120,7 @@ export const RetentionPanel: React.FC = () => {
         </div>
       )}
 
-      {note && <p className="font-body font-bold text-base text-[var(--c-darkgreen)]">{note}</p>}
+      {note && <p className="font-body font-bold text-base text-[var(--neon-green)]">{note}</p>}
       {error && <p role="alert" className="font-body font-bold text-sm text-[var(--c-red)]">{error}</p>}
     </Panel>
   );

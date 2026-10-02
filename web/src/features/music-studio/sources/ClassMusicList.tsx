@@ -39,7 +39,7 @@ export const ClassMusicList: React.FC<ClassMusicListProps> = ({
 
   if (!music || music.length === 0) {
     return (
-      <div className="p-4 text-center border-2 border-dashed border-white/20 rounded-2xl bg-black/20">
+      <div className="p-4 text-center border-2 border-dashed border-white/20 bg-black/20">
         <p className="font-mono text-xs text-zinc-400 uppercase tracking-wider">
           No class music uploaded yet
         </p>
@@ -50,14 +50,14 @@ export const ClassMusicList: React.FC<ClassMusicListProps> = ({
   return (
     <div className="space-y-3">
       {/* Event and Dance Style Filter Controls */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-black/30 p-2 border border-white/10 rounded-xl">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-black/30 p-2 border border-white/10">
         <label className="flex flex-col gap-1 text-[10px] font-mono text-cyan-200">
           <span className="font-bold">FILTER BY EVENT</span>
           <select
             aria-label="Filter music by event"
             value={filterEventId}
             onChange={e => setFilterEventId(e.target.value)}
-            className="w-full bg-[#101114] text-white border border-white/20 rounded-lg px-2 py-1.5 text-xs font-mono focus:border-cyan-300 outline-none"
+            className="w-full bg-[var(--night-1)] text-white border border-white/20 px-2 py-1.5 text-xs font-mono focus:border-cyan-300 outline-none"
           >
             <option value="all">ALL EVENTS ({events.length})</option>
             {events.map(ev => (
@@ -74,7 +74,7 @@ export const ClassMusicList: React.FC<ClassMusicListProps> = ({
             aria-label="Filter music by style"
             value={filterStyleId}
             onChange={e => setFilterStyleId(e.target.value)}
-            className="w-full bg-[#101114] text-white border border-white/20 rounded-lg px-2 py-1.5 text-xs font-mono focus:border-fuchsia-300 outline-none"
+            className="w-full bg-[var(--night-1)] text-white border border-white/20 px-2 py-1.5 text-xs font-mono focus:border-fuchsia-300 outline-none"
           >
             <option value="all">ALL DANCE STYLES ({styles.length})</option>
             {styles.map(st => (
@@ -87,7 +87,7 @@ export const ClassMusicList: React.FC<ClassMusicListProps> = ({
       </div>
 
       {filteredMusic.length === 0 ? (
-        <div className="p-4 text-center border-2 border-dashed border-white/10 rounded-2xl bg-black/20">
+        <div className="p-4 text-center border-2 border-dashed border-white/10 bg-black/20">
           <p className="font-mono text-xs text-zinc-400">
             No class music matches the selected filters.
           </p>
@@ -104,7 +104,7 @@ export const ClassMusicList: React.FC<ClassMusicListProps> = ({
             key={item.id}
             data-testid={`class-music-item-${item.id}`}
             onClick={() => onSelectMusic(item)}
-            className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+            className={`p-3 border transition-all cursor-pointer flex items-center justify-between gap-3 ${
               isSelected
                 ? 'border-cyan-300/80 bg-cyan-900/30 shadow-[0_0_14px_rgba(103,232,249,0.2)]'
                 : 'border-white/10 bg-white/[0.04] hover:bg-white/[0.08]'

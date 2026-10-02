@@ -45,10 +45,10 @@ export const DaySheet: React.FC<DaySheetProps> = ({
       <div className="space-y-4">
         {daySessions.length === 0 ? (
           <div className="p-6 text-center bg-[var(--c-bg)] border-2 border-dashed border-[var(--c-ink)] space-y-2">
-            <p className="font-display text-xs text-[var(--c-darkgrey)]">
+            <p className="font-display text-xs text-[var(--text-2)]">
               NO CLASSES SCHEDULED FOR THIS DAY
             </p>
-            <p className="font-body text-xs text-[var(--c-darkgrey)]">
+            <p className="font-body text-xs text-[var(--text-2)]">
               Tap another highlighted calendar day to see class details and videos.
             </p>
           </div>

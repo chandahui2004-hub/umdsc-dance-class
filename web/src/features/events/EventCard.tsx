@@ -74,12 +74,12 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h3 className="font-display text-sm text-[var(--c-ink)]">{event.name}</h3>
-          <p className="font-body text-sm text-[var(--c-darkgrey)]">
+          <h3 className="font-display text-sm text-[var(--text-1)]">{event.name}</h3>
+          <p className="font-body text-sm text-[var(--text-2)]">
             {TYPE_LABEL[event.type] || event.type} · {event.startDate} → {event.endDate}
           </p>
         </div>
-        <span className="px-2 py-1 border-2 border-[var(--c-ink)] bg-[var(--c-yellow)] font-display text-[10px] text-[var(--c-ink)]">
+        <span className="px-2 py-1 border-2 border-[var(--c-ink)] bg-[var(--c-yellow)] font-display text-[10px] text-[var(--on-neon)]">
           {event.memberCount} DANCERS
         </span>
       </div>
@@ -91,7 +91,7 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
             <span
               key={id}
               style={{ backgroundColor: getStyleColor(style?.colorKey) }}
-              className="px-2 py-0.5 border-2 border-[var(--c-ink)] font-display text-[10px] text-[var(--c-ink)]"
+              className="px-2 py-0.5 border-2 border-[var(--c-ink)] font-display text-[10px] text-[var(--text-1)]"
             >
               {style?.name || id}
             </span>
@@ -99,14 +99,14 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
         })}
       </div>
 
-      <div className="font-body text-sm text-[var(--c-ink)] space-y-1">
+      <div className="font-body text-sm text-[var(--text-1)] space-y-1">
         <p>
           Form:{' '}
           <a
             href={`https://docs.google.com/spreadsheets/d/${event.sourceSheetId}`}
             target="_blank"
             rel="noreferrer"
-            className="underline text-[var(--c-navy)]"
+            className="underline text-[var(--neon-cyan)]"
           >
             open response sheet ↗
           </a>
@@ -125,7 +125,7 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
             </PixelButton>
           </p>
         )}
-        {note && <p className="font-bold text-[var(--c-darkgreen)]">{note}</p>}
+        {note && <p className="font-bold text-[var(--neon-green)]">{note}</p>}
       </div>
 
       <div className="flex flex-wrap gap-2 pt-2 border-t-2 border-[var(--c-ink)]">

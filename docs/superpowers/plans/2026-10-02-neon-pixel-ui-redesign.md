@@ -232,7 +232,7 @@ for (const [fg, bg, min] of PAIRS) {
 
 This script was written and verified against a copy of `web/src` on 2026-10-02: 69 files and 638 lines changed, 0 `text-[var(--c-ink)]` left, 39 of 39 `data-testid` attributes unchanged, 16 lines flagged for review. **Copy it exactly.**
 
-- [ ] **Step 1: Write the test** `web/scripts/neon-codemod.test.mjs`:
+- [x] **Step 1: Write the test** `web/scripts/neon-codemod.test.mjs`:
 
 ```js
 import { test } from 'node:test';
@@ -277,8 +277,8 @@ test('old hex colours map to tokens, any case', () => {
 });
 ```
 
-- [ ] **Step 2: Run it.** Run `npm run test:scripts -w web`. Expected: FAIL, `Cannot find module ... neon-codemod.mjs`.
-- [ ] **Step 3: Create `web/scripts/neon-codemod.mjs`** with exactly this content:
+- [x] **Step 2: Run it.** Run `npm run test:scripts -w web`. Expected: FAIL, `Cannot find module ... neon-codemod.mjs`.
+- [x] **Step 3: Create `web/scripts/neon-codemod.mjs`** with exactly this content:
 
 ```js
 // Neon codemod: rewrites colour TEXT classes for the night theme (spec §3.4),
@@ -399,17 +399,17 @@ if (process.argv[1] && process.argv[1].endsWith('neon-codemod.mjs')) {
 }
 ```
 
-- [ ] **Step 4: Run the tests.** Run `npm run test:scripts -w web`. Expected: all codemod tests and contrast tests pass, `fail 0`.
-- [ ] **Step 5: Dry run.** From `web/`: `node scripts/neon-codemod.mjs src > ../codemod-report.txt; tail -1 ../codemod-report.txt`
+- [x] **Step 4: Run the tests.** Run `npm run test:scripts -w web`. Expected: all codemod tests and contrast tests pass, `fail 0`.
+- [x] **Step 5: Dry run.** From `web/`: `node scripts/neon-codemod.mjs src > ../codemod-report.txt; tail -1 ../codemod-report.txt`
   Expected: a last line like `DRY RUN: 6x files, 6xx lines` (the exact number depends on the instructor-photo task) and some `REVIEW` lines (16 on 2026-10-02).
-- [ ] **Step 6: Apply.** From `web/`: `node scripts/neon-codemod.mjs src --write | tail -1`. Expected: `WROTE: ...`.
-- [ ] **Step 7: Check the testids are untouched.**
+- [x] **Step 6: Apply.** From `web/`: `node scripts/neon-codemod.mjs src --write | tail -1`. Expected: `WROTE: ...`.
+- [x] **Step 7: Check the testids are untouched.**
   Run: `git diff -U0 -- web/src | grep -E "^[-+].*data-testid" | sort | uniq -c`
   Expected: no output, or only pairs where the `-` and `+` lines have the **same** `data-testid` value (the line changed for a colour reason).
-- [ ] **Step 8: Review each REVIEW line by hand.** For each `REVIEW file:line` in `codemod-report.txt`, open the file. If the element can render a neon fill (`--c-yellow/green/orange/pink/blue/red/lavender`) **while** its text class is `text-[var(--text-1)]`, move the text class into each branch: `text-[var(--on-neon)]` in the neon branch and `text-[var(--text-1)]` in the other. Most flags (e.g. `isActive ? 'bg-…yellow… text-on-neon' : 'bg-…bg… text-text-1'`) are already correct; leave those alone. Delete `codemod-report.txt` afterwards.
-- [ ] **Step 9: Verify.** Run `npm test -w web` and `npm run build -w web`. Expected: same results as the Baseline. If a test now fails, use `systematic-debugging`; the codemod must never change behaviour.
-- [ ] **Step 10: Look at the app.** Run `npm run dev -w web`, then check `/login`, `/`, `/admin/attendance` at 390×844. Expected: all text is readable. Gold, green and red pills have dark text.
-- [ ] **Step 11: Commit.** `git add web/scripts web/src && git commit -m "refactor(theme): codemod text colours, corners, blur and hex to night tokens"`
+- [x] **Step 8: Review each REVIEW line by hand.** For each `REVIEW file:line` in `codemod-report.txt`, open the file. If the element can render a neon fill (`--c-yellow/green/orange/pink/blue/red/lavender`) **while** its text class is `text-[var(--text-1)]`, move the text class into each branch: `text-[var(--on-neon)]` in the neon branch and `text-[var(--text-1)]` in the other. Most flags (e.g. `isActive ? 'bg-…yellow… text-on-neon' : 'bg-…bg… text-text-1'`) are already correct; leave those alone. Delete `codemod-report.txt` afterwards.
+- [x] **Step 9: Verify.** Run `npm test -w web` and `npm run build -w web`. Expected: same results as the Baseline. If a test now fails, use `systematic-debugging`; the codemod must never change behaviour.
+- [x] **Step 10: Look at the app.** Run `npm run dev -w web`, then check `/login`, `/`, `/admin/attendance` at 390×844. Expected: all text is readable. Gold, green and red pills have dark text.
+- [x] **Step 11: Commit.** `git add web/scripts web/src && git commit -m "refactor(theme): codemod text colours, corners, blur and hex to night tokens"`
 
 ---
 

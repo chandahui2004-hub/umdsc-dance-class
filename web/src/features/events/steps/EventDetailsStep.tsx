@@ -37,12 +37,12 @@ const RangeCalendar: React.FC<{
         <PixelButton size="md" variant="secondary" aria-label="Previous month" onClick={() => setViewMonth(m => addMonths(m, -1))}>
           &lt;
         </PixelButton>
-        <span className="font-display text-xs text-[var(--c-ink)]">{viewMonth}</span>
+        <span className="font-display text-xs text-[var(--text-1)]">{viewMonth}</span>
         <PixelButton size="md" variant="secondary" aria-label="Next month" onClick={() => setViewMonth(m => addMonths(m, 1))}>
           &gt;
         </PixelButton>
       </div>
-      <div className="grid grid-cols-7 gap-1 text-center font-display text-[10px] text-[var(--c-darkgrey)]">
+      <div className="grid grid-cols-7 gap-1 text-center font-display text-[10px] text-[var(--text-2)]">
         {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map(d => (
           <span key={d}>{d}</span>
         ))}
@@ -66,9 +66,9 @@ const RangeCalendar: React.FC<{
                     : inside
                     ? 'bg-[var(--c-yellow)]'
                     : outsideMonth
-                    ? 'bg-[var(--c-bg)] text-[var(--c-grey)]'
+                    ? 'bg-[var(--c-bg)] text-[var(--text-2)]'
                     : 'bg-[var(--c-panel)]'
-                } text-[var(--c-ink)]`}
+                } text-[var(--text-1)]`}
               >
                 {Number(d.slice(8))}
               </button>
@@ -76,7 +76,7 @@ const RangeCalendar: React.FC<{
           })}
         </div>
       ))}
-      <p className="font-body text-xs text-[var(--c-darkgrey)]">
+      <p className="font-body text-xs text-[var(--text-2)]">
         {picking === 'start' ? 'Click the first day of the event.' : 'Now click the last day.'}
       </p>
     </div>
@@ -90,7 +90,7 @@ export const EventDetailsStep: React.FC<StepProps> = ({ draft, onChange, onNext,
   return (
     <div className="space-y-4">
       <label className="block space-y-1">
-        <span className="font-display text-xs text-[var(--c-ink)]">EVENT NAME</span>
+        <span className="font-display text-xs text-[var(--text-1)]">EVENT NAME</span>
         <input
           aria-label="Event name"
           value={draft.name}
@@ -106,7 +106,7 @@ export const EventDetailsStep: React.FC<StepProps> = ({ draft, onChange, onNext,
       )}
 
       <label className="block space-y-1">
-        <span className="font-display text-xs text-[var(--c-ink)]">TYPE</span>
+        <span className="font-display text-xs text-[var(--text-1)]">TYPE</span>
         <select
           aria-label="Event type"
           value={draft.type}
@@ -122,7 +122,7 @@ export const EventDetailsStep: React.FC<StepProps> = ({ draft, onChange, onNext,
       </label>
 
       <div className="space-y-2">
-        <span className="font-display text-xs text-[var(--c-ink)]">DATES</span>
+        <span className="font-display text-xs text-[var(--text-1)]">DATES</span>
         <RangeCalendar
           startDate={draft.startDate}
           endDate={draft.endDate}

@@ -55,7 +55,7 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
 
   return (
     <div className="space-y-4">
-      <p className="font-body text-base text-[var(--c-ink)]">Tick the dance styles taught in this event.</p>
+      <p className="font-body text-base text-[var(--text-1)]">Tick the dance styles taught in this event.</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {styles.map(s => (
@@ -65,9 +65,9 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
           >
             <input type="checkbox" checked={draft.styleIds.includes(s.id)} onChange={() => toggle(s.id)} className="w-5 h-5" />
             <span className="w-4 h-4 border-2 border-[var(--c-ink)]" style={{ backgroundColor: getStyleColor(s.colorKey) }} />
-            <span className="font-body text-base text-[var(--c-ink)]">{s.name}</span>
+            <span className="font-body text-base text-[var(--text-1)]">{s.name}</span>
             {draft.preview && (
-              <span className="ml-auto font-mono text-xs text-[var(--c-darkgrey)]">
+              <span className="ml-auto font-mono text-xs text-[var(--text-2)]">
                 {draft.preview.detectedStyleIds.includes(s.id) ? 'in form' : ''}
               </span>
             )}
@@ -77,7 +77,7 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
 
       {unknown.length > 0 && (
         <div className="border-4 border-[var(--c-ink)] bg-[var(--c-peach)] p-3 space-y-2">
-          <p className="font-display text-[10px] text-[var(--c-ink)]">CLASS ANSWERS THAT MATCH NO STYLE</p>
+          <p className="font-display text-[10px] text-[var(--text-1)]">CLASS ANSWERS THAT MATCH NO STYLE</p>
           {unknown.map((u, i) => (
             <div key={u.token} className="flex flex-wrap items-center justify-between gap-2 font-body text-sm">
               <span>

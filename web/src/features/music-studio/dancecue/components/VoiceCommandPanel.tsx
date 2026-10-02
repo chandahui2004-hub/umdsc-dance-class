@@ -22,7 +22,7 @@ const sampleCommands = [
 
 const buttonClass =
   "min-h-11 rounded-full border border-white/10 bg-white/[0.08] px-3 text-sm font-bold text-zinc-100 transition hover:border-cyan-200/35 hover:bg-cyan-200/10 active:translate-y-px";
-const panelClass = "rounded-2xl border border-white/10 bg-white/[0.06] p-4 shadow-lg shadow-black/20";
+const panelClass = " border border-white/10 bg-white/[0.06] p-4 shadow-lg shadow-black/20";
 const eyebrowClass = "font-mono text-[0.68rem] font-bold uppercase tracking-[0.16em] text-cyan-200";
 
 function MicrophoneIcon() {
@@ -68,7 +68,7 @@ export function VoiceCommandPanel({
         />
       </div>
 
-      <div className="mt-5 flex items-center gap-3 rounded-xl border border-white/10 bg-black/25 p-3">
+      <div className="mt-5 flex items-center gap-3 border border-white/10 bg-black/25 p-3">
         <button
           aria-label={isListening ? "Stop listening" : "Start listening"}
           className={`grid size-14 shrink-0 place-items-center rounded-full border border-white/20 bg-gradient-to-r from-fuchsia-500 to-cyan-400 text-white shadow-lg shadow-fuchsia-950/40 transition hover:from-fuchsia-400 hover:to-cyan-300 disabled:cursor-not-allowed disabled:opacity-45 ${

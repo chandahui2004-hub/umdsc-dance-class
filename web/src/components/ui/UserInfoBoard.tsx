@@ -49,7 +49,7 @@ export const UserInfoBoard: React.FC<UserInfoBoardProps> = ({
           title={`${username} (${isAdmin ? 'ADMIN' : 'DANCER'} - ${matriksNumber})`}
           className={`w-9 h-9 border-2 border-[var(--c-ink)] flex items-center justify-center font-display text-[10px] shadow-[1px_1px_0_var(--c-ink)] select-none ${
             isAdmin
-              ? 'bg-[var(--c-orange)] text-[var(--c-ink)]'
+              ? 'bg-[var(--c-orange)] text-[var(--on-neon)]'
               : 'bg-[var(--c-navy)] text-[var(--c-yellow)]'
           }`}
         >
@@ -66,7 +66,7 @@ export const UserInfoBoard: React.FC<UserInfoBoardProps> = ({
           title="Sign Out"
           aria-label="Sign Out"
           data-testid="sign-out-btn-compact"
-          className="w-9 h-9 min-h-[36px] bg-[var(--c-red)] text-[var(--c-panel)] border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] hover:brightness-110 active:translate-x-[2px] active:translate-y-[2px] flex items-center justify-center cursor-pointer select-none"
+          className="w-9 h-9 min-h-[36px] bg-[var(--c-red)] text-[var(--on-neon)] border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] hover:brightness-110 active:translate-x-[2px] active:translate-y-[2px] flex items-center justify-center cursor-pointer select-none"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <path d="M16 13v-2H7V8l-5 4 5 4v-3h9zM20 3H10v2h10v14H10v2h10c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" />
@@ -83,14 +83,14 @@ export const UserInfoBoard: React.FC<UserInfoBoardProps> = ({
     >
       {/* Board Header & Role Badge */}
       <div className="flex items-center justify-between border-b-2 border-[var(--c-ink)] pb-2">
-        <span className="font-display text-[10px] text-[var(--c-darkgrey)] tracking-wider uppercase">
+        <span className="font-display text-[10px] text-[var(--text-2)] tracking-wider uppercase">
           PLAYER PROFILE
         </span>
         <span
           data-testid="user-role-badge"
           className={`font-display text-[9px] uppercase px-2 py-0.5 border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] ${
             isAdmin
-              ? 'bg-[var(--c-orange)] text-[var(--c-ink)] font-bold'
+              ? 'bg-[var(--c-orange)] text-[var(--on-neon)] font-bold'
               : 'bg-[var(--c-navy)] text-[var(--c-yellow)] font-bold'
           }`}
         >
@@ -101,12 +101,12 @@ export const UserInfoBoard: React.FC<UserInfoBoardProps> = ({
       {/* User Information Details */}
       <div className="space-y-1.5 font-display text-xs">
         <div className="flex items-start gap-2">
-          <span className="text-[var(--c-darkgrey)] text-[9px] w-14 shrink-0 uppercase pt-0.5">
+          <span className="text-[var(--text-2)] text-[9px] w-14 shrink-0 uppercase pt-0.5">
             USER:
           </span>
           <span
             data-testid="user-name-display"
-            className="text-[var(--c-ink)] font-bold truncate flex-1"
+            className="text-[var(--text-1)] font-bold truncate flex-1"
             title={username}
           >
             {username}
@@ -114,12 +114,12 @@ export const UserInfoBoard: React.FC<UserInfoBoardProps> = ({
         </div>
 
         <div className="flex items-start gap-2">
-          <span className="text-[var(--c-darkgrey)] text-[9px] w-14 shrink-0 uppercase pt-0.5">
+          <span className="text-[var(--text-2)] text-[9px] w-14 shrink-0 uppercase pt-0.5">
             MATRIKS:
           </span>
           <span
             data-testid="user-matriks-display"
-            className="text-[var(--c-navy)] font-mono text-sm font-bold tracking-wider"
+            className="text-[var(--neon-cyan)] font-mono text-sm font-bold tracking-wider"
           >
             {matriksNumber}
           </span>

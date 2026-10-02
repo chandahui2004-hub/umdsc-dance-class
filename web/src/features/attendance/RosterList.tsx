@@ -60,7 +60,7 @@ export const RosterList: React.FC<RosterListProps> = ({
         <p className="font-display text-sm text-[var(--c-red)]">
           NO SESSIONS SCHEDULED FOR THIS MONTH
         </p>
-        <p className="font-body text-sm text-[var(--c-darkgrey)] mt-2">
+        <p className="font-body text-sm text-[var(--text-2)] mt-2">
           Use the Calendar to schedule class sessions first.
         </p>
       </div>
@@ -81,8 +81,8 @@ export const RosterList: React.FC<RosterListProps> = ({
               onClick={() => onSelectSession(s.id)}
               className={`min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-display text-xs cursor-pointer select-none whitespace-nowrap transition-none ${
                 isSelected
-                  ? 'bg-[var(--c-orange)] text-[var(--c-ink)] font-bold shadow-[2px_2px_0_var(--c-ink)]'
-                  : 'bg-[var(--c-panel)] text-[var(--c-ink)] hover:bg-[var(--c-bg)]'
+                  ? 'bg-[var(--c-orange)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--c-ink)]'
+                  : 'bg-[var(--c-panel)] text-[var(--text-1)] hover:bg-[var(--c-bg)]'
               }`}
             >
               {label}
@@ -101,7 +101,7 @@ export const RosterList: React.FC<RosterListProps> = ({
           aria-label="Search dancer"
           className="min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-mono text-xs bg-[var(--c-bg)] flex-1"
         />
-        <div className="p-2 border-2 border-[var(--c-ink)] bg-[var(--c-yellow)] text-center font-display text-xs text-[var(--c-ink)] font-bold shadow-[2px_2px_0_var(--c-ink)]">
+        <div className="p-2 border-2 border-[var(--c-ink)] bg-[var(--c-yellow)] text-center font-display text-xs text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--c-ink)]">
           SCORE {presentCount}/{members.length}
         </div>
       </div>
@@ -114,7 +114,7 @@ export const RosterList: React.FC<RosterListProps> = ({
         }
       >
         {filteredMembers.length === 0 ? (
-          <div className="p-4 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] text-center text-xs font-body text-[var(--c-darkgrey)]">
+          <div className="p-4 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] text-center text-xs font-body text-[var(--text-2)]">
             No dancers found matching &ldquo;{search}&rdquo;
           </div>
         ) : (
@@ -132,10 +132,10 @@ export const RosterList: React.FC<RosterListProps> = ({
                 }`}
               >
                 <div className="min-w-0 flex-1">
-                  <h4 className="font-display text-xs text-[var(--c-ink)] truncate font-bold">
+                  <h4 className="font-display text-xs text-[var(--text-1)] truncate font-bold">
                     {m.fullName}
                   </h4>
-                  <p className="font-mono text-[11px] text-[var(--c-darkgrey)]">
+                  <p className="font-mono text-[11px] text-[var(--text-2)]">
                     {m.matric}
                   </p>
                 </div>
@@ -147,8 +147,8 @@ export const RosterList: React.FC<RosterListProps> = ({
                     variant={isPresent ? 'primary' : 'secondary'}
                     className={
                       isPresent
-                        ? '!bg-[var(--c-green)] !text-[var(--c-ink)] font-bold'
-                        : '!bg-[var(--c-panel)] !text-[var(--c-darkgrey)]'
+                        ? '!bg-[var(--c-green)] !text-[var(--on-neon)] font-bold'
+                        : '!bg-[var(--c-panel)] !text-[var(--text-2)]'
                     }
                     onClick={() => {
                       if (activeSession) {

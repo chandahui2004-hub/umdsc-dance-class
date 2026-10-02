@@ -88,7 +88,7 @@ export const SectionsEditor: React.FC<SectionsEditorProps> = ({ music, onClose }
           title={`PRACTICE SECTIONS: ${music.title}`}
           className="px-corners bg-[var(--c-panel)] flex-1 overflow-y-auto space-y-4"
         >
-          <p className="font-body text-xs text-[var(--c-darkgrey)]">
+          <p className="font-body text-xs text-[var(--text-2)]">
             Define loopable choreo sections for the DanceCue Practice Studio.
           </p>
 
@@ -103,7 +103,7 @@ export const SectionsEditor: React.FC<SectionsEditorProps> = ({ music, onClose }
 
           {/* New Section Form */}
           <div className="p-3 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] space-y-3">
-            <h4 className="font-display text-xs text-[var(--c-ink)] uppercase">
+            <h4 className="font-display text-xs text-[var(--text-1)] uppercase">
               + Add Section
             </h4>
 
@@ -119,7 +119,7 @@ export const SectionsEditor: React.FC<SectionsEditorProps> = ({ music, onClose }
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="font-display text-[10px] text-[var(--c-ink)] uppercase block mb-1">
+                <label className="font-display text-[10px] text-[var(--text-1)] uppercase block mb-1">
                   Start (MM : SS)
                 </label>
                 <div className="flex items-center gap-1">
@@ -143,7 +143,7 @@ export const SectionsEditor: React.FC<SectionsEditorProps> = ({ music, onClose }
               </div>
 
               <div>
-                <label className="font-display text-[10px] text-[var(--c-ink)] uppercase block mb-1">
+                <label className="font-display text-[10px] text-[var(--text-1)] uppercase block mb-1">
                   End (MM : SS)
                 </label>
                 <div className="flex items-center gap-1">
@@ -179,14 +179,14 @@ export const SectionsEditor: React.FC<SectionsEditorProps> = ({ music, onClose }
 
           {/* Sections List */}
           <div className="space-y-2">
-            <h4 className="font-display text-xs text-[var(--c-ink)] uppercase">
+            <h4 className="font-display text-xs text-[var(--text-1)] uppercase">
               Current Sections ({sections.length})
             </h4>
 
             {isLoading ? (
               <p className="font-display text-xs animate-pulse">Loading sections...</p>
             ) : sections.length === 0 ? (
-              <p className="font-body text-xs text-[var(--c-darkgrey)] italic">
+              <p className="font-body text-xs text-[var(--text-2)] italic">
                 No sections defined yet. Dancers will loop the full song in Studio.
               </p>
             ) : (
@@ -197,10 +197,10 @@ export const SectionsEditor: React.FC<SectionsEditorProps> = ({ music, onClose }
                     className="p-3 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] flex justify-between items-center gap-2"
                   >
                     <div>
-                      <span className="font-display text-xs text-[var(--c-ink)] font-bold">
+                      <span className="font-display text-xs text-[var(--text-1)] font-bold">
                         {sec.name}
                       </span>
-                      <span className="font-mono text-xs text-[var(--c-navy)] ml-2">
+                      <span className="font-mono text-xs text-[var(--neon-cyan)] ml-2">
                         {formatSecToMMSS(sec.startSec)} → {formatSecToMMSS(sec.endSec)}
                       </span>
                     </div>

@@ -276,9 +276,9 @@ export function DanceCueApp() {
 
   return (
     <div className="dancecue-root w-full">
-      <main className="min-h-screen bg-[#101114] px-4 py-5 font-sans text-zinc-100 sm:px-6">
-        <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-[430px] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-[#17181c] shadow-2xl shadow-black/40">
-          <section className="border-b border-white/10 bg-gradient-to-br from-fuchsia-500/18 via-[#1b1d24] to-cyan-400/14 px-5 pb-5 pt-6">
+      <main className="min-h-screen bg-[var(--night-1)] px-4 py-5 font-sans text-zinc-100 sm:px-6">
+        <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-[430px] flex-col overflow-hidden border border-white/10 bg-[var(--night-1)] shadow-2xl shadow-black/40">
+          <section className="border-b border-white/10 bg-gradient-to-br from-fuchsia-500/18 via-[var(--night-2)] to-cyan-400/14 px-5 pb-5 pt-6">
             <div>
               <div>
                 <p className="font-mono text-[0.7rem] font-bold uppercase tracking-[0.16em] text-cyan-200">

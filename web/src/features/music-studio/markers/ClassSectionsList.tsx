@@ -28,9 +28,9 @@ interface ClassSectionsListProps {
 const buttonClass =
   'min-h-11 w-full rounded-full border border-white/10 bg-white/[0.08] px-3 text-sm font-bold text-zinc-100 transition hover:border-cyan-200/35 hover:bg-cyan-200/10 active:translate-y-px';
 const inputClass =
-  'min-h-12 w-full min-w-0 rounded-lg border border-white/10 bg-white/[0.07] px-4 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] outline-none placeholder:text-zinc-500 focus:border-cyan-200/55 focus:bg-white/[0.1] focus:ring-4 focus:ring-cyan-300/10';
+  'min-h-12 w-full min-w-0 border border-white/10 bg-white/[0.07] px-4 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] outline-none placeholder:text-zinc-500 focus:border-cyan-200/55 focus:bg-white/[0.1] focus:ring-4 focus:ring-cyan-300/10';
 const panelClass =
-  'rounded-3xl border border-white/15 bg-white/[0.08] p-3 shadow-[0_0_32px_rgba(235,178,255,0.12),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-xl sm:p-4';
+  ' border border-white/15 bg-white/[0.08] p-3 shadow-[0_0_32px_rgba(235,178,255,0.12),inset_0_1px_0_rgba(255,255,255,0.12)] sm:p-4';
 const eyebrowClass = 'font-mono text-[0.68rem] font-bold uppercase tracking-[0.16em] text-cyan-100';
 
 function formatMarkerTime(totalSeconds: number) {
@@ -136,7 +136,7 @@ export const ClassSectionsList: React.FC<ClassSectionsListProps> = ({
 
       {/* Admin Publish Class Section Banner */}
       {canPublishSections && markerDraftRange && onPublishClassSection && (
-        <div className="mt-3 p-3 rounded-2xl bg-yellow-400/10 border border-yellow-400/40 flex items-center justify-between gap-2">
+        <div className="mt-3 p-3 bg-yellow-400/10 border border-yellow-400/40 flex items-center justify-between gap-2">
           <div className="min-w-0">
             <span className="font-mono text-xs font-bold text-yellow-200 uppercase block">
               Drafted Range: {formatMarkerTime(markerDraftRange.start)} -{' '}
@@ -155,7 +155,7 @@ export const ClassSectionsList: React.FC<ClassSectionsListProps> = ({
 
       {/* Publish Dialog */}
       {showPublishDialog && (
-        <form onSubmit={handlePublishSection} className="mt-3 p-3 bg-black/40 border border-yellow-400/40 rounded-2xl space-y-2">
+        <form onSubmit={handlePublishSection} className="mt-3 p-3 bg-black/40 border border-yellow-400/40 space-y-2">
           <p className="font-sans text-xs font-black text-yellow-200 uppercase">
             Publish as Official Class Section
           </p>
@@ -170,14 +170,14 @@ export const ClassSectionsList: React.FC<ClassSectionsListProps> = ({
             <button
               type="submit"
               disabled={isPublishing}
-              className="flex-1 min-h-10 bg-yellow-400 text-zinc-950 rounded-xl font-black text-xs uppercase"
+              className="flex-1 min-h-10 bg-yellow-400 text-zinc-950 font-black text-xs uppercase"
             >
               {isPublishing ? 'Publishing...' : 'Save & Publish'}
             </button>
             <button
               type="button"
               onClick={() => setShowPublishDialog(false)}
-              className="px-3 min-h-10 bg-white/10 text-white rounded-xl font-bold text-xs"
+              className="px-3 min-h-10 bg-white/10 text-white font-bold text-xs"
             >
               Cancel
             </button>
@@ -217,7 +217,7 @@ export const ClassSectionsList: React.FC<ClassSectionsListProps> = ({
       )}
 
       {/* Markers List */}
-      <div className="mt-4 divide-y divide-white/10 overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+      <div className="mt-4 divide-y divide-white/10 overflow-hidden border border-white/10 bg-black/30">
         {markers.map(marker => {
           const isClass = classMarkerIds.has(marker.id) || marker.id.startsWith('class-');
           const isLooping = loopMarker?.id === marker.id;

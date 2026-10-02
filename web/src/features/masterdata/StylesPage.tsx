@@ -159,10 +159,10 @@ export const StylesPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="font-display text-lg tracking-wider text-[var(--c-ink)]">
+          <h1 className="font-display text-lg tracking-wider text-[var(--text-1)]">
             Dance Styles
           </h1>
-          <p className="font-body text-base text-[var(--c-darkgrey)] mt-1">
+          <p className="font-body text-base text-[var(--text-2)] mt-1">
             Configure genre metadata, schedules, colors, and Drive folder links.
           </p>
         </div>
@@ -209,7 +209,7 @@ export const StylesPage: React.FC = () => {
 
                 {/* Aliases */}
                 <div className="space-y-1">
-                  <span className="font-display text-[10px] text-[var(--c-darkgrey)] uppercase">
+                  <span className="font-display text-[10px] text-[var(--text-2)] uppercase">
                     Aliases:
                   </span>
                   <div className="flex flex-wrap gap-1">
@@ -223,7 +223,7 @@ export const StylesPage: React.FC = () => {
                         </span>
                       ))
                     ) : (
-                      <span className="font-body text-xs text-[var(--c-darkgrey)] italic">
+                      <span className="font-body text-xs text-[var(--text-2)] italic">
                         None
                       </span>
                     )}
@@ -244,19 +244,19 @@ export const StylesPage: React.FC = () => {
                 </div>
 
                 {/* Drive Folders */}
-                <div className="font-mono text-xs space-y-1 text-[var(--c-darkgrey)]">
+                <div className="font-mono text-xs space-y-1 text-[var(--text-2)]">
                   <div>
-                    <span className="font-bold text-[var(--c-ink)]">Attendance Folder:</span>{' '}
+                    <span className="font-bold text-[var(--text-1)]">Attendance Folder:</span>{' '}
                     {style.attendanceFolderId ? (
-                      <span className="text-[var(--c-darkgreen)]">Configured</span>
+                      <span className="text-[var(--neon-green)]">Configured</span>
                     ) : (
                       <span className="italic">Using Default</span>
                     )}
                   </div>
                   <div>
-                    <span className="font-bold text-[var(--c-ink)]">Video Folder:</span>{' '}
+                    <span className="font-bold text-[var(--text-1)]">Video Folder:</span>{' '}
                     {style.videoFolderId ? (
-                      <span className="text-[var(--c-darkgreen)]">Configured</span>
+                      <span className="text-[var(--neon-green)]">Configured</span>
                     ) : (
                       <span className="italic">Using Default</span>
                     )}
@@ -341,7 +341,7 @@ export const StylesPage: React.FC = () => {
 
               {/* Default Schedule */}
               <div className="space-y-4 pt-3 border-t-2 border-[var(--c-ink)]/20">
-                <h3 className="font-display text-xs text-[var(--c-ink)] tracking-wider">
+                <h3 className="font-display text-xs text-[var(--text-1)] tracking-wider">
                   DEFAULT SCHEDULE & ASSIGNMENTS
                 </h3>
 

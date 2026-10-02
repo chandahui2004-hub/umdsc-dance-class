@@ -73,7 +73,7 @@ export const AdminLogin: React.FC = () => {
         <div className="inline-block bg-[var(--c-navy)] text-[var(--c-yellow)] px-3 py-1 border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] mb-2">
           <span className="font-display text-xs tracking-widest">★ SYSTEM CONSOLE ★</span>
         </div>
-        <h1 className="font-display text-xl md:text-2xl text-[var(--c-ink)]">
+        <h1 className="font-display text-xl md:text-2xl text-[var(--text-1)]">
           ADMIN ACCESS
         </h1>
       </div>
@@ -119,7 +119,7 @@ export const AdminLogin: React.FC = () => {
                 onChange={(e) => setRemember(e.target.checked)}
                 className="w-5 h-5 accent-[var(--c-navy)] border-2 border-[var(--c-ink)] mr-3 cursor-pointer"
               />
-              <label htmlFor="remember" className="font-display text-[10px] text-[var(--c-ink)] cursor-pointer select-none">
+              <label htmlFor="remember" className="font-display text-[10px] text-[var(--text-1)] cursor-pointer select-none">
                 REMEMBER ME
               </label>
             </div>
@@ -140,7 +140,7 @@ export const AdminLogin: React.FC = () => {
           <div className="mt-6 pt-4 border-t-2 border-[var(--c-grey)] text-center">
             <Link
               to="/login"
-              className="font-display text-[10px] text-[var(--c-blue)] hover:text-[var(--c-navy)] underline inline-block py-2 min-h-[44px] flex items-center justify-center"
+              className="font-display text-[10px] text-[var(--c-blue)] hover:text-[var(--neon-cyan)] underline inline-block py-2 min-h-[44px] flex items-center justify-center"
             >
               [ &lt; DANCER MODE ]
             </Link>

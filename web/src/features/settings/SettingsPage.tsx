@@ -102,14 +102,14 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
       <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b-2 border-[var(--c-ink)]">
         <div className="flex items-center gap-2">
           <span
-            className="w-4 h-4 rounded-none border border-[var(--c-ink)] inline-block flex-shrink-0"
+            className="w-4 h-4 border border-[var(--c-ink)] inline-block flex-shrink-0"
             style={{ backgroundColor: color }}
           />
-          <span className="font-display text-xs md:text-sm text-[var(--c-ink)] font-bold">
+          <span className="font-display text-xs md:text-sm text-[var(--text-1)] font-bold">
             {style.name.toUpperCase()}
           </span>
         </div>
-        <span className="font-mono text-xs text-[var(--c-darkgrey)]">
+        <span className="font-mono text-xs text-[var(--text-2)]">
           {folders.length} {folders.length === 1 ? 'folder configured' : 'folders configured'}
         </span>
       </div>
@@ -120,7 +120,7 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
           className={`p-2 font-body font-bold text-xs border-2 ${
             status.type === 'error'
               ? 'bg-[var(--c-peach)] border-[var(--c-red)] text-[var(--c-red)]'
-              : 'bg-[var(--c-bg)] border-[var(--c-darkgreen)] text-[var(--c-darkgreen)]'
+              : 'bg-[var(--c-bg)] border-[var(--c-darkgreen)] text-[var(--neon-green)]'
           }`}
         >
           {status.type === 'error' ? '⚠ ' : '✓ '} {status.text}
@@ -148,15 +148,15 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
                 <div className="space-y-1 min-w-0">
                   <div className="flex items-center gap-2">
                     {isActive ? (
-                      <span className="font-display text-[9px] px-1.5 py-0.5 bg-[var(--c-green)] text-[var(--c-ink)] border border-[var(--c-ink)] font-bold">
+                      <span className="font-display text-[9px] px-1.5 py-0.5 bg-[var(--c-green)] text-[var(--on-neon)] border border-[var(--c-ink)] font-bold">
                         ● ACTIVE
                       </span>
                     ) : (
-                      <span className="font-display text-[9px] px-1.5 py-0.5 bg-[var(--c-panel)] text-[var(--c-darkgrey)] border border-[var(--c-darkgrey)] font-bold">
+                      <span className="font-display text-[9px] px-1.5 py-0.5 bg-[var(--c-panel)] text-[var(--text-2)] border border-[var(--c-darkgrey)] font-bold">
                         INACTIVE
                       </span>
                     )}
-                    <span className="font-display text-xs text-[var(--c-ink)] font-bold truncate">
+                    <span className="font-display text-xs text-[var(--text-1)] font-bold truncate">
                       {folder.name || 'Video Folder'}
                     </span>
                   </div>
@@ -165,7 +165,7 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
                       href={`https://drive.google.com/drive/folders/${folder.id}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-[var(--c-navy)] font-bold underline hover:text-[var(--c-ink)]"
+                      className="text-[var(--neon-cyan)] font-bold underline hover:text-[var(--text-1)]"
                     >
                       Open in Drive ↗ ({folder.id.slice(0, 10)}…)
                     </a>
@@ -200,7 +200,7 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
 
       {/* Add Folder Form */}
       <div className="pt-2 border-t border-[var(--c-ink)] space-y-1">
-        <span className="font-display text-[10px] text-[var(--c-ink)] font-bold">
+        <span className="font-display text-[10px] text-[var(--text-1)] font-bold">
           + ADD GOOGLE DRIVE FOLDER LINK:
         </span>
         <div className="flex flex-col sm:flex-row gap-2">
@@ -294,10 +294,10 @@ export const SettingsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-lg tracking-wider text-[var(--c-ink)]">
+        <h1 className="font-display text-lg tracking-wider text-[var(--text-1)]">
           System Settings
         </h1>
-        <p className="font-body text-base text-[var(--c-darkgrey)] mt-1">
+        <p className="font-body text-base text-[var(--text-2)] mt-1">
           Configure Google Drive folders, system links, and view link update history.
         </p>
       </div>
@@ -307,15 +307,15 @@ export const SettingsPage: React.FC = () => {
 
       {/* Permissions & Service Account Banner */}
       <div className="bg-[var(--c-peach)] border-4 border-[var(--c-ink)] p-4 shadow-[4px_4px_0_var(--c-ink)] space-y-2">
-        <h3 className="font-display text-xs text-[var(--c-ink)] uppercase">
+        <h3 className="font-display text-xs text-[var(--text-1)] uppercase">
           GOOGLE DRIVE ACCESS REQUIREMENT
         </h3>
-        <p className="font-body text-base text-[var(--c-darkgrey)]">
+        <p className="font-body text-base text-[var(--text-2)]">
           Every Google Drive folder or spreadsheet used by this system must be shared with{' '}
-          <strong className="font-mono text-sm text-[var(--c-ink)] bg-[var(--c-bg)] px-2 py-0.5 border border-[var(--c-ink)]">
+          <strong className="font-mono text-sm text-[var(--text-1)] bg-[var(--c-bg)] px-2 py-0.5 border border-[var(--c-ink)]">
             {clubEmail}
           </strong>{' '}
-          as <strong className="text-[var(--c-ink)]">Editor</strong> before setting the link.
+          as <strong className="text-[var(--text-1)]">Editor</strong> before setting the link.
         </p>
       </div>
 
@@ -327,9 +327,9 @@ export const SettingsPage: React.FC = () => {
         <div className="space-y-6">
           {/* Default Attendance Folder */}
           <Panel title="DEFAULT ATTENDANCE FOLDER" className="px-corners space-y-3">
-            <div className="font-mono text-xs text-[var(--c-darkgrey)]">
+            <div className="font-mono text-xs text-[var(--text-2)]">
               Current ID:{' '}
-              <span className="text-[var(--c-ink)] font-bold">
+              <span className="text-[var(--text-1)] font-bold">
                 {settings.defaultAttendanceFolderId || 'Not Configured'}
               </span>
             </div>
@@ -340,7 +340,7 @@ export const SettingsPage: React.FC = () => {
                 className={`p-3 font-body font-bold text-sm border-4 ${
                   statusMessage.type === 'error'
                     ? 'bg-[var(--c-peach)] border-[var(--c-red)] text-[var(--c-red)]'
-                    : 'bg-[var(--c-bg)] border-[var(--c-darkgreen)] text-[var(--c-darkgreen)]'
+                    : 'bg-[var(--c-bg)] border-[var(--c-darkgreen)] text-[var(--neon-green)]'
                 }`}
               >
                 {statusMessage.text}
@@ -380,7 +380,7 @@ export const SettingsPage: React.FC = () => {
 
           {/* Video Folders by Dance Style */}
           <Panel title="VIDEO FOLDERS BY DANCE STYLE" className="px-corners space-y-3">
-            <p className="font-body text-sm text-[var(--c-darkgrey)]">
+            <p className="font-body text-sm text-[var(--text-2)]">
               Class recap videos are stored in Google Drive. Different dance styles can have different Google Drive folder links, managed by each dance style&apos;s team member or account.
             </p>
 
@@ -389,7 +389,7 @@ export const SettingsPage: React.FC = () => {
                 <Spinner size="md" />
               </div>
             ) : styles.length === 0 ? (
-              <p className="font-body text-xs text-[var(--c-darkgrey)]">No dance styles configured.</p>
+              <p className="font-body text-xs text-[var(--text-2)]">No dance styles configured.</p>
             ) : (
               <div className="space-y-3">
                 {styles.map((style) => (
@@ -401,9 +401,9 @@ export const SettingsPage: React.FC = () => {
 
           {/* Default / Fallback Video Folder */}
           <Panel title="DEFAULT / FALLBACK VIDEO FOLDER" className="px-corners space-y-3">
-            <div className="font-mono text-xs text-[var(--c-darkgrey)]">
+            <div className="font-mono text-xs text-[var(--text-2)]">
               Current ID:{' '}
-              <span className="text-[var(--c-ink)] font-bold">
+              <span className="text-[var(--text-1)] font-bold">
                 {settings.defaultVideoFolderId || 'Not Configured'}
               </span>
             </div>
@@ -414,7 +414,7 @@ export const SettingsPage: React.FC = () => {
                 className={`p-3 font-body font-bold text-sm border-4 ${
                   statusMessage.type === 'error'
                     ? 'bg-[var(--c-peach)] border-[var(--c-red)] text-[var(--c-red)]'
-                    : 'bg-[var(--c-bg)] border-[var(--c-darkgreen)] text-[var(--c-darkgreen)]'
+                    : 'bg-[var(--c-bg)] border-[var(--c-darkgreen)] text-[var(--neon-green)]'
                 }`}
               >
                 {statusMessage.text}
@@ -455,9 +455,9 @@ export const SettingsPage: React.FC = () => {
 
           {/* Database Folder */}
           <Panel title="DATABASE FOLDER" className="px-corners space-y-3">
-            <div className="font-mono text-xs text-[var(--c-darkgrey)]">
+            <div className="font-mono text-xs text-[var(--text-2)]">
               Current ID:{' '}
-              <span className="text-[var(--c-ink)] font-bold">
+              <span className="text-[var(--text-1)] font-bold">
                 {settings.dbFolderId || 'Not Configured'}
               </span>
             </div>
@@ -468,7 +468,7 @@ export const SettingsPage: React.FC = () => {
                 className={`p-3 font-body font-bold text-sm border-4 ${
                   statusMessage.type === 'error'
                     ? 'bg-[var(--c-peach)] border-[var(--c-red)] text-[var(--c-red)]'
-                    : 'bg-[var(--c-bg)] border-[var(--c-darkgreen)] text-[var(--c-darkgreen)]'
+                    : 'bg-[var(--c-bg)] border-[var(--c-darkgreen)] text-[var(--neon-green)]'
                 }`}
               >
                 {statusMessage.text}
@@ -513,14 +513,14 @@ export const SettingsPage: React.FC = () => {
                 <Spinner />
               </div>
             ) : history.length === 0 ? (
-              <p className="font-body text-base text-[var(--c-darkgrey)] italic">
+              <p className="font-body text-base text-[var(--text-2)] italic">
                 No link changes recorded in history yet.
               </p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left font-mono text-xs border-collapse">
                   <thead>
-                    <tr className="border-b-4 border-[var(--c-ink)] bg-[var(--c-bg)] font-display text-[10px] text-[var(--c-ink)]">
+                    <tr className="border-b-4 border-[var(--c-ink)] bg-[var(--c-bg)] font-display text-[10px] text-[var(--text-1)]">
                       <th className="p-2">KEY</th>
                       <th className="p-2">OLD VALUE</th>
                       <th className="p-2">NEW VALUE</th>
@@ -532,8 +532,8 @@ export const SettingsPage: React.FC = () => {
                     {history.map((h, i) => (
                       <tr key={h.id || i} className="hover:bg-[var(--c-bg)]">
                         <td className="p-2 font-bold">{h.key}</td>
-                        <td className="p-2 text-[var(--c-darkgrey)] truncate max-w-[120px]">{h.oldValue || '-'}</td>
-                        <td className="p-2 text-[var(--c-darkgreen)] truncate max-w-[120px] font-bold">{h.newValue}</td>
+                        <td className="p-2 text-[var(--text-2)] truncate max-w-[120px]">{h.oldValue || '-'}</td>
+                        <td className="p-2 text-[var(--neon-green)] truncate max-w-[120px] font-bold">{h.newValue}</td>
                         <td className="p-2">{h.changedBy}</td>
                         <td className="p-2">{new Date(h.changedAt).toLocaleString()}</td>
                       </tr>

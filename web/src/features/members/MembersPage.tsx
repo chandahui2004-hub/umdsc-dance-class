@@ -172,7 +172,7 @@ export const MembersPage: React.FC = () => {
       {/* Desktop Table */}
       <div className="hidden md:block overflow-x-auto bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] max-h-[600px] overflow-y-auto pixel-scrollbar">
         <table className="w-full text-left border-collapse">
-          <thead className="sticky top-0 z-10 bg-[var(--c-navy)] text-[var(--c-panel)] font-display text-[10px] border-b-4 border-[var(--c-ink)]">
+          <thead className="sticky top-0 z-10 bg-[var(--c-navy)] text-[var(--text-1)] font-display text-[10px] border-b-4 border-[var(--c-ink)]">
             <tr>
               <th className="p-3">FULL NAME</th>
               <th className="p-3">MATRIC NO.</th>
@@ -190,15 +190,15 @@ export const MembersPage: React.FC = () => {
                 key={m.memberId + (m.matricKey || '')}
                 className="hover:bg-[var(--c-bg)] transition-none"
               >
-                <td className="p-3 font-bold text-[var(--c-ink)]">
+                <td className="p-3 font-bold text-[var(--text-1)]">
                   {m.fullName}
                   {m.flags && m.flags.length > 0 && (
-                    <span className="ml-2 inline-block px-1.5 py-0.5 bg-[var(--c-yellow)] text-[var(--c-ink)] text-[10px] font-display border border-[var(--c-ink)]">
+                    <span className="ml-2 inline-block px-1.5 py-0.5 bg-[var(--c-yellow)] text-[var(--on-neon)] text-[10px] font-display border border-[var(--c-ink)]">
                       FLAGGED
                     </span>
                   )}
                 </td>
-                <td className="p-3 font-mono text-[var(--c-ink)] font-bold">
+                <td className="p-3 font-mono text-[var(--text-1)] font-bold">
                   {m.matricRaw}
                 </td>
                 <td className="p-3">
@@ -211,16 +211,16 @@ export const MembersPage: React.FC = () => {
                     {m.contact}
                   </a>
                 </td>
-                <td className="p-3 font-body text-xs text-[var(--c-darkgrey)] truncate max-w-[200px]">
+                <td className="p-3 font-body text-xs text-[var(--text-2)] truncate max-w-[200px]">
                   <a
                     href={`mailto:${m.email}`}
-                    className="hover:underline hover:text-[var(--c-ink)]"
+                    className="hover:underline hover:text-[var(--text-1)]"
                   >
                     {m.email}
                   </a>
                 </td>
                 <td className="p-3 font-display text-xs">
-                  <span className="inline-block px-1.5 py-0.5 bg-[var(--c-bg)] border border-[var(--c-ink)] text-[var(--c-ink)]">
+                  <span className="inline-block px-1.5 py-0.5 bg-[var(--c-bg)] border border-[var(--c-ink)] text-[var(--text-1)]">
                     {m.gender || '-'}
                   </span>
                 </td>
@@ -230,7 +230,7 @@ export const MembersPage: React.FC = () => {
                       {m.eventNames?.map((ev) => (
                         <span
                           key={ev}
-                          className="px-1.5 py-0.5 text-[9px] font-display bg-[var(--c-bg)] text-[var(--c-ink)] border border-[var(--c-ink)]"
+                          className="px-1.5 py-0.5 text-[9px] font-display bg-[var(--c-bg)] text-[var(--text-1)] border border-[var(--c-ink)]"
                         >
                           {ev}
                         </span>
@@ -244,7 +244,7 @@ export const MembersPage: React.FC = () => {
                       <span
                         key={sName}
                         style={{ backgroundColor: getStyleColor(sName) }}
-                        className="px-2 py-0.5 text-[10px] font-display text-[var(--c-ink)] border border-[var(--c-ink)]"
+                        className="px-2 py-0.5 text-[10px] font-display text-[var(--text-1)] border border-[var(--c-ink)]"
                       >
                         {sName}
                       </span>
@@ -276,10 +276,10 @@ export const MembersPage: React.FC = () => {
           >
             <div className="flex justify-between items-start gap-2">
               <div>
-                <h3 className="font-body font-bold text-base text-[var(--c-ink)]">
+                <h3 className="font-body font-bold text-base text-[var(--text-1)]">
                   {m.fullName}
                 </h3>
-                <p className="font-mono font-bold text-xs text-[var(--c-darkgrey)]">
+                <p className="font-mono font-bold text-xs text-[var(--text-2)]">
                   {m.matricRaw} · {m.gender || 'N/A'}
                 </p>
                 {isAll && m.eventNames && m.eventNames.length > 0 && (
@@ -304,7 +304,7 @@ export const MembersPage: React.FC = () => {
                 <span
                   key={sName}
                   style={{ backgroundColor: getStyleColor(sName) }}
-                  className="px-2 py-0.5 text-[9px] font-display text-[var(--c-ink)] border border-[var(--c-ink)]"
+                  className="px-2 py-0.5 text-[9px] font-display text-[var(--text-1)] border border-[var(--c-ink)]"
                 >
                   {sName}
                 </span>
@@ -320,7 +320,7 @@ export const MembersPage: React.FC = () => {
               >
                 WA: {m.contact}
               </a>
-              <span className="font-body text-[var(--c-darkgrey)] truncate max-w-[150px]">
+              <span className="font-body text-[var(--text-2)] truncate max-w-[150px]">
                 {m.email}
               </span>
             </div>
@@ -335,7 +335,7 @@ export const MembersPage: React.FC = () => {
       <div className="fixed inset-0 z-50 bg-[var(--c-bg)] p-3 md:p-6 flex flex-col gap-3">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] p-3">
           <div className="flex items-center gap-3">
-            <h2 className="font-display text-sm md:text-base text-[var(--c-ink)]">
+            <h2 className="font-display text-sm md:text-base text-[var(--text-1)]">
               {isAll ? 'ALL REGISTERED DANCERS (COMBINED)' : `ROSTER: ${event?.name || 'EVENT'}`}
             </h2>
             <span className="font-display text-[10px] md:text-xs bg-[var(--c-ink)] text-[var(--c-yellow)] px-2 py-1">
@@ -349,7 +349,7 @@ export const MembersPage: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search dancer..."
-              className="min-h-[36px] px-3 bg-[var(--c-bg)] border-2 border-[var(--c-ink)] font-body text-sm text-[var(--c-ink)] focus:outline-none"
+              className="min-h-[36px] px-3 bg-[var(--c-bg)] border-2 border-[var(--c-ink)] font-body text-sm text-[var(--text-1)] focus:outline-none"
             />
             <PixelButton
               variant="primary"
@@ -384,18 +384,18 @@ export const MembersPage: React.FC = () => {
             <div className="space-y-4 font-body text-base">
               <div className="grid grid-cols-2 gap-3 bg-[var(--c-bg)] p-3 border-2 border-[var(--c-ink)]">
                 <div>
-                  <span className="block font-display text-[10px] text-[var(--c-darkgrey)]">
+                  <span className="block font-display text-[10px] text-[var(--text-2)]">
                     MATRIC NUMBER
                   </span>
-                  <span className="font-mono font-bold text-lg text-[var(--c-ink)]">
+                  <span className="font-mono font-bold text-lg text-[var(--text-1)]">
                     {selectedMember.matricRaw}
                   </span>
                 </div>
                 <div>
-                  <span className="block font-display text-[10px] text-[var(--c-darkgrey)]">
+                  <span className="block font-display text-[10px] text-[var(--text-2)]">
                     GENDER / NATIONALITY
                   </span>
-                  <span className="font-body font-bold text-[var(--c-ink)]">
+                  <span className="font-body font-bold text-[var(--text-1)]">
                     {selectedMember.gender || '-'} · {selectedMember.nationality || '-'}
                   </span>
                 </div>
@@ -403,7 +403,7 @@ export const MembersPage: React.FC = () => {
 
               {selectedMember.eventNames && selectedMember.eventNames.length > 0 && (
                 <div>
-                  <span className="block font-display text-xs text-[var(--c-ink)] mb-2">
+                  <span className="block font-display text-xs text-[var(--text-1)] mb-2">
                     REGISTERED EVENTS
                   </span>
                   <div className="flex flex-wrap gap-2">
@@ -420,7 +420,7 @@ export const MembersPage: React.FC = () => {
               )}
 
               <div className="space-y-2">
-                <span className="block font-display text-xs text-[var(--c-ink)]">
+                <span className="block font-display text-xs text-[var(--text-1)]">
                   COMMUNICATION
                 </span>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -428,13 +428,13 @@ export const MembersPage: React.FC = () => {
                     href={formatWhatsAppUrl(selectedMember.contact)}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center justify-center min-h-[44px] bg-[var(--c-green)] text-[var(--c-ink)] border-2 border-[var(--c-ink)] font-display text-xs shadow-[2px_2px_0_var(--c-ink)] hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5"
+                    className="flex items-center justify-center min-h-[44px] bg-[var(--c-green)] text-[var(--on-neon)] border-2 border-[var(--c-ink)] font-display text-xs shadow-[2px_2px_0_var(--c-ink)] hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5"
                   >
                     WHATSAPP ({selectedMember.contact})
                   </a>
                   <a
                     href={`mailto:${selectedMember.email}`}
-                    className="flex items-center justify-center min-h-[44px] bg-[var(--c-blue)] text-[var(--c-ink)] border-2 border-[var(--c-ink)] font-display text-xs shadow-[2px_2px_0_var(--c-ink)] hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5"
+                    className="flex items-center justify-center min-h-[44px] bg-[var(--c-blue)] text-[var(--on-neon)] border-2 border-[var(--c-ink)] font-display text-xs shadow-[2px_2px_0_var(--c-ink)] hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5"
                   >
                     SEND EMAIL
                   </a>
@@ -442,7 +442,7 @@ export const MembersPage: React.FC = () => {
               </div>
 
               <div>
-                <span className="block font-display text-xs text-[var(--c-ink)] mb-2">
+                <span className="block font-display text-xs text-[var(--text-1)] mb-2">
                   REGISTERED DANCE CLASSES
                 </span>
                 <div className="flex flex-wrap gap-2">
@@ -452,7 +452,7 @@ export const MembersPage: React.FC = () => {
                       style={{ backgroundColor: getStyleColor(sName) }}
                       className="p-2 border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)]"
                     >
-                      <span className="font-display text-xs text-[var(--c-ink)]">
+                      <span className="font-display text-xs text-[var(--text-1)]">
                         {sName}
                       </span>
                     </div>
@@ -482,10 +482,10 @@ export const MembersPage: React.FC = () => {
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-xl md:text-2xl text-[var(--c-ink)]">
+          <h1 className="font-display text-xl md:text-2xl text-[var(--text-1)]">
             {isAll ? 'All Registered Dancers' : 'Registered Dancers'}
           </h1>
-          <p className="font-body text-sm text-[var(--c-darkgrey)]">
+          <p className="font-body text-sm text-[var(--text-2)]">
             {isAll
               ? 'Combined roster across all events (duplicates merged)'
               : `Dancers registered for ${event?.name || 'the selected event'}`}
@@ -529,8 +529,8 @@ export const MembersPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {/* Event (chosen in the picker above or ALL) */}
           <div>
-            <span className="block font-display text-[10px] text-[var(--c-ink)] mb-1 uppercase">Event Scope</span>
-            <p className="min-h-[44px] px-3 flex items-center border-2 border-[var(--c-ink)] bg-[var(--c-bg)] font-body text-base text-[var(--c-ink)]">
+            <span className="block font-display text-[10px] text-[var(--text-1)] mb-1 uppercase">Event Scope</span>
+            <p className="min-h-[44px] px-3 flex items-center border-2 border-[var(--c-ink)] bg-[var(--c-bg)] font-body text-base text-[var(--text-1)]">
               {isAll ? `ALL EVENTS (${events.length} events)` : event ? `${event.name} (${event.memberCount} dancers)` : 'No event yet'}
             </p>
           </div>
@@ -539,7 +539,7 @@ export const MembersPage: React.FC = () => {
           <div>
             <label
               htmlFor="style-select"
-              className="block font-display text-[10px] text-[var(--c-ink)] mb-1 uppercase"
+              className="block font-display text-[10px] text-[var(--text-1)] mb-1 uppercase"
             >
               Class Style
             </label>
@@ -547,7 +547,7 @@ export const MembersPage: React.FC = () => {
               id="style-select"
               value={selectedStyleId}
               onChange={(e) => setSelectedStyleId(e.target.value)}
-              className="w-full min-h-[44px] px-3 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] font-body text-base text-[var(--c-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--c-yellow)]"
+              className="w-full min-h-[44px] px-3 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] font-body text-base text-[var(--text-1)] focus:outline-none focus:ring-2 focus:ring-[var(--c-yellow)]"
             >
               <option value="all">ALL CLASSES ({members.length})</option>
               {bootstrap?.styles?.map((s) => (
@@ -562,7 +562,7 @@ export const MembersPage: React.FC = () => {
           <div>
             <label
               htmlFor="dancer-search"
-              className="block font-display text-[10px] text-[var(--c-ink)] mb-1 uppercase"
+              className="block font-display text-[10px] text-[var(--text-1)] mb-1 uppercase"
             >
               Search Dancer
             </label>
@@ -572,7 +572,7 @@ export const MembersPage: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search name, matric, phone..."
-              className="w-full min-h-[44px] px-3 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] font-body text-base text-[var(--c-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--c-yellow)]"
+              className="w-full min-h-[44px] px-3 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] font-body text-base text-[var(--text-1)] focus:outline-none focus:ring-2 focus:ring-[var(--c-yellow)]"
             />
           </div>
         </div>
@@ -580,7 +580,7 @@ export const MembersPage: React.FC = () => {
         {/* Quick Style Chips */}
         {bootstrap?.styles && bootstrap.styles.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-[var(--c-grey)] items-center">
-            <span className="font-display text-[10px] text-[var(--c-darkgrey)] mr-1">
+            <span className="font-display text-[10px] text-[var(--text-2)] mr-1">
               STYLES:
             </span>
             <button
@@ -588,8 +588,8 @@ export const MembersPage: React.FC = () => {
               onClick={() => setSelectedStyleId('all')}
               className={`px-2 py-1 text-[10px] font-display border-2 border-[var(--c-ink)] cursor-pointer min-h-[32px] ${
                 selectedStyleId === 'all'
-                  ? 'bg-[var(--c-ink)] text-[var(--c-panel)]'
-                  : 'bg-[var(--c-panel)] text-[var(--c-ink)] hover:bg-[var(--c-bg)]'
+                  ? 'bg-[var(--c-ink)] text-[var(--text-1)]'
+                  : 'bg-[var(--c-panel)] text-[var(--text-1)] hover:bg-[var(--c-bg)]'
               }`}
             >
               ALL
@@ -603,7 +603,7 @@ export const MembersPage: React.FC = () => {
                   type="button"
                   onClick={() => setSelectedStyleId(s.id)}
                   style={{ backgroundColor: colorVar }}
-                  className={`px-2 py-1 text-[10px] font-display text-[var(--c-ink)] border-2 border-[var(--c-ink)] cursor-pointer min-h-[32px] ${
+                  className={`px-2 py-1 text-[10px] font-display text-[var(--text-1)] border-2 border-[var(--c-ink)] cursor-pointer min-h-[32px] ${
                     isSelected ? 'ring-2 ring-[var(--c-ink)] ring-offset-2 font-bold' : 'opacity-85 hover:opacity-100'
                   }`}
                 >
@@ -616,7 +616,7 @@ export const MembersPage: React.FC = () => {
       </Panel>
 
       {/* Roster Summary Bar */}
-      <div className="flex items-center justify-between px-3 py-2 bg-[var(--c-navy)] text-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)]">
+      <div className="flex items-center justify-between px-3 py-2 bg-[var(--c-navy)] text-[var(--text-1)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)]">
         <span className="font-display text-xs text-[var(--c-yellow)]">
           ROSTER COUNT: {filteredMembers.length} OF {members.length} DANCERS
         </span>
@@ -635,7 +635,7 @@ export const MembersPage: React.FC = () => {
       {isLoading ? (
         <div className="p-8 text-center bg-[var(--c-panel)] border-4 border-[var(--c-ink)]">
           <Spinner size="lg" />
-          <p className="font-display text-xs text-[var(--c-ink)] mt-3">
+          <p className="font-display text-xs text-[var(--text-1)] mt-3">
             LOADING DANCER DIRECTORY...
           </p>
         </div>
@@ -669,18 +669,18 @@ export const MembersPage: React.FC = () => {
           <div className="space-y-4 font-body text-base">
             <div className="grid grid-cols-2 gap-3 bg-[var(--c-bg)] p-3 border-2 border-[var(--c-ink)]">
               <div>
-                <span className="block font-display text-[10px] text-[var(--c-darkgrey)]">
+                <span className="block font-display text-[10px] text-[var(--text-2)]">
                   MATRIC NUMBER
                 </span>
-                <span className="font-mono font-bold text-lg text-[var(--c-ink)]">
+                <span className="font-mono font-bold text-lg text-[var(--text-1)]">
                   {selectedMember.matricRaw}
                 </span>
               </div>
               <div>
-                <span className="block font-display text-[10px] text-[var(--c-darkgrey)]">
+                <span className="block font-display text-[10px] text-[var(--text-2)]">
                   GENDER / NATIONALITY
                 </span>
-                <span className="font-body font-bold text-[var(--c-ink)]">
+                <span className="font-body font-bold text-[var(--text-1)]">
                   {selectedMember.gender || '-'} · {selectedMember.nationality || '-'}
                 </span>
               </div>
@@ -689,7 +689,7 @@ export const MembersPage: React.FC = () => {
             {/* Events Enrolled */}
             {selectedMember.eventNames && selectedMember.eventNames.length > 0 && (
               <div>
-                <span className="block font-display text-xs text-[var(--c-ink)] mb-2">
+                <span className="block font-display text-xs text-[var(--text-1)] mb-2">
                   REGISTERED EVENTS
                 </span>
                 <div className="flex flex-wrap gap-2">
@@ -707,7 +707,7 @@ export const MembersPage: React.FC = () => {
 
             {/* Contact Actions */}
             <div className="space-y-2">
-              <span className="block font-display text-xs text-[var(--c-ink)]">
+              <span className="block font-display text-xs text-[var(--text-1)]">
                 COMMUNICATION
               </span>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -715,13 +715,13 @@ export const MembersPage: React.FC = () => {
                   href={formatWhatsAppUrl(selectedMember.contact)}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center justify-center min-h-[44px] bg-[var(--c-green)] text-[var(--c-ink)] border-2 border-[var(--c-ink)] font-display text-xs shadow-[2px_2px_0_var(--c-ink)] hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5"
+                  className="flex items-center justify-center min-h-[44px] bg-[var(--c-green)] text-[var(--on-neon)] border-2 border-[var(--c-ink)] font-display text-xs shadow-[2px_2px_0_var(--c-ink)] hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5"
                 >
                   WHATSAPP ({selectedMember.contact})
                 </a>
                 <a
                   href={`mailto:${selectedMember.email}`}
-                  className="flex items-center justify-center min-h-[44px] bg-[var(--c-blue)] text-[var(--c-ink)] border-2 border-[var(--c-ink)] font-display text-xs shadow-[2px_2px_0_var(--c-ink)] hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5"
+                  className="flex items-center justify-center min-h-[44px] bg-[var(--c-blue)] text-[var(--on-neon)] border-2 border-[var(--c-ink)] font-display text-xs shadow-[2px_2px_0_var(--c-ink)] hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5"
                 >
                   SEND EMAIL
                 </a>
@@ -730,7 +730,7 @@ export const MembersPage: React.FC = () => {
 
             {/* Registered Classes */}
             <div>
-              <span className="block font-display text-xs text-[var(--c-ink)] mb-2">
+              <span className="block font-display text-xs text-[var(--text-1)] mb-2">
                 REGISTERED DANCE CLASSES
               </span>
               <div className="flex flex-wrap gap-2">
@@ -740,7 +740,7 @@ export const MembersPage: React.FC = () => {
                     style={{ backgroundColor: getStyleColor(sName) }}
                     className="p-2 border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)]"
                   >
-                    <span className="font-display text-xs text-[var(--c-ink)]">
+                    <span className="font-display text-xs text-[var(--text-1)]">
                       {sName}
                     </span>
                   </div>
@@ -749,7 +749,7 @@ export const MembersPage: React.FC = () => {
             </div>
 
             {/* Extra Registration Metadata */}
-            <div className="bg-[var(--c-panel)] p-3 border-2 border-[var(--c-ink)] text-xs text-[var(--c-darkgrey)] space-y-1">
+            <div className="bg-[var(--c-panel)] p-3 border-2 border-[var(--c-ink)] text-xs text-[var(--text-2)] space-y-1">
               <div>
                 <strong>Registration Timestamp:</strong> {selectedMember.sourceTimestamp || 'N/A'}
               </div>

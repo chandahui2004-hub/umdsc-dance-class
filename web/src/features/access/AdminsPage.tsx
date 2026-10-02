@@ -114,10 +114,10 @@ export const AdminsPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="font-display text-lg tracking-wider text-[var(--c-ink)]">
+          <h1 className="font-display text-lg tracking-wider text-[var(--text-1)]">
             Admin Accounts
           </h1>
-          <p className="font-body text-base text-[var(--c-darkgrey)] mt-1">
+          <p className="font-body text-base text-[var(--text-2)] mt-1">
             Manage club executive admin accounts and passwords.
           </p>
         </div>
@@ -145,7 +145,7 @@ export const AdminsPage: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left font-body text-base border-collapse">
               <thead>
-                <tr className="border-b-4 border-[var(--c-ink)] bg-[var(--c-bg)] font-display text-xs text-[var(--c-ink)]">
+                <tr className="border-b-4 border-[var(--c-ink)] bg-[var(--c-bg)] font-display text-xs text-[var(--text-1)]">
                   <th className="p-3">USERNAME</th>
                   <th className="p-3">DISPLAY NAME</th>
                   <th className="p-3">ROLE</th>
@@ -163,7 +163,7 @@ export const AdminsPage: React.FC = () => {
                       </td>
                       <td className="p-3 font-display text-xs">{admin.displayName}</td>
                       <td className="p-3">
-                        <span className="px-2 py-0.5 border border-[var(--c-ink)] bg-[var(--c-lavender)] text-[var(--c-panel)] font-mono text-xs uppercase font-bold">
+                        <span className="px-2 py-0.5 border border-[var(--c-ink)] bg-[var(--c-lavender)] text-[var(--on-neon)] font-mono text-xs uppercase font-bold">
                           {role?.name || 'Admin'}
                         </span>
                       </td>

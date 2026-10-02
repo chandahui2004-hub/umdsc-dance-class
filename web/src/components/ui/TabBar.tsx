@@ -43,7 +43,7 @@ export const TabBar: React.FC<TabBarProps> = ({ tabs, moreItems }) => {
             className="fixed bottom-16 left-0 right-0 z-50 bg-[var(--c-panel)] border-t-4 border-x-4 border-[var(--c-ink)] shadow-[0_-6px_0_var(--c-ink)] p-4 max-w-lg mx-auto space-y-3"
           >
             <div className="flex items-center justify-between border-b-2 border-[var(--c-ink)] pb-2">
-              <span className="font-display text-xs text-[var(--c-ink)] font-bold tracking-wider">MORE OPTIONS</span>
+              <span className="font-display text-xs text-[var(--text-1)] font-bold tracking-wider">MORE OPTIONS</span>
               <button
                 type="button"
                 onClick={() => setIsMoreOpen(false)}
@@ -61,8 +61,8 @@ export const TabBar: React.FC<TabBarProps> = ({ tabs, moreItems }) => {
                   className={({ isActive }) =>
                     `flex items-center gap-2 p-2.5 min-h-[44px] border-2 border-[var(--c-ink)] font-display text-[9px] select-none cursor-pointer ${
                       isActive
-                        ? 'bg-[var(--c-yellow)] text-[var(--c-ink)] font-bold shadow-[2px_2px_0_var(--c-ink)]'
-                        : 'bg-[var(--c-bg)] text-[var(--c-ink)] hover:bg-[var(--c-peach)]'
+                        ? 'bg-[var(--c-yellow)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--c-ink)]'
+                        : 'bg-[var(--c-bg)] text-[var(--text-1)] hover:bg-[var(--c-peach)]'
                     }`
                   }
                 >
@@ -93,8 +93,8 @@ export const TabBar: React.FC<TabBarProps> = ({ tabs, moreItems }) => {
                 data-testid="mobile-tab-more"
                 className={`flex-1 flex flex-col items-center justify-center gap-1 min-h-[48px] px-1 py-1 select-none transition-none cursor-pointer border-r-2 last:border-r-0 border-[var(--c-ink)] ${
                   isMoreActive || isMoreOpen
-                    ? 'bg-[var(--c-yellow)] text-[var(--c-ink)] font-bold'
-                    : 'bg-[var(--c-panel)] text-[var(--c-ink)] hover:bg-[var(--c-peach)]'
+                    ? 'bg-[var(--c-yellow)] text-[var(--on-neon)] font-bold'
+                    : 'bg-[var(--c-panel)] text-[var(--text-1)] hover:bg-[var(--c-peach)]'
                 }`}
               >
                 <div className="w-6 h-6 flex items-center justify-center relative">
@@ -114,15 +114,15 @@ export const TabBar: React.FC<TabBarProps> = ({ tabs, moreItems }) => {
               className={({ isActive }) =>
                 `flex-1 flex flex-col items-center justify-center gap-1 min-h-[48px] px-1 py-1 select-none transition-none cursor-pointer border-r-2 last:border-r-0 border-[var(--c-ink)] ${
                   isActive
-                    ? 'bg-[var(--c-yellow)] text-[var(--c-ink)] font-bold'
-                    : 'bg-[var(--c-panel)] text-[var(--c-ink)] hover:bg-[var(--c-peach)]'
+                    ? 'bg-[var(--c-yellow)] text-[var(--on-neon)] font-bold'
+                    : 'bg-[var(--c-panel)] text-[var(--text-1)] hover:bg-[var(--c-peach)]'
                 }`
               }
             >
               <div className="w-6 h-6 flex items-center justify-center relative">
                 {tab.icon}
                 {tab.badge !== undefined && (
-                  <span className="absolute -top-1 -right-2 bg-[var(--c-red)] text-[var(--c-panel)] font-display text-[8px] px-1 border border-[var(--c-ink)]">
+                  <span className="absolute -top-1 -right-2 bg-[var(--c-red)] text-[var(--on-neon)] font-display text-[8px] px-1 border border-[var(--c-ink)]">
                     {tab.badge}
                   </span>
                 )}

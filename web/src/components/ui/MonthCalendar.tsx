@@ -108,7 +108,7 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
           )}
         </div>
 
-        <h2 className="font-display text-sm md:text-base text-[var(--c-ink)] tracking-wider">
+        <h2 className="font-display text-sm md:text-base text-[var(--text-1)] tracking-wider">
           {monthTitle}
         </h2>
 
@@ -131,7 +131,7 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
         {WEEKDAYS.map((day) => (
           <div
             key={day}
-            className="font-display text-[10px] md:text-xs text-[var(--c-darkgrey)] py-1"
+            className="font-display text-[10px] md:text-xs text-[var(--text-2)] py-1"
           >
             {day}
           </div>
@@ -175,7 +175,7 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
               {/* Day Number */}
               <span
                 className={`text-[10px] md:text-xs leading-none ${
-                  isCurrentMonth ? 'text-[var(--c-ink)]' : 'text-[var(--c-darkgrey)]'
+                  isCurrentMonth ? 'text-[var(--text-1)]' : 'text-[var(--text-2)]'
                 }`}
               >
                 {dayNum}

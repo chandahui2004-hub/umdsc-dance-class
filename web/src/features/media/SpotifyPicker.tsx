@@ -46,23 +46,23 @@ export const SpotifyPicker: React.FC<SpotifyPickerProps> = ({ resolved, choice, 
   return (
     <div className="space-y-3 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] p-3">
       <div>
-        <p className="font-display text-[10px] text-[var(--c-darkgrey)]">SPOTIFY SONG</p>
-        <p className="font-body text-sm font-bold text-[var(--c-ink)]">
+        <p className="font-display text-[10px] text-[var(--text-2)]">SPOTIFY SONG</p>
+        <p className="font-body text-sm font-bold text-[var(--text-1)]">
           {`${resolved.title} · ${resolved.artist} · ${minutesAndSeconds(resolved.durationSec)}`}
         </p>
-        <p className="font-body text-xs text-[var(--c-darkgrey)]">
+        <p className="font-body text-xs text-[var(--text-2)]">
           Spotify cannot be practised with here. Pick the YouTube version that matches your choreography.
         </p>
       </div>
 
       {resolved.notice && (
-        <p role="alert" className="border-2 border-[var(--c-orange)] bg-[var(--c-peach)] p-2 text-xs font-bold text-[var(--c-ink)]">
+        <p role="alert" className="border-2 border-[var(--c-orange)] bg-[var(--c-peach)] p-2 text-xs font-bold text-[var(--text-1)]">
           {resolved.notice === 'SEARCH_QUOTA' ? QUOTA_MESSAGE : UNAVAILABLE_MESSAGE}
         </p>
       )}
 
       {resolved.candidates.length === 0 && !resolved.notice && (
-        <p className="font-body text-xs text-[var(--c-darkgrey)]">No matching YouTube versions found. Paste your own below.</p>
+        <p className="font-body text-xs text-[var(--text-2)]">No matching YouTube versions found. Paste your own below.</p>
       )}
 
       <ul className="space-y-2">
@@ -86,11 +86,11 @@ export const SpotifyPicker: React.FC<SpotifyPickerProps> = ({ resolved, choice, 
                 )}
               </div>
               <div className="min-w-0 flex-1 space-y-1">
-                <p className="truncate font-body text-xs font-bold text-[var(--c-ink)]">{c.title}</p>
-                <p className="truncate font-body text-[11px] text-[var(--c-darkgrey)]">
+                <p className="truncate font-body text-xs font-bold text-[var(--text-1)]">{c.title}</p>
+                <p className="truncate font-body text-[11px] text-[var(--text-2)]">
                   {c.channel} · {minutesAndSeconds(c.durationSec)}
                 </p>
-                <p className={`font-mono text-[11px] ${c.lengthMatch ? 'text-[var(--c-darkgreen)]' : 'text-[var(--c-red)]'}`}>
+                <p className={`font-mono text-[11px] ${c.lengthMatch ? 'text-[var(--neon-green)]' : 'text-[var(--c-red)]'}`}>
                   {c.lengthMatch ? '✓ same length' : '✗ different length — check the version'}
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -112,7 +112,7 @@ export const SpotifyPicker: React.FC<SpotifyPickerProps> = ({ resolved, choice, 
       </ul>
 
       <div className="space-y-2 border-t-2 border-[var(--c-ink)] pt-2">
-        <p className="font-display text-[10px] text-[var(--c-darkgrey)]">PASTE MY OWN PRACTICE LINK</p>
+        <p className="font-display text-[10px] text-[var(--text-2)]">PASTE MY OWN PRACTICE LINK</p>
         <div className="flex gap-2">
           <input
             type="text"
@@ -131,7 +131,7 @@ export const SpotifyPicker: React.FC<SpotifyPickerProps> = ({ resolved, choice, 
           </p>
         )}
         {choice?.type === 'practiceUrl' && (
-          <p className="font-body text-xs text-[var(--c-darkgreen)]">Using your link: {choice.url}</p>
+          <p className="font-body text-xs text-[var(--neon-green)]">Using your link: {choice.url}</p>
         )}
       </div>
 
@@ -143,7 +143,7 @@ export const SpotifyPicker: React.FC<SpotifyPickerProps> = ({ resolved, choice, 
         >
           SAVE AS LISTEN-ONLY
         </PixelButton>
-        <p className="mt-1 font-body text-[11px] text-[var(--c-darkgrey)]">
+        <p className="mt-1 font-body text-[11px] text-[var(--text-2)]">
           Dancers can open it in Spotify but cannot practise with it in the Studio.
         </p>
       </div>

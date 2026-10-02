@@ -23,12 +23,12 @@ type AudioPlayerProps = {
 };
 
 const controlButtonClass =
-  "grid size-12 shrink-0 place-items-center border-2 border-black bg-white text-xs font-['Press_Start_2P'] text-black shadow-[2px_2px_0_#000] transition active:translate-x-[1px] active:translate-y-[1px] hover:bg-[#FFF1E8] disabled:cursor-not-allowed disabled:opacity-45";
+  "grid size-12 shrink-0 place-items-center border-2 border-black bg-white text-xs font-['Press_Start_2P'] text-black shadow-[2px_2px_0_#000] transition active:translate-x-[1px] active:translate-y-[1px] hover:bg-[var(--text-1)] disabled:cursor-not-allowed disabled:opacity-45";
 const loopButtonOffClass =
-  "grid size-12 shrink-0 place-items-center border-2 border-black bg-white text-[9px] min-text-5px font-['Press_Start_2P'] text-black shadow-[2px_2px_0_#000] transition active:translate-x-[1px] active:translate-y-[1px] hover:bg-[#FFF1E8]";
+  "grid size-12 shrink-0 place-items-center border-2 border-black bg-white text-[9px] min-text-5px font-['Press_Start_2P'] text-black shadow-[2px_2px_0_#000] transition active:translate-x-[1px] active:translate-y-[1px] hover:bg-[var(--text-1)]";
 const loopButtonOnClass =
-  "grid size-12 shrink-0 place-items-center border-2 border-black bg-[#FFEC27] text-[9px] min-text-5px font-['Press_Start_2P'] text-black shadow-[2px_2px_0_#000] transition active:translate-x-[1px] active:translate-y-[1px]";
-const panelClass = "border-4 border-black bg-[#1D2B53] px-3 pb-4 pt-3 shadow-[4px_4px_0_#000]";
+  "grid size-12 shrink-0 place-items-center border-2 border-black bg-[var(--neon-gold)] text-[9px] min-text-5px font-['Press_Start_2P'] text-black shadow-[2px_2px_0_#000] transition active:translate-x-[1px] active:translate-y-[1px]";
+const panelClass = "border-4 border-black bg-[var(--night-2)] px-3 pb-4 pt-3 shadow-[4px_4px_0_#000]";
 const waveformHeights = [
   22, 30, 18, 27, 35, 24, 31, 16, 38, 22, 28, 17, 34, 25, 19, 36, 42, 23, 31, 18, 35, 27, 21,
   32, 17, 25, 37, 29, 21, 34, 40, 18, 28, 36, 24, 32, 19,
@@ -240,7 +240,7 @@ export function AudioPlayer({
 
       <div
         ref={trackRef}
-        className={`relative mt-2 h-9 touch-none select-none rounded-lg border bg-white/[0.08] cursor-pointer overflow-visible ${
+        className={`relative mt-2 h-9 touch-none select-none border bg-white/[0.08] cursor-pointer overflow-visible ${
           isMarkerDraftActive
             ? "border-cyan-200/35 shadow-[0_0_0_3px_rgba(103,232,249,0.08)]"
             : "border-white/5"
@@ -259,7 +259,7 @@ export function AudioPlayer({
         {/* Floating Tooltip */}
         {tooltip && (
           <div
-            className="absolute -top-7 px-2 py-0.5 bg-black border border-[#FFEC27] text-[9px] font-mono text-[#FFEC27] whitespace-nowrap shadow-[2px_2px_0_#000] z-40 pointer-events-none -translate-x-1/2"
+            className="absolute -top-7 px-2 py-0.5 bg-black border border-[var(--neon-gold)] text-[9px] font-mono text-[var(--neon-gold)] whitespace-nowrap shadow-[2px_2px_0_#000] z-40 pointer-events-none -translate-x-1/2"
             style={{ left: `${tooltip.leftPercent}%` }}
           >
             {tooltip.text}
@@ -268,7 +268,7 @@ export function AudioPlayer({
 
         {/* Progress Bar */}
         <div
-          className="absolute inset-y-0 left-0 bg-[#29ADFF]/30 border-r-2 border-[#29ADFF] pointer-events-none"
+          className="absolute inset-y-0 left-0 bg-[var(--neon-cyan)]/30 border-r-2 border-[var(--neon-cyan)] pointer-events-none"
           style={{ width: `${progress}%` }}
         />
 
@@ -285,8 +285,8 @@ export function AudioPlayer({
               aria-label="Loop range span"
               data-testid="loop-span"
               onPointerDown={handleSpanPointerDown}
-              className={`absolute inset-0 cursor-grab active:cursor-grabbing bg-[#FFEC27]/30 border-y-2 border-[#FFEC27] shadow-[0_0_8px_rgba(255,236,39,0.3)] transition-colors ${
-                isPulsing ? 'animate-pulse ring-2 ring-[#FFEC27] bg-[#FFEC27]/60' : ''
+              className={`absolute inset-0 cursor-grab active:cursor-grabbing bg-[var(--neon-gold)]/30 border-y-2 border-[var(--neon-gold)] shadow-[0_0_8px_rgba(255,236,39,0.3)] transition-colors ${
+                isPulsing ? 'animate-pulse ring-2 ring-[var(--neon-gold)] bg-[var(--neon-gold)]/60' : ''
               }`}
               title={`Loop range: ${formatTime(markerDraftRange.start)} - ${formatTime(markerDraftRange.end)} (${(markerDraftRange.end - markerDraftRange.start).toFixed(1)}s)`}
             />
@@ -298,7 +298,7 @@ export function AudioPlayer({
               aria-label="Loop start handle"
               data-testid="loop-handle-start"
               onPointerDown={handleStartHandlePointerDown}
-              className="absolute inset-y-0 -left-1.5 w-3 cursor-ew-resize bg-[#FFEC27] border border-black z-30 hover:scale-110 active:scale-125 transition-transform shadow-[1px_1px_0_#000]"
+              className="absolute inset-y-0 -left-1.5 w-3 cursor-ew-resize bg-[var(--neon-gold)] border border-black z-30 hover:scale-110 active:scale-125 transition-transform shadow-[1px_1px_0_#000]"
               title={`Loop start: ${formatTime(markerDraftRange.start)}`}
             />
 
@@ -309,7 +309,7 @@ export function AudioPlayer({
               aria-label="Loop end handle"
               data-testid="loop-handle-end"
               onPointerDown={handleEndHandlePointerDown}
-              className="absolute inset-y-0 -right-1.5 w-3 cursor-ew-resize bg-[#FFEC27] border border-black z-30 hover:scale-110 active:scale-125 transition-transform shadow-[1px_1px_0_#000]"
+              className="absolute inset-y-0 -right-1.5 w-3 cursor-ew-resize bg-[var(--neon-gold)] border border-black z-30 hover:scale-110 active:scale-125 transition-transform shadow-[1px_1px_0_#000]"
               title={`Loop end: ${formatTime(markerDraftRange.end)}`}
             />
           </div>
@@ -317,7 +317,7 @@ export function AudioPlayer({
 
         {/* Current Playhead */}
         <div
-          className="absolute inset-y-0 w-2 -ml-1 bg-[#29ADFF] border border-black z-10 shadow-[1px_1px_0_#000] pointer-events-none"
+          className="absolute inset-y-0 w-2 -ml-1 bg-[var(--neon-cyan)] border border-black z-10 shadow-[1px_1px_0_#000] pointer-events-none"
           style={{ left: `${progress}%` }}
           aria-hidden="true"
         />
@@ -326,7 +326,7 @@ export function AudioPlayer({
         <div className="absolute inset-x-2 top-1/2 flex -translate-y-1/2 items-center justify-between gap-1 pointer-events-none opacity-40">
           {waveformHeights.map((height, index) => (
             <span
-              className="w-0.5 bg-[#FFEC27]"
+              className="w-0.5 bg-[var(--neon-gold)]"
               key={`${height}-${index}`}
               style={{ height: Math.max(8, height - 12) }}
             />
@@ -334,7 +334,7 @@ export function AudioPlayer({
         </div>
       </div>
 
-      <div className="mt-2.5 flex items-center justify-between px-1 font-mono text-[11px] min-text-5px font-bold tabular-nums text-[#00E436]">
+      <div className="mt-2.5 flex items-center justify-between px-1 font-mono text-[11px] min-text-5px font-bold tabular-nums text-[var(--neon-green)]">
         <span>{formatTime(currentTime)}</span>
         <span>{formatTime(duration)}</span>
       </div>
@@ -358,7 +358,7 @@ export function AudioPlayer({
           -5s
         </button>
         <button
-          className="grid size-14 shrink-0 place-items-center border-4 border-black bg-[#FFA300] text-[11px] min-text-5px font-['Press_Start_2P'] text-black shadow-[3px_3px_0_#000] hover:bg-[#FFA300]/90 active:translate-x-[2px] active:translate-y-[2px]"
+          className="grid size-14 shrink-0 place-items-center border-4 border-black bg-[var(--neon-orange)] text-[11px] min-text-5px font-['Press_Start_2P'] text-black shadow-[3px_3px_0_#000] hover:bg-[var(--neon-orange)]/90 active:translate-x-[2px] active:translate-y-[2px]"
           type="button"
           title={isPlaying ? "Pause" : "Play"}
           onClick={isPlaying ? onPause : onPlay}
@@ -393,7 +393,7 @@ export function AudioPlayer({
         </label>
       </div>
       {speedDisabled && (
-        <p className="mt-2 text-xs min-text-5px font-mono text-[#FFEC27]">Speed isn't available for SoundCloud songs.</p>
+        <p className="mt-2 text-xs min-text-5px font-mono text-[var(--neon-gold)]">Speed isn't available for SoundCloud songs.</p>
       )}
     </section>
   );

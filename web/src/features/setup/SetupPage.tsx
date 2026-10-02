@@ -48,10 +48,10 @@ export const SetupPage: React.FC = () => {
       <div className="min-h-screen bg-[var(--c-bg)] flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <Panel title="SETUP COMPLETE" className="px-corners text-center space-y-4">
-            <div className="bg-[var(--c-green)] text-[var(--c-ink)] p-3 font-display text-xs border-2 border-[var(--c-ink)]">
+            <div className="bg-[var(--c-green)] text-[var(--on-neon)] p-3 font-display text-xs border-2 border-[var(--c-ink)]">
               INITIALIZATION SUCCESSFUL!
             </div>
-            <p className="font-body text-base text-[var(--c-ink)]">
+            <p className="font-body text-base text-[var(--text-1)]">
               The club database and master sheets have been generated.
             </p>
             <div className="pt-4">
@@ -73,10 +73,10 @@ export const SetupPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[var(--c-bg)] flex flex-col items-center justify-center p-4">
       <div className="text-center mb-6">
-        <h1 className="font-display text-xl md:text-2xl text-[var(--c-ink)]">
+        <h1 className="font-display text-xl md:text-2xl text-[var(--text-1)]">
           SYSTEM SETUP
         </h1>
-        <p className="font-body text-sm text-[var(--c-darkgrey)] mt-1">
+        <p className="font-body text-sm text-[var(--text-2)] mt-1">
           First-Time Club Database Initialization
         </p>
       </div>

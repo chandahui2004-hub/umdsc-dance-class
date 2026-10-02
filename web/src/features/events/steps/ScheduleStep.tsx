@@ -72,7 +72,7 @@ export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onB
     <div className="space-y-4">
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="lg:w-48 space-y-2">
-          <span className="font-display text-[10px] text-[var(--c-darkgrey)]">DANCE STYLES</span>
+          <span className="font-display text-[10px] text-[var(--text-2)]">DANCE STYLES</span>
           {draft.styleIds.map(id => {
             const s = styles.find(x => x.id === id);
             return (
@@ -81,8 +81,8 @@ export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onB
                 type="button"
                 onClick={() => setActiveId(id)}
                 aria-pressed={id === activeId}
-                className={`w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] flex items-center justify-between font-display text-xs text-[var(--c-ink)] ${
-                  id === activeId ? 'bg-[var(--c-orange)] shadow-[2px_2px_0_var(--c-ink)]' : 'bg-[var(--c-panel)]'
+                className={`w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] flex items-center justify-between font-display text-xs ${
+                  id === activeId ? 'bg-[var(--c-orange)] text-[var(--on-neon)] shadow-[2px_2px_0_var(--c-ink)]' : 'bg-[var(--c-panel)] text-[var(--text-1)]'
                 }`}
               >
                 <span className="flex items-center gap-2">
@@ -103,10 +103,10 @@ export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onB
 
         <div className="flex-1 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="font-display text-xs text-[var(--c-navy)]">{style?.name?.toUpperCase()} — CLICK DAYS TO ADD OR REMOVE</span>
-            <span className="font-mono text-xs text-[var(--c-darkgrey)]">{classes.length} classes selected</span>
+            <span className="font-display text-xs text-[var(--neon-cyan)]">{style?.name?.toUpperCase()} — CLICK DAYS TO ADD OR REMOVE</span>
+            <span className="font-mono text-xs text-[var(--text-2)]">{classes.length} classes selected</span>
           </div>
-          <div className="grid grid-cols-7 gap-1 text-center font-display text-[10px] text-[var(--c-darkgrey)]">
+          <div className="grid grid-cols-7 gap-1 text-center font-display text-[10px] text-[var(--text-2)]">
             {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map(d => (
               <span key={d}>{d}</span>
             ))}
@@ -130,8 +130,8 @@ export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onB
                     aria-label={formatDayLabel(d)}
                     aria-pressed={Boolean(cls)}
                     onClick={() => toggleDay(d)}
-                    className={`min-h-[44px] p-1 border-2 border-[var(--c-ink)] text-left font-mono text-xs text-[var(--c-ink)] ${
-                      cls ? 'bg-[var(--c-orange)] font-bold shadow-[2px_2px_0_var(--c-ink)]' : 'bg-[var(--c-panel)]'
+                    className={`min-h-[44px] p-1 border-2 border-[var(--c-ink)] text-left font-mono text-xs ${
+                      cls ? 'bg-[var(--c-orange)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--c-ink)]' : 'bg-[var(--c-panel)] text-[var(--text-1)]'
                     }`}
                   >
                     <div>{Number(d.slice(8))}</div>
@@ -143,7 +143,7 @@ export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onB
           ))}
 
           <div className="border-2 border-[var(--c-ink)] bg-[var(--c-bg)] p-3 flex flex-wrap items-end gap-2">
-            <span className="w-full font-display text-[10px] text-[var(--c-ink)]">AUTO-FILL</span>
+            <span className="w-full font-display text-[10px] text-[var(--text-1)]">AUTO-FILL</span>
             <label className="space-y-1">
               <span className="block font-display text-[9px]">DAY</span>
               <select aria-label="Auto-fill day" value={fillDay} onChange={e => setFillDay(Number(e.target.value))} className="min-h-[44px] px-2 border-2 border-[var(--c-ink)] font-body text-sm">
@@ -179,7 +179,7 @@ export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onB
             <div key={c.date} className="border-2 border-[var(--c-ink)] bg-[var(--c-panel)] p-2 space-y-2">
               <div className="flex items-center justify-between font-mono text-xs">
                 <span className="font-display text-[10px] bg-[var(--c-yellow)] px-1 border border-[var(--c-ink)]">#{c.seq}</span>
-                <span className="font-bold text-[var(--c-navy)]">{formatDayLabel(c.date)}</span>
+                <span className="font-bold text-[var(--neon-cyan)]">{formatDayLabel(c.date)}</span>
                 <button
                   type="button"
                   aria-label={`Remove class on ${formatDayLabel(c.date)}`}

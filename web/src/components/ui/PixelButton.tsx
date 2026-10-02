@@ -28,13 +28,13 @@ export const PixelButton: React.FC<PixelButtonProps> = ({
 
   const variantStyles = {
     primary:
-      'bg-[var(--c-orange)] text-[var(--c-ink)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] hover:bg-[var(--c-yellow)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
+      'bg-[var(--c-orange)] text-[var(--on-neon)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] hover:bg-[var(--c-yellow)] hover:text-[var(--on-neon)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
     secondary:
-      'bg-[var(--c-panel)] text-[var(--c-ink)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] hover:bg-[var(--c-peach)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
+      'bg-[var(--c-panel)] text-[var(--text-1)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] hover:bg-[var(--c-peach)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
     danger:
-      'bg-[var(--c-red)] text-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] hover:brightness-110 active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
+      'bg-[var(--c-red)] text-[var(--on-neon)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] hover:brightness-110 active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
     ghost:
-      'bg-transparent text-[var(--c-ink)] border-2 border-dashed border-[var(--c-ink)] hover:bg-[var(--c-peach)] active:translate-x-[2px] active:translate-y-[2px]'
+      'bg-transparent text-[var(--text-1)] border-2 border-dashed border-[var(--c-ink)] hover:bg-[var(--c-peach)] active:translate-x-[2px] active:translate-y-[2px]'
   }[variant];
 
   return (

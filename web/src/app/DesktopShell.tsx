@@ -21,7 +21,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   return (
     <div
       data-testid="desktop-shell"
-      className="min-h-screen bg-[var(--c-bg)] text-[var(--c-ink)] flex"
+      className="min-h-screen bg-[var(--c-bg)] text-[var(--text-1)] flex"
     >
       {/* Fixed Sidebar */}
       <Sidebar nav={nav} moreItems={moreItems} footer={userFooter} />

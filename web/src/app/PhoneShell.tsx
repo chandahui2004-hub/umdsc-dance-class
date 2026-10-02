@@ -32,7 +32,7 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
   return (
     <div
       data-testid="phone-shell"
-      className="min-h-screen bg-[var(--c-bg)] text-[var(--c-ink)] flex flex-col justify-between"
+      className="min-h-screen bg-[var(--c-bg)] text-[var(--text-1)] flex flex-col justify-between"
     >
       {/* Shell Container: centered with max-width 560px on tablet (768-1023px) */}
       <div
@@ -41,7 +41,7 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
         }`}
       >
         {/* Top User Status & Live Clock Bar */}
-        <div className="sticky top-0 z-30 bg-[var(--c-navy)] text-[var(--c-panel)] border-b-4 border-[var(--c-ink)] shadow-[0_4px_0_var(--c-ink)]">
+        <div className="sticky top-0 z-30 bg-[var(--c-navy)] text-[var(--text-1)] border-b-4 border-[var(--c-ink)] shadow-[0_4px_0_var(--c-ink)]">
           <div className="px-3 py-2 flex items-center justify-between gap-2 select-none">
             {/* Left: Brand + Role Badge */}
             <div className="flex items-center gap-2 overflow-hidden">
@@ -59,7 +59,7 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
                 data-testid="mobile-role-badge"
                 className={`font-display text-[8px] uppercase px-1.5 py-0.5 border border-[var(--c-ink)] ${
                   isAdmin
-                    ? 'bg-[var(--c-orange)] text-[var(--c-ink)] font-bold'
+                    ? 'bg-[var(--c-orange)] text-[var(--on-neon)] font-bold'
                     : 'bg-[var(--c-navy)] text-[var(--c-yellow)] border-[var(--c-yellow)]'
                 }`}
               >
@@ -78,7 +78,7 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
                 onClick={() => setIsUserInfoOpen(!isUserInfoOpen)}
                 aria-label={isUserInfoOpen ? 'Close user info board' : 'Open user info board'}
                 data-testid="user-info-toggle-btn"
-                className="px-2 py-1 bg-[var(--c-panel)] text-[var(--c-ink)] border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] font-display text-[9px] active:translate-x-[1px] active:translate-y-[1px] cursor-pointer flex items-center gap-1"
+                className="px-2 py-1 bg-[var(--c-panel)] text-[var(--text-1)] border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] font-display text-[9px] active:translate-x-[1px] active:translate-y-[1px] cursor-pointer flex items-center gap-1"
               >
                 <span className="truncate max-w-[70px] font-bold">{username}</span>
                 <span>{isUserInfoOpen ? '▲' : '▼'}</span>
@@ -99,7 +99,7 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
 
         {/* Optional Custom Header */}
         {header && (
-          <div className="bg-[var(--c-navy)] text-[var(--c-panel)] border-b-4 border-[var(--c-ink)] px-4 py-2">
+          <div className="bg-[var(--c-navy)] text-[var(--text-1)] border-b-4 border-[var(--c-ink)] px-4 py-2">
             {header}
           </div>
         )}
@@ -146,7 +146,7 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
               aria-label="Expand navigation"
               title="Expand navigation"
               data-testid="mobile-nav-toggle-btn"
-              className="px-3 py-2 bg-[var(--c-yellow)] text-[var(--c-ink)] border-2 border-[var(--c-ink)] shadow-[3px_3px_0_var(--c-ink)] font-display text-[9px] font-bold flex items-center gap-1.5 cursor-pointer select-none active:translate-x-[2px] active:translate-y-[2px]"
+              className="px-3 py-2 bg-[var(--c-yellow)] text-[var(--on-neon)] border-2 border-[var(--c-ink)] shadow-[3px_3px_0_var(--c-ink)] font-display text-[9px] font-bold flex items-center gap-1.5 cursor-pointer select-none active:translate-x-[2px] active:translate-y-[2px]"
             >
               <span>SHOW NAV</span>
               <span>▲</span>

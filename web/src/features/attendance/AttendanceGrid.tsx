@@ -26,7 +26,7 @@ export const AttendanceGrid: React.FC<AttendanceGridProps> = ({
         <p className="font-display text-sm text-[var(--c-red)]">
           NO SESSIONS SCHEDULED FOR THIS MONTH
         </p>
-        <p className="font-body text-base text-[var(--c-darkgrey)] mt-2">
+        <p className="font-body text-base text-[var(--text-2)] mt-2">
           Use the Calendar to schedule class sessions first.
         </p>
       </div>
@@ -45,7 +45,7 @@ export const AttendanceGrid: React.FC<AttendanceGridProps> = ({
         className="w-full text-left font-body border-collapse min-w-[700px]"
       >
         <thead className="sticky top-0 z-30 bg-[var(--c-bg)] shadow-[0_2px_0_var(--c-ink)]">
-          <tr className="border-b-4 border-[var(--c-ink)] bg-[var(--c-bg)] font-display text-xs text-[var(--c-ink)]">
+          <tr className="border-b-4 border-[var(--c-ink)] bg-[var(--c-bg)] font-display text-xs text-[var(--text-1)]">
             <th className="sticky top-0 left-0 z-40 bg-[var(--c-bg)] p-3 border-r-2 border-[var(--c-ink)] min-w-[220px]">
               DANCER NAME / MATRIC
             </th>
@@ -55,7 +55,7 @@ export const AttendanceGrid: React.FC<AttendanceGridProps> = ({
                 className="p-3 border-r-2 border-[var(--c-ink)] text-center min-w-[90px] bg-[var(--c-bg)]"
               >
                 <div>#{s.seq}</div>
-                <div className="font-mono text-[10px] min-text-5px text-[var(--c-darkgrey)]">
+                <div className="font-mono text-[10px] min-text-5px text-[var(--text-2)]">
                   {formatDayLabel(s.date).slice(4)}
                 </div>
               </th>
@@ -68,7 +68,7 @@ export const AttendanceGrid: React.FC<AttendanceGridProps> = ({
             <tr>
               <td
                 colSpan={sessions.length + 2}
-                className="p-6 text-center text-sm font-body text-[var(--c-darkgrey)]"
+                className="p-6 text-center text-sm font-body text-[var(--text-2)]"
               >
                 No dancers registered for this style in this month.
               </td>
@@ -81,10 +81,10 @@ export const AttendanceGrid: React.FC<AttendanceGridProps> = ({
               return (
                 <tr key={m.memberId} className="hover:bg-[var(--c-bg)]/50 transition-none">
                   <td className="sticky left-0 z-10 bg-[var(--c-panel)] p-3 border-r-2 border-[var(--c-ink)]">
-                    <div className="font-display text-xs text-[var(--c-ink)] font-bold truncate">
+                    <div className="font-display text-xs text-[var(--text-1)] font-bold truncate">
                       {m.fullName}
                     </div>
-                    <div className="font-mono text-[11px] text-[var(--c-darkgrey)]">
+                    <div className="font-mono text-[11px] text-[var(--text-2)]">
                       {m.matric}
                     </div>
                   </td>
@@ -102,13 +102,13 @@ export const AttendanceGrid: React.FC<AttendanceGridProps> = ({
                           readOnly ? 'cursor-default' : 'cursor-pointer'
                         } ${
                           isPresent
-                            ? `bg-[var(--c-green)]/40 text-[var(--c-ink)] ${readOnly ? '' : 'hover:bg-[var(--c-green)]/60'}`
-                            : `text-[var(--c-grey)] ${readOnly ? '' : 'hover:bg-[var(--c-bg)]'}`
+                            ? `bg-[var(--c-green)]/40 text-[var(--on-neon)] ${readOnly ? '' : 'hover:bg-[var(--c-green)] hover:text-[var(--on-neon)]/60'}`
+                            : `text-[var(--text-2)] ${readOnly ? '' : 'hover:bg-[var(--c-bg)]'}`
                         }`}
                       >
                         <div className="w-8 h-8 mx-auto flex items-center justify-center font-display text-sm border-2 border-[var(--c-ink)] shadow-[1px_1px_0_var(--c-ink)]">
                           {isPresent ? (
-                            <span className="font-bold text-[var(--c-ink)]">✓</span>
+                            <span className="font-bold text-[var(--text-1)]">✓</span>
                           ) : (
                             <span className="opacity-0">·</span>
                           )}
@@ -117,7 +117,7 @@ export const AttendanceGrid: React.FC<AttendanceGridProps> = ({
                     );
                   })}
 
-                  <td className="p-3 text-center font-mono text-xs font-bold text-[var(--c-navy)]">
+                  <td className="p-3 text-center font-mono text-xs font-bold text-[var(--neon-cyan)]">
                     {attendedCount}/{sessions.length}
                   </td>
                 </tr>

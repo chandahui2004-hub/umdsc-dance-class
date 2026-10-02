@@ -26,9 +26,9 @@ type MarkerListProps = {
 const buttonClass =
   "min-h-11 w-full rounded-full border border-white/10 bg-white/[0.08] px-3 text-sm font-bold text-zinc-100 transition hover:border-cyan-200/35 hover:bg-cyan-200/10 active:translate-y-px";
 const inputClass =
-  "min-h-12 w-full min-w-0 rounded-lg border border-white/10 bg-white/[0.07] px-4 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] outline-none placeholder:text-zinc-500 focus:border-cyan-200/55 focus:bg-white/[0.1] focus:ring-4 focus:ring-cyan-300/10";
+  "min-h-12 w-full min-w-0 border border-white/10 bg-white/[0.07] px-4 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] outline-none placeholder:text-zinc-500 focus:border-cyan-200/55 focus:bg-white/[0.1] focus:ring-4 focus:ring-cyan-300/10";
 const panelClass =
-  "rounded-3xl border border-white/15 bg-white/[0.08] p-3 shadow-[0_0_32px_rgba(235,178,255,0.12),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-xl sm:p-4";
+  " border border-white/15 bg-white/[0.08] p-3 shadow-[0_0_32px_rgba(235,178,255,0.12),inset_0_1px_0_rgba(255,255,255,0.12)] sm:p-4";
 const eyebrowClass = "font-mono text-[0.68rem] font-bold uppercase tracking-[0.16em] text-cyan-100";
 
 function parseTimeInput(value: string) {
@@ -319,7 +319,7 @@ export function MarkerList({
         </form>
       ) : null}
 
-      <div className="mt-5 divide-y divide-[#504254]/70 overflow-hidden rounded-2xl border border-white/10 bg-[#0e0e11]/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+      <div className="mt-5 divide-y divide-[#504254]/70 overflow-hidden border border-white/10 bg-[#0e0e11]/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
         {markers.map((marker, index) => {
           const isActive = activeMarker?.id === marker.id;
           const isEditing = editingMarkerId === marker.id;
@@ -466,7 +466,7 @@ export function MarkerList({
               ) : (
                 <>
                   <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                    <div className="min-w-0 rounded-lg px-1 text-left transition focus:bg-white/5 focus:outline-none">
+                    <div className="min-w-0 px-1 text-left transition focus:bg-white/5 focus:outline-none">
                       <div className="flex min-w-0 items-baseline gap-2">
                         <span
                           className={`min-w-0 max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs font-black leading-none tracking-normal sm:text-base ${markerColorClass}`}

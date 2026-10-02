@@ -123,7 +123,7 @@ export const ColorSwatchPicker: React.FC<ColorSwatchPickerProps> = ({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="font-display text-xs uppercase tracking-wider text-[var(--c-ink)]">
+        <label className="font-display text-xs uppercase tracking-wider text-[var(--text-1)]">
           {label}
         </label>
         <button
@@ -132,7 +132,7 @@ export const ColorSwatchPicker: React.FC<ColorSwatchPickerProps> = ({
             setIsAdding((prev) => !prev);
             setHexError(null);
           }}
-          className="font-display text-[9px] text-[var(--c-navy)] hover:underline flex items-center gap-1 cursor-pointer"
+          className="font-display text-[9px] text-[var(--neon-cyan)] hover:underline flex items-center gap-1 cursor-pointer"
         >
           {isAdding ? '▲ CLOSE' : '+ ADD NEW COLOR'}
         </button>
@@ -173,7 +173,7 @@ export const ColorSwatchPicker: React.FC<ColorSwatchPickerProps> = ({
           {hexError && (
             <p className="font-body text-xs text-[var(--c-red)] font-bold">{hexError}</p>
           )}
-          <p className="font-body text-[10px] text-[var(--c-darkgrey)]">
+          <p className="font-body text-[10px] text-[var(--text-2)]">
             Insert any hex color code (e.g. #FF5722, #9C27B0). Custom colors can be removed anytime.
           </p>
         </div>
@@ -202,7 +202,7 @@ export const ColorSwatchPicker: React.FC<ColorSwatchPickerProps> = ({
                   <span className="font-mono text-xs truncate">{c.label}</span>
                 </div>
                 {selected && (
-                  <span className="text-[10px] font-display text-[var(--c-ink)]">✓</span>
+                  <span className="text-[10px] font-display text-[var(--text-1)]">✓</span>
                 )}
               </button>
 

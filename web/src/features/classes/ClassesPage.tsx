@@ -116,12 +116,12 @@ export const ClassesPage: React.FC = () => {
   if (!eventsLoading && events.length === 0) {
     return (
       <div className="space-y-4">
-        <h1 className="font-display text-xl md:text-2xl text-[var(--c-ink)]">Calendar & Classes</h1>
+        <h1 className="font-display text-xl md:text-2xl text-[var(--text-1)]">Calendar & Classes</h1>
         <EmptyState
           title="NO EVENTS YET"
           description="Classes belong to an event. Create one from its registration form first."
           action={
-            <Link to="/admin/events/new" className="inline-flex items-center min-h-[44px] px-4 border-2 border-[var(--c-ink)] bg-[var(--c-orange)] text-[var(--c-ink)] font-display text-xs no-underline">
+            <Link to="/admin/events/new" className="inline-flex items-center min-h-[44px] px-4 border-2 border-[var(--c-ink)] bg-[var(--c-orange)] text-[var(--on-neon)] font-display text-xs no-underline">
               CREATE AN EVENT
             </Link>
           }
@@ -133,8 +133,8 @@ export const ClassesPage: React.FC = () => {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="font-display text-xl md:text-2xl text-[var(--c-ink)]">Calendar & Classes</h1>
-        <p className="font-body text-sm text-[var(--c-darkgrey)]">
+        <h1 className="font-display text-xl md:text-2xl text-[var(--text-1)]">Calendar & Classes</h1>
+        <p className="font-body text-sm text-[var(--text-2)]">
           {isAll
             ? 'Showing classes across all events · Change months freely'
             : event
@@ -143,7 +143,7 @@ export const ClassesPage: React.FC = () => {
         </p>
       </div>
 
-      <div className="flex items-center justify-between px-3 py-2 bg-[var(--c-navy)] text-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)]">
+      <div className="flex items-center justify-between px-3 py-2 bg-[var(--c-navy)] text-[var(--text-1)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)]">
         <span className="font-display text-xs text-[var(--c-yellow)]">
           {isAll
             ? `${activeSessions.length} classes across ALL EVENTS`
@@ -198,15 +198,15 @@ export const ClassesPage: React.FC = () => {
                       className="w-full text-left p-3 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] hover:bg-[var(--c-bg)] space-y-2"
                     >
                       <div className="flex flex-wrap justify-between items-center gap-1">
-                        <span style={{ backgroundColor: colorOf(s.styleId) }} className="px-2 py-0.5 text-[10px] font-display text-[var(--c-ink)] border border-[var(--c-ink)]">
+                        <span style={{ backgroundColor: colorOf(s.styleId) }} className="px-2 py-0.5 text-[10px] font-display text-[var(--text-1)] border border-[var(--c-ink)]">
                           {style?.name || 'Style'} Class {s.seq}
                         </span>
                         {isAll && (
-                          <span className="font-display text-[9px] px-1 bg-[var(--c-peach)] text-[var(--c-ink)] border border-[var(--c-ink)]">
+                          <span className="font-display text-[9px] px-1 bg-[var(--c-peach)] text-[var(--text-1)] border border-[var(--c-ink)]">
                             {getEvent(s.eventId)?.name || 'Event'}
                           </span>
                         )}
-                        <span className="font-mono text-xs font-bold text-[var(--c-ink)]">
+                        <span className="font-mono text-xs font-bold text-[var(--text-1)]">
                           {s.start} - {s.end}
                         </span>
                       </div>
@@ -219,24 +219,24 @@ export const ClassesPage: React.FC = () => {
                             loading="lazy"
                           />
                         ) : (
-                          <span className="w-8 h-10 flex items-center justify-center bg-[var(--c-bg)] border-2 border-[var(--c-ink)] font-display text-[8px] text-[var(--c-darkgrey)] flex-shrink-0">👤</span>
+                          <span className="w-8 h-10 flex items-center justify-center bg-[var(--c-bg)] border-2 border-[var(--c-ink)] font-display text-[8px] text-[var(--text-2)] flex-shrink-0">👤</span>
                         )}
-                        <div className="font-body text-xs text-[var(--c-darkgrey)]">
-                          <span className="font-bold text-[var(--c-ink)]">{instructor?.name || 'TBA'}</span> · {s.venue || 'TBA'}
+                        <div className="font-body text-xs text-[var(--text-2)]">
+                          <span className="font-bold text-[var(--text-1)]">{instructor?.name || 'TBA'}</span> · {s.venue || 'TBA'}
                         </div>
                       </div>
                     </button>
                     );
                   })}
                 {activeSessions.filter(s => s.date === selectedDate).length === 0 && (
-                  <p className="font-body text-xs text-[var(--c-darkgrey)] py-2 text-center">No classes on this date.</p>
+                  <p className="font-body text-xs text-[var(--text-2)] py-2 text-center">No classes on this date.</p>
                 )}
 
                 {/* Add class section */}
                 <div className="pt-2 border-t-2 border-[var(--c-ink)] space-y-2">
                   {isAll && (
                     <label className="block space-y-1">
-                      <span className="font-display text-[10px] text-[var(--c-ink)]">EVENT:</span>
+                      <span className="font-display text-[10px] text-[var(--text-1)]">EVENT:</span>
                       <select
                         aria-label="Event for new class"
                         value={targetEventId}
@@ -273,7 +273,7 @@ export const ClassesPage: React.FC = () => {
                     </>
                   )}
                   {!insideEvent && targetEvent && (
-                    <p className="font-body text-xs text-[var(--c-darkgrey)]">
+                    <p className="font-body text-xs text-[var(--text-2)]">
                       {selectedDate} is outside {targetEvent.name} ({targetEvent.startDate} to {targetEvent.endDate}).
                     </p>
                   )}
@@ -301,15 +301,15 @@ export const ClassesPage: React.FC = () => {
                 className="text-left p-3 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] hover:bg-[var(--c-bg)] space-y-2"
               >
                 <div className="flex flex-wrap justify-between items-start gap-1">
-                  <span style={{ backgroundColor: colorOf(s.styleId) }} className="px-2 py-0.5 text-xs font-display text-[var(--c-ink)] border border-[var(--c-ink)]">
+                  <span style={{ backgroundColor: colorOf(s.styleId) }} className="px-2 py-0.5 text-xs font-display text-[var(--text-1)] border border-[var(--c-ink)]">
                     {style?.name || 'Style'} Class {s.seq}
                   </span>
                   {isAll && (
-                    <span className="font-display text-[9px] px-1 bg-[var(--c-peach)] text-[var(--c-ink)] border border-[var(--c-ink)]">
+                    <span className="font-display text-[9px] px-1 bg-[var(--c-peach)] text-[var(--text-1)] border border-[var(--c-ink)]">
                       {getEvent(s.eventId)?.name || 'Event'}
                     </span>
                   )}
-                  <span className="font-display text-[10px] text-[var(--c-ink)]">{s.date}</span>
+                  <span className="font-display text-[10px] text-[var(--text-1)]">{s.date}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {photoUrl ? (
@@ -320,13 +320,13 @@ export const ClassesPage: React.FC = () => {
                       loading="lazy"
                     />
                   ) : (
-                    <span className="w-10 h-[50px] flex items-center justify-center bg-[var(--c-bg)] border-2 border-[var(--c-ink)] font-display text-[9px] text-[var(--c-darkgrey)] flex-shrink-0">👤</span>
+                    <span className="w-10 h-[50px] flex items-center justify-center bg-[var(--c-bg)] border-2 border-[var(--c-ink)] font-display text-[9px] text-[var(--text-2)] flex-shrink-0">👤</span>
                   )}
                   <div className="space-y-1">
                     <div className="font-body text-xs">
-                      <span className="font-bold text-[var(--c-ink)]">{instructor?.name || 'TBA'}</span>
+                      <span className="font-bold text-[var(--text-1)]">{instructor?.name || 'TBA'}</span>
                     </div>
-                    <div className="font-body text-xs text-[var(--c-darkgrey)]">
+                    <div className="font-body text-xs text-[var(--text-2)]">
                       <span className="font-mono">{s.start} - {s.end}</span> · {s.venue || 'TBA'}
                     </div>
                   </div>
@@ -334,10 +334,10 @@ export const ClassesPage: React.FC = () => {
                 <span
                   className={`inline-block px-1.5 py-0.5 font-display text-[9px] border border-[var(--c-ink)] ${
                     s.status === 'cancelled'
-                      ? 'bg-[var(--c-red)] text-[var(--c-panel)]'
+                      ? 'bg-[var(--c-red)] text-[var(--on-neon)]'
                       : s.status === 'replacement'
-                      ? 'bg-[var(--c-yellow)] text-[var(--c-ink)]'
-                      : 'bg-[var(--c-green)] text-[var(--c-ink)]'
+                      ? 'bg-[var(--c-yellow)] text-[var(--on-neon)]'
+                      : 'bg-[var(--c-green)] text-[var(--on-neon)]'
                   }`}
                 >
                   {s.status.toUpperCase()}

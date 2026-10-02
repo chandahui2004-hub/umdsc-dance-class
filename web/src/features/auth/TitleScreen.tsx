@@ -86,10 +86,10 @@ export const TitleScreen: React.FC = () => {
         <div className="inline-block bg-[var(--c-navy)] text-[var(--c-yellow)] px-4 py-2 border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] mb-3">
           <span className="font-display text-xs md:text-sm tracking-widest">★ 8-BIT EDITION ★</span>
         </div>
-        <h1 className="font-display text-2xl md:text-4xl text-[var(--c-ink)] tracking-wider mb-2 drop-shadow-[2px_2px_0_var(--c-yellow)]">
+        <h1 className="font-display text-2xl md:text-4xl text-[var(--text-1)] tracking-wider mb-2 drop-shadow-[2px_2px_0_var(--c-yellow)]">
           UMDSC
         </h1>
-        <p className="font-display text-xs md:text-sm text-[var(--c-darkgrey)]">
+        <p className="font-display text-xs md:text-sm text-[var(--text-2)]">
           DANCE CLASS SYSTEM
         </p>
         <div className="mt-4 px-blink">
@@ -151,7 +151,7 @@ export const TitleScreen: React.FC = () => {
           <div className="mt-6 pt-4 border-t-2 border-[var(--c-grey)] text-center">
             <Link
               to="/admin/login"
-              className="font-display text-[10px] text-[var(--c-blue)] hover:text-[var(--c-navy)] underline inline-block py-2 min-h-[44px] flex items-center justify-center"
+              className="font-display text-[10px] text-[var(--c-blue)] hover:text-[var(--neon-cyan)] underline inline-block py-2 min-h-[44px] flex items-center justify-center"
             >
               [ ADMIN MODE ]
             </Link>

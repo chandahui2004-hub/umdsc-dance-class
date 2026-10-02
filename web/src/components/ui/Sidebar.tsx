@@ -60,7 +60,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       } bg-[var(--c-panel)] border-r-4 border-[var(--c-ink)] flex flex-col h-screen sticky top-0 shadow-[4px_0_0_var(--c-ink)] transition-[width] duration-150 shrink-0 select-none z-30`}
     >
       {/* Brand Header */}
-      <div className="p-3 bg-[var(--c-navy)] text-[var(--c-panel)] border-b-4 border-[var(--c-ink)]">
+      <div className="p-3 bg-[var(--c-navy)] text-[var(--text-1)] border-b-4 border-[var(--c-ink)]">
         {!isCollapsed ? (
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 overflow-hidden">
@@ -75,7 +75,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <h1 className="font-display text-sm tracking-wider uppercase text-[var(--c-yellow)] truncate">
                   {title}
                 </h1>
-                <p className="font-body text-xs text-[var(--c-peach)] tracking-wide mt-0.5 truncate">
+                <p className="font-body text-xs text-[var(--text-2)] tracking-wide mt-0.5 truncate">
                   {subtitle}
                 </p>
               </div>
@@ -135,8 +135,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     isCollapsed ? 'justify-center px-1' : 'justify-between px-3'
                   } py-2.5 min-h-[44px] border-2 border-[var(--c-ink)] font-display text-xs select-none transition-none cursor-pointer ${
                     isAnyMoreActive || isMoreExpanded
-                      ? 'bg-[var(--c-yellow)] text-[var(--c-ink)] font-bold shadow-[2px_2px_0_var(--c-ink)]'
-                      : 'bg-[var(--c-panel)] text-[var(--c-ink)] hover:bg-[var(--c-peach)]'
+                      ? 'bg-[var(--c-yellow)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--c-ink)]'
+                      : 'bg-[var(--c-panel)] text-[var(--text-1)] hover:bg-[var(--c-peach)]'
                   }`}
                 >
                   <div className="flex items-center gap-3 overflow-hidden">
@@ -161,8 +161,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         className={({ isActive }) =>
                           `flex items-center gap-2 px-2 py-2 min-h-[38px] border-2 border-[var(--c-ink)] font-display text-[9px] select-none transition-none ${
                             isActive
-                              ? 'bg-[var(--c-yellow)] text-[var(--c-ink)] font-bold shadow-[2px_2px_0_var(--c-ink)] translate-x-[2px]'
-                              : 'bg-[var(--c-bg)] text-[var(--c-ink)] hover:bg-[var(--c-peach)]'
+                              ? 'bg-[var(--c-yellow)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--c-ink)] translate-x-[2px]'
+                              : 'bg-[var(--c-bg)] text-[var(--text-1)] hover:bg-[var(--c-peach)]'
                           }`
                         }
                       >
@@ -189,8 +189,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   isCollapsed ? 'justify-center px-1' : 'justify-start gap-3 px-3'
                 } py-2.5 min-h-[44px] border-2 border-[var(--c-ink)] font-display text-xs select-none transition-none relative ${
                   isActive
-                    ? 'bg-[var(--c-yellow)] text-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] translate-x-[2px]'
-                    : 'bg-[var(--c-panel)] text-[var(--c-ink)] hover:bg-[var(--c-peach)]'
+                    ? 'bg-[var(--c-yellow)] text-[var(--on-neon)] shadow-[2px_2px_0_var(--c-ink)] translate-x-[2px]'
+                    : 'bg-[var(--c-panel)] text-[var(--text-1)] hover:bg-[var(--c-peach)]'
                 }`
               }
             >
@@ -206,7 +206,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     isCollapsed
                       ? 'absolute -top-1 -right-1'
                       : 'ml-auto'
-                  } bg-[var(--c-red)] text-[var(--c-panel)] text-[8px] px-1 border border-[var(--c-ink)]`}
+                  } bg-[var(--c-red)] text-[var(--on-neon)] text-[8px] px-1 border border-[var(--c-ink)]`}
                 >
                   {item.badge}
                 </span>

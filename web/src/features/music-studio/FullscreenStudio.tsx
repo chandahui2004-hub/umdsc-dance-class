@@ -371,7 +371,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#101114] flex flex-col overflow-hidden select-none">
+    <div className="fixed inset-0 z-50 bg-[var(--night-1)] flex flex-col overflow-hidden select-none">
       {/* Top Video / Media Viewport (Takes majority of screen) */}
       <div className="flex-1 relative min-h-0 w-full flex items-center justify-center bg-black overflow-hidden">
         {hasDanceVideo ? (
@@ -400,13 +400,13 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
             data-testid="fullscreen-audio-visualizer"
             className="flex flex-col items-center justify-center gap-3 text-center p-6"
           >
-            <div className="w-16 h-16 bg-[#1D2B53] border-4 border-black flex items-center justify-center shadow-[4px_4px_0_#000]">
-              <span className="font-display text-2xl text-[#FFEC27] animate-pulse">♫</span>
+            <div className="w-16 h-16 bg-[var(--night-2)] border-4 border-black flex items-center justify-center shadow-[4px_4px_0_#000]">
+              <span className="font-display text-2xl text-[var(--neon-gold)] animate-pulse">♫</span>
             </div>
             <h2 className="font-display text-lg text-white max-w-md">
               {activeMusicTitle || 'Audio Practice Mode'}
             </h2>
-            <p className="font-mono text-xs text-[#00E436]">
+            <p className="font-mono text-xs text-[var(--neon-green)]">
               {effectiveIsPlaying ? 'PLAYING AUDIO' : 'PAUSED'}
             </p>
           </div>
@@ -416,14 +416,14 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
         <div
           data-testid="fullscreen-hud"
           style={{ transform: `translate3d(${hudPos.x}px, ${hudPos.y}px, 0)` }}
-          className="absolute top-0 left-0 z-50 flex items-center flex-wrap gap-2 bg-[#17181c]/95 border-4 border-black px-3 py-2 shadow-[6px_6px_0_#000] backdrop-blur-md max-w-[95vw]"
+          className="absolute top-0 left-0 z-50 flex items-center flex-wrap gap-2 bg-[var(--night-1)]/95 border-4 border-black px-3 py-2 shadow-[6px_6px_0_#000] max-w-[95vw]"
         >
           {/* Drag Handle */}
           <div
             onPointerDown={handleHudDragStart}
             data-testid="hud-drag-handle"
             title="Drag Loop HUD"
-            className="cursor-move px-1 py-1 text-[#5F574F] hover:text-[#FFEC27] font-mono text-xs flex flex-col justify-center items-center select-none"
+            className="cursor-move px-1 py-1 text-[var(--violet-4)] hover:text-[var(--neon-gold)] font-mono text-xs flex flex-col justify-center items-center select-none"
           >
             <span>::</span>
           </div>
@@ -433,7 +433,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
             type="button"
             aria-label={effectiveIsPlaying ? 'Pause' : 'Play'}
             onClick={effectiveIsPlaying ? handlePause : handlePlay}
-            className="px-3 py-1.5 bg-[#FFA300] hover:bg-[#FFA300]/90 active:translate-x-0.5 active:translate-y-0.5 text-black font-display text-[10px] border-2 border-black shadow-[2px_2px_0_#000]"
+            className="px-3 py-1.5 bg-[var(--neon-orange)] hover:bg-[var(--neon-orange)]/90 active:translate-x-0.5 active:translate-y-0.5 text-black font-display text-[10px] border-2 border-black shadow-[2px_2px_0_#000]"
           >
             {effectiveIsPlaying ? 'II' : 'PLAY'}
           </button>
@@ -445,8 +445,8 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
             onClick={onToggleLoop}
             className={`px-3 py-1.5 font-display text-[10px] border-2 border-black shadow-[2px_2px_0_#000] transition-colors ${
               isLooping
-                ? 'bg-[#FFEC27] text-black animate-pulse font-bold'
-                : 'bg-[#1D2B53] text-[#C2C3C7] hover:text-white'
+                ? 'bg-[var(--neon-gold)] text-black animate-pulse font-bold'
+                : 'bg-[var(--night-2)] text-[var(--text-2)] hover:text-white'
             }`}
           >
             {isLooping ? 'LOOP ON' : 'LOOP OFF'}
@@ -454,13 +454,13 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
 
           {/* Loop Range Info */}
           <div className="flex flex-col items-center px-1 font-mono">
-            <span className="text-xs font-bold text-[#FFEC27]">{loopDurationText}</span>
+            <span className="text-xs font-bold text-[var(--neon-gold)]">{loopDurationText}</span>
             {markerDraftRange ? (
-              <span className="text-[9px] text-[#C2C3C7]">
+              <span className="text-[9px] text-[var(--text-2)]">
                 [{formatTime(markerDraftRange.start)} - {formatTime(markerDraftRange.end)}]
               </span>
             ) : loopMarker ? (
-              <span className="text-[9px] text-[#29ADFF]">
+              <span className="text-[9px] text-[var(--neon-cyan)]">
                 [{formatTime(loopMarker.time)} - {formatTime(loopMarker.endTime)}]
               </span>
             ) : null}
@@ -473,7 +473,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
               aria-label="Set In"
               onClick={onSetInPoint}
               title="Set In Point (A) at current playhead"
-              className="px-2 py-1 bg-[#29ADFF] text-black font-display text-[9px] border-2 border-black hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5"
+              className="px-2 py-1 bg-[var(--neon-cyan)] text-black font-display text-[9px] border-2 border-black hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5"
             >
               [A] IN
             </button>
@@ -482,7 +482,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
               aria-label="Set Out"
               onClick={onSetOutPoint}
               title="Set Out Point (B) at current playhead"
-              className="px-2 py-1 bg-[#29ADFF] text-black font-display text-[9px] border-2 border-black hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5"
+              className="px-2 py-1 bg-[var(--neon-cyan)] text-black font-display text-[9px] border-2 border-black hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5"
             >
               [B] OUT
             </button>
@@ -493,7 +493,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
                 aria-label="Clear A-B Range"
                 onClick={() => onMarkerDraftChange?.(null)}
                 title="Clear A-B Draft Points"
-                className="px-1.5 py-1 bg-[#1D2B53] text-[#FF004D] hover:bg-black font-mono text-[10px] font-bold border-2 border-black"
+                className="px-1.5 py-1 bg-[var(--night-2)] text-[var(--neon-red)] hover:bg-black font-mono text-[10px] font-bold border-2 border-black"
               >
                 ✕
               </button>
@@ -507,8 +507,8 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
             onClick={() => setShowLoopsPanel(prev => !prev)}
             className={`px-2.5 py-1.5 font-display text-[10px] border-2 border-black shadow-[2px_2px_0_#000] transition active:translate-x-0.5 active:translate-y-0.5 ${
               showLoopsPanel
-                ? 'bg-[#29ADFF] text-black font-bold'
-                : 'bg-[#1D2B53] text-[#C2C3C7] hover:text-white'
+                ? 'bg-[var(--neon-cyan)] text-black font-bold'
+                : 'bg-[var(--night-2)] text-[var(--text-2)] hover:text-white'
             }`}
           >
             🔁 LOOPS ({markers.length})
@@ -520,7 +520,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
             aria-label="Save Loop"
             onClick={handleOpenAddLoop}
             title="Save current A-B as a reusable loop"
-            className="px-2 py-1.5 bg-[#00E436] hover:bg-[#00E436]/90 active:translate-x-0.5 active:translate-y-0.5 text-black font-display text-[9px] border-2 border-black shadow-[2px_2px_0_#000]"
+            className="px-2 py-1.5 bg-[var(--neon-green)] hover:bg-[var(--neon-green)]/90 active:translate-x-0.5 active:translate-y-0.5 text-black font-display text-[9px] border-2 border-black shadow-[2px_2px_0_#000]"
           >
             + SAVE
           </button>
@@ -532,7 +532,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
               disabled={speedDisabled}
               value={playbackRate}
               onChange={e => onSpeedChange(Number(e.target.value))}
-              className="bg-black text-[#00E436] border-2 border-black font-mono font-bold text-xs px-1 py-1 cursor-pointer outline-none"
+              className="bg-black text-[var(--neon-green)] border-2 border-black font-mono font-bold text-xs px-1 py-1 cursor-pointer outline-none"
             >
               {speedOptions.map(spd => (
                 <option key={spd} value={spd}>
@@ -544,7 +544,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
 
           {/* Voice Indicator */}
           {speechListening && (
-            <span className="font-mono text-[9px] text-[#00E436] bg-black px-1.5 py-0.5 border border-[#00E436]">
+            <span className="font-mono text-[9px] text-[var(--neon-green)] bg-black px-1.5 py-0.5 border border-[var(--neon-green)]">
               🎤 {speechTranscript || 'VOICE READY'}
             </span>
           )}
@@ -554,7 +554,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
             type="button"
             aria-label="Exit"
             onClick={onExitFullscreen}
-            className="px-2.5 py-1.5 bg-[#FF004D] text-white font-display text-[10px] border-2 border-black shadow-[2px_2px_0_#000] hover:bg-[#FF004D]/90 active:translate-x-0.5 active:translate-y-0.5"
+            className="px-2.5 py-1.5 bg-[var(--neon-red)] text-white font-display text-[10px] border-2 border-black shadow-[2px_2px_0_#000] hover:bg-[var(--neon-red)]/90 active:translate-x-0.5 active:translate-y-0.5"
           >
             ✕ EXIT
           </button>
@@ -564,18 +564,18 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
         {showLoopsPanel && (
           <div
             data-testid="fullscreen-loops-drawer"
-            className="absolute top-16 right-4 z-50 w-96 max-w-[92vw] max-h-[80vh] flex flex-col bg-[#17181c]/95 border-4 border-black shadow-[8px_8px_0_#000] backdrop-blur-md text-white font-mono"
+            className="absolute top-16 right-4 z-50 w-96 max-w-[92vw] max-h-[80vh] flex flex-col bg-[var(--night-1)]/95 border-4 border-black shadow-[8px_8px_0_#000] text-white font-mono"
           >
             {/* Panel Header */}
-            <div className="flex items-center justify-between bg-[#1D2B53] px-3 py-2 border-b-4 border-black">
-              <span className="font-display text-[10px] text-[#FFEC27]">
+            <div className="flex items-center justify-between bg-[var(--night-2)] px-3 py-2 border-b-4 border-black">
+              <span className="font-display text-[10px] text-[var(--neon-gold)]">
                 ♫ REHEARSAL LOOPS ({markers.length})
               </span>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={handleOpenAddLoop}
-                  className="px-2 py-0.5 bg-[#00E436] text-black font-display text-[8px] border border-black hover:brightness-105"
+                  className="px-2 py-0.5 bg-[var(--neon-green)] text-black font-display text-[8px] border border-black hover:brightness-105"
                 >
                   + NEW
                 </button>
@@ -591,9 +591,9 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
 
             {/* Loop Form (Add / Edit) */}
             {isEditingLoop && (
-              <form onSubmit={handleSaveLoopForm} className="p-3 bg-[#101114] border-b-2 border-black space-y-2">
+              <form onSubmit={handleSaveLoopForm} className="p-3 bg-[var(--night-1)] border-b-2 border-black space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-display text-[9px] text-[#29ADFF]">
+                  <span className="font-display text-[9px] text-[var(--neon-cyan)]">
                     {editingLoopId ? 'EDIT LOOP' : 'ADD NEW LOOP'}
                   </span>
                   <button
@@ -607,7 +607,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
                         setLoopFormEnd(Math.min(effectiveDuration, Math.round((effectiveCurrentTime + 8) * 10) / 10));
                       }
                     }}
-                    className="text-[9px] text-[#FFEC27] underline hover:text-white"
+                    className="text-[9px] text-[var(--neon-gold)] underline hover:text-white"
                   >
                     Use Current A-B
                   </button>
@@ -618,7 +618,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
                   placeholder="Loop Name (e.g. Chorus Combo)"
                   value={loopFormName}
                   onChange={e => setLoopFormName(e.target.value)}
-                  className="w-full bg-black border-2 border-black text-white px-2 py-1 text-xs font-mono outline-none focus:border-[#29ADFF]"
+                  className="w-full bg-black border-2 border-black text-white px-2 py-1 text-xs font-mono outline-none focus:border-[var(--neon-cyan)]"
                   autoFocus
                 />
 
@@ -631,7 +631,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
                       min="0"
                       value={loopFormStart}
                       onChange={e => setLoopFormStart(Number(e.target.value))}
-                      className="bg-black border border-white/20 text-[#00E436] px-1.5 py-1 text-xs outline-none"
+                      className="bg-black border border-white/20 text-[var(--neon-green)] px-1.5 py-1 text-xs outline-none"
                     />
                   </label>
                   <label className="flex flex-col gap-0.5">
@@ -642,17 +642,17 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
                       min="0.1"
                       value={loopFormEnd}
                       onChange={e => setLoopFormEnd(Number(e.target.value))}
-                      className="bg-black border border-white/20 text-[#00E436] px-1.5 py-1 text-xs outline-none"
+                      className="bg-black border border-white/20 text-[var(--neon-green)] px-1.5 py-1 text-xs outline-none"
                     />
                   </label>
                 </div>
 
-                {loopFormError && <p className="text-[10px] text-[#FF004D]">{loopFormError}</p>}
+                {loopFormError && <p className="text-[10px] text-[var(--neon-red)]">{loopFormError}</p>}
 
                 <div className="flex gap-2 pt-1">
                   <button
                     type="submit"
-                    className="flex-1 py-1 bg-[#00E436] text-black font-display text-[9px] border-2 border-black hover:brightness-105"
+                    className="flex-1 py-1 bg-[var(--neon-green)] text-black font-display text-[9px] border-2 border-black hover:brightness-105"
                   >
                     {editingLoopId ? 'UPDATE' : 'SAVE'}
                   </button>
@@ -690,7 +690,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
                       key={marker.id}
                       className={`p-2 border-2 border-black transition ${
                         isLoopingThis
-                          ? 'bg-[#1D2B53] shadow-[2px_2px_0_#FFEC27]'
+                          ? 'bg-[var(--night-2)] shadow-[2px_2px_0_var(--neon-gold)]'
                           : 'bg-black/40 hover:bg-black/60'
                       }`}
                     >
@@ -701,8 +701,8 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
                         <span
                           className={`px-1 py-0.2 text-[8px] font-bold uppercase border ${
                             isClass
-                              ? 'bg-[#FFEC27]/20 text-[#FFEC27] border-[#FFEC27]/40'
-                              : 'bg-[#29ADFF]/20 text-[#29ADFF] border-[#29ADFF]/40'
+                              ? 'bg-[var(--neon-gold)]/20 text-[var(--neon-gold)] border-[var(--neon-gold)]/40'
+                              : 'bg-[var(--neon-cyan)]/20 text-[var(--neon-cyan)] border-[var(--neon-cyan)]/40'
                           }`}
                         >
                           {isClass ? 'CLASS' : 'MY LOOP'}
@@ -728,8 +728,8 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
                           }}
                           className={`px-2 py-0.5 font-display text-[8px] border border-black shadow-[1px_1px_0_#000] ${
                             isLoopingThis
-                              ? 'bg-[#FFEC27] text-black font-bold animate-pulse'
-                              : 'bg-[#00E436] text-black hover:brightness-105'
+                              ? 'bg-[var(--neon-gold)] text-black font-bold animate-pulse'
+                              : 'bg-[var(--neon-green)] text-black hover:brightness-105'
                           }`}
                         >
                           {isLoopingThis ? 'LOOPING ♫' : '▶ LOOP'}
@@ -738,7 +738,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
                         <button
                           type="button"
                           onClick={() => onJumpToMarker?.(marker)}
-                          className="px-2 py-0.5 bg-[#29ADFF] text-black font-display text-[8px] border border-black hover:brightness-105"
+                          className="px-2 py-0.5 bg-[var(--neon-cyan)] text-black font-display text-[8px] border border-black hover:brightness-105"
                         >
                           JUMP
                         </button>
@@ -748,7 +748,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
                             <button
                               type="button"
                               onClick={() => handleOpenEditLoop(marker)}
-                              className="px-1.5 py-0.5 bg-[#1D2B53] text-[#C2C3C7] hover:text-white font-mono text-[9px] border border-black"
+                              className="px-1.5 py-0.5 bg-[var(--night-2)] text-[var(--text-2)] hover:text-white font-mono text-[9px] border border-black"
                               title="Edit loop timing"
                             >
                               ✎
@@ -756,7 +756,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
                             <button
                               type="button"
                               onClick={() => onDeleteLoopMarker?.(marker.id)}
-                              className="px-1.5 py-0.5 bg-[#FF004D] text-white hover:brightness-110 font-mono text-[9px] border border-black"
+                              className="px-1.5 py-0.5 bg-[var(--neon-red)] text-white hover:brightness-110 font-mono text-[9px] border border-black"
                               title="Delete loop"
                             >
                               ✕
@@ -774,36 +774,36 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
       </div>
 
       {/* Bottom Area: Stacked Music & Video Progress Bars */}
-      <div className="bg-[#17181c] border-t-4 border-black p-3 space-y-2">
+      <div className="bg-[var(--night-1)] border-t-4 border-black p-3 space-y-2">
         {/* Primary Timeline Progress */}
         <div className="space-y-1">
-          <div className="flex justify-between items-center text-[10px] font-mono text-[#00E436]">
+          <div className="flex justify-between items-center text-[10px] font-mono text-[var(--neon-green)]">
             <span>
               {isVideoOnly ? 'VIDEO TRACK' : 'MUSIC'}: {formatTime(effectiveCurrentTime)} / {formatTime(effectiveDuration)}
             </span>
-            <span className="text-[#FFEC27]">
+            <span className="text-[var(--neon-gold)]">
               {activeMusicTitle ? `♫ ${activeMusicTitle}` : isVideoOnly ? 'Rehearsal Video' : ''}
             </span>
           </div>
           <div
             ref={musicBarRef}
             onClick={handleTimelineClick}
-            className="relative h-5 bg-[#1D2B53] border-2 border-black cursor-pointer overflow-hidden shadow-[2px_2px_0_#000]"
+            className="relative h-5 bg-[var(--night-2)] border-2 border-black cursor-pointer overflow-hidden shadow-[2px_2px_0_#000]"
           >
             {/* Playhead */}
             <div
-              className="absolute inset-y-0 left-0 bg-[#29ADFF]/40 border-r-2 border-[#29ADFF]"
+              className="absolute inset-y-0 left-0 bg-[var(--neon-cyan)]/40 border-r-2 border-[var(--neon-cyan)]"
               style={{ width: `${progressPercent}%` }}
             />
             {/* Loop Span Indicator */}
             {markerDraftRange && loopWidth > 0 && (
               <div
-                className="absolute inset-y-0 bg-[#FFEC27]/40 border-x-2 border-[#FFEC27]"
+                className="absolute inset-y-0 bg-[var(--neon-gold)]/40 border-x-2 border-[var(--neon-gold)]"
                 style={{ left: `${loopStart}%`, width: `${loopWidth}%` }}
               />
             )}
             <div
-              className="absolute inset-y-0 w-2 -ml-1 bg-[#29ADFF] border border-black"
+              className="absolute inset-y-0 w-2 -ml-1 bg-[var(--neon-cyan)] border border-black"
               style={{ left: `${progressPercent}%` }}
             />
           </div>
@@ -812,19 +812,19 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
         {/* Video Track Progress (shown if both music & video are loaded in sync mode) */}
         {hasDanceVideo && !isVideoOnly && (
           <div className="space-y-1">
-            <div className="flex justify-between items-center text-[10px] font-mono text-[#C2C3C7]">
+            <div className="flex justify-between items-center text-[10px] font-mono text-[var(--text-2)]">
               <span>
                 SYNCED VIDEO: {formatTime(videoCurrentTime)} / {formatTime(videoDuration)}
               </span>
-              <span className="text-[#FFEC27]">⚑ START: {formatTime(videoStart)}</span>
+              <span className="text-[var(--neon-gold)]">⚑ START: {formatTime(videoStart)}</span>
             </div>
-            <div className="relative h-4 bg-[#1f2937] border-2 border-black overflow-hidden">
+            <div className="relative h-4 bg-[var(--violet-1)] border-2 border-black overflow-hidden">
               <div
-                className="absolute inset-y-0 left-0 bg-[#00E436]/40 border-r-2 border-[#00E436]"
+                className="absolute inset-y-0 left-0 bg-[var(--neon-green)]/40 border-r-2 border-[var(--neon-green)]"
                 style={{ width: `${videoProgress}%` }}
               />
               <div
-                className="absolute inset-y-0 w-1 bg-[#FFEC27] z-10"
+                className="absolute inset-y-0 w-1 bg-[var(--neon-gold)] z-10"
                 style={{ left: `${videoStartPercent}%` }}
                 title={`Video Start: ${formatTime(videoStart)}`}
               />

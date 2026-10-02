@@ -300,7 +300,7 @@ const UploadFloatingBadge: React.FC = () => {
     <div
       role="region"
       aria-label="Background Uploads"
-      className="fixed bottom-14 md:bottom-4 right-2 md:right-6 z-50 max-w-sm w-[calc(100vw-1rem)] sm:w-96 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] select-none text-[var(--c-ink)]"
+      className="fixed bottom-14 md:bottom-4 right-2 md:right-6 z-50 max-w-sm w-[calc(100vw-1rem)] sm:w-96 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] select-none text-[var(--text-1)]"
     >
       {/* Header */}
       <div
@@ -360,18 +360,18 @@ const UploadFloatingBadge: React.FC = () => {
                 <span
                   className={`text-[9px] px-1 font-display border ${
                     item.status === 'done'
-                      ? 'bg-[var(--c-green)] text-[var(--c-ink)]'
+                      ? 'bg-[var(--c-green)] text-[var(--on-neon)]'
                       : item.status === 'error'
-                      ? 'bg-[var(--c-red)] text-[var(--c-panel)]'
+                      ? 'bg-[var(--c-red)] text-[var(--on-neon)]'
                       : item.status === 'uploading'
-                      ? 'bg-[var(--c-yellow)] text-[var(--c-ink)]'
-                      : 'bg-[var(--c-panel)] text-[var(--c-darkgrey)]'
+                      ? 'bg-[var(--c-yellow)] text-[var(--on-neon)]'
+                      : 'bg-[var(--c-panel)] text-[var(--text-2)]'
                   }`}
                 >
                   {item.status.toUpperCase()}
                 </span>
               </div>
-              <div className="text-[10px] text-[var(--c-darkgrey)]">
+              <div className="text-[10px] text-[var(--text-2)]">
                 {item.style.name} · Class #{item.session.seq} ({item.session.date})
               </div>
               {item.status === 'uploading' && (

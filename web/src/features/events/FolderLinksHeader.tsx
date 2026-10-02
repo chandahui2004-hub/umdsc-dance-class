@@ -48,10 +48,10 @@ const FolderRow: React.FC<{ folder: FolderSetting; value?: string }> = ({ folder
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-2 font-body text-sm text-[var(--c-ink)]">
+      <div className="flex flex-wrap items-center gap-2 font-body text-sm text-[var(--text-1)]">
         <strong>{folder.label}:</strong>
         {value ? (
-          <a href={`https://drive.google.com/drive/folders/${value}`} target="_blank" rel="noreferrer" className="underline text-[var(--c-navy)]">
+          <a href={`https://drive.google.com/drive/folders/${value}`} target="_blank" rel="noreferrer" className="underline text-[var(--neon-cyan)]">
             open ↗
           </a>
         ) : (
@@ -75,7 +75,7 @@ const FolderRow: React.FC<{ folder: FolderSetting; value?: string }> = ({ folder
           </PixelButton>
         </div>
       )}
-      {note && <p className="font-body text-sm font-bold text-[var(--c-darkgreen)]">{note}</p>}
+      {note && <p className="font-body text-sm font-bold text-[var(--neon-green)]">{note}</p>}
       {failed.length > 0 && (
         <div role="alert" className="p-2 border-2 border-[var(--c-red)] bg-[var(--c-peach)] font-body text-sm text-[var(--c-red)] space-y-1">
           {failed.map(f => (

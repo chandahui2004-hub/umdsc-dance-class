@@ -52,7 +52,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
 
         <span
           aria-label="Hours"
-          className="font-mono text-xl md:text-2xl text-[var(--c-ink)] my-1 select-none font-bold"
+          className="font-mono text-xl md:text-2xl text-[var(--text-1)] my-1 select-none font-bold"
         >
           {String(hours).padStart(2, '0')}
         </span>
@@ -69,7 +69,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
         </PixelButton>
       </div>
 
-      <span className="font-mono text-2xl text-[var(--c-ink)] font-bold pb-1">:</span>
+      <span className="font-mono text-2xl text-[var(--text-1)] font-bold pb-1">:</span>
 
       {/* Minutes Column */}
       <div className="flex flex-col items-center">
@@ -86,7 +86,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
 
         <span
           aria-label="Minutes"
-          className="font-mono text-xl md:text-2xl text-[var(--c-ink)] my-1 select-none font-bold"
+          className="font-mono text-xl md:text-2xl text-[var(--text-1)] my-1 select-none font-bold"
         >
           {String(minutes).padStart(2, '0')}
         </span>

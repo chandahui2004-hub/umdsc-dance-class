@@ -38,7 +38,7 @@ export const FormLinkStep: React.FC<StepProps> = ({ draft, onChange, onNext, isE
   return (
     <div className="space-y-4">
       <label className="block space-y-1">
-        <span className="font-display text-xs text-[var(--c-ink)]">GOOGLE FORM RESPONSE SHEET LINK</span>
+        <span className="font-display text-xs text-[var(--text-1)]">GOOGLE FORM RESPONSE SHEET LINK</span>
         <input
           aria-label="Google Sheet Link"
           value={draft.sheetUrl}
@@ -46,7 +46,7 @@ export const FormLinkStep: React.FC<StepProps> = ({ draft, onChange, onNext, isE
           placeholder="https://docs.google.com/spreadsheets/d/…"
           className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] font-mono text-xs"
         />
-        <span className="font-body text-xs text-[var(--c-darkgrey)]">
+        <span className="font-body text-xs text-[var(--text-2)]">
           Share the sheet with umdancesportc@gmail.com as Editor first.
         </span>
       </label>
@@ -63,14 +63,14 @@ export const FormLinkStep: React.FC<StepProps> = ({ draft, onChange, onNext, isE
 
       {p && (
         <div className="space-y-4">
-          <p className="font-body text-base text-[var(--c-ink)]">
+          <p className="font-body text-base text-[var(--text-1)]">
             Found <strong>{p.rowCount}</strong> registrations in tab “{p.sourceTab}”
             {p.sampleNames.length > 0 && <> — e.g. {p.sampleNames.join(', ')}</>}.
           </p>
 
           <table className="w-full text-left border-collapse font-body text-sm">
             <thead>
-              <tr className="border-b-4 border-[var(--c-ink)] font-display text-[10px] text-[var(--c-ink)]">
+              <tr className="border-b-4 border-[var(--c-ink)] font-display text-[10px] text-[var(--text-1)]">
                 <th className="p-2">FIELD</th>
                 <th className="p-2">COLUMN IN THE FORM</th>
               </tr>

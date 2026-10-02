@@ -46,10 +46,10 @@ export const TodayPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-xl md:text-2xl text-[var(--c-ink)]">
+          <h1 className="font-display text-xl md:text-2xl text-[var(--text-1)]">
             Today
           </h1>
-          <p className="font-body text-sm text-[var(--c-darkgrey)]">
+          <p className="font-body text-sm text-[var(--text-2)]">
             Classes scheduled for today ({today})
           </p>
         </div>
@@ -67,7 +67,7 @@ export const TodayPage: React.FC = () => {
       {isLoading ? (
         <div className="p-8 text-center bg-[var(--c-panel)] border-4 border-[var(--c-ink)]">
           <Spinner size="lg" />
-          <p className="font-display text-xs text-[var(--c-ink)] mt-3">
+          <p className="font-display text-xs text-[var(--text-1)] mt-3">
             LOADING TODAY'S SCHEDULE...
           </p>
         </div>
@@ -105,17 +105,17 @@ export const TodayPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <span
                     style={{ backgroundColor: colorVar }}
-                    className="px-2 py-0.5 text-xs font-display text-[var(--c-ink)] border-2 border-[var(--c-ink)]"
+                    className="px-2 py-0.5 text-xs font-display text-[var(--text-1)] border-2 border-[var(--c-ink)]"
                   >
                     {style?.name || 'Dance'}
                   </span>
                   <span
                     className={`px-2 py-0.5 text-xs font-display border border-[var(--c-ink)] ${
                       session.status === 'cancelled'
-                        ? 'bg-[var(--c-red)] text-[var(--c-panel)]'
+                        ? 'bg-[var(--c-red)] text-[var(--on-neon)]'
                         : session.status === 'replacement'
-                        ? 'bg-[var(--c-yellow)] text-[var(--c-ink)]'
-                        : 'bg-[var(--c-green)] text-[var(--c-ink)]'
+                        ? 'bg-[var(--c-yellow)] text-[var(--on-neon)]'
+                        : 'bg-[var(--c-green)] text-[var(--on-neon)]'
                     }`}
                   >
                     {session.status.toUpperCase()}
@@ -131,9 +131,9 @@ export const TodayPage: React.FC = () => {
                       loading="lazy"
                     />
                   ) : (
-                    <span className="w-12 h-[60px] flex items-center justify-center bg-[var(--c-bg)] border-2 border-[var(--c-ink)] font-display text-sm text-[var(--c-darkgrey)] flex-shrink-0">👤</span>
+                    <span className="w-12 h-[60px] flex items-center justify-center bg-[var(--c-bg)] border-2 border-[var(--c-ink)] font-display text-sm text-[var(--text-2)] flex-shrink-0">👤</span>
                   )}
-                  <div className="space-y-1 font-body text-sm text-[var(--c-ink)]">
+                  <div className="space-y-1 font-body text-sm text-[var(--text-1)]">
                     <div>
                       <strong>Time:</strong> <span className="font-mono">{session.start} - {session.end}</span>
                     </div>
@@ -144,7 +144,7 @@ export const TodayPage: React.FC = () => {
                       <strong>Venue:</strong> {session.venue || 'Club Studio'}
                     </div>
                     {session.note && (
-                      <div className="text-xs text-[var(--c-darkgrey)] italic">
+                      <div className="text-xs text-[var(--text-2)] italic">
                         Note: {session.note}
                       </div>
                     )}
