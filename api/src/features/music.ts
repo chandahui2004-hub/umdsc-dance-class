@@ -3,6 +3,7 @@ import { AppError } from '../errors';
 import { getYouTubeVideoId } from '@umdsc/shared';
 import { logAudit } from '../logic/audit';
 import { getEvent } from './eventMembers';
+import { resolveMusicLink } from './musicLinks';
 
 export function getMusicRoutes(): Record<string, Route> {
   return {
@@ -39,6 +40,12 @@ export function getMusicRoutes(): Record<string, Route> {
 
         return musicList;
       }
+    },
+
+    'music.resolveLink': {
+      perm: 'music.edit',
+      write: false,
+      handler: (ctx, _auth, payload: any) => resolveMusicLink(ctx, String(payload?.url ?? ''))
     },
 
     'music.create': {

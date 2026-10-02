@@ -12,7 +12,9 @@ export class FakeHttp implements HttpPort {
   lastOptions: { followRedirects?: boolean } | undefined;
   private scripted: { prefix: string; response: FakeResponse }[] = [];
 
+  /** Scripts an answer for URLs starting with `prefix`; scripting the same prefix again replaces it. */
   respond(prefix: string, response: FakeResponse): void {
+    this.scripted = this.scripted.filter(s => s.prefix !== prefix);
     this.scripted.push({ prefix, response });
   }
 
