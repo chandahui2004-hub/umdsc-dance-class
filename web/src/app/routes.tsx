@@ -9,7 +9,6 @@ import { TitleScreen } from '../features/auth/TitleScreen';
 import { AdminLogin } from '../features/auth/AdminLogin';
 import { SetupPage } from '../features/setup/SetupPage';
 import { MembersPage } from '../features/members/MembersPage';
-import { TodayPage } from '../features/classes/TodayPage';
 import { ClassesPage } from '../features/classes/ClassesPage';
 import { StylesPage } from '../features/masterdata/StylesPage';
 import { InstructorsPage } from '../features/masterdata/InstructorsPage';
@@ -25,13 +24,6 @@ import { MePage } from '../features/me/MePage';
 import { StudioPage } from '../features/music-studio/StudioPage';
 import { EventPicker } from '../components/ui/EventPicker';
 import { useEventAutoSync } from '../lib/useEventAutoSync';
-
-// Pixel art icon SVG helpers
-const TodayIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16zm1-13h-2v6h6v-2h-4V7z" />
-  </svg>
-);
 
 const CalendarIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">

@@ -9,7 +9,7 @@ export interface FullscreenStudioProps {
   markerDraftRange: { start: number; end: number } | null;
   playbackRate: number;
   speedDisabled?: boolean;
-  activeSource: 'file' | 'youtube' | 'soundcloud' | null;
+  activeSource: 'file' | 'youtube' | 'soundcloud' | 'drive' | null;
   youtubeVideoId: string | null;
   danceVideoUrl: string | null;
   videoCurrentTime: number;
