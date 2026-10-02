@@ -71,3 +71,24 @@ html, body {
   min-font-size: 5px;
   font-size: max(5px, inherit);
 }
+
+/* Pixel Scrollbar */
+.pixel-scrollbar::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+.pixel-scrollbar::-webkit-scrollbar-track {
+  background: var(--c-panel);
+  border-left: 2px solid var(--c-ink);
+}
+.pixel-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--c-ink);
+  border: 2px solid var(--c-yellow);
+}
+.pixel-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--c-peach);
+}
+.pixel-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-ink) var(--c-panel);
+}

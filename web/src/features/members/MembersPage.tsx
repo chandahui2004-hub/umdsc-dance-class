@@ -12,25 +12,74 @@ import { exportToCsv } from '../../lib/csv';
 import type { Member } from '@umdsc/shared';
 import { useCurrentEvent } from '../events/useCurrentEvent';
 
+type AugmentedMember = Member & { eventNames?: string[] };
+
 export const MembersPage: React.FC = () => {
   const { data: bootstrap } = useBootstrap('admin');
-  const { events, current: event, setCurrentId, isAll } = useCurrentEvent();
+  const { events, current: event, isAll } = useCurrentEvent();
   const eventId = event?.id || '';
   const [selectedStyleId, setSelectedStyleId] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [selectedMember, setSelectedMember] = useState<AugmentedMember | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Members of the event chosen in the picker
+  // Members of the event chosen in the picker, or all events combined
   const {
     data: members = [],
     isLoading,
     error,
     refetch,
     isRefetching
-  } = useQuery({
-    queryKey: ['members', eventId],
-    enabled: Boolean(eventId),
-    queryFn: async () => (await call<Member[]>('members.list', { eventId })).data || []
+  } = useQuery<AugmentedMember[]>({
+    queryKey: ['members', isAll ? 'all' : eventId, events.map((e) => e.id).join(',')],
+    enabled: isAll ? events.length > 0 : Boolean(eventId),
+    queryFn: async () => {
+      if (isAll) {
+        const results = await Promise.all(
+          events.map(async (ev) => {
+            try {
+              const res = await call<Member[]>('members.list', { eventId: ev.id });
+              return (res.data || []).map((m) => ({ ...m, _eventName: ev.name }));
+            } catch {
+              return [];
+            }
+          })
+        );
+        const flat = results.flat();
+        const dedupedMap = new Map<string, AugmentedMember>();
+
+        for (const m of flat) {
+          const key = (m.matricKey || m.matricRaw || m.fullName).trim().toLowerCase();
+          const existing = dedupedMap.get(key);
+          const evName = (m as any)._eventName;
+          if (!existing) {
+            dedupedMap.set(key, {
+              ...m,
+              styleNames: Array.from(new Set(m.styleNames || [])),
+              styleIds: Array.from(new Set(m.styleIds || [])),
+              eventNames: evName ? [evName] : []
+            });
+          } else {
+            const combinedStyles = Array.from(new Set([...(existing.styleNames || []), ...(m.styleNames || [])]));
+            const combinedStyleIds = Array.from(new Set([...(existing.styleIds || []), ...(m.styleIds || [])]));
+            const combinedEvents = Array.from(
+              new Set([...(existing.eventNames || []), evName].filter(Boolean))
+            ) as string[];
+            dedupedMap.set(key, {
+              ...existing,
+              styleNames: combinedStyles,
+              styleIds: combinedStyleIds,
+              eventNames: combinedEvents,
+              flags: Array.from(new Set([...(existing.flags || []), ...(m.flags || [])]))
+            });
+          }
+        }
+        return Array.from(dedupedMap.values());
+      }
+
+      const res = await call<Member[]>('members.list', { eventId });
+      return (res.data || []) as AugmentedMember[];
+    }
   });
 
   // Filter members by style and search query
@@ -74,16 +123,21 @@ export const MembersPage: React.FC = () => {
       { key: 'email', label: 'Email' },
       { key: 'gender', label: 'Gender' },
       { key: 'nationality', label: 'Nationality' },
+      ...(isAll ? [{ key: 'eventNames', label: 'Events' }] : []),
       { key: 'styleNames', label: 'Classes Registered' },
       { key: 'sourceTimestamp', label: 'Registered Timestamp' }
     ];
 
     const exportRows = filteredMembers.map((m) => ({
       ...m,
+      eventNames: m.eventNames?.join(', ') || '',
       styleNames: m.styleNames?.join(', ') || ''
     }));
 
-    exportToCsv(`dancers_${(event?.name || 'event').replace(/\s+/g, '_')}.csv`, exportRows, headers);
+    const filename = isAll
+      ? 'all_registered_dancers.csv'
+      : `dancers_${(event?.name || 'event').replace(/\s+/g, '_')}.csv`;
+    exportToCsv(filename, exportRows, headers);
   };
 
   const formatWhatsAppUrl = (phone: string): string => {
@@ -92,30 +146,312 @@ export const MembersPage: React.FC = () => {
     return `https://wa.me/${full}`;
   };
 
-  if (isAll && events.length > 0) {
-    return (
-      <div className="space-y-4">
-        <div>
-          <h1 className="font-display text-xl md:text-2xl text-[var(--c-ink)]">
-            Registered Dancers
-          </h1>
-          <p className="font-body text-sm text-[var(--c-darkgrey)]">
-            Select an event to view its roster
-          </p>
-        </div>
-        <div className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] space-y-3">
-          <p className="font-display text-xs text-[var(--c-ink)]">SELECT AN EVENT</p>
-          <p className="font-body text-sm text-[var(--c-darkgrey)]">
-            Registered dancers belong to specific events. Pick an active event below or use the top event picker:
-          </p>
-          <div className="flex flex-wrap gap-2 pt-1">
-            {events.filter(e => e.status === 'active').map(e => (
-              <PixelButton key={e.id} size="md" variant="secondary" onClick={() => setCurrentId(e.id)}>
-                {e.name}
-              </PixelButton>
+  const renderRosterList = () => (
+    <div className="space-y-2">
+      {/* Desktop Table */}
+      <div className="hidden md:block overflow-x-auto bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] max-h-[600px] overflow-y-auto pixel-scrollbar">
+        <table className="w-full text-left border-collapse">
+          <thead className="sticky top-0 z-10 bg-[var(--c-navy)] text-[var(--c-panel)] font-display text-[10px] border-b-4 border-[var(--c-ink)]">
+            <tr>
+              <th className="p-3">FULL NAME</th>
+              <th className="p-3">MATRIC NO.</th>
+              <th className="p-3">CONTACT</th>
+              <th className="p-3">EMAIL</th>
+              <th className="p-3">GENDER</th>
+              {isAll && <th className="p-3">EVENTS</th>}
+              <th className="p-3">CLASSES</th>
+              <th className="p-3 text-right">ACTION</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y-2 divide-[var(--c-grey)] font-body text-sm">
+            {filteredMembers.map((m) => (
+              <tr
+                key={m.memberId + (m.matricKey || '')}
+                className="hover:bg-[var(--c-bg)] transition-none"
+              >
+                <td className="p-3 font-bold text-[var(--c-ink)]">
+                  {m.fullName}
+                  {m.flags && m.flags.length > 0 && (
+                    <span className="ml-2 inline-block px-1.5 py-0.5 bg-[var(--c-yellow)] text-[var(--c-ink)] text-[10px] font-display border border-[var(--c-ink)]">
+                      FLAGGED
+                    </span>
+                  )}
+                </td>
+                <td className="p-3 font-mono text-[var(--c-ink)] font-bold">
+                  {m.matricRaw}
+                </td>
+                <td className="p-3">
+                  <a
+                    href={formatWhatsAppUrl(m.contact)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[var(--c-blue)] hover:underline inline-flex items-center gap-1 font-mono font-bold"
+                  >
+                    {m.contact}
+                  </a>
+                </td>
+                <td className="p-3 font-body text-xs text-[var(--c-darkgrey)] truncate max-w-[200px]">
+                  <a
+                    href={`mailto:${m.email}`}
+                    className="hover:underline hover:text-[var(--c-ink)]"
+                  >
+                    {m.email}
+                  </a>
+                </td>
+                <td className="p-3 font-display text-xs">
+                  <span className="inline-block px-1.5 py-0.5 bg-[var(--c-bg)] border border-[var(--c-ink)] text-[var(--c-ink)]">
+                    {m.gender || '-'}
+                  </span>
+                </td>
+                {isAll && (
+                  <td className="p-3">
+                    <div className="flex flex-wrap gap-1">
+                      {m.eventNames?.map((ev) => (
+                        <span
+                          key={ev}
+                          className="px-1.5 py-0.5 text-[9px] font-display bg-[var(--c-bg)] text-[var(--c-ink)] border border-[var(--c-ink)]"
+                        >
+                          {ev}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                )}
+                <td className="p-3">
+                  <div className="flex flex-wrap gap-1">
+                    {m.styleNames?.map((sName) => (
+                      <span
+                        key={sName}
+                        style={{ backgroundColor: getStyleColor(sName) }}
+                        className="px-2 py-0.5 text-[10px] font-display text-[var(--c-ink)] border border-[var(--c-ink)]"
+                      >
+                        {sName}
+                      </span>
+                    ))}
+                  </div>
+                </td>
+                <td className="p-3 text-right">
+                  <PixelButton
+                    variant="secondary"
+                    size="md"
+                    onClick={() => setSelectedMember(m)}
+                    className="min-h-[36px]"
+                  >
+                    DETAILS
+                  </PixelButton>
+                </td>
+              </tr>
             ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile Card List */}
+      <div className="md:hidden space-y-2 max-h-[600px] overflow-y-auto pixel-scrollbar p-1">
+        {filteredMembers.map((m) => (
+          <div
+            key={m.memberId + (m.matricKey || '')}
+            className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] p-3 space-y-2"
+          >
+            <div className="flex justify-between items-start gap-2">
+              <div>
+                <h3 className="font-body font-bold text-base text-[var(--c-ink)]">
+                  {m.fullName}
+                </h3>
+                <p className="font-mono font-bold text-xs text-[var(--c-darkgrey)]">
+                  {m.matricRaw} · {m.gender || 'N/A'}
+                </p>
+                {isAll && m.eventNames && m.eventNames.length > 0 && (
+                  <p className="font-display text-[9px] text-[var(--c-blue)] mt-0.5">
+                    {m.eventNames.join(' · ')}
+                  </p>
+                )}
+              </div>
+              <PixelButton
+                variant="secondary"
+                size="md"
+                onClick={() => setSelectedMember(m)}
+                className="min-h-[36px] px-2 text-xs"
+              >
+                INFO
+              </PixelButton>
+            </div>
+
+            {/* Style Badges */}
+            <div className="flex flex-wrap gap-1">
+              {m.styleNames?.map((sName) => (
+                <span
+                  key={sName}
+                  style={{ backgroundColor: getStyleColor(sName) }}
+                  className="px-2 py-0.5 text-[9px] font-display text-[var(--c-ink)] border border-[var(--c-ink)]"
+                >
+                  {sName}
+                </span>
+              ))}
+            </div>
+
+            <div className="flex justify-between items-center pt-1 border-t border-[var(--c-grey)] text-xs">
+              <a
+                href={formatWhatsAppUrl(m.contact)}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[var(--c-blue)] font-mono font-bold underline"
+              >
+                WA: {m.contact}
+              </a>
+              <span className="font-body text-[var(--c-darkgrey)] truncate max-w-[150px]">
+                {m.email}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (isFullscreen) {
+    return (
+      <div className="fixed inset-0 z-50 bg-[var(--c-bg)] p-3 md:p-6 flex flex-col gap-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] p-3">
+          <div className="flex items-center gap-3">
+            <h2 className="font-display text-sm md:text-base text-[var(--c-ink)]">
+              {isAll ? 'ALL REGISTERED DANCERS (COMBINED)' : `ROSTER: ${event?.name || 'EVENT'}`}
+            </h2>
+            <span className="font-display text-[10px] md:text-xs bg-[var(--c-ink)] text-[var(--c-yellow)] px-2 py-1">
+              {filteredMembers.length} DANCERS
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search dancer..."
+              className="min-h-[36px] px-3 bg-[var(--c-bg)] border-2 border-[var(--c-ink)] font-body text-sm text-[var(--c-ink)] focus:outline-none"
+            />
+            <PixelButton
+              variant="primary"
+              size="md"
+              onClick={handleExportCsv}
+              disabled={filteredMembers.length === 0}
+            >
+              EXPORT CSV
+            </PixelButton>
+            <PixelButton
+              variant="secondary"
+              size="md"
+              onClick={() => setIsFullscreen(false)}
+              className="bg-[var(--c-peach)]"
+            >
+              ✕ EXIT FULLSCREEN
+            </PixelButton>
           </div>
         </div>
+
+        <div className="flex-1 min-h-0">
+          {renderRosterList()}
+        </div>
+
+        {/* Member Details Bottom Sheet */}
+        <Sheet
+          isOpen={!!selectedMember}
+          onClose={() => setSelectedMember(null)}
+          title={selectedMember?.fullName || 'DANCER DETAILS'}
+        >
+          {selectedMember && (
+            <div className="space-y-4 font-body text-base">
+              <div className="grid grid-cols-2 gap-3 bg-[var(--c-bg)] p-3 border-2 border-[var(--c-ink)]">
+                <div>
+                  <span className="block font-display text-[10px] text-[var(--c-darkgrey)]">
+                    MATRIC NUMBER
+                  </span>
+                  <span className="font-mono font-bold text-lg text-[var(--c-ink)]">
+                    {selectedMember.matricRaw}
+                  </span>
+                </div>
+                <div>
+                  <span className="block font-display text-[10px] text-[var(--c-darkgrey)]">
+                    GENDER / NATIONALITY
+                  </span>
+                  <span className="font-body font-bold text-[var(--c-ink)]">
+                    {selectedMember.gender || '-'} · {selectedMember.nationality || '-'}
+                  </span>
+                </div>
+              </div>
+
+              {selectedMember.eventNames && selectedMember.eventNames.length > 0 && (
+                <div>
+                  <span className="block font-display text-xs text-[var(--c-ink)] mb-2">
+                    REGISTERED EVENTS
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedMember.eventNames.map((ev) => (
+                      <span
+                        key={ev}
+                        className="px-2 py-1 text-xs font-display bg-[var(--c-navy)] text-[var(--c-yellow)] border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)]"
+                      >
+                        {ev}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <span className="block font-display text-xs text-[var(--c-ink)]">
+                  COMMUNICATION
+                </span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <a
+                    href={formatWhatsAppUrl(selectedMember.contact)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-center min-h-[44px] bg-[var(--c-green)] text-[var(--c-ink)] border-2 border-[var(--c-ink)] font-display text-xs shadow-[2px_2px_0_var(--c-ink)] hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5"
+                  >
+                    WHATSAPP ({selectedMember.contact})
+                  </a>
+                  <a
+                    href={`mailto:${selectedMember.email}`}
+                    className="flex items-center justify-center min-h-[44px] bg-[var(--c-blue)] text-[var(--c-ink)] border-2 border-[var(--c-ink)] font-display text-xs shadow-[2px_2px_0_var(--c-ink)] hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5"
+                  >
+                    SEND EMAIL
+                  </a>
+                </div>
+              </div>
+
+              <div>
+                <span className="block font-display text-xs text-[var(--c-ink)] mb-2">
+                  REGISTERED DANCE CLASSES
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {selectedMember.styleNames?.map((sName) => (
+                    <div
+                      key={sName}
+                      style={{ backgroundColor: getStyleColor(sName) }}
+                      className="p-2 border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)]"
+                    >
+                      <span className="font-display text-xs text-[var(--c-ink)]">
+                        {sName}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <PixelButton
+                  variant="secondary"
+                  size="lg"
+                  onClick={() => setSelectedMember(null)}
+                  className="w-full"
+                >
+                  CLOSE
+                </PixelButton>
+              </div>
+            </div>
+          )}
+        </Sheet>
       </div>
     );
   }
@@ -126,14 +462,16 @@ export const MembersPage: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-xl md:text-2xl text-[var(--c-ink)]">
-            Registered Dancers
+            {isAll ? 'All Registered Dancers' : 'Registered Dancers'}
           </h1>
           <p className="font-body text-sm text-[var(--c-darkgrey)]">
-            Dancers registered for the event chosen above
+            {isAll
+              ? 'Combined roster across all events (duplicates merged)'
+              : `Dancers registered for ${event?.name || 'the selected event'}`}
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <PixelButton
             variant="secondary"
             size="md"
@@ -153,17 +491,26 @@ export const MembersPage: React.FC = () => {
           >
             EXPORT CSV
           </PixelButton>
+
+          <PixelButton
+            variant="secondary"
+            size="md"
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="flex items-center gap-1.5"
+          >
+            {isFullscreen ? '✕ EXIT FULLSCREEN' : '⛶ FULLSCREEN'}
+          </PixelButton>
         </div>
       </div>
 
       {/* Filter and Search Panel */}
       <Panel title="FILTER & SEARCH" className="px-corners">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* Event (chosen in the picker above) */}
+          {/* Event (chosen in the picker above or ALL) */}
           <div>
-            <span className="block font-display text-[10px] text-[var(--c-ink)] mb-1 uppercase">Event</span>
+            <span className="block font-display text-[10px] text-[var(--c-ink)] mb-1 uppercase">Event Scope</span>
             <p className="min-h-[44px] px-3 flex items-center border-2 border-[var(--c-ink)] bg-[var(--c-bg)] font-body text-base text-[var(--c-ink)]">
-              {event ? `${event.name} (${event.memberCount} dancers)` : 'No event yet'}
+              {isAll ? `ALL EVENTS (${events.length} events)` : event ? `${event.name} (${event.memberCount} dancers)` : 'No event yet'}
             </p>
           </div>
 
@@ -283,152 +630,12 @@ export const MembersPage: React.FC = () => {
           title="NO DANCERS FOUND"
           description={
             members.length === 0
-              ? `No registrations found for ${event?.name || 'this event'}. New form responses appear within 10 minutes, or press Sync now on the Events page.`
+              ? `No registrations found for ${isAll ? 'any event' : event?.name || 'this event'}. New form responses appear within 10 minutes, or press Sync now on the Events page.`
               : 'No dancers match your current filter and search query.'
           }
         />
       ) : (
-        /* Dancers Roster */
-        <div className="space-y-2">
-          {/* Desktop Table */}
-          <div className="hidden md:block overflow-x-auto bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)]">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-[var(--c-navy)] text-[var(--c-panel)] font-display text-[10px] border-b-4 border-[var(--c-ink)]">
-                  <th className="p-3">FULL NAME</th>
-                  <th className="p-3">MATRIC NO.</th>
-                  <th className="p-3">CONTACT</th>
-                  <th className="p-3">EMAIL</th>
-                  <th className="p-3">GENDER</th>
-                  <th className="p-3">CLASSES</th>
-                  <th className="p-3 text-right">ACTION</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y-2 divide-[var(--c-grey)] font-body text-sm">
-                {filteredMembers.map((m) => (
-                  <tr
-                    key={m.memberId}
-                    className="hover:bg-[var(--c-bg)] transition-none"
-                  >
-                    <td className="p-3 font-bold text-[var(--c-ink)]">
-                      {m.fullName}
-                      {m.flags && m.flags.length > 0 && (
-                        <span className="ml-2 inline-block px-1.5 py-0.5 bg-[var(--c-yellow)] text-[var(--c-ink)] text-[10px] font-display border border-[var(--c-ink)]">
-                          FLAGGED
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-3 font-mono text-[var(--c-ink)] font-bold">
-                      {m.matricRaw}
-                    </td>
-                    <td className="p-3">
-                      <a
-                        href={formatWhatsAppUrl(m.contact)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[var(--c-blue)] hover:underline inline-flex items-center gap-1 font-mono font-bold"
-                      >
-                        {m.contact}
-                      </a>
-                    </td>
-                    <td className="p-3 font-body text-xs text-[var(--c-darkgrey)] truncate max-w-[200px]">
-                      <a
-                        href={`mailto:${m.email}`}
-                        className="hover:underline hover:text-[var(--c-ink)]"
-                      >
-                        {m.email}
-                      </a>
-                    </td>
-                    <td className="p-3 font-display text-xs">
-                      <span className="inline-block px-1.5 py-0.5 bg-[var(--c-bg)] border border-[var(--c-ink)] text-[var(--c-ink)]">
-                        {m.gender || '-'}
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex flex-wrap gap-1">
-                        {m.styleNames?.map((sName) => (
-                          <span
-                            key={sName}
-                            style={{ backgroundColor: getStyleColor(sName) }}
-                            className="px-2 py-0.5 text-[10px] font-display text-[var(--c-ink)] border border-[var(--c-ink)]"
-                          >
-                            {sName}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="p-3 text-right">
-                      <PixelButton
-                        variant="secondary"
-                        size="md"
-                        onClick={() => setSelectedMember(m)}
-                        className="min-h-[36px]"
-                      >
-                        DETAILS
-                      </PixelButton>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile Card List */}
-          <div className="md:hidden space-y-2">
-            {filteredMembers.map((m) => (
-              <div
-                key={m.memberId}
-                className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] p-3 space-y-2"
-              >
-                <div className="flex justify-between items-start gap-2">
-                  <div>
-                    <h3 className="font-body font-bold text-base text-[var(--c-ink)]">
-                      {m.fullName}
-                    </h3>
-                    <p className="font-mono font-bold text-xs text-[var(--c-darkgrey)]">
-                      {m.matricRaw} · {m.gender || 'N/A'}
-                    </p>
-                  </div>
-                  <PixelButton
-                    variant="secondary"
-                    size="md"
-                    onClick={() => setSelectedMember(m)}
-                    className="min-h-[36px] px-2 text-xs"
-                  >
-                    INFO
-                  </PixelButton>
-                </div>
-
-                {/* Style Badges */}
-                <div className="flex flex-wrap gap-1">
-                  {m.styleNames?.map((sName) => (
-                    <span
-                      key={sName}
-                      style={{ backgroundColor: getStyleColor(sName) }}
-                      className="px-2 py-0.5 text-[9px] font-display text-[var(--c-ink)] border border-[var(--c-ink)]"
-                    >
-                      {sName}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="flex justify-between items-center pt-1 border-t border-[var(--c-grey)] text-xs">
-                  <a
-                    href={formatWhatsAppUrl(m.contact)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[var(--c-blue)] font-mono font-bold underline"
-                  >
-                    WA: {m.contact}
-                  </a>
-                  <span className="font-body text-[var(--c-darkgrey)] truncate max-w-[150px]">
-                    {m.email}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        renderRosterList()
       )}
 
       {/* Member Details Bottom Sheet */}
@@ -457,6 +664,25 @@ export const MembersPage: React.FC = () => {
                 </span>
               </div>
             </div>
+
+            {/* Events Enrolled */}
+            {selectedMember.eventNames && selectedMember.eventNames.length > 0 && (
+              <div>
+                <span className="block font-display text-xs text-[var(--c-ink)] mb-2">
+                  REGISTERED EVENTS
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {selectedMember.eventNames.map((ev) => (
+                    <span
+                      key={ev}
+                      className="px-2 py-1 text-xs font-display bg-[var(--c-navy)] text-[var(--c-yellow)] border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)]"
+                    >
+                      {ev}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Contact Actions */}
             <div className="space-y-2">
