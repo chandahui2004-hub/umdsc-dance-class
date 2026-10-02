@@ -427,8 +427,8 @@ if (process.argv[1] && process.argv[1].endsWith('neon-codemod.mjs')) {
 
 Verified on 2026-10-02: the reference `DESIGN ELEMENT.jpeg` → 180×390, 16 colours, 14KB WebP. 4 of 4 tests pass.
 
-- [ ] **Step 1: Install sharp.** Run `npm i -D sharp@0.34.5 -w web`. Expected: `added … packages`. Add the line `web/art-src/` to `.gitignore`.
-- [ ] **Step 2: Write the test** `web/scripts/pixelize.test.mjs`:
+- [x] **Step 1: Install sharp.** Run `npm i -D sharp@0.34.5 -w web`. Expected: `added … packages`. Add the line `web/art-src/` to `.gitignore`.
+- [x] **Step 2: Write the test** `web/scripts/pixelize.test.mjs`:
 
 ```js
 import { test } from 'node:test';
@@ -472,8 +472,8 @@ test('pos=bottom keeps the bottom of a tall image', async () => {
 });
 ```
 
-- [ ] **Step 3: Run it.** Run `npm run test:scripts -w web`. Expected: FAIL, `Cannot find module ... pixelize.mjs`.
-- [ ] **Step 4: Create `web/scripts/pixelize.mjs`** with exactly this content:
+- [x] **Step 3: Run it.** Run `npm run test:scripts -w web`. Expected: FAIL, `Cannot find module ... pixelize.mjs`.
+- [x] **Step 4: Create `web/scripts/pixelize.mjs`** with exactly this content:
 
 ```js
 // Turns a Nano Banana image into true pixel art (spec §7).
@@ -535,9 +535,9 @@ if (process.argv[1] && process.argv[1].endsWith('pixelize.mjs')) {
 }
 ```
 
-- [ ] **Step 5: Run the tests.** Run `npm run test:scripts -w web`. Expected: `fail 0`.
-- [ ] **Step 6: Smoke test on the reference image.** From `web/`: `node scripts/pixelize.mjs "../DESIGN ELEMENT.jpeg" ../px-smoke.webp 180 390`. Expected: `OK ../px-smoke.webp 180x390, 16 palette colours`. Delete `px-smoke.webp`.
-- [ ] **Step 7: Commit.** `git add web/scripts/pixelize.* web/package.json package-lock.json .gitignore && git commit -m "feat(art): pixelize pipeline (nearest downscale, palette lock, chroma key)"`
+- [x] **Step 5: Run the tests.** Run `npm run test:scripts -w web`. Expected: `fail 0`.
+- [x] **Step 6: Smoke test on the reference image.** From `web/`: `node scripts/pixelize.mjs "../DESIGN ELEMENT.jpeg" ../px-smoke.webp 180 390`. Expected: `OK ../px-smoke.webp 180x390, 16 palette colours`. Delete `px-smoke.webp`.
+- [x] **Step 7: Commit.** `git add web/scripts/pixelize.* web/package.json package-lock.json .gitignore && git commit -m "feat(art): pixelize pipeline (nearest downscale, palette lock, chroma key)"`
 
 ---
 
