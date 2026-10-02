@@ -162,8 +162,6 @@ export const AttendancePage: React.FC = () => {
       for (const c of unsavedChanges) {
         attendanceQueue.enqueue({ eventId, styleId, ...c });
       }
-      // flush() returns early if a background flush is already running, so poll
-      // until this sheet's ticks are gone from the queue (up to ~20 s).
       const isPending = () => attendanceQueue.pending().some(t => t.eventId === eventId && t.styleId === styleId);
       for (let i = 0; i < 20 && isPending(); i++) {
         await attendanceQueue.flush();
@@ -209,11 +207,11 @@ export const AttendancePage: React.FC = () => {
   if (!eventsLoading && isAll && events.length > 0) {
     return (
       <div className="space-y-6">
-        <h1 className="font-display text-lg tracking-wider text-[var(--text-1)]">Attendance Tracker</h1>
+        <h1 className="font-display text-[24px] tracking-wider text-[var(--text-1)]">Attendance Tracker</h1>
         <AttendanceFolderHeader />
-        <div className="p-4 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] space-y-3">
-          <p className="font-display text-xs text-[var(--text-1)]">SELECT AN EVENT TO TAKE ATTENDANCE</p>
-          <p className="font-body text-sm text-[var(--text-2)]">
+        <div className="px-panel p-4 space-y-3">
+          <p className="font-display text-[12px] text-[var(--text-1)]">SELECT AN EVENT TO TAKE ATTENDANCE</p>
+          <p className="font-body text-[16px] text-[var(--text-2)]">
             Attendance sheets are organized by event. Choose an event from the top bar or pick one below:
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
@@ -231,15 +229,16 @@ export const AttendancePage: React.FC = () => {
   if (!eventsLoading && !event) {
     return (
       <div className="space-y-6">
-        <h1 className="font-display text-lg tracking-wider text-[var(--text-1)]">Attendance Tracker</h1>
+        <h1 className="font-display text-[24px] tracking-wider text-[var(--text-1)]">Attendance Tracker</h1>
         <AttendanceFolderHeader />
         <EmptyState
+          scene="rooftop"
           title="NO EVENTS YET"
           description="Attendance is taken per event. Create an event from its registration form first."
           action={
             <Link
               to="/admin/events/new"
-              className="inline-flex items-center min-h-[44px] px-4 border-2 border-[var(--c-ink)] bg-[var(--c-orange)] text-[var(--on-neon)] font-display text-xs no-underline"
+              className="inline-flex items-center min-h-[44px] px-4 border-2 border-[var(--outline)] bg-[var(--neon-gold)] text-[var(--on-neon)] font-display text-[12px] no-underline shadow-[2px_2px_0_var(--outline)]"
             >
               CREATE AN EVENT
             </Link>
@@ -253,15 +252,15 @@ export const AttendancePage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="font-display text-lg tracking-wider text-[var(--text-1)]">Attendance Tracker</h1>
-          <p className="font-body text-base text-[var(--text-2)] mt-1">
+          <h1 className="font-display text-[24px] tracking-wider text-[var(--text-1)]">Attendance Tracker</h1>
+          <p className="font-body text-[16px] text-[var(--text-2)] mt-1">
             {event ? `${event.name} · ${event.startDate} → ${event.endDate}` : 'Loading event…'}
           </p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
           {pendingCount > 0 && (
-            <div className="px-3 py-1 bg-[var(--c-yellow)] border-2 border-[var(--c-ink)] font-display text-xs text-[var(--on-neon)] font-bold animate-pulse shadow-[2px_2px_0_var(--c-ink)]">
+            <div className="px-3 py-1 bg-[var(--neon-gold)] border-2 border-[var(--outline)] font-display text-[12px] text-[var(--on-neon)] font-bold px-blink shadow-[2px_2px_0_var(--outline)]">
               SAVING… {pendingCount}
             </div>
           )}
@@ -270,7 +269,7 @@ export const AttendancePage: React.FC = () => {
               href={`https://docs.google.com/spreadsheets/d/${gridData.spreadsheetId}`}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center min-h-[44px] px-3 border-2 border-[var(--c-ink)] bg-[var(--c-green)] text-[var(--on-neon)] font-display text-xs no-underline shadow-[2px_2px_0_var(--c-ink)]"
+              className="inline-flex items-center min-h-[44px] px-3 border-2 border-[var(--outline)] bg-[var(--night-2)] hover:bg-[var(--violet-2)] text-[var(--neon-cyan)] font-display text-[12px] no-underline shadow-[2px_2px_0_var(--outline)]"
             >
               OPEN {activeStyle?.name.toUpperCase() || 'STYLE'} SHEET ↗
             </a>
@@ -297,18 +296,17 @@ export const AttendancePage: React.FC = () => {
 
       <AttendanceFolderHeader />
 
-      <div className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] p-4 shadow-[4px_4px_0_var(--c-ink)] flex gap-2 overflow-x-auto pixel-scrollbar items-center">
-
-        <span className="font-display text-xs text-[var(--text-1)] uppercase mr-1 whitespace-nowrap">STYLE:</span>
+      <div className="px-panel p-3 flex gap-2 overflow-x-auto pixel-scrollbar items-center border-2 border-[var(--outline)]">
+        <span className="font-display text-[12px] text-[var(--text-1)] uppercase mr-1 whitespace-nowrap">STYLE:</span>
         {styles.map(s => (
           <button
             key={s.id}
             type="button"
             onClick={() => setStyleId(s.id)}
-            className={`min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-display text-xs cursor-pointer select-none whitespace-nowrap transition-none ${
+            className={`min-h-[44px] px-3 border-2 border-[var(--outline)] font-display text-[12px] cursor-pointer select-none whitespace-nowrap transition-none ${
               styleId === s.id
-                ? 'bg-[var(--c-orange)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--c-ink)]'
-                : 'bg-[var(--c-bg)] text-[var(--text-1)] hover:bg-[var(--c-panel)]'
+                ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--outline)]'
+                : 'px-well text-[var(--text-1)] hover:bg-[var(--violet-2)]'
             }`}
           >
             {s.name}
@@ -317,18 +315,18 @@ export const AttendancePage: React.FC = () => {
       </div>
 
       {(isLoading && !gridData) || eventsLoading ? (
-        <div className="p-8 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] text-center font-display text-xs animate-pulse">
+        <div className="px-panel p-8 text-center font-display text-[12px] px-blink">
           LOADING ATTENDANCE DATA...
         </div>
       ) : (
         <>
           {sessions.length > 0 && members.length > 0 && (
             <div
-              className={`p-3 border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                editing ? 'bg-[var(--c-yellow)]' : 'bg-[var(--c-panel)]'
+              className={`px-panel p-3 border-2 border-[var(--outline)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[4px_4px_0_var(--outline)] ${
+                editing ? 'bg-[var(--violet-2)] border-[var(--neon-gold)]' : 'bg-[var(--night-2)]'
               }`}
             >
-              <div className="font-display text-xs text-[var(--text-1)]">
+              <div className="font-display text-[12px] text-[var(--text-1)]">
                 {editing
                   ? unsavedChanges.length === 0
                     ? 'EDITING — TICK PRESENT DANCERS, THEN SUBMIT'
@@ -358,14 +356,15 @@ export const AttendancePage: React.FC = () => {
               </div>
             </div>
           )}
+
           {submitError && (
-            <div role="alert" className="p-2 border-2 border-[var(--c-red)] bg-[var(--c-peach)] text-[var(--c-red)] font-display text-xs font-bold">
+            <div role="alert" className="p-2 border-2 border-[var(--neon-red)] bg-[var(--night-1)] text-[var(--neon-red)] font-display text-[12px] font-bold">
               ⚠ {submitError}
             </div>
           )}
 
           <div className="block lg:hidden">
-            <Panel title="SESSION ATTENDANCE ROSTER" className="px-corners">
+            <Panel title="SESSION ATTENDANCE ROSTER">
               <RosterList
                 sessions={sessions}
                 members={members}
@@ -390,14 +389,14 @@ export const AttendancePage: React.FC = () => {
 
           {/* Fullscreen Overlay Mode */}
           {isFullscreen && (
-            <div className="fixed inset-0 z-50 bg-[var(--c-bg)] p-4 flex flex-col overflow-hidden space-y-3">
+            <div className="fixed inset-0 z-50 bg-[var(--night-1)] p-4 flex flex-col overflow-hidden space-y-3">
               {/* Header */}
-              <div className="flex justify-between items-center bg-[var(--c-panel)] border-4 border-[var(--c-ink)] p-3 shadow-[4px_4px_0_var(--c-ink)] flex-wrap gap-2">
+              <div className="flex justify-between items-center px-panel p-3 border-2 border-[var(--outline)] shadow-[4px_4px_0_var(--outline)] flex-wrap gap-2">
                 <div className="flex items-center gap-3">
-                  <h2 className="font-display text-xs text-[var(--text-1)]">
+                  <h2 className="font-display text-[12px] text-[var(--text-1)]">
                     ATTENDANCE · {activeStyle?.name.toUpperCase() || 'STYLE'}
                   </h2>
-                  <span className="font-mono text-xs text-[var(--text-2)] min-text-5px">
+                  <span className="font-mono text-[12px] text-[var(--text-2)]">
                     ({sessions.length} sessions, {members.length} dancers)
                   </span>
                 </div>
@@ -432,8 +431,8 @@ export const AttendancePage: React.FC = () => {
               </div>
 
               {/* Style selector inside fullscreen */}
-              <div className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] p-2 shadow-[2px_2px_0_var(--c-ink)] flex gap-2 overflow-x-auto pixel-scrollbar items-center">
-                <span className="font-display text-[10px] min-text-5px text-[var(--text-1)] uppercase mr-1 whitespace-nowrap">
+              <div className="px-panel p-2 flex gap-2 overflow-x-auto pixel-scrollbar items-center border-2 border-[var(--outline)]">
+                <span className="font-display text-[12px] text-[var(--text-1)] uppercase mr-1 whitespace-nowrap">
                   STYLE:
                 </span>
                 {styles.map(s => (
@@ -441,10 +440,10 @@ export const AttendancePage: React.FC = () => {
                     key={s.id}
                     type="button"
                     onClick={() => setStyleId(s.id)}
-                    className={`min-h-[36px] px-3 border-2 border-[var(--c-ink)] font-display text-[10px] min-text-5px cursor-pointer select-none whitespace-nowrap ${
+                    className={`min-h-[36px] px-3 border-2 border-[var(--outline)] font-display text-[12px] cursor-pointer select-none whitespace-nowrap ${
                       styleId === s.id
-                        ? 'bg-[var(--c-orange)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--c-ink)]'
-                        : 'bg-[var(--c-bg)] text-[var(--text-1)] hover:bg-[var(--c-panel)]'
+                        ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--outline)]'
+                        : 'px-well text-[var(--text-1)] hover:bg-[var(--violet-2)]'
                     }`}
                   >
                     {s.name}
@@ -452,7 +451,7 @@ export const AttendancePage: React.FC = () => {
                 ))}
               </div>
 
-              {/* Fullscreen Grid / Roster with maximized height and pixel scrollbars */}
+              {/* Fullscreen Grid / Roster */}
               <div className="flex-1 min-h-0 overflow-hidden">
                 <div className="hidden lg:block h-full">
                   <AttendanceGrid
@@ -461,7 +460,7 @@ export const AttendancePage: React.FC = () => {
                     presentMap={localPresent}
                     onToggle={handleToggle}
                     readOnly={!editing}
-                    containerClassName="h-full overflow-auto pixel-scrollbar border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] bg-[var(--c-panel)]"
+                    containerClassName="h-full overflow-auto pixel-scrollbar border-4 border-[var(--outline)] shadow-[4px_4px_0_var(--outline)] bg-[var(--night-2)]"
                   />
                 </div>
                 <div className="block lg:hidden h-full">
@@ -473,7 +472,7 @@ export const AttendancePage: React.FC = () => {
                     onSelectSession={setActiveSessionId}
                     onToggle={handleToggle}
                     readOnly={!editing}
-                    listClassName="h-full overflow-y-auto pixel-scrollbar p-1 space-y-2 border-2 border-[var(--c-ink)] bg-[var(--c-bg)]/20"
+                    listClassName="h-full overflow-y-auto pixel-scrollbar p-1 space-y-2 border-2 border-[var(--outline)] bg-[var(--night-1)]"
                   />
                 </div>
               </div>
