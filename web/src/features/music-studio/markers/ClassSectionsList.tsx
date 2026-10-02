@@ -26,12 +26,12 @@ interface ClassSectionsListProps {
 }
 
 const buttonClass =
-  'min-h-11 w-full rounded-full border border-white/10 bg-white/[0.08] px-3 text-sm font-bold text-zinc-100 transition hover:border-cyan-200/35 hover:bg-cyan-200/10 active:translate-y-px';
+  'min-h-11 w-full border-2 border-[var(--outline)] bg-[var(--violet-2)] px-3 text-[12px] font-display uppercase text-[var(--text-1)] hover:bg-[var(--neon-cyan)] hover:text-[var(--on-neon)] active:translate-y-px';
 const inputClass =
-  'min-h-12 w-full min-w-0 border border-white/10 bg-white/[0.07] px-4 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] outline-none placeholder:text-zinc-500 focus:border-cyan-200/55 focus:bg-white/[0.1] focus:ring-4 focus:ring-cyan-300/10';
+  'min-h-12 w-full min-w-0 border-2 border-[var(--outline)] bg-[var(--night-1)] px-4 text-[16px] text-[var(--text-1)] outline-none placeholder:text-[var(--text-3)] focus:border-[var(--neon-cyan)]';
 const panelClass =
-  ' border border-white/15 bg-white/[0.08] p-3 shadow-[0_0_32px_rgba(235,178,255,0.12),inset_0_1px_0_rgba(255,255,255,0.12)] sm:p-4';
-const eyebrowClass = 'font-mono text-[0.68rem] font-bold uppercase tracking-[0.16em] text-cyan-100';
+  'border-2 border-[var(--outline)] bg-[var(--night-2)] p-3 shadow-[4px_4px_0_var(--outline)] sm:p-4';
+const eyebrowClass = 'font-mono text-[12px] font-bold uppercase tracking-[0.16em] text-[var(--neon-cyan)]';
 
 function formatMarkerTime(totalSeconds: number) {
   if (!Number.isFinite(totalSeconds)) return '0.00s';
@@ -110,14 +110,14 @@ export const ClassSectionsList: React.FC<ClassSectionsListProps> = ({
       <div className="flex items-center justify-between gap-2 sm:gap-3 flex-wrap">
         <div>
           <p className={eyebrowClass}>Sections & Loops</p>
-          <h2 className="mt-1 text-lg font-black text-white sm:text-xl">Markers</h2>
+          <h2 className="mt-1 text-[20px] font-display text-[var(--text-1)]">Markers</h2>
         </div>
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-          <span className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2.5 py-1.5 font-mono text-[0.68rem] font-bold text-cyan-50 sm:px-3 sm:text-xs">
+          <span className="border-2 border-[var(--outline)] bg-[var(--violet-1)] px-2.5 py-1.5 font-mono text-[12px] font-bold text-[var(--text-1)]">
             Now {formatTime(currentTime)}
           </span>
           <button
-            className="min-h-8 rounded-full border border-cyan-200/35 bg-cyan-300/12 px-3 text-xs font-black text-cyan-50 transition hover:bg-cyan-300/18 active:translate-y-px"
+            className="min-h-8 border-2 border-[var(--outline)] bg-[var(--violet-2)] px-3 text-[12px] font-display uppercase text-[var(--text-1)] hover:bg-[var(--neon-cyan)] hover:text-[var(--on-neon)] active:translate-y-px"
             type="button"
             onClick={() => {
               if (isAddFormOpen) {
@@ -136,9 +136,9 @@ export const ClassSectionsList: React.FC<ClassSectionsListProps> = ({
 
       {/* Admin Publish Class Section Banner */}
       {canPublishSections && markerDraftRange && onPublishClassSection && (
-        <div className="mt-3 p-3 bg-yellow-400/10 border border-yellow-400/40 flex items-center justify-between gap-2">
+        <div className="mt-3 p-3 bg-[var(--violet-2)] border-2 border-[var(--neon-gold)] flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <span className="font-mono text-xs font-bold text-yellow-200 uppercase block">
+            <span className="font-mono text-[12px] font-bold text-[var(--neon-gold)] uppercase block">
               Drafted Range: {formatMarkerTime(markerDraftRange.start)} -{' '}
               {formatMarkerTime(markerDraftRange.end)}
             </span>
@@ -146,7 +146,7 @@ export const ClassSectionsList: React.FC<ClassSectionsListProps> = ({
           <button
             type="button"
             onClick={() => setShowPublishDialog(true)}
-            className="px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider bg-yellow-400 text-zinc-950 hover:bg-yellow-300"
+            className="px-3 py-1.5 text-[12px] font-display uppercase tracking-wider bg-[var(--neon-gold)] text-[var(--on-neon)] border-2 border-[var(--outline)] hover:bg-[var(--text-1)]"
           >
             Publish Section
           </button>
@@ -155,8 +155,8 @@ export const ClassSectionsList: React.FC<ClassSectionsListProps> = ({
 
       {/* Publish Dialog */}
       {showPublishDialog && (
-        <form onSubmit={handlePublishSection} className="mt-3 p-3 bg-black/40 border border-yellow-400/40 space-y-2">
-          <p className="font-sans text-xs font-black text-yellow-200 uppercase">
+        <form onSubmit={handlePublishSection} className="mt-3 p-3 bg-[var(--night-1)] border-2 border-[var(--neon-gold)] space-y-2">
+          <p className="font-display text-[12px] font-bold text-[var(--neon-gold)] uppercase">
             Publish as Official Class Section
           </p>
           <input
@@ -170,14 +170,14 @@ export const ClassSectionsList: React.FC<ClassSectionsListProps> = ({
             <button
               type="submit"
               disabled={isPublishing}
-              className="flex-1 min-h-10 bg-yellow-400 text-zinc-950 font-black text-xs uppercase"
+              className="flex-1 min-h-10 bg-[var(--neon-gold)] text-[var(--on-neon)] border-2 border-[var(--outline)] font-display text-[12px] uppercase"
             >
               {isPublishing ? 'Publishing...' : 'Save & Publish'}
             </button>
             <button
               type="button"
               onClick={() => setShowPublishDialog(false)}
-              className="px-3 min-h-10 bg-white/10 text-white font-bold text-xs"
+              className="px-3 min-h-10 bg-[var(--violet-2)] text-[var(--text-1)] border-2 border-[var(--outline)] font-display text-[12px] uppercase"
             >
               Cancel
             </button>
@@ -211,13 +211,13 @@ export const ClassSectionsList: React.FC<ClassSectionsListProps> = ({
             </button>
           </div>
           {errorMessage && (
-            <p className="text-xs text-rose-300 font-bold px-1">{errorMessage}</p>
+            <p className="text-[12px] text-[var(--neon-red)] font-bold px-1">{errorMessage}</p>
           )}
         </form>
       )}
 
       {/* Markers List */}
-      <div className="mt-4 divide-y divide-white/10 overflow-hidden border border-white/10 bg-black/30">
+      <div className="mt-4 divide-y-2 divide-[var(--outline)] overflow-hidden border-2 border-[var(--outline)] bg-[var(--night-1)]">
         {markers.map(marker => {
           const isClass = classMarkerIds.has(marker.id) || marker.id.startsWith('class-');
           const isLooping = loopMarker?.id === marker.id;
@@ -226,8 +226,8 @@ export const ClassSectionsList: React.FC<ClassSectionsListProps> = ({
           return (
             <div
               key={marker.id}
-              className={`p-3 transition-colors flex items-center justify-between gap-2 ${
-                isActive ? 'bg-fuchsia-950/30' : 'hover:bg-white/[0.04]'
+              className={`p-3 flex items-center justify-between gap-2 ${
+                isActive ? 'bg-[var(--violet-2)]' : 'hover:bg-[var(--violet-1)]'
               }`}
             >
               <div
@@ -235,20 +235,20 @@ export const ClassSectionsList: React.FC<ClassSectionsListProps> = ({
                 onClick={() => onJumpToMarker(marker)}
               >
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-sans text-sm font-black text-white truncate">
+                  <span className="font-display text-[14px] font-bold text-[var(--text-1)] truncate">
                     {marker.name}
                   </span>
                   <span
-                    className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
+                    className={`px-1.5 py-0.5 text-[8px] font-mono font-bold uppercase border border-[var(--outline)] ${
                       isClass
-                        ? 'bg-yellow-400/20 text-yellow-300 border border-yellow-400/30'
-                        : 'bg-cyan-400/20 text-cyan-300 border border-cyan-400/30'
+                        ? 'bg-[var(--neon-gold)] text-[var(--on-neon)]'
+                        : 'bg-[var(--neon-pink)] text-[var(--on-neon)]'
                     }`}
                   >
                     {isClass ? 'Class Section' : 'My Loop'}
                   </span>
                 </div>
-                <p className="font-mono text-xs text-zinc-400 mt-0.5">
+                <p className="font-mono text-[12px] text-[var(--text-2)] mt-0.5">
                   {formatMarkerTime(marker.time)} - {formatMarkerTime(marker.endTime)}
                 </p>
               </div>
@@ -257,10 +257,10 @@ export const ClassSectionsList: React.FC<ClassSectionsListProps> = ({
                 <button
                   type="button"
                   onClick={() => (isLooping ? onStopLoop() : onStartLoop(marker))}
-                  className={`px-2.5 py-1 rounded-full text-xs font-mono font-black uppercase transition ${
+                  className={`px-2.5 py-1 text-[12px] font-display uppercase border-2 border-[var(--outline)] ${
                     isLooping
-                      ? 'bg-cyan-300 text-zinc-950 shadow-[0_0_10px_rgba(103,232,249,0.5)]'
-                      : 'bg-white/10 text-cyan-200 hover:bg-cyan-200/20'
+                      ? 'bg-[var(--neon-cyan)] text-[var(--on-neon)]'
+                      : 'bg-[var(--violet-2)] text-[var(--text-1)] hover:bg-[var(--violet-1)]'
                   }`}
                 >
                   {isLooping ? 'Looping' : 'Loop'}
@@ -270,7 +270,7 @@ export const ClassSectionsList: React.FC<ClassSectionsListProps> = ({
                   <button
                     type="button"
                     onClick={() => onRemoveMarker(marker.id)}
-                    className="size-7 grid place-items-center text-rose-300 hover:bg-rose-500/20 rounded-full font-bold text-xs"
+                    className="size-7 grid place-items-center text-[var(--neon-red)] border border-[var(--outline)] bg-[var(--night-2)] hover:bg-[var(--neon-red)] hover:text-[var(--on-neon)] font-bold text-[12px]"
                     title="Delete personal loop"
                   >
                     ✕

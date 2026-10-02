@@ -16,15 +16,15 @@ interface SourcePickerProps {
 }
 
 const panelClass =
-  ' border border-white/15 bg-white/[0.08] p-4 shadow-[0_0_32px_rgba(235,178,255,0.12),inset_0_1px_0_rgba(255,255,255,0.12)]';
+  'border-2 border-[var(--outline)] bg-[var(--night-2)] p-4 shadow-[4px_4px_0_var(--outline)]';
 const inputClass =
-  'min-h-12 min-w-0 border border-white/10 bg-white/[0.07] px-4 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] outline-none placeholder:text-zinc-500 focus:border-cyan-200/55 focus:bg-white/[0.1] focus:ring-4 focus:ring-cyan-300/10';
+  'min-h-12 min-w-0 border-2 border-[var(--outline)] bg-[var(--night-1)] px-4 text-[16px] text-[var(--text-1)] outline-none placeholder:text-[var(--text-3)] focus:border-[var(--neon-cyan)]';
 const buttonClass =
-  'min-h-12 shrink-0 border border-cyan-200/25 bg-cyan-200/12 px-4 text-sm font-black text-cyan-50 transition hover:border-cyan-100/50 hover:bg-cyan-200/18 active:translate-y-px';
+  'min-h-12 shrink-0 border-2 border-[var(--outline)] bg-[var(--violet-2)] px-4 text-[14px] font-display text-[var(--text-1)] hover:bg-[var(--neon-cyan)] hover:text-[var(--on-neon)] active:translate-y-px';
 const fileButtonClass =
-  'inline-flex min-h-12 cursor-pointer items-center justify-center border border-fuchsia-200/25 bg-fuchsia-200/12 px-4 text-sm font-black text-fuchsia-50 transition hover:border-fuchsia-100/50 hover:bg-fuchsia-200/18 active:translate-y-px';
+  'inline-flex min-h-12 cursor-pointer items-center justify-center border-2 border-[var(--outline)] bg-[var(--violet-2)] px-4 text-[14px] font-display text-[var(--text-1)] hover:bg-[var(--neon-pink)] hover:text-[var(--on-neon)] active:translate-y-px';
 const tabClass =
-  'min-h-10 border px-3 text-xs sm:text-sm font-black transition active:translate-y-px';
+  'min-h-10 border-2 border-[var(--outline)] px-3 text-[12px] font-display uppercase active:translate-y-px';
 
 export const SourcePicker: React.FC<SourcePickerProps> = ({
   activeSource,
@@ -48,28 +48,28 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({
     <section className={panelClass} aria-label="Track source">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="font-mono text-[0.68rem] font-bold uppercase tracking-[0.16em] text-cyan-100">
+          <p className="font-mono text-[12px] font-bold uppercase tracking-[0.16em] text-[var(--neon-cyan)]">
             Track Source
           </p>
-          <h2 className="mt-1 text-xl font-black text-white">Choose music source</h2>
+          <h2 className="mt-1 text-[20px] font-display text-[var(--text-1)]">Choose music source</h2>
           {activeMusicTitle && (
-            <p className="mt-0.5 text-xs text-fuchsia-200 font-bold truncate">
+            <p className="mt-0.5 text-[12px] text-[var(--neon-pink)] font-bold truncate">
               ♪ {activeMusicTitle}
             </p>
           )}
         </div>
-        <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 font-mono text-xs font-bold uppercase text-zinc-300">
+        <span className="border-2 border-[var(--outline)] bg-[var(--violet-1)] px-3 py-1 font-mono text-[12px] font-bold uppercase text-[var(--text-2)]">
           {activeSource ?? 'empty'}
         </span>
       </div>
 
       {/* Tabs: CLASS MUSIC | MY MP3 | LINK (YouTube or SoundCloud) */}
-      <div className="mt-4 grid grid-cols-3 gap-1.5 border border-white/10 bg-black/20 p-1">
+      <div className="mt-4 grid grid-cols-3 gap-1.5 border-2 border-[var(--outline)] bg-[var(--night-1)] p-1">
         <button
           className={`${tabClass} ${
             sourceMode === 'class'
-              ? 'border-yellow-100/50 bg-yellow-200/18 text-yellow-100 font-bold'
-              : 'border-transparent bg-transparent text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100'
+              ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold'
+              : 'border-transparent bg-transparent text-[var(--text-2)] hover:bg-[var(--violet-1)] hover:text-[var(--text-1)]'
           }`}
           type="button"
           aria-pressed={sourceMode === 'class'}
@@ -83,8 +83,8 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({
         <button
           className={`${tabClass} ${
             sourceMode === 'file'
-              ? 'border-fuchsia-100/50 bg-fuchsia-200/18 text-fuchsia-50 font-bold'
-              : 'border-transparent bg-transparent text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100'
+              ? 'bg-[var(--neon-pink)] text-[var(--on-neon)] font-bold'
+              : 'border-transparent bg-transparent text-[var(--text-2)] hover:bg-[var(--violet-1)] hover:text-[var(--text-1)]'
           }`}
           type="button"
           aria-pressed={sourceMode === 'file'}
@@ -98,8 +98,8 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({
         <button
           className={`${tabClass} ${
             sourceMode === 'link'
-              ? 'border-cyan-100/50 bg-cyan-200/18 text-cyan-50 font-bold'
-              : 'border-transparent bg-transparent text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100'
+              ? 'bg-[var(--neon-cyan)] text-[var(--on-neon)] font-bold'
+              : 'border-transparent bg-transparent text-[var(--text-2)] hover:bg-[var(--violet-1)] hover:text-[var(--text-1)]'
           }`}
           type="button"
           aria-pressed={sourceMode === 'link'}
@@ -152,7 +152,7 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({
             Load MP3 or audio file
           </label>
           {errorMessage && (
-            <p className="mt-2 px-1 text-xs font-bold text-rose-200" role="alert">
+            <p className="mt-2 px-1 text-[12px] font-bold text-[var(--neon-red)]" role="alert">
               {errorMessage}
             </p>
           )}
@@ -199,7 +199,7 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({
             </button>
           </div>
           {errorMessage && (
-            <p className="px-1 text-xs font-bold text-rose-200" role="alert">
+            <p className="px-1 text-[12px] font-bold text-[var(--neon-red)]" role="alert">
               {errorMessage}
             </p>
           )}

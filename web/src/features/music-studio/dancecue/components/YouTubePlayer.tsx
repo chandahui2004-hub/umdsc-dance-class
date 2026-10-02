@@ -255,7 +255,7 @@ export function YouTubePlayer({
         data-testid="youtube-player-box"
         className={
           isVisible
-            ? "mx-auto h-[200px] w-[200px] overflow-hidden border-2 border-black bg-black [&_iframe]:h-full [&_iframe]:w-full"
+            ? "mx-auto h-[200px] w-[200px] overflow-hidden border-2 border-[var(--outline)] bg-black shadow-[4px_4px_0_var(--shadow-hard)] [&_iframe]:h-full [&_iframe]:w-full"
             : "pointer-events-none fixed left-0 top-0 h-[200px] w-[200px] overflow-hidden opacity-0"
         }
         aria-hidden={isVisible ? undefined : "true"}
@@ -264,34 +264,34 @@ export function YouTubePlayer({
       </div>
       {isVisible ? (
         <section
-          className=" border border-white/10 bg-black/25 px-4 py-3 shadow-lg shadow-black/20"
+          className="border-2 border-[var(--outline)] bg-[var(--night-2)] px-4 py-3 shadow-[4px_4px_0_var(--shadow-hard)]"
           aria-label="YouTube audio status"
           role={errorMessage ? "alert" : "status"}
         >
           <div className="flex items-center gap-3">
             {isApiLoading && !errorMessage ? (
               <span
-                className="size-3 shrink-0 animate-pulse rounded-full bg-cyan-200 shadow-[0_0_16px_rgba(103,232,249,0.8)]"
+                className="size-3 shrink-0 animate-pulse border border-black bg-[var(--neon-cyan)] shadow-[0_0_8px_var(--neon-cyan)]"
                 aria-hidden="true"
               />
             ) : (
               <span
-                className={`size-3 shrink-0 rounded-full ${
-                  errorMessage ? "bg-rose-300" : "bg-emerald-300"
+                className={`size-3 shrink-0 border border-black ${
+                  errorMessage ? "bg-[var(--neon-pink)] shadow-[0_0_8px_var(--neon-pink)]" : "bg-[var(--neon-green)] shadow-[0_0_8px_var(--neon-green)]"
                 }`}
                 aria-hidden="true"
               />
             )}
             <p
-              className={`text-xs font-bold ${
-                errorMessage ? "text-rose-200" : "text-zinc-300"
+              className={`text-xs font-mono font-bold ${
+                errorMessage ? "text-[var(--neon-pink)]" : "text-[var(--text-1)]"
               }`}
             >
               {statusMessage}
             </p>
           </div>
           {needsTap ? (
-            <p className="mt-2 text-xs font-bold text-yellow-200">
+            <p className="mt-2 text-xs font-mono font-bold text-[var(--neon-gold)]">
               Tap the YouTube player once to start
             </p>
           ) : null}

@@ -200,21 +200,21 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
   };
 
   return (
-    <div className="bg-[var(--night-2)] border-4 border-black p-3 text-white shadow-[4px_4px_0_#000] mb-6">
+    <div className="bg-[var(--night-2)] border-4 border-[var(--outline)] p-3 text-[var(--text-1)] shadow-[4px_4px_0_var(--outline)] mb-6">
       {/* Header bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-black/40 pb-3 mb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-[var(--outline)] pb-3 mb-3">
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 bg-[var(--neon-gold)] border border-black inline-block" />
-          <h3 className="font-['Press_Start_2P'] text-[11px] min-text-5px text-[var(--neon-gold)] tracking-wider uppercase">
+          <span className="w-2.5 h-2.5 bg-[var(--neon-gold)] border border-[var(--outline)] inline-block" />
+          <h3 className="font-display text-[12px] text-[var(--neon-gold)] tracking-wider uppercase">
             Synced Class Video
           </h3>
           {status === 'buffering' && (
-            <span className="px-1.5 py-0.5 bg-[var(--neon-red)] text-[9px] min-text-5px font-bold text-white border border-black animate-pulse">
+            <span className="px-1.5 py-0.5 bg-[var(--neon-red)] text-[8px] font-bold text-[var(--on-neon)] border border-[var(--outline)] animate-pulse">
               BUFFERING
             </span>
           )}
           {status === 'playing' && (
-            <span className="px-1.5 py-0.5 bg-[var(--neon-green)] text-[9px] min-text-5px font-bold text-black border border-black">
+            <span className="px-1.5 py-0.5 bg-[var(--neon-green)] text-[8px] font-bold text-[var(--on-neon)] border border-[var(--outline)]">
               SYNCED
             </span>
           )}
@@ -225,7 +225,7 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="px-2.5 py-1 bg-[var(--neon-cyan)] text-black font-['Press_Start_2P'] text-[9px] min-text-5px border-2 border-black shadow-[2px_2px_0_#000] hover:bg-[var(--text-1)] active:translate-x-0.5 active:translate-y-0.5 flex items-center gap-1.5 cursor-pointer"
+            className="px-2.5 py-1 bg-[var(--neon-cyan)] text-[var(--on-neon)] font-display text-[12px] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] hover:bg-[var(--text-1)] active:translate-x-0.5 active:translate-y-0.5 flex items-center gap-1.5 cursor-pointer"
             title="Upload your own rehearsal video to play in sync (played locally, not stored on Google Drive)"
           >
             <span>📁 LOCAL VIDEO</span>
@@ -241,17 +241,17 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
       </div>
 
       {/* Filter and Video Picker Bar */}
-      <div className="bg-black/30 border-2 border-black p-2 mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="bg-[var(--night-1)] border-2 border-[var(--outline)] p-2 mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           {/* Event Filter */}
           {events.length > 0 && (
-            <label className="flex items-center gap-1 font-mono text-[10px]">
+            <label className="flex items-center gap-1 font-mono text-[12px]">
               <span className="text-[var(--text-2)]">EVENT:</span>
               <select
                 aria-label="Filter videos by event"
                 value={eventFilter}
                 onChange={e => setEventFilter(e.target.value)}
-                className="bg-black text-[var(--neon-gold)] text-[10px] min-text-5px border-2 border-black px-2 py-1 font-mono outline-none focus:border-[var(--neon-gold)]"
+                className="bg-[var(--night-2)] text-[var(--neon-gold)] text-[16px] border-2 border-[var(--outline)] px-2 py-1 font-mono outline-none focus:border-[var(--neon-gold)]"
               >
                 <option value="all">ALL EVENTS ({videos.length})</option>
                 {events.map(ev => (
@@ -265,13 +265,13 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
 
           {/* Style Filter */}
           {styles.length > 0 && (
-            <label className="flex items-center gap-1 font-mono text-[10px]">
+            <label className="flex items-center gap-1 font-mono text-[12px]">
               <span className="text-[var(--text-2)]">STYLE:</span>
               <select
                 aria-label="Filter videos by style"
                 value={styleFilter}
                 onChange={e => setStyleFilter(e.target.value)}
-                className="bg-black text-[var(--neon-gold)] text-[10px] min-text-5px border-2 border-black px-2 py-1 font-mono outline-none focus:border-[var(--neon-gold)]"
+                className="bg-[var(--night-2)] text-[var(--neon-gold)] text-[16px] border-2 border-[var(--outline)] px-2 py-1 font-mono outline-none focus:border-[var(--neon-gold)]"
               >
                 <option value="all">ALL STYLES</option>
                 {styles.map(s => (
@@ -286,11 +286,11 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
 
         {/* Video selector dropdown */}
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[10px] text-[var(--text-2)]">SELECT:</span>
+          <span className="font-mono text-[12px] text-[var(--text-2)]">SELECT:</span>
           <select
             value={selectedVideoId}
             onChange={e => setSelectedVideoId(e.target.value)}
-            className="bg-black text-white text-[10px] min-text-5px border-2 border-black px-2 py-1 font-mono outline-none focus:border-[var(--neon-gold)] max-w-[280px] truncate"
+            className="bg-[var(--night-2)] text-[var(--text-1)] text-[16px] border-2 border-[var(--outline)] px-2 py-1 font-mono outline-none focus:border-[var(--neon-gold)] max-w-[280px] truncate"
             aria-label="Select class video"
           >
             <option value="">-- No Video (Audio Only) --</option>
@@ -316,7 +316,7 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
 
       {/* Local Video notice banner */}
       {isLocalVideo && localVideoFile && (
-        <div className="flex items-center justify-between bg-[var(--neon-cyan)]/20 border border-[var(--neon-cyan)] px-2.5 py-1 mb-3 text-[10px] font-mono text-[var(--neon-cyan)]">
+        <div className="flex items-center justify-between bg-[var(--violet-2)] border-2 border-[var(--neon-cyan)] px-2.5 py-1 mb-3 text-[12px] font-mono text-[var(--neon-cyan)]">
           <span className="truncate">
             📁 Playing Local Practice Video: <strong>{localVideoFile.name}</strong> (Not saved to Google Drive)
           </span>
@@ -332,10 +332,10 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
         </div>
       )}
 
-      {/* Screen Frame */}
-      <div className="relative bg-black border-4 border-[#000] p-1 shadow-inner mb-3">
+      {/* Screen Frame with scanlines only on the frame border area */}
+      <div className="relative bg-[var(--night-1)] border-4 border-[var(--outline)] p-1 shadow-inner mb-3 px-scanlines">
         {currentVideoSrc ? (
-          <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
+          <div className="relative aspect-video bg-[var(--night-1)] flex items-center justify-center overflow-hidden z-[1]">
             <video
               ref={videoRef}
               playsInline
@@ -350,26 +350,26 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
             {noPicture && (
               <div
                 role="alert"
-                className="absolute inset-0 flex items-center justify-center bg-black/85 p-4 text-center text-[12px] min-text-5px font-mono text-[var(--neon-gold)]"
+                className="absolute inset-0 flex items-center justify-center bg-[var(--night-1)]/90 p-4 text-center text-[12px] font-mono text-[var(--neon-gold)]"
               >
                 This device can't show this video's format (H.265). Ask an admin to re-upload it as H.264 MP4.
               </div>
             )}
             {muted && (
-              <div className="absolute top-2 right-2 bg-black/80 border border-[var(--neon-gold)] px-2 py-0.5 text-[9px] min-text-5px text-[var(--neon-gold)] font-mono">
+              <div className="absolute top-2 right-2 bg-[var(--night-2)] border border-[var(--neon-gold)] px-2 py-0.5 text-[8px] text-[var(--neon-gold)] font-mono">
                 MUTED
               </div>
             )}
           </div>
         ) : (
-          <div className="aspect-video bg-[#0c1427] flex flex-col items-center justify-center p-4 text-center border-2 border-dashed border-[var(--violet-4)]">
-            <div className="w-10 h-10 border-2 border-[var(--violet-4)] mb-2 flex items-center justify-center text-[var(--violet-4)]">
+          <div className="aspect-video bg-[var(--night-1)] flex flex-col items-center justify-center p-4 text-center border-2 border-dashed border-[var(--violet-3)] z-[1] relative">
+            <div className="w-10 h-10 border-2 border-[var(--violet-3)] mb-2 flex items-center justify-center text-[var(--violet-3)]">
               ▶
             </div>
-            <p className="font-['Press_Start_2P'] text-[9px] min-text-5px text-[var(--text-2)] mb-1">
+            <p className="font-display text-[12px] text-[var(--text-2)] mb-1">
               NO VIDEO SELECTED
             </p>
-            <p className="text-[12px] min-text-5px text-[var(--neon-lilac)] max-w-md">
+            <p className="text-[12px] text-[var(--neon-cyan)] max-w-md">
               Select a class video above or click <strong>LOCAL VIDEO</strong> to rehearse side-by-side with your music.
             </p>
           </div>
@@ -390,17 +390,17 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
       )}
 
       {/* Controls & Actions */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-black/40">
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[var(--outline)]">
         <div className="flex items-center gap-2">
           {/* Mute Toggle */}
           <button
             type="button"
             onClick={() => setMuted(!muted)}
             disabled={!currentVideoSrc}
-            className={`px-3 py-1.5 border-2 border-black font-['Press_Start_2P'] text-[9px] min-text-5px uppercase transition-colors shadow-[2px_2px_0_#000] active:translate-x-[1px] active:translate-y-[1px] ${
+            className={`px-3 py-1.5 border-2 border-[var(--outline)] font-display text-[12px] uppercase shadow-[2px_2px_0_var(--outline)] active:translate-x-[1px] active:translate-y-[1px] ${
               muted
-                ? 'bg-[var(--violet-4)] text-white hover:bg-[var(--neon-lilac)]'
-                : 'bg-[var(--neon-green)] text-black hover:bg-[var(--neon-green)]/90'
+                ? 'bg-[var(--violet-2)] text-[var(--text-1)]'
+                : 'bg-[var(--neon-green)] text-[var(--on-neon)]'
             } disabled:opacity-50`}
           >
             {muted ? '🔇 Muted' : '🔊 Audio On'}
@@ -411,7 +411,7 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
             type="button"
             onClick={handleSetStartToCurrent}
             disabled={!currentVideoSrc}
-            className="px-3 py-1.5 bg-[var(--neon-gold)] text-black border-2 border-black font-['Press_Start_2P'] text-[9px] min-text-5px uppercase hover:bg-[var(--neon-gold)]/90 shadow-[2px_2px_0_#000] active:translate-x-[1px] active:translate-y-[1px] disabled:opacity-50"
+            className="px-3 py-1.5 bg-[var(--neon-gold)] text-[var(--on-neon)] border-2 border-[var(--outline)] font-display text-[12px] uppercase hover:bg-[var(--text-1)] shadow-[2px_2px_0_var(--outline)] active:translate-x-[1px] active:translate-y-[1px] disabled:opacity-50"
             title="Set the video alignment start flag to the currently displayed frame"
           >
             ⚑ Set Start Here
@@ -422,7 +422,7 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
             <button
               type="button"
               onClick={() => setVideoStart(0)}
-              className="text-[9px] min-text-5px text-[var(--text-2)] hover:text-white underline ml-1"
+              className="text-[12px] text-[var(--text-2)] hover:text-[var(--text-1)] underline ml-1"
             >
               Reset to 0s
             </button>
@@ -435,12 +435,12 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
             <button
               type="button"
               onClick={handleSaveLoopWithVideo}
-              className="px-3 py-1.5 bg-[var(--neon-orange)] text-black border-2 border-black font-['Press_Start_2P'] text-[9px] min-text-5px uppercase hover:bg-[var(--neon-orange)]/90 shadow-[2px_2px_0_#000] active:translate-x-[1px] active:translate-y-[1px]"
+              className="px-3 py-1.5 bg-[var(--neon-orange)] text-[var(--on-neon)] border-2 border-[var(--outline)] font-display text-[12px] uppercase hover:bg-[var(--text-1)] shadow-[2px_2px_0_var(--outline)] active:translate-x-[1px] active:translate-y-[1px]"
             >
               Save Loop + Video
             </button>
             {saveSuccess && (
-              <span className="text-[9px] min-text-5px font-bold text-[var(--neon-green)] animate-bounce">
+              <span className="text-[12px] font-bold text-[var(--neon-green)] animate-bounce">
                 SAVED!
               </span>
             )}

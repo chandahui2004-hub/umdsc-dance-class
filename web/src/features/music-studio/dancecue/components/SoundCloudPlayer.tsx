@@ -122,14 +122,14 @@ export function SoundCloudPlayer({ url, isVisible, needsTap = false, onReady, on
         title="SoundCloud player"
         src={widgetSrc(url)}
         allow="autoplay"
-        className="h-[166px] w-full border-2 border-black bg-black"
+        className="h-[166px] w-full border-2 border-[var(--outline)] bg-black shadow-[4px_4px_0_var(--shadow-hard)]"
       />
       {errorMessage ? (
-        <p role="alert" className="text-xs font-bold text-rose-200">
+        <p role="alert" className="text-xs font-mono font-bold text-[var(--neon-pink)]">
           {errorMessage}
         </p>
       ) : needsTap && isVisible ? (
-        <p className="text-xs font-bold text-yellow-200">Tap the SoundCloud player once to start</p>
+        <p className="text-xs font-mono font-bold text-[var(--neon-gold)]">Tap the SoundCloud player once to start</p>
       ) : null}
     </div>
   );

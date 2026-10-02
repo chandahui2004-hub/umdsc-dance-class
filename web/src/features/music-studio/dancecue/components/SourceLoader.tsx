@@ -10,15 +10,15 @@ type SourceLoaderProps = {
 };
 
 const panelClass =
-  " border border-white/15 bg-white/[0.08] p-4 shadow-[0_0_32px_rgba(235,178,255,0.12),inset_0_1px_0_rgba(255,255,255,0.12)]";
+  "border-2 border-[var(--outline)] bg-[var(--night-2)] p-4 shadow-[4px_4px_0_var(--shadow-hard)]";
 const inputClass =
-  "min-h-12 min-w-0 border border-white/10 bg-white/[0.07] px-4 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] outline-none placeholder:text-zinc-500 focus:border-cyan-200/55 focus:bg-white/[0.1] focus:ring-4 focus:ring-cyan-300/10";
+  "min-h-12 min-w-0 border-2 border-[var(--outline)] bg-[var(--night-1)] px-4 text-xs font-mono text-[var(--text-1)] shadow-[inset_2px_2px_0_var(--shadow-hard)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--neon-cyan)]";
 const buttonClass =
-  "min-h-12 shrink-0 border border-cyan-200/25 bg-cyan-200/12 px-4 text-sm font-black text-cyan-50 transition hover:border-cyan-100/50 hover:bg-cyan-200/18 active:translate-y-px";
+  "min-h-12 shrink-0 border-2 border-[var(--outline)] bg-[var(--neon-cyan)] px-4 text-xs font-mono font-bold text-black shadow-[2px_2px_0_var(--shadow-hard)] transition hover:bg-[var(--neon-cyan)]/90 active:translate-x-[1px] active:translate-y-[1px]";
 const fileButtonClass =
-  "inline-flex min-h-12 cursor-pointer items-center justify-center border border-fuchsia-200/25 bg-fuchsia-200/12 px-4 text-sm font-black text-fuchsia-50 transition hover:border-fuchsia-100/50 hover:bg-fuchsia-200/18 active:translate-y-px";
+  "inline-flex min-h-12 cursor-pointer items-center justify-center border-2 border-[var(--outline)] bg-[var(--neon-gold)] px-4 text-xs font-mono font-bold text-black shadow-[2px_2px_0_var(--shadow-hard)] transition hover:bg-[var(--neon-gold)]/90 active:translate-x-[1px] active:translate-y-[1px]";
 const tabClass =
-  "min-h-10 border px-3 text-sm font-black transition active:translate-y-px";
+  "min-h-10 border-2 px-3 text-xs font-mono font-bold transition active:translate-x-[1px] active:translate-y-[1px]";
 
 export function SourceLoader({
   activeSource,
@@ -33,22 +33,22 @@ export function SourceLoader({
     <section className={panelClass} aria-label="Track source">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="font-mono text-[0.68rem] font-bold uppercase tracking-[0.16em] text-cyan-100">
+          <p className="font-mono text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[var(--neon-cyan)]">
             Track
           </p>
-          <h2 className="mt-1 text-xl font-black text-white">Choose music source</h2>
+          <h2 className="mt-1 text-lg font-black font-header text-[var(--neon-gold)]">Choose music source</h2>
         </div>
-        <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 font-mono text-xs font-bold uppercase text-zinc-300">
+        <span className="border-2 border-[var(--outline)] bg-[var(--night-1)] px-3 py-1 font-mono text-xs font-bold uppercase text-[var(--neon-green)] shadow-[2px_2px_0_var(--shadow-hard)]">
           {activeSource ?? "empty"}
         </span>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 border border-white/10 bg-black/20 p-1">
+      <div className="mt-4 grid grid-cols-2 gap-2 border-2 border-[var(--outline)] bg-[var(--night-1)] p-1 shadow-[2px_2px_0_var(--shadow-hard)]">
         <button
           className={`${tabClass} ${
             sourceMode === "file"
-              ? "border-fuchsia-100/50 bg-fuchsia-200/18 text-fuchsia-50"
-              : "border-transparent bg-transparent text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100"
+              ? "border-[var(--neon-gold)] bg-[var(--neon-gold)] text-black shadow-[1px_1px_0_var(--shadow-hard)]"
+              : "border-transparent bg-transparent text-[var(--text-muted)] hover:bg-[var(--night-2)] hover:text-[var(--text-1)]"
           }`}
           type="button"
           aria-pressed={sourceMode === "file"}
@@ -59,8 +59,8 @@ export function SourceLoader({
         <button
           className={`${tabClass} ${
             sourceMode === "youtube"
-              ? "border-cyan-100/50 bg-cyan-200/18 text-cyan-50"
-              : "border-transparent bg-transparent text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100"
+              ? "border-[var(--neon-cyan)] bg-[var(--neon-cyan)] text-black shadow-[1px_1px_0_var(--shadow-hard)]"
+              : "border-transparent bg-transparent text-[var(--text-muted)] hover:bg-[var(--night-2)] hover:text-[var(--text-1)]"
           }`}
           type="button"
           aria-pressed={sourceMode === "youtube"}
@@ -119,7 +119,7 @@ export function SourceLoader({
           </button>
         </div>
         {errorMessage ? (
-          <p className="px-1 text-xs font-bold text-rose-200" role="alert">
+          <p className="px-1 text-xs font-bold text-[var(--neon-pink)] font-mono" role="alert">
             {errorMessage}
           </p>
         ) : null}

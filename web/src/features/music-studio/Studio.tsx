@@ -273,14 +273,14 @@ export const Studio: React.FC = () => {
         />
       )}
 
-      <main className="min-h-screen bg-[var(--night-1)] px-3 py-4 font-sans text-zinc-100 sm:px-6">
-        <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-6xl flex-col border-4 border-black bg-[var(--night-1)] shadow-[8px_8px_0_#000]">
+      <main className="min-h-screen bg-[var(--night-1)] px-3 py-4 font-body text-[var(--text-1)] sm:px-6">
+        <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-6xl flex-col border-4 border-[var(--outline)] bg-[var(--night-1)] shadow-[8px_8px_0_var(--outline)]">
           {/* Header */}
-          <section className="border-b-4 border-black bg-[var(--night-2)] px-4 pb-4 pt-5 text-white shadow-inner">
+          <section className="border-b-4 border-[var(--outline)] bg-[var(--night-2)] px-4 pb-4 pt-5 text-[var(--text-1)]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 bg-[var(--neon-red)] border border-black inline-block animate-pulse" />
-                <p className="font-['Press_Start_2P'] text-[10px] min-text-5px uppercase tracking-wider text-[var(--neon-gold)]">
+                <span className="w-2.5 h-2.5 bg-[var(--neon-red)] border border-[var(--outline)] inline-block animate-pulse" />
+                <p className="font-display text-[12px] uppercase tracking-wider text-[var(--neon-gold)]">
                   DanceCue Studio
                 </p>
               </div>
@@ -288,20 +288,20 @@ export const Studio: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsFullscreen(true)}
-                  className="px-2.5 py-1 bg-[var(--neon-gold)] text-black font-['Press_Start_2P'] text-[9px] min-text-5px border-2 border-black shadow-[2px_2px_0_#000] hover:bg-[var(--text-1)] active:translate-x-0.5 active:translate-y-0.5 flex items-center gap-1.5 cursor-pointer"
+                  className="px-2.5 py-1 bg-[var(--neon-gold)] text-[var(--on-neon)] font-display text-[12px] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] hover:bg-[var(--text-1)] active:translate-x-0.5 active:translate-y-0.5 flex items-center gap-1.5 cursor-pointer"
                 >
                   ⛶ FULLSCREEN
                 </button>
-                <div className="flex items-center gap-1.5 font-mono text-[9px] min-text-5px text-[var(--neon-green)]">
-                  <span className="w-2 h-2 bg-[var(--neon-green)] inline-block border border-black" />
+                <div className="flex items-center gap-1.5 font-mono text-[12px] text-[var(--neon-green)]">
+                  <span className="w-2 h-2 bg-[var(--neon-green)] inline-block border border-[var(--outline)]" />
                   <span>READY</span>
                 </div>
               </div>
             </div>
-            <h1 className="mt-2 text-xl font-['Press_Start_2P'] leading-tight tracking-normal text-white">
+            <h1 className="mt-2 text-[24px] font-display leading-tight tracking-normal text-[var(--text-1)] px-glow-text">
               Rehearse in motion
             </h1>
-            <p className="mt-2 text-xs min-text-5px leading-5 text-[var(--text-2)] font-mono">
+            <p className="mt-2 text-[14px] leading-5 text-[var(--text-2)] font-mono">
               Practice club routines with synced class video, loops, and hands-free voice cues.
             </p>
           </section>

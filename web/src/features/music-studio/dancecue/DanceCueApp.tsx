@@ -276,20 +276,20 @@ export function DanceCueApp() {
 
   return (
     <div className="dancecue-root w-full">
-      <main className="min-h-screen bg-[var(--night-1)] px-4 py-5 font-sans text-zinc-100 sm:px-6">
-        <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-[430px] flex-col overflow-hidden border border-white/10 bg-[var(--night-1)] shadow-2xl shadow-black/40">
-          <section className="border-b border-white/10 bg-gradient-to-br from-fuchsia-500/18 via-[var(--night-2)] to-cyan-400/14 px-5 pb-5 pt-6">
+      <main className="min-h-screen bg-[var(--night-1)] px-4 py-5 font-mono text-[var(--text-1)] sm:px-6">
+        <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-[430px] flex-col overflow-hidden border-2 border-[var(--outline)] bg-[var(--night-2)] shadow-[4px_4px_0_var(--shadow-hard)]">
+          <section className="border-b-2 border-[var(--outline)] bg-[var(--violet-2)] px-5 pb-5 pt-6">
             <div>
               <div>
-                <p className="font-mono text-[0.7rem] font-bold uppercase tracking-[0.16em] text-cyan-200">
+                <p className="font-mono text-[0.7rem] font-bold uppercase tracking-[0.16em] text-[var(--neon-cyan)]">
                   DanceCue
                 </p>
-                <h1 className="mt-2 whitespace-nowrap text-2xl font-black leading-tight tracking-normal text-white">
+                <h1 className="mt-2 whitespace-nowrap text-xl font-black font-header leading-tight tracking-normal text-[var(--neon-gold)]">
                   Rehearse in motion
                 </h1>
               </div>
             </div>
-            <p className="mt-4 text-sm leading-6 text-zinc-300">
+            <p className="mt-4 text-xs font-mono leading-relaxed text-[var(--text-2)]">
               Load a track, mark rehearsal sections, and control jumps or loops with short voice
               commands while you stay in motion.
             </p>
