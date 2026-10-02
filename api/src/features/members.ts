@@ -3,6 +3,7 @@ import { AppError } from '../errors';
 import { logAudit } from '../logic/audit';
 import { normalizeMatric, nameKey } from '../logic/normalize';
 import { getEvent, readEventMembers } from './eventMembers';
+import { isMemberEnrolledInStyle } from '../logic/styleMatcher';
 
 export function getMemberRoutes(): Record<string, Route> {
   return {
@@ -15,7 +16,9 @@ export function getMemberRoutes(): Record<string, Route> {
           throw new AppError('VALIDATION', 'eventId is required');
         }
         const members = readEventMembers(ctx, getEvent(ctx, eventId));
-        return styleId ? members.filter(m => m.styleIds.includes(styleId)) : members;
+        if (!styleId) return members;
+        const allStyles = ctx.db.styles.find(s => s.active);
+        return members.filter(m => isMemberEnrolledInStyle(m, styleId, allStyles));
       }
     },
 

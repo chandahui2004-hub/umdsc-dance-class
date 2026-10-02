@@ -6,6 +6,7 @@ import { sessionLabel, locateCell } from '../logic/attendanceGrid';
 import { onSessionChanged } from './sessions';
 import { getEvent, readEventMembers } from './eventMembers';
 import { ensureEventSheets } from './eventSheets';
+import { isMemberEnrolledInStyle } from '../logic/styleMatcher';
 import { safeCachePut } from '../logic/cache';
 
 const versionKey = (eventId: string, styleId: string) => `attv:${eventId}:${styleId}`;
@@ -63,27 +64,39 @@ export function getAttendanceRoutes(): Record<string, Route> {
         const cached = ctx.cache.get(gridKey(eventId, styleId, curVer));
         if (cached) {
           try {
-            return JSON.parse(cached);
+            const parsed = JSON.parse(cached);
+            if (parsed && Array.isArray(parsed.members) && parsed.members.length > 0) {
+              return parsed;
+            }
           } catch {
             // ignore cache parse failure
           }
         }
 
+        const allStyles = ctx.db.styles.find(s => s.active);
+        const matchedStyle = allStyles.find(
+          s => s.id.toLowerCase() === styleId.toLowerCase() || s.name.toLowerCase() === styleId.toLowerCase()
+        );
+        const targetStyleIds = new Set([
+          styleId,
+          ...(matchedStyle ? [matchedStyle.id, matchedStyle.name] : [])
+        ]);
+
         const sessions = ctx.db.sessions
-          .find(s => s.eventId === eventId && s.styleId === styleId && s.active)
+          .find(s => s.eventId === eventId && targetStyleIds.has(s.styleId) && s.active)
           .sort((a, b) => a.date.localeCompare(b.date) || a.seq - b.seq);
 
         const grid: AttendanceGrid = { eventId, styleId, version: curVer, sessions, members: [], present: {} };
 
         let rec = ctx.db.attendanceSheets.find(
-          s => s.eventId === eventId && s.styleId === styleId && s.active
+          s => s.eventId === eventId && targetStyleIds.has(s.styleId) && s.active
         )[0];
 
         if (!rec) {
           try {
             ensureEventSheets(ctx, getEvent(ctx, eventId));
             rec = ctx.db.attendanceSheets.find(
-              s => s.eventId === eventId && s.styleId === styleId && s.active
+              s => s.eventId === eventId && targetStyleIds.has(s.styleId) && s.active
             )[0];
           } catch {
             // Master folder not set or Drive mock, continue to member fallback
@@ -117,7 +130,9 @@ export function getAttendanceRoutes(): Record<string, Route> {
         if (grid.members.length === 0) {
           try {
             const ev = getEvent(ctx, eventId);
-            const enrolled = readEventMembers(ctx, ev).filter(m => m.styleIds.includes(styleId));
+            const enrolled = readEventMembers(ctx, ev).filter(m =>
+              isMemberEnrolledInStyle(m, styleId, allStyles)
+            );
             for (const m of enrolled) {
               grid.members.push({
                 memberId: m.memberId,
@@ -133,7 +148,9 @@ export function getAttendanceRoutes(): Record<string, Route> {
           }
         }
 
-        safeCachePut(ctx.cache, gridKey(eventId, styleId, curVer), JSON.stringify(grid), 60);
+        if (grid.members.length > 0) {
+          safeCachePut(ctx.cache, gridKey(eventId, styleId, curVer), JSON.stringify(grid), 60);
+        }
         return grid;
       }
     },
@@ -149,8 +166,19 @@ export function getAttendanceRoutes(): Record<string, Route> {
         }
 
         const event = getEvent(ctx, eventId);
+        const allStyles = ctx.db.styles.find(s => s.active);
+        const matchedStyle = allStyles.find(
+          s => s.id.toLowerCase() === styleId.toLowerCase() || s.name.toLowerCase() === styleId.toLowerCase()
+        );
+        const targetStyleIds = new Set([
+          styleId,
+          ...(matchedStyle ? [matchedStyle.id, matchedStyle.name] : [])
+        ]);
+
         const validMemberIds = new Set(
-          readEventMembers(ctx, event).filter(m => m.styleIds.includes(styleId)).map(m => m.memberId)
+          readEventMembers(ctx, event)
+            .filter(m => isMemberEnrolledInStyle(m, styleId, allStyles))
+            .map(m => m.memberId)
         );
         for (const m of marks) {
           if (!validMemberIds.has(m.memberId)) {
@@ -158,9 +186,19 @@ export function getAttendanceRoutes(): Record<string, Route> {
           }
         }
 
-        const rec = ctx.db.attendanceSheets.find(
-          s => s.eventId === eventId && s.styleId === styleId && s.active
+        let rec = ctx.db.attendanceSheets.find(
+          s => s.eventId === eventId && targetStyleIds.has(s.styleId) && s.active
         )[0];
+        if (!rec) {
+          try {
+            ensureEventSheets(ctx, event);
+            rec = ctx.db.attendanceSheets.find(
+              s => s.eventId === eventId && targetStyleIds.has(s.styleId) && s.active
+            )[0];
+          } catch {
+            // ignore
+          }
+        }
         if (!rec) {
           throw new AppError('NOT_FOUND', `Attendance sheet for ${event.name} ${styleId} not found`);
         }

@@ -10,7 +10,7 @@ import { RosterList } from './RosterList';
 import { AttendanceGrid } from './AttendanceGrid';
 import { useCurrentEvent } from '../events/useCurrentEvent';
 import { AttendanceFolderHeader } from '../events/FolderLinksHeader';
-import type { AttendanceGrid as AttendanceGridData, DanceStyle } from '@umdsc/shared';
+import type { AttendanceGrid as AttendanceGridData, DanceStyle, Member } from '@umdsc/shared';
 
 function downloadXlsx(fileName: string, base64: string): void {
   const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
@@ -66,6 +66,12 @@ export const AttendancePage: React.FC = () => {
     queryKey: ['attendance', eventId, styleId],
     enabled: ready,
     queryFn: async () => (await api.post<AttendanceGridData>('attendance.get', { eventId, styleId })).data
+  });
+
+  const { data: eventMembers = [] } = useQuery<Member[]>({
+    queryKey: ['members', eventId, styleId],
+    enabled: Boolean(ready && (!gridData?.members || gridData.members.length === 0)),
+    queryFn: async () => (await api.post<Member[]>('members.list', { eventId, styleId })).data
   });
 
   // Show the saved ticks whenever server data loads, unless the admin is mid-edit
@@ -178,7 +184,16 @@ export const AttendancePage: React.FC = () => {
 
   const activeStyle = styles.find(s => s.id === styleId);
   const sessions = gridData?.sessions || [];
-  const members = gridData?.members || [];
+  const members = useMemo(() => {
+    if (gridData?.members && gridData.members.length > 0) {
+      return gridData.members;
+    }
+    return eventMembers.map(m => ({
+      memberId: m.memberId,
+      fullName: m.fullName,
+      matric: m.matricRaw || m.matricKey
+    }));
+  }, [gridData?.members, eventMembers]);
 
   if (!eventsLoading && isAll && events.length > 0) {
     return (

@@ -87,7 +87,28 @@ export const MembersPage: React.FC = () => {
     return members.filter((m) => {
       // Style filter
       if (selectedStyleId !== 'all') {
-        if (!m.styleIds || !m.styleIds.includes(selectedStyleId)) {
+        const styleObj = bootstrap?.styles?.find((s) => s.id === selectedStyleId);
+        const targetTokens = new Set([
+          selectedStyleId.toLowerCase(),
+          ...(styleObj
+            ? [
+                styleObj.id.toLowerCase(),
+                styleObj.name.toLowerCase(),
+                ...(styleObj.aliases || []).map((a) => a.toLowerCase().trim())
+              ]
+            : [])
+        ]);
+        const mTokens = [...(m.styleIds || []), ...(m.styleNames || [])].map((t) =>
+          String(t).toLowerCase().trim()
+        );
+        const matches =
+          mTokens.some((t) => targetTokens.has(t)) ||
+          mTokens.some((mt) =>
+            Array.from(targetTokens).some(
+              (tt) => tt.length >= 3 && (mt.includes(tt) || tt.includes(mt))
+            )
+          );
+        if (!matches) {
           return false;
         }
       }

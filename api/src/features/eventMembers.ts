@@ -65,5 +65,6 @@ export function readEventMembers(ctx: Ctx, event: EventItem): Member[] {
 /** Style ids a dancer registered for in one event (empty if not in it). */
 export function dancerStylesInEvent(ctx: Ctx, event: EventItem, matricKey: string): string[] {
   const member = readEventMembers(ctx, event).find(m => m.matricKey === matricKey);
-  return member ? member.styleIds : [];
+  if (!member) return [];
+  return Array.from(new Set([...(member.styleIds || []), ...(member.styleNames || [])]));
 }

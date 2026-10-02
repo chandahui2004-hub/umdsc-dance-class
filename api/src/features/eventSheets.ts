@@ -4,6 +4,7 @@ import { AppError } from '../errors';
 import { MEMBERS_COLUMNS } from '../db/schema';
 import { buildLayout, planSync, sessionLabel } from '../logic/attendanceGrid';
 import { readEventMembers } from './eventMembers';
+import { isMemberEnrolledInStyle } from '../logic/styleMatcher';
 
 /**
  * Saves system bookkeeping on an event (sync status, counts, folder and sheet ids).
@@ -125,17 +126,24 @@ export function ensureEventSheets(ctx: Ctx, event: EventItem): { styleId: string
   const folderId = ensureEventFolder(ctx, event);
   const current = ctx.db.events.get(event.id) || event;
   const members = readEventMembers(ctx, current);
+  const allStyles = ctx.db.styles.find(s => s.active);
   const result: { styleId: string; spreadsheetId: string }[] = [];
 
   for (const styleId of current.styleIds) {
-    const style = ctx.db.styles.find(s => s.id === styleId)[0];
+    const style = allStyles.find(
+      s => s.id.toLowerCase() === styleId.toLowerCase() || s.name.toLowerCase() === styleId.toLowerCase()
+    );
     const styleName = style ? style.name : styleId;
-    const sessions = ctx.db.sessions
-      .find(s => s.eventId === current.id && s.styleId === styleId && s.active)
-      .sort((a, b) => a.date.localeCompare(b.date) || a.seq - b.seq);
-    const styleMembers = members.filter(m => m.styleIds.includes(styleId));
+    const targetStyleIds = new Set([styleId, ...(style ? [style.id, style.name] : [])]);
 
-    const rec = ctx.db.attendanceSheets.find(a => a.eventId === current.id && a.styleId === styleId && a.active)[0];
+    const sessions = ctx.db.sessions
+      .find(s => s.eventId === current.id && targetStyleIds.has(s.styleId) && s.active)
+      .sort((a, b) => a.date.localeCompare(b.date) || a.seq - b.seq);
+    const styleMembers = members.filter(m => isMemberEnrolledInStyle(m, styleId, allStyles));
+
+    const rec = ctx.db.attendanceSheets.find(
+      a => a.eventId === current.id && targetStyleIds.has(a.styleId) && a.active
+    )[0];
     if (rec && ctx.drive.info(rec.spreadsheetId).exists) {
       ctx.drive.moveToFolder(rec.spreadsheetId, folderId);
       const sheet = ctx.drive.openSpreadsheet(rec.spreadsheetId).sheet('Attendance');
@@ -178,12 +186,13 @@ export function ensureEventSheets(ctx: Ctx, event: EventItem): { styleId: string
     sheet.protectRowWarningOnly(1);
     sheet.setPlainTextColumns([1, 3, 4]);
 
+    const effectiveStyleId = style ? style.id : styleId;
     if (rec) {
-      ctx.db.attendanceSheets.update(rec.id, rec.version, { spreadsheetId: ss.id }, 'system', ctx.now());
+      ctx.db.attendanceSheets.update(rec.id, rec.version, { spreadsheetId: ss.id, styleId: effectiveStyleId }, 'system', ctx.now());
     } else {
-      ctx.db.attendanceSheets.insert({ eventId: current.id, styleId, spreadsheetId: ss.id }, 'system', ctx.now());
+      ctx.db.attendanceSheets.insert({ eventId: current.id, styleId: effectiveStyleId, spreadsheetId: ss.id }, 'system', ctx.now());
     }
-    result.push({ styleId, spreadsheetId: ss.id });
+    result.push({ styleId: effectiveStyleId, spreadsheetId: ss.id });
   }
 
   return result;
