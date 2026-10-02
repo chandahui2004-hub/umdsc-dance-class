@@ -60,16 +60,27 @@
   }
 }
 
-/* Minimum Text Size (min 5px across all screens) */
+/* Minimum Text Size (enforced 5px minimum floor across all elements) */
 html, body {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
 
-.text-min-5px,
-.min-text-5px {
+*,
+*::before,
+*::after {
   min-font-size: 5px;
-  font-size: max(5px, inherit);
+}
+
+body, table, th, td, button, input, select, textarea, p, span, h1, h2, h3, h4, h5, h6, div, a {
+  min-font-size: 5px;
+}
+
+.text-min-5px,
+.min-text-5px,
+[class*="min-text-"] {
+  min-font-size: 5px;
+  font-size: max(5px, 1em) !important;
 }
 
 /* Pixel Scrollbar */

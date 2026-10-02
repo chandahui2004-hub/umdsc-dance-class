@@ -9,6 +9,7 @@ interface AttendanceGridProps {
   presentMap: Record<string, string[]>; // memberId -> sessionId[]
   onToggle: (memberId: string, sessionId: string, present: boolean) => void;
   readOnly?: boolean;
+  containerClassName?: string;
 }
 
 export const AttendanceGrid: React.FC<AttendanceGridProps> = ({
@@ -16,7 +17,8 @@ export const AttendanceGrid: React.FC<AttendanceGridProps> = ({
   members,
   presentMap,
   onToggle,
-  readOnly = false
+  readOnly = false,
+  containerClassName
 }) => {
   if (sessions.length === 0) {
     return (
@@ -32,28 +34,33 @@ export const AttendanceGrid: React.FC<AttendanceGridProps> = ({
   }
 
   return (
-    <div className="overflow-x-auto border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] bg-[var(--c-panel)]">
+    <div
+      className={
+        containerClassName ||
+        'overflow-auto max-h-[600px] pixel-scrollbar border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] bg-[var(--c-panel)]'
+      }
+    >
       <table
         data-testid="attendance-grid"
         className="w-full text-left font-body border-collapse min-w-[700px]"
       >
-        <thead>
+        <thead className="sticky top-0 z-30 bg-[var(--c-bg)] shadow-[0_2px_0_var(--c-ink)]">
           <tr className="border-b-4 border-[var(--c-ink)] bg-[var(--c-bg)] font-display text-xs text-[var(--c-ink)]">
-            <th className="sticky left-0 z-20 bg-[var(--c-bg)] p-3 border-r-2 border-[var(--c-ink)] min-w-[220px]">
+            <th className="sticky top-0 left-0 z-40 bg-[var(--c-bg)] p-3 border-r-2 border-[var(--c-ink)] min-w-[220px]">
               DANCER NAME / MATRIC
             </th>
             {sessions.map((s) => (
               <th
                 key={s.id}
-                className="p-3 border-r-2 border-[var(--c-ink)] text-center min-w-[90px]"
+                className="p-3 border-r-2 border-[var(--c-ink)] text-center min-w-[90px] bg-[var(--c-bg)]"
               >
                 <div>#{s.seq}</div>
-                <div className="font-mono text-[10px] text-[var(--c-darkgrey)]">
+                <div className="font-mono text-[10px] min-text-5px text-[var(--c-darkgrey)]">
                   {formatDayLabel(s.date).slice(4)}
                 </div>
               </th>
             ))}
-            <th className="p-3 text-center min-w-[80px]">TOTAL</th>
+            <th className="p-3 text-center min-w-[80px] bg-[var(--c-bg)]">TOTAL</th>
           </tr>
         </thead>
         <tbody className="divide-y-2 divide-[var(--c-ink)]">

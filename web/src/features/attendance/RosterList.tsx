@@ -17,6 +17,7 @@ interface RosterListProps {
   onSelectSession: (sessionId: string) => void;
   onToggle: (memberId: string, sessionId: string, present: boolean) => void;
   readOnly?: boolean;
+  listClassName?: string;
 }
 
 export const RosterList: React.FC<RosterListProps> = ({
@@ -26,7 +27,8 @@ export const RosterList: React.FC<RosterListProps> = ({
   activeSessionId,
   onSelectSession,
   onToggle,
-  readOnly = false
+  readOnly = false,
+  listClassName
 }) => {
   const [search, setSearch] = useState('');
 
@@ -68,7 +70,7 @@ export const RosterList: React.FC<RosterListProps> = ({
   return (
     <div className="space-y-4">
       {/* Session Chips */}
-      <div className="flex gap-2 overflow-x-auto pb-2 border-b-2 border-[var(--c-ink)]">
+      <div className="flex gap-2 overflow-x-auto pixel-scrollbar pb-2 border-b-2 border-[var(--c-ink)]">
         {sessions.map((s) => {
           const isSelected = (activeSession?.id === s.id);
           const label = `#${s.seq} ${formatDayLabel(s.date).slice(4)}`; // e.g. '#1 08 Oct'
@@ -104,8 +106,13 @@ export const RosterList: React.FC<RosterListProps> = ({
         </div>
       </div>
 
-      {/* Roster Dancers List */}
-      <div className="space-y-2">
+      {/* Roster Dancers List with scrollbar */}
+      <div
+        className={
+          listClassName ||
+          'space-y-2 max-h-[600px] overflow-y-auto pixel-scrollbar p-1 border-2 border-[var(--c-ink)] bg-[var(--c-bg)]/20'
+        }
+      >
         {filteredMembers.length === 0 ? (
           <div className="p-4 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] text-center text-xs font-body text-[var(--c-darkgrey)]">
             No dancers found matching &ldquo;{search}&rdquo;

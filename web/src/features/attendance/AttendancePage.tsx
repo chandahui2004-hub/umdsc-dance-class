@@ -39,6 +39,17 @@ export const AttendancePage: React.FC = () => {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [pendingCount, setPendingCount] = useState<number>(0);
   const [localPresent, setLocalPresent] = useState<Record<string, string[]>>({});
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
 
   useEffect(() => {
     attendanceQueue.load();
@@ -272,12 +283,21 @@ export const AttendancePage: React.FC = () => {
           >
             {exportMutation.isPending ? 'EXPORTING...' : 'EXPORT XLSX'}
           </PixelButton>
+          <PixelButton
+            size="md"
+            variant="secondary"
+            disabled={!ready || sessions.length === 0}
+            onClick={() => setIsFullscreen(prev => !prev)}
+            className="min-h-[44px]"
+          >
+            {isFullscreen ? '✕ EXIT' : '⛶ FULL SCREEN'}
+          </PixelButton>
         </div>
       </div>
 
       <AttendanceFolderHeader />
 
-      <div className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] p-4 shadow-[4px_4px_0_var(--c-ink)] flex gap-2 overflow-x-auto items-center">
+      <div className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] p-4 shadow-[4px_4px_0_var(--c-ink)] flex gap-2 overflow-x-auto pixel-scrollbar items-center">
 
         <span className="font-display text-xs text-[var(--c-ink)] uppercase mr-1 whitespace-nowrap">STYLE:</span>
         {styles.map(s => (
@@ -367,6 +387,98 @@ export const AttendancePage: React.FC = () => {
               readOnly={!editing}
             />
           </div>
+
+          {/* Fullscreen Overlay Mode */}
+          {isFullscreen && (
+            <div className="fixed inset-0 z-50 bg-[var(--c-bg)] p-4 flex flex-col overflow-hidden space-y-3">
+              {/* Header */}
+              <div className="flex justify-between items-center bg-[var(--c-panel)] border-4 border-[var(--c-ink)] p-3 shadow-[4px_4px_0_var(--c-ink)] flex-wrap gap-2">
+                <div className="flex items-center gap-3">
+                  <h2 className="font-display text-xs text-[var(--c-ink)]">
+                    ATTENDANCE · {activeStyle?.name.toUpperCase() || 'STYLE'}
+                  </h2>
+                  <span className="font-mono text-xs text-[var(--c-darkgrey)] min-text-5px">
+                    ({sessions.length} sessions, {members.length} dancers)
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {editing ? (
+                    <>
+                      <PixelButton size="md" variant="secondary" onClick={cancelEdit}>
+                        CANCEL
+                      </PixelButton>
+                      <PixelButton
+                        size="md"
+                        variant="primary"
+                        disabled={submitMutation.isPending || unsavedChanges.length === 0}
+                        onClick={() => submitMutation.mutate()}
+                      >
+                        {submitMutation.isPending ? 'SUBMITTING…' : 'SUBMIT'}
+                      </PixelButton>
+                    </>
+                  ) : (
+                    <PixelButton size="md" variant="primary" onClick={() => setEditing(true)}>
+                      EDIT TICKS
+                    </PixelButton>
+                  )}
+                  <PixelButton
+                    size="md"
+                    variant="secondary"
+                    onClick={() => setIsFullscreen(false)}
+                  >
+                    ✕ EXIT FULLSCREEN
+                  </PixelButton>
+                </div>
+              </div>
+
+              {/* Style selector inside fullscreen */}
+              <div className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] p-2 shadow-[2px_2px_0_var(--c-ink)] flex gap-2 overflow-x-auto pixel-scrollbar items-center">
+                <span className="font-display text-[10px] min-text-5px text-[var(--c-ink)] uppercase mr-1 whitespace-nowrap">
+                  STYLE:
+                </span>
+                {styles.map(s => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setStyleId(s.id)}
+                    className={`min-h-[36px] px-3 border-2 border-[var(--c-ink)] font-display text-[10px] min-text-5px cursor-pointer select-none whitespace-nowrap ${
+                      styleId === s.id
+                        ? 'bg-[var(--c-orange)] text-[var(--c-ink)] font-bold shadow-[2px_2px_0_var(--c-ink)]'
+                        : 'bg-[var(--c-bg)] text-[var(--c-ink)] hover:bg-[var(--c-panel)]'
+                    }`}
+                  >
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+
+              {/* Fullscreen Grid / Roster with maximized height and pixel scrollbars */}
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <div className="hidden lg:block h-full">
+                  <AttendanceGrid
+                    sessions={sessions}
+                    members={members}
+                    presentMap={localPresent}
+                    onToggle={handleToggle}
+                    readOnly={!editing}
+                    containerClassName="h-full overflow-auto pixel-scrollbar border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] bg-[var(--c-panel)]"
+                  />
+                </div>
+                <div className="block lg:hidden h-full">
+                  <RosterList
+                    sessions={sessions}
+                    members={members}
+                    presentMap={localPresent}
+                    activeSessionId={activeSessionId}
+                    onSelectSession={setActiveSessionId}
+                    onToggle={handleToggle}
+                    readOnly={!editing}
+                    listClassName="h-full overflow-y-auto pixel-scrollbar p-1 space-y-2 border-2 border-[var(--c-ink)] bg-[var(--c-bg)]/20"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

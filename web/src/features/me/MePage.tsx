@@ -112,28 +112,29 @@ export const MePage: React.FC = () => {
             No registered events found.
           </div>
         ) : (
-          events.map((event) => {
-            const eventSessions = sessions.filter((s) => s.eventId === event.id);
+          <div className="space-y-3 max-h-[650px] overflow-y-auto pixel-scrollbar p-1">
+            {events.map((event) => {
+              const eventSessions = sessions.filter((s) => s.eventId === event.id);
 
-            return (
-              <div
-                key={event.id}
-                className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] p-4 space-y-3"
-              >
-                {/* Event Header */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b-2 border-[var(--c-ink)]">
-                  <div className="flex items-center gap-2">
-                    <span className="font-display text-[10px] px-1.5 py-0.5 bg-[var(--c-yellow)] text-[var(--c-ink)] border border-[var(--c-ink)] font-bold">
-                      {event.type.toUpperCase()}
-                    </span>
-                    <span className="font-display text-xs md:text-sm text-[var(--c-ink)] font-bold">
-                      {event.name}
+              return (
+                <div
+                  key={event.id}
+                  className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] p-4 space-y-3"
+                >
+                  {/* Event Header */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b-2 border-[var(--c-ink)]">
+                    <div className="flex items-center gap-2">
+                      <span className="font-display text-[10px] min-text-5px px-1.5 py-0.5 bg-[var(--c-yellow)] text-[var(--c-ink)] border border-[var(--c-ink)] font-bold">
+                        {event.type.toUpperCase()}
+                      </span>
+                      <span className="font-display text-xs md:text-sm text-[var(--c-ink)] font-bold">
+                        {event.name}
+                      </span>
+                    </div>
+                    <span className="font-mono text-xs min-text-5px text-[var(--c-darkgrey)]">
+                      {event.startDate} → {event.endDate}
                     </span>
                   </div>
-                  <span className="font-mono text-xs text-[var(--c-darkgrey)]">
-                    {event.startDate} → {event.endDate}
-                  </span>
-                </div>
 
                 {/* Styles in this event */}
                 <div className="space-y-3 pt-1">
@@ -178,9 +179,10 @@ export const MePage: React.FC = () => {
                 </div>
               </div>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
     </div>
-  );
+  </div>
+);
 };
