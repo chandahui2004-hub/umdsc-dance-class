@@ -73,11 +73,11 @@ export const ScanPanel: React.FC<ScanPanelProps> = ({
   });
 
   return (
-    <div className="fixed inset-0 bg-[var(--c-ink)]/60 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl max-h-[90vh] flex flex-col">
         <Panel
           title={`SCAN FOLDER: ${style.name} (${eventName})`}
-          className="px-corners bg-[var(--c-panel)] flex-1 overflow-y-auto space-y-4"
+          className="px-corners bg-[var(--night-2)] flex-1 overflow-y-auto space-y-4"
         >
           <p className="font-body text-sm text-[var(--text-2)]">
             Scan your Google Drive folder for class videos and automatically link them to scheduled sessions.
@@ -86,18 +86,18 @@ export const ScanPanel: React.FC<ScanPanelProps> = ({
           {error && (
             <div
               role="alert"
-              className="bg-[var(--c-peach)] border-2 border-[var(--c-red)] p-3 text-[var(--c-red)] font-bold text-xs"
+              className="bg-[var(--violet-2)] border-2 border-[var(--neon-red)] p-3 text-[var(--neon-red)] font-bold text-xs"
             >
               {errorMessage(error)}
             </div>
           )}
 
           {isLoading ? (
-            <div className="p-8 text-center font-display text-xs animate-pulse">
+            <div className="p-8 text-center font-display text-xs text-[var(--text-1)] animate-pulse">
               SCANNING DRIVE FOLDERS...
             </div>
           ) : scanResults.length === 0 ? (
-            <div className="p-6 bg-[var(--c-bg)] border-2 border-[var(--c-ink)] text-center font-display text-xs">
+            <div className="p-6 bg-[var(--night-1)] border-2 border-[var(--outline)] text-center font-display text-xs text-[var(--text-2)]">
               NO UNREGISTERED VIDEOS FOUND IN THIS FOLDER
             </div>
           ) : (
@@ -110,7 +110,7 @@ export const ScanPanel: React.FC<ScanPanelProps> = ({
                 return (
                   <div
                     key={item.fileId}
-                    className="p-3 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] shadow-[2px_2px_0_var(--c-ink)] space-y-2"
+                    className="p-3 border-2 border-[var(--outline)] bg-[var(--night-1)] shadow-[2px_2px_0_var(--outline)] space-y-2"
                   >
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1">
                       <span className="font-display text-xs text-[var(--text-1)] font-bold truncate">
@@ -122,7 +122,7 @@ export const ScanPanel: React.FC<ScanPanelProps> = ({
                     </div>
 
                     {item.reason && (
-                      <p className="font-mono text-[11px] text-[var(--neon-cyan)] italic">
+                      <p className="font-mono text-[12px] text-[var(--neon-cyan)] italic">
                         {item.reason}
                       </p>
                     )}
@@ -136,7 +136,7 @@ export const ScanPanel: React.FC<ScanPanelProps> = ({
                             [item.fileId]: e.target.value
                           }))
                         }
-                        className="flex-1 min-h-[44px] px-2 border-2 border-[var(--c-ink)] font-body text-xs bg-[var(--c-panel)]"
+                        className="flex-1 min-h-[44px] px-2 border-2 border-[var(--outline)] font-body text-base bg-[var(--night-2)] text-[var(--text-1)]"
                       >
                         {sessions.map((s) => (
                           <option key={s.id} value={s.id}>
@@ -165,7 +165,7 @@ export const ScanPanel: React.FC<ScanPanelProps> = ({
             </div>
           )}
 
-          <div className="pt-3 border-t-2 border-[var(--c-ink)] flex justify-end">
+          <div className="pt-3 border-t-2 border-[var(--outline)] flex justify-end">
             <PixelButton size="md" variant="secondary" onClick={onClose}>
               CLOSE
             </PixelButton>

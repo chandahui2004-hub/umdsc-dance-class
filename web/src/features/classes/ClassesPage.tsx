@@ -9,7 +9,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { SessionEditor } from './SessionEditor';
 import { todayKL } from '../../lib/time';
-import { STYLE_COLOR } from '../../theme/colors';
+import { getStyleColor } from '../../theme/colors';
 import { useCurrentEvent } from '../events/useCurrentEvent';
 import { resolveInstructor, getInstructorPhotoUrl } from '../../lib/instructorPhotos';
 import type { ClassSession, DanceStyle, Instructor, ISODate, Month } from '@umdsc/shared';
@@ -64,7 +64,6 @@ export const ClassesPage: React.FC = () => {
     [sessions]
   );
   const getStyle = (styleId: string) => allStyles.find(s => s.id === styleId);
-  const getInstructor = (instructorId: string) => instructors.find(inst => inst.id === instructorId);
   const getEvent = (id: string) => events.find(e => e.id === id);
 
   const calendarMarks = useMemo(() => {
@@ -110,18 +109,19 @@ export const ClassesPage: React.FC = () => {
 
   const colorOf = (styleId: string) => {
     const style = getStyle(styleId);
-    return style ? STYLE_COLOR[style.colorKey] || `var(--c-${style.colorKey})` : 'var(--c-orange)';
+    return getStyleColor(style?.colorKey);
   };
 
   if (!eventsLoading && events.length === 0) {
     return (
       <div className="space-y-4">
-        <h1 className="font-display text-xl md:text-2xl text-[var(--text-1)]">Calendar & Classes</h1>
+        <h1 className="font-display text-[24px] text-[var(--text-1)]">Calendar & Classes</h1>
         <EmptyState
+          scene="shutter"
           title="NO EVENTS YET"
           description="Classes belong to an event. Create one from its registration form first."
           action={
-            <Link to="/admin/events/new" className="inline-flex items-center min-h-[44px] px-4 border-2 border-[var(--c-ink)] bg-[var(--c-orange)] text-[var(--on-neon)] font-display text-xs no-underline">
+            <Link to="/admin/events/new" className="inline-flex items-center min-h-[44px] px-4 border-2 border-[var(--outline)] bg-[var(--neon-gold)] text-[var(--on-neon)] font-display text-[12px] no-underline shadow-[2px_2px_0_var(--outline)]">
               CREATE AN EVENT
             </Link>
           }
@@ -133,8 +133,8 @@ export const ClassesPage: React.FC = () => {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="font-display text-xl md:text-2xl text-[var(--text-1)]">Calendar & Classes</h1>
-        <p className="font-body text-sm text-[var(--text-2)]">
+        <h1 className="font-display text-[24px] text-[var(--text-1)]">Calendar & Classes</h1>
+        <p className="font-body text-[14px] text-[var(--text-2)]">
           {isAll
             ? 'Showing classes across all events · Change months freely'
             : event
@@ -143,8 +143,8 @@ export const ClassesPage: React.FC = () => {
         </p>
       </div>
 
-      <div className="flex items-center justify-between px-3 py-2 bg-[var(--c-navy)] text-[var(--text-1)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)]">
-        <span className="font-display text-xs text-[var(--c-yellow)]">
+      <div className="flex items-center justify-between px-3 py-2 bg-[var(--night-2)] text-[var(--text-1)] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)]">
+        <span className="font-display text-[12px] text-[var(--neon-gold)] font-bold">
           {isAll
             ? `${activeSessions.length} classes across ALL EVENTS`
             : `${activeSessions.length} classes in ${event?.name || ''}`}
@@ -156,7 +156,7 @@ export const ClassesPage: React.FC = () => {
               setCurrentMonth(event.startDate.slice(0, 7));
               setSelectedDate(event.startDate);
             }}
-            className="font-display text-[10px] text-[var(--c-yellow)] hover:underline"
+            className="font-display text-[12px] text-[var(--neon-gold)] hover:underline cursor-pointer"
           >
             GO TO EVENT ({event.startDate.slice(0, 7)})
           </button>
@@ -175,13 +175,13 @@ export const ClassesPage: React.FC = () => {
         </div>
 
         <div className="space-y-3">
-          <Panel title={`CLASSES ON ${selectedDate}`} className="px-corners">
+          <Panel title={`CLASSES ON ${selectedDate}`}>
             {isLoading ? (
               <div className="p-4 text-center">
                 <Spinner size="md" />
               </div>
             ) : error ? (
-              <div className="p-3 bg-[var(--c-peach)] text-[var(--c-red)] text-xs font-body font-bold">{errorMessage(error)}</div>
+              <div role="alert" className="p-3 bg-[var(--night-1)] border-2 border-[var(--neon-red)] text-[var(--neon-red)] text-[12px] font-body font-bold">{errorMessage(error)}</div>
             ) : (
               <div className="space-y-2">
                 {activeSessions
@@ -191,57 +191,57 @@ export const ClassesPage: React.FC = () => {
                     const instructor = resolveInstructor(s, style, instructors);
                     const photoUrl = getInstructorPhotoUrl(instructor);
                     return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => setEditingSession(s)}
-                      className="w-full text-left p-3 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] hover:bg-[var(--c-bg)] space-y-2"
-                    >
-                      <div className="flex flex-wrap justify-between items-center gap-1">
-                        <span style={{ backgroundColor: colorOf(s.styleId) }} className="px-2 py-0.5 text-[10px] font-display text-[var(--text-1)] border border-[var(--c-ink)]">
-                          {style?.name || 'Style'} Class {s.seq}
-                        </span>
-                        {isAll && (
-                          <span className="font-display text-[9px] px-1 bg-[var(--c-peach)] text-[var(--text-1)] border border-[var(--c-ink)]">
-                            {getEvent(s.eventId)?.name || 'Event'}
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => setEditingSession(s)}
+                        className="w-full text-left p-3 bg-[var(--night-2)] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] hover:bg-[var(--violet-2)] space-y-2 transition-none cursor-pointer"
+                      >
+                        <div className="flex flex-wrap justify-between items-center gap-1">
+                          <span style={{ backgroundColor: colorOf(s.styleId) }} className="px-2 py-0.5 text-[12px] font-display text-[var(--on-neon)] font-bold border border-[var(--outline)]">
+                            {style?.name || 'Style'} Class {s.seq}
                           </span>
-                        )}
-                        <span className="font-mono text-xs font-bold text-[var(--text-1)]">
-                          {s.start} - {s.end}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {photoUrl ? (
-                          <img
-                            src={photoUrl}
-                            alt={instructor?.name || 'Instructor'}
-                            className="w-8 h-10 object-cover border-2 border-[var(--c-ink)] flex-shrink-0"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <span className="w-8 h-10 flex items-center justify-center bg-[var(--c-bg)] border-2 border-[var(--c-ink)] font-display text-[8px] text-[var(--text-2)] flex-shrink-0">👤</span>
-                        )}
-                        <div className="font-body text-xs text-[var(--text-2)]">
-                          <span className="font-bold text-[var(--text-1)]">{instructor?.name || 'TBA'}</span> · {s.venue || 'TBA'}
+                          {isAll && (
+                            <span className="font-display text-[12px] px-1 bg-[var(--night-1)] text-[var(--neon-cyan)] border border-[var(--outline)]">
+                              {getEvent(s.eventId)?.name || 'Event'}
+                            </span>
+                          )}
+                          <span className="font-mono text-[12px] font-bold text-[var(--text-1)]">
+                            {s.start} - {s.end}
+                          </span>
                         </div>
-                      </div>
-                    </button>
+                        <div className="flex items-center gap-2">
+                          {photoUrl ? (
+                            <img
+                              src={photoUrl}
+                              alt={instructor?.name || 'Instructor'}
+                              className="w-8 h-10 object-cover border-2 border-[var(--outline)] flex-shrink-0"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <span className="w-8 h-10 flex items-center justify-center bg-[var(--night-1)] border-2 border-[var(--outline)] font-display text-[8px] text-[var(--text-2)] flex-shrink-0">👤</span>
+                          )}
+                          <div className="font-body text-[14px] text-[var(--text-2)]">
+                            <span className="font-bold text-[var(--text-1)]">{instructor?.name || 'TBA'}</span> · {s.venue || 'TBA'}
+                          </div>
+                        </div>
+                      </button>
                     );
                   })}
                 {activeSessions.filter(s => s.date === selectedDate).length === 0 && (
-                  <p className="font-body text-xs text-[var(--text-2)] py-2 text-center">No classes on this date.</p>
+                  <p className="font-body text-[14px] text-[var(--text-2)] py-2 text-center">No classes on this date.</p>
                 )}
 
                 {/* Add class section */}
-                <div className="pt-2 border-t-2 border-[var(--c-ink)] space-y-2">
+                <div className="pt-2 border-t-2 border-[var(--outline)] space-y-2">
                   {isAll && (
                     <label className="block space-y-1">
-                      <span className="font-display text-[10px] text-[var(--text-1)]">EVENT:</span>
+                      <span className="font-display text-[12px] text-[var(--text-1)]">EVENT:</span>
                       <select
                         aria-label="Event for new class"
                         value={targetEventId}
                         onChange={e => setSelectedAddEventId(e.target.value)}
-                        className="w-full min-h-[44px] px-2 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] font-body text-base"
+                        className="w-full min-h-[48px] px-2 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-body text-[16px] text-[var(--text-1)]"
                       >
                         {events.filter(e => e.status === 'active').map(e => (
                           <option key={e.id} value={e.id}>
@@ -258,7 +258,7 @@ export const ClassesPage: React.FC = () => {
                         aria-label="Style for new class"
                         value={addStyleId}
                         onChange={e => setNewStyleId(e.target.value)}
-                        className="w-full min-h-[44px] px-2 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] font-body text-base"
+                        className="w-full min-h-[48px] px-2 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-body text-[16px] text-[var(--text-1)]"
                       >
                         {styles.map(s => (
                           <option key={s.id} value={s.id}>
@@ -266,14 +266,14 @@ export const ClassesPage: React.FC = () => {
                           </option>
                         ))}
                       </select>
-                      <PixelButton size="md" className="w-full" disabled={addClass.isPending} onClick={() => addClass.mutate()}>
+                      <PixelButton size="md" variant="primary" className="w-full" disabled={addClass.isPending} onClick={() => addClass.mutate()}>
                         {addClass.isPending ? 'ADDING…' : `+ ADD CLASS ON ${selectedDate}`}
                       </PixelButton>
-                      {addError && <p role="alert" className="font-body text-xs font-bold text-[var(--c-red)]">{addError}</p>}
+                      {addError && <p role="alert" className="font-body text-[12px] font-bold text-[var(--neon-red)]">{addError}</p>}
                     </>
                   )}
                   {!insideEvent && targetEvent && (
-                    <p className="font-body text-xs text-[var(--text-2)]">
+                    <p className="font-body text-[14px] text-[var(--text-2)]">
                       {selectedDate} is outside {targetEvent.name} ({targetEvent.startDate} to {targetEvent.endDate}).
                     </p>
                   )}
@@ -284,9 +284,9 @@ export const ClassesPage: React.FC = () => {
         </div>
       </div>
 
-      <Panel title={isAll ? 'ALL CLASSES ACROSS ALL EVENTS' : `ALL CLASSES IN ${event?.name || ''}`} className="px-corners">
+      <Panel title={isAll ? 'ALL CLASSES ACROSS ALL EVENTS' : `ALL CLASSES IN ${event?.name || ''}`}>
         {activeSessions.length === 0 ? (
-          <EmptyState title="NO CLASSES YET" description="Pick a day in the calendar and add a class, or use Events › Edit." />
+          <EmptyState scene="shutter" title="NO CLASSES YET" description="Pick a day in the calendar and add a class, or use Events › Edit." />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {activeSessions.map(s => {
@@ -294,55 +294,55 @@ export const ClassesPage: React.FC = () => {
               const instructor = resolveInstructor(s, style, instructors);
               const photoUrl = getInstructorPhotoUrl(instructor);
               return (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => setEditingSession(s)}
-                className="text-left p-3 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] hover:bg-[var(--c-bg)] space-y-2"
-              >
-                <div className="flex flex-wrap justify-between items-start gap-1">
-                  <span style={{ backgroundColor: colorOf(s.styleId) }} className="px-2 py-0.5 text-xs font-display text-[var(--text-1)] border border-[var(--c-ink)]">
-                    {style?.name || 'Style'} Class {s.seq}
-                  </span>
-                  {isAll && (
-                    <span className="font-display text-[9px] px-1 bg-[var(--c-peach)] text-[var(--text-1)] border border-[var(--c-ink)]">
-                      {getEvent(s.eventId)?.name || 'Event'}
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setEditingSession(s)}
+                  className="text-left p-3 bg-[var(--night-2)] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] hover:bg-[var(--violet-2)] space-y-2 transition-none cursor-pointer"
+                >
+                  <div className="flex flex-wrap justify-between items-start gap-1">
+                    <span style={{ backgroundColor: colorOf(s.styleId) }} className="px-2 py-0.5 text-[12px] font-display text-[var(--on-neon)] font-bold border border-[var(--outline)]">
+                      {style?.name || 'Style'} Class {s.seq}
                     </span>
-                  )}
-                  <span className="font-display text-[10px] text-[var(--text-1)]">{s.date}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {photoUrl ? (
-                    <img
-                      src={photoUrl}
-                      alt={instructor?.name || 'Instructor'}
-                      className="w-10 h-[50px] object-cover border-2 border-[var(--c-ink)] flex-shrink-0"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <span className="w-10 h-[50px] flex items-center justify-center bg-[var(--c-bg)] border-2 border-[var(--c-ink)] font-display text-[9px] text-[var(--text-2)] flex-shrink-0">👤</span>
-                  )}
-                  <div className="space-y-1">
-                    <div className="font-body text-xs">
-                      <span className="font-bold text-[var(--text-1)]">{instructor?.name || 'TBA'}</span>
-                    </div>
-                    <div className="font-body text-xs text-[var(--text-2)]">
-                      <span className="font-mono">{s.start} - {s.end}</span> · {s.venue || 'TBA'}
+                    {isAll && (
+                      <span className="font-display text-[12px] px-1 bg-[var(--night-1)] text-[var(--neon-cyan)] border border-[var(--outline)]">
+                        {getEvent(s.eventId)?.name || 'Event'}
+                      </span>
+                    )}
+                    <span className="font-display text-[12px] text-[var(--text-1)]">{s.date}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {photoUrl ? (
+                      <img
+                        src={photoUrl}
+                        alt={instructor?.name || 'Instructor'}
+                        className="w-10 h-[50px] object-cover border-2 border-[var(--outline)] flex-shrink-0"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <span className="w-10 h-[50px] flex items-center justify-center bg-[var(--night-1)] border-2 border-[var(--outline)] font-display text-[9px] text-[var(--text-2)] flex-shrink-0">👤</span>
+                    )}
+                    <div className="space-y-1">
+                      <div className="font-body text-[14px]">
+                        <span className="font-bold text-[var(--text-1)]">{instructor?.name || 'TBA'}</span>
+                      </div>
+                      <div className="font-body text-[12px] text-[var(--text-2)]">
+                        <span className="font-mono">{s.start} - {s.end}</span> · {s.venue || 'TBA'}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <span
-                  className={`inline-block px-1.5 py-0.5 font-display text-[9px] border border-[var(--c-ink)] ${
-                    s.status === 'cancelled'
-                      ? 'bg-[var(--c-red)] text-[var(--on-neon)]'
-                      : s.status === 'replacement'
-                      ? 'bg-[var(--c-yellow)] text-[var(--on-neon)]'
-                      : 'bg-[var(--c-green)] text-[var(--on-neon)]'
-                  }`}
-                >
-                  {s.status.toUpperCase()}
-                </span>
-              </button>
+                  <span
+                    className={`inline-block px-1.5 py-0.5 font-display text-[12px] border border-[var(--outline)] font-bold ${
+                      s.status === 'cancelled'
+                        ? 'bg-[var(--neon-red)] text-[var(--on-neon)]'
+                        : s.status === 'replacement'
+                        ? 'bg-[var(--neon-gold)] text-[var(--on-neon)]'
+                        : 'bg-[var(--neon-green)] text-[var(--on-neon)]'
+                    }`}
+                  >
+                    {s.status.toUpperCase()}
+                  </span>
+                </button>
               );
             })}
           </div>
@@ -362,3 +362,5 @@ export const ClassesPage: React.FC = () => {
     </div>
   );
 };
+
+export default ClassesPage;

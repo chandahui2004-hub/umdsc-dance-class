@@ -9,7 +9,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { PixelPortraitFrame } from '../../components/ui/PixelPortraitFrame';
 import { todayKL } from '../../lib/time';
-import { STYLE_COLOR } from '../../theme/colors';
+import { getStyleColor } from '../../theme/colors';
 import type { TodayClass } from '@umdsc/shared';
 import { useCurrentEvent } from '../events/useCurrentEvent';
 import { resolveInstructor, getInstructorPhotoUrl } from '../../lib/instructorPhotos';
@@ -31,15 +31,10 @@ export const TodayPage: React.FC = () => {
     queryFn: async () => (await call<TodayClass[]>('sessions.today', {})).data || []
   });
 
-  // The server returns only today's classes (Malaysia time) from active events
   const todaySessions = sessions;
 
   const getStyle = (styleId: string) => {
     return bootstrap?.styles?.find((st) => st.id === styleId);
-  };
-
-  const getInstructor = (instructorId: string) => {
-    return bootstrap?.instructors?.find((inst) => inst.id === instructorId);
   };
 
   return (
@@ -47,10 +42,10 @@ export const TodayPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-xl md:text-2xl text-[var(--text-1)]">
+          <h1 className="font-display text-[24px] text-[var(--text-1)]">
             Today
           </h1>
-          <p className="font-body text-sm text-[var(--text-2)]">
+          <p className="font-body text-[14px] text-[var(--text-2)]">
             Classes scheduled for today ({today})
           </p>
         </div>
@@ -66,21 +61,22 @@ export const TodayPage: React.FC = () => {
       </div>
 
       {isLoading ? (
-        <div className="p-8 text-center bg-[var(--c-panel)] border-4 border-[var(--c-ink)]">
+        <div className="p-8 text-center bg-[var(--night-2)] border-2 border-[var(--outline)]">
           <Spinner size="lg" />
-          <p className="font-display text-xs text-[var(--text-1)] mt-3">
+          <p className="font-display text-[12px] text-[var(--text-1)] mt-3">
             LOADING TODAY'S SCHEDULE...
           </p>
         </div>
       ) : error ? (
         <div
           role="alert"
-          className="bg-[var(--c-peach)] border-4 border-[var(--c-red)] p-4 text-[var(--c-red)] font-body font-bold text-sm"
+          className="bg-[var(--night-1)] border-2 border-[var(--neon-red)] p-4 text-[var(--neon-red)] font-body font-bold text-[14px]"
         >
           {errorMessage(error)}
         </div>
       ) : todaySessions.length === 0 ? (
         <EmptyState
+          scene="shutter"
           title="NO CLASSES TODAY"
           description={`There are no dance classes scheduled for today (${today}). Check the Calendar tab for upcoming classes.`}
           action={
@@ -95,28 +91,28 @@ export const TodayPage: React.FC = () => {
             const style = getStyle(session.styleId);
             const instructor = resolveInstructor(session, style, bootstrap?.instructors || []);
             const photoUrl = getInstructorPhotoUrl(instructor);
-            const colorVar = style ? STYLE_COLOR[style.colorKey] || `var(--c-${style.colorKey})` : 'var(--c-orange)';
+            const colorVar = getStyleColor(style?.colorKey);
 
             return (
               <Panel
                 key={session.id}
                 title={`${style?.name || 'Class'} Class ${session.seq} · ${session.eventName}`}
-                className="px-corners space-y-3"
+                className="space-y-3"
               >
                 <div className="flex items-center gap-2">
                   <span
                     style={{ backgroundColor: colorVar }}
-                    className="px-2 py-0.5 text-xs font-display text-[var(--text-1)] border-2 border-[var(--c-ink)]"
+                    className="px-2 py-0.5 text-[12px] font-display text-[var(--on-neon)] font-bold border-2 border-[var(--outline)]"
                   >
                     {style?.name || 'Dance'}
                   </span>
                   <span
-                    className={`px-2 py-0.5 text-xs font-display border border-[var(--c-ink)] ${
+                    className={`px-2 py-0.5 text-[12px] font-display border border-[var(--outline)] font-bold ${
                       session.status === 'cancelled'
-                        ? 'bg-[var(--c-red)] text-[var(--on-neon)]'
+                        ? 'bg-[var(--neon-red)] text-[var(--on-neon)]'
                         : session.status === 'replacement'
-                        ? 'bg-[var(--c-yellow)] text-[var(--on-neon)]'
-                        : 'bg-[var(--c-green)] text-[var(--on-neon)]'
+                        ? 'bg-[var(--neon-gold)] text-[var(--on-neon)]'
+                        : 'bg-[var(--neon-green)] text-[var(--on-neon)]'
                     }`}
                   >
                     {session.status.toUpperCase()}
@@ -131,9 +127,9 @@ export const TodayPage: React.FC = () => {
                     glow={colorVar}
                     size="sm"
                   />
-                  <div className="space-y-1 font-body text-sm text-[var(--text-1)]">
+                  <div className="space-y-1 font-body text-[14px] text-[var(--text-1)]">
                     <div>
-                      <strong>Time:</strong> <span className="font-mono">{session.start} - {session.end}</span>
+                      <strong>Time:</strong> <span className="font-mono text-[14px]">{session.start} - {session.end}</span>
                     </div>
                     <div>
                       <strong>Instructor:</strong> {instructor?.name || 'TBA'}
@@ -142,7 +138,7 @@ export const TodayPage: React.FC = () => {
                       <strong>Venue:</strong> {session.venue || 'Club Studio'}
                     </div>
                     {session.note && (
-                      <div className="text-xs text-[var(--text-2)] italic">
+                      <div className="text-[12px] text-[var(--text-2)] italic">
                         Note: {session.note}
                       </div>
                     )}
@@ -170,3 +166,5 @@ export const TodayPage: React.FC = () => {
     </div>
   );
 };
+
+export default TodayPage;

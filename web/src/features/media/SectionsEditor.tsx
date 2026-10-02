@@ -82,11 +82,11 @@ export const SectionsEditor: React.FC<SectionsEditorProps> = ({ music, onClose }
   });
 
   return (
-    <div className="fixed inset-0 bg-[var(--c-ink)]/60 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
       <div className="w-full max-w-lg max-h-[90vh] flex flex-col">
         <Panel
           title={`PRACTICE SECTIONS: ${music.title}`}
-          className="px-corners bg-[var(--c-panel)] flex-1 overflow-y-auto space-y-4"
+          className="px-corners bg-[var(--night-2)] flex-1 overflow-y-auto space-y-4"
         >
           <p className="font-body text-xs text-[var(--text-2)]">
             Define loopable choreo sections for the DanceCue Practice Studio.
@@ -95,14 +95,14 @@ export const SectionsEditor: React.FC<SectionsEditorProps> = ({ music, onClose }
           {error && (
             <div
               role="alert"
-              className="bg-[var(--c-peach)] border-2 border-[var(--c-red)] p-3 text-[var(--c-red)] font-bold text-xs"
+              className="bg-[var(--violet-2)] border-2 border-[var(--neon-red)] p-3 text-[var(--neon-red)] font-bold text-xs"
             >
               {error}
             </div>
           )}
 
           {/* New Section Form */}
-          <div className="p-3 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] space-y-3">
+          <div className="p-3 border-2 border-[var(--outline)] bg-[var(--night-1)] space-y-3">
             <h4 className="font-display text-xs text-[var(--text-1)] uppercase">
               + Add Section
             </h4>
@@ -113,13 +113,13 @@ export const SectionsEditor: React.FC<SectionsEditorProps> = ({ music, onClose }
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Intro / Routine 1 / Bridge"
-                className="w-full min-h-[44px] px-2 border-2 border-[var(--c-ink)] font-body text-sm bg-[var(--c-panel)]"
+                className="w-full min-h-[44px] px-2 border-2 border-[var(--outline)] font-body text-base bg-[var(--night-2)] text-[var(--text-1)]"
               />
             </Field>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="font-display text-[10px] text-[var(--text-1)] uppercase block mb-1">
+                <label className="font-display text-[8px] text-[var(--text-1)] uppercase block mb-1">
                   Start (MM : SS)
                 </label>
                 <div className="flex items-center gap-1">
@@ -128,22 +128,22 @@ export const SectionsEditor: React.FC<SectionsEditorProps> = ({ music, onClose }
                     min="0"
                     value={startMin}
                     onChange={(e) => setStartMin(Math.max(0, parseInt(e.target.value || '0', 10)))}
-                    className="w-16 min-h-[44px] px-2 border-2 border-[var(--c-ink)] font-mono text-center text-sm bg-[var(--c-panel)]"
+                    className="w-16 min-h-[44px] px-2 border-2 border-[var(--outline)] font-mono text-center text-base bg-[var(--night-2)] text-[var(--text-1)]"
                   />
-                  <span>:</span>
+                  <span className="text-[var(--text-1)] font-bold">:</span>
                   <input
                     type="number"
                     min="0"
                     max="59"
                     value={startSec}
                     onChange={(e) => setStartSec(Math.min(59, Math.max(0, parseInt(e.target.value || '0', 10))))}
-                    className="w-16 min-h-[44px] px-2 border-2 border-[var(--c-ink)] font-mono text-center text-sm bg-[var(--c-panel)]"
+                    className="w-16 min-h-[44px] px-2 border-2 border-[var(--outline)] font-mono text-center text-base bg-[var(--night-2)] text-[var(--text-1)]"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="font-display text-[10px] text-[var(--text-1)] uppercase block mb-1">
+                <label className="font-display text-[8px] text-[var(--text-1)] uppercase block mb-1">
                   End (MM : SS)
                 </label>
                 <div className="flex items-center gap-1">
@@ -152,16 +152,16 @@ export const SectionsEditor: React.FC<SectionsEditorProps> = ({ music, onClose }
                     min="0"
                     value={endMin}
                     onChange={(e) => setEndMin(Math.max(0, parseInt(e.target.value || '0', 10)))}
-                    className="w-16 min-h-[44px] px-2 border-2 border-[var(--c-ink)] font-mono text-center text-sm bg-[var(--c-panel)]"
+                    className="w-16 min-h-[44px] px-2 border-2 border-[var(--outline)] font-mono text-center text-base bg-[var(--night-2)] text-[var(--text-1)]"
                   />
-                  <span>:</span>
+                  <span className="text-[var(--text-1)] font-bold">:</span>
                   <input
                     type="number"
                     min="0"
                     max="59"
                     value={endSec}
                     onChange={(e) => setEndSec(Math.min(59, Math.max(0, parseInt(e.target.value || '0', 10))))}
-                    className="w-16 min-h-[44px] px-2 border-2 border-[var(--c-ink)] font-mono text-center text-sm bg-[var(--c-panel)]"
+                    className="w-16 min-h-[44px] px-2 border-2 border-[var(--outline)] font-mono text-center text-base bg-[var(--night-2)] text-[var(--text-1)]"
                   />
                 </div>
               </div>
@@ -184,7 +184,7 @@ export const SectionsEditor: React.FC<SectionsEditorProps> = ({ music, onClose }
             </h4>
 
             {isLoading ? (
-              <p className="font-display text-xs animate-pulse">Loading sections...</p>
+              <p className="font-display text-xs text-[var(--text-1)] animate-pulse">Loading sections...</p>
             ) : sections.length === 0 ? (
               <p className="font-body text-xs text-[var(--text-2)] italic">
                 No sections defined yet. Dancers will loop the full song in Studio.
@@ -194,7 +194,7 @@ export const SectionsEditor: React.FC<SectionsEditorProps> = ({ music, onClose }
                 {sections.map((sec) => (
                   <div
                     key={sec.id}
-                    className="p-3 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] flex justify-between items-center gap-2"
+                    className="p-3 border-2 border-[var(--outline)] bg-[var(--night-1)] flex justify-between items-center gap-2"
                   >
                     <div>
                       <span className="font-display text-xs text-[var(--text-1)] font-bold">
@@ -224,7 +224,7 @@ export const SectionsEditor: React.FC<SectionsEditorProps> = ({ music, onClose }
             )}
           </div>
 
-          <div className="pt-3 border-t-2 border-[var(--c-ink)] flex justify-end">
+          <div className="pt-3 border-t-2 border-[var(--outline)] flex justify-end">
             <PixelButton size="md" variant="secondary" onClick={onClose}>
               DONE
             </PixelButton>

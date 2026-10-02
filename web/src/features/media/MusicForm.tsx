@@ -121,13 +121,13 @@ export const MusicForm: React.FC<MusicFormProps> = ({
   });
 
   return (
-    <div className="fixed inset-0 bg-[var(--c-ink)]/60 z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 overflow-y-auto">
       <div className="w-full max-w-md my-auto">
-        <Panel title="ADD MUSIC TRACK" className="px-corners bg-[var(--c-panel)] space-y-4">
+        <Panel title="ADD MUSIC TRACK" className="px-corners bg-[var(--night-2)] space-y-4">
           {error && (
             <div
               role="alert"
-              className="bg-[var(--c-peach)] border-2 border-[var(--c-red)] p-3 text-[var(--c-red)] font-bold text-xs"
+              className="bg-[var(--violet-2)] border-2 border-[var(--neon-red)] p-3 text-[var(--neon-red)] font-bold text-xs"
             >
               {error}
             </div>
@@ -143,7 +143,7 @@ export const MusicForm: React.FC<MusicFormProps> = ({
               value={link}
               onChange={e => setLink(e.target.value)}
               placeholder="Paste a YouTube, Spotify, SoundCloud or Drive MP3 link"
-              className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-mono text-xs bg-[var(--c-bg)]"
+              className="w-full min-h-[44px] px-3 border-2 border-[var(--outline)] font-mono text-base bg-[var(--night-1)] text-[var(--text-1)]"
             />
           </Field>
 
@@ -151,12 +151,12 @@ export const MusicForm: React.FC<MusicFormProps> = ({
             <p className="font-body text-xs text-[var(--text-2)] animate-pulse">Checking link…</p>
           )}
           {status === 'error' && linkError && (
-            <p role="alert" className="font-body text-xs font-bold text-[var(--c-red)]">
+            <p role="alert" className="font-body text-xs font-bold text-[var(--neon-red)]">
               {linkError}
             </p>
           )}
           {resolved?.kind === 'youtube' && !resolved.embeddable && (
-            <p role="alert" className="border-2 border-[var(--c-orange)] bg-[var(--c-peach)] p-2 text-xs font-bold text-[var(--text-1)]">
+            <p role="alert" className="border-2 border-[var(--neon-orange)] bg-[var(--violet-2)] p-2 text-xs font-bold text-[var(--text-1)]">
               {NOT_EMBEDDABLE_WARNING}
             </p>
           )}
@@ -173,7 +173,7 @@ export const MusicForm: React.FC<MusicFormProps> = ({
                 setTitle(e.target.value);
               }}
               placeholder="e.g. Uptown Funk - Bruno Mars"
-              className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-body text-sm bg-[var(--c-bg)]"
+              className="w-full min-h-[44px] px-3 border-2 border-[var(--outline)] font-body text-base bg-[var(--night-1)] text-[var(--text-1)]"
               required
             />
           </Field>
@@ -186,7 +186,7 @@ export const MusicForm: React.FC<MusicFormProps> = ({
             <select
               value={sessionId}
               onChange={e => setSessionId(e.target.value)}
-              className="w-full min-h-[44px] px-2 border-2 border-[var(--c-ink)] font-body text-sm bg-[var(--c-bg)]"
+              className="w-full min-h-[44px] px-2 border-2 border-[var(--outline)] font-body text-base bg-[var(--night-1)] text-[var(--text-1)]"
             >
               <option value="">-- General Month Practice Track --</option>
               {sessions.map(s => (
@@ -197,7 +197,7 @@ export const MusicForm: React.FC<MusicFormProps> = ({
             </select>
           </Field>
 
-          <div className="flex gap-3 pt-3 border-t-2 border-[var(--c-ink)]">
+          <div className="flex gap-3 pt-3 border-t-2 border-[var(--outline)]">
             <PixelButton size="md" variant="secondary" disabled={createMutation.isPending} onClick={onClose}>
               CANCEL
             </PixelButton>

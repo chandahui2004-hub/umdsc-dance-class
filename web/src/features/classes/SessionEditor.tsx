@@ -47,7 +47,6 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
       setDate(session.date || '');
       setStart(session.start || '20:00');
       setEnd(session.end || '22:00');
-      // Fall back to style's default instructor if session has none
       const sessionStyle = styles.find((s) => s.id === session.styleId);
       setInstructorId(session.instructorId || sessionStyle?.defaultInstructorId || '');
       setVenue(session.venue || '');
@@ -146,7 +145,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
         {conflictData && (
           <div
             role="alert"
-            className="p-3 bg-[var(--c-peach)] border-4 border-[var(--c-red)] text-[var(--c-red)] text-xs font-body font-bold space-y-2"
+            className="p-3 bg-[var(--night-1)] border-2 border-[var(--neon-red)] text-[var(--neon-red)] text-[12px] font-body font-bold space-y-2"
           >
             <p>
               Changed by {conflictData.updatedBy || 'another user'} at {conflictData.updatedAt || 'another time'}.
@@ -178,7 +177,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
         {error && !conflictData && (
           <div
             role="alert"
-            className="p-3 bg-[var(--c-peach)] border-2 border-[var(--c-red)] text-[var(--c-red)] text-xs font-body font-bold"
+            className="p-3 bg-[var(--night-1)] border-2 border-[var(--neon-red)] text-[var(--neon-red)] text-[12px] font-body font-bold"
           >
             {error}
           </div>
@@ -199,14 +198,14 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
 
         {/* Start and End Times */}
         <div className="space-y-2">
-          <label className="block font-display text-xs text-[var(--text-1)] uppercase">
+          <label className="block font-display text-[12px] text-[var(--text-1)] uppercase">
             Start Time
           </label>
           <TimePicker value={start} onChange={setStart} />
         </div>
 
         <div className="space-y-2">
-          <label className="block font-display text-xs text-[var(--text-1)] uppercase">
+          <label className="block font-display text-[12px] text-[var(--text-1)] uppercase">
             End Time
           </label>
           <TimePicker value={end} onChange={setEnd} />
@@ -216,7 +215,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
         <div>
           <label
             htmlFor="instructor-select"
-            className="block font-display text-xs text-[var(--text-1)] mb-1 uppercase"
+            className="block font-display text-[12px] text-[var(--text-1)] mb-1 uppercase"
           >
             Instructor
           </label>
@@ -228,11 +227,11 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
                 <img
                   src={photoUrl}
                   alt={selectedInst?.name || 'Instructor'}
-                  className="w-11 h-[55px] object-cover border-2 border-[var(--c-ink)] flex-shrink-0"
+                  className="w-11 h-[55px] object-cover border-2 border-[var(--outline)] flex-shrink-0"
                   loading="lazy"
                 />
               ) : (
-                <span className="w-11 h-[55px] flex items-center justify-center bg-[var(--c-bg)] border-2 border-[var(--c-ink)] font-display text-sm text-[var(--text-2)] flex-shrink-0">👤</span>
+                <span className="w-11 h-[55px] flex items-center justify-center bg-[var(--night-1)] border-2 border-[var(--outline)] font-display text-[12px] text-[var(--text-2)] flex-shrink-0">👤</span>
               );
             })()}
             <select
@@ -240,7 +239,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
               value={instructorId}
               onChange={(e) => setInstructorId(e.target.value)}
               disabled={loading}
-              className="w-full min-h-[44px] px-3 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] font-body text-base text-[var(--text-1)] focus:outline-none focus:ring-2 focus:ring-[var(--c-yellow)]"
+              className="w-full min-h-[48px] px-3 bg-[var(--night-1)] border-2 border-[var(--outline)] px-well font-body text-[16px] text-[var(--text-1)]"
             >
               <option value="">Select Instructor...</option>
               {instructors.map((inst) => (
@@ -251,7 +250,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
             </select>
           </div>
           {instructorId && styleObj?.defaultInstructorId && instructorId === styleObj.defaultInstructorId && (
-            <p className="font-body text-[9px] text-[var(--text-2)] mt-1">Default instructor for {styleObj.name}</p>
+            <p className="font-body text-[12px] text-[var(--text-2)] mt-1">Default instructor for {styleObj.name}</p>
           )}
         </div>
 
@@ -269,7 +268,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
         <div>
           <label
             htmlFor="status-select"
-            className="block font-display text-xs text-[var(--text-1)] mb-1 uppercase"
+            className="block font-display text-[12px] text-[var(--text-1)] mb-1 uppercase"
           >
             Session Status
           </label>
@@ -278,7 +277,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
             value={status}
             onChange={(e) => setStatus(e.target.value as any)}
             disabled={loading}
-            className="w-full min-h-[44px] px-3 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] font-body text-base text-[var(--text-1)] focus:outline-none focus:ring-2 focus:ring-[var(--c-yellow)]"
+            className="w-full min-h-[48px] px-3 bg-[var(--night-1)] border-2 border-[var(--outline)] px-well font-body text-[16px] text-[var(--text-1)]"
           >
             <option value="scheduled">Scheduled</option>
             <option value="replacement">Replacement</option>
@@ -318,7 +317,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
           </PixelButton>
         </div>
 
-        <div className="pt-2 border-t-2 border-[var(--c-ink)]">
+        <div className="pt-2 border-t-2 border-[var(--outline)]">
           <PixelButton
             variant="danger"
             size="md"
@@ -328,7 +327,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
           >
             DELETE THIS CLASS
           </PixelButton>
-          <p className="font-body text-xs text-[var(--text-2)] mt-1">
+          <p className="font-body text-[12px] text-[var(--text-2)] mt-1">
             For a class added by mistake. To keep a class on the schedule but mark it as not
             happening, set Status to Cancelled instead.
           </p>

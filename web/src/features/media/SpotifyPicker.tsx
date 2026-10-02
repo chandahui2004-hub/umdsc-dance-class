@@ -44,9 +44,9 @@ export const SpotifyPicker: React.FC<SpotifyPickerProps> = ({ resolved, choice, 
   };
 
   return (
-    <div className="space-y-3 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] p-3">
+    <div className="space-y-3 border-2 border-[var(--outline)] bg-[var(--night-2)] p-3">
       <div>
-        <p className="font-display text-[10px] text-[var(--text-2)]">SPOTIFY SONG</p>
+        <p className="font-display text-[8px] text-[var(--text-2)]">SPOTIFY SONG</p>
         <p className="font-body text-sm font-bold text-[var(--text-1)]">
           {`${resolved.title} · ${resolved.artist} · ${minutesAndSeconds(resolved.durationSec)}`}
         </p>
@@ -56,7 +56,7 @@ export const SpotifyPicker: React.FC<SpotifyPickerProps> = ({ resolved, choice, 
       </div>
 
       {resolved.notice && (
-        <p role="alert" className="border-2 border-[var(--c-orange)] bg-[var(--c-peach)] p-2 text-xs font-bold text-[var(--text-1)]">
+        <p role="alert" className="border-2 border-[var(--neon-orange)] bg-[var(--violet-2)] p-2 text-xs font-bold text-[var(--text-1)]">
           {resolved.notice === 'SEARCH_QUOTA' ? QUOTA_MESSAGE : UNAVAILABLE_MESSAGE}
         </p>
       )}
@@ -71,7 +71,7 @@ export const SpotifyPicker: React.FC<SpotifyPickerProps> = ({ resolved, choice, 
           return (
             <li
               key={c.youtubeId}
-              className={`flex flex-col gap-2 border-2 p-2 sm:flex-row ${selected ? 'border-[var(--c-green)] bg-[var(--c-panel)]' : 'border-[var(--c-ink)]'}`}
+              className={`flex flex-col gap-2 border-2 p-2 sm:flex-row ${selected ? 'border-[var(--neon-green)] bg-[var(--violet-2)]' : 'border-[var(--outline)] bg-[var(--night-1)]'}`}
             >
               <div className="aspect-video w-full shrink-0 overflow-hidden bg-black sm:aspect-auto sm:h-[68px] sm:w-[120px]">
                 {listeningId === c.youtubeId ? (
@@ -87,10 +87,10 @@ export const SpotifyPicker: React.FC<SpotifyPickerProps> = ({ resolved, choice, 
               </div>
               <div className="min-w-0 flex-1 space-y-1">
                 <p className="truncate font-body text-xs font-bold text-[var(--text-1)]">{c.title}</p>
-                <p className="truncate font-body text-[11px] text-[var(--text-2)]">
+                <p className="truncate font-body text-[12px] text-[var(--text-2)]">
                   {c.channel} · {minutesAndSeconds(c.durationSec)}
                 </p>
-                <p className={`font-mono text-[11px] ${c.lengthMatch ? 'text-[var(--neon-green)]' : 'text-[var(--c-red)]'}`}>
+                <p className={`font-mono text-[12px] ${c.lengthMatch ? 'text-[var(--neon-green)]' : 'text-[var(--neon-red)]'}`}>
                   {c.lengthMatch ? '✓ same length' : '✗ different length — check the version'}
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -111,22 +111,22 @@ export const SpotifyPicker: React.FC<SpotifyPickerProps> = ({ resolved, choice, 
         })}
       </ul>
 
-      <div className="space-y-2 border-t-2 border-[var(--c-ink)] pt-2">
-        <p className="font-display text-[10px] text-[var(--text-2)]">PASTE MY OWN PRACTICE LINK</p>
+      <div className="space-y-2 border-t-2 border-[var(--outline)] pt-2">
+        <p className="font-display text-[8px] text-[var(--text-2)]">PASTE MY OWN PRACTICE LINK</p>
         <div className="flex gap-2">
           <input
             type="text"
             value={ownLink}
             onChange={e => setOwnLink(e.target.value)}
             placeholder="Paste a YouTube, SoundCloud or MP3 link"
-            className="min-h-[40px] w-full border-2 border-[var(--c-ink)] bg-[var(--c-panel)] px-2 font-mono text-xs"
+            className="min-h-[44px] w-full border-2 border-[var(--outline)] bg-[var(--night-1)] px-2 font-mono text-base text-[var(--text-1)]"
           />
           <PixelButton size="sm" variant="secondary" onClick={useOwnLink} disabled={!ownLink.trim()}>
             USE LINK
           </PixelButton>
         </div>
         {ownLinkError && (
-          <p role="alert" className="text-xs font-bold text-[var(--c-red)]">
+          <p role="alert" className="text-xs font-bold text-[var(--neon-red)]">
             {ownLinkError}
           </p>
         )}
@@ -135,7 +135,7 @@ export const SpotifyPicker: React.FC<SpotifyPickerProps> = ({ resolved, choice, 
         )}
       </div>
 
-      <div className="border-t-2 border-[var(--c-ink)] pt-2">
+      <div className="border-t-2 border-[var(--outline)] pt-2">
         <PixelButton
           size="sm"
           variant={choice?.type === 'listenOnly' ? 'primary' : 'secondary'}
@@ -143,7 +143,7 @@ export const SpotifyPicker: React.FC<SpotifyPickerProps> = ({ resolved, choice, 
         >
           SAVE AS LISTEN-ONLY
         </PixelButton>
-        <p className="mt-1 font-body text-[11px] text-[var(--text-2)]">
+        <p className="mt-1 font-body text-[12px] text-[var(--text-2)]">
           Dancers can open it in Spotify but cannot practise with it in the Studio.
         </p>
       </div>

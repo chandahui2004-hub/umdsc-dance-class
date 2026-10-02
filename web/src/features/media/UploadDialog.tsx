@@ -199,23 +199,23 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
   const totalBytes = files.reduce((acc, f) => acc + f.size, 0);
 
   return (
-    <div className="fixed inset-0 bg-[var(--c-ink)]/60 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
         <Panel
           title={type === 'video' ? 'UPLOAD CLASS RECAP VIDEO(S)' : 'UPLOAD CLASS MP3 MUSIC'}
-          className="px-corners bg-[var(--c-panel)] space-y-4"
+          className="px-corners bg-[var(--night-2)] space-y-4"
         >
           {error && (
             <div
               role="alert"
-              className="bg-[var(--c-peach)] border-2 border-[var(--c-red)] p-3 text-[var(--c-red)] font-bold text-xs"
+              className="bg-[var(--violet-2)] border-2 border-[var(--neon-red)] p-3 text-[var(--neon-red)] font-bold text-xs"
             >
               {error}
             </div>
           )}
 
           {sessions.length === 0 ? (
-            <div className="p-4 bg-[var(--c-peach)] border-2 border-[var(--c-orange)] space-y-3">
+            <div className="p-4 bg-[var(--violet-2)] border-2 border-[var(--neon-gold)] space-y-3">
               <h4 className="font-display text-xs text-[var(--text-1)] font-bold">
                 NO CLASSES IN {eventName.toUpperCase()} FOR {style.name.toUpperCase()}
               </h4>
@@ -240,7 +240,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
                   value={selectedSessionId}
                   disabled={isUploading}
                   onChange={(e) => setSelectedSessionId(e.target.value)}
-                  className="w-full min-h-[44px] px-2 border-2 border-[var(--c-ink)] font-body text-sm bg-[var(--c-bg)]"
+                  className="w-full min-h-[44px] px-2 border-2 border-[var(--outline)] font-body text-base bg-[var(--night-1)] text-[var(--text-1)]"
                 >
                   {sessions.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -263,38 +263,38 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
               accept={type === 'video' ? 'video/mp4,video/*,.mov,.mp4' : 'audio/mp3,audio/*,.mp3'}
               disabled={isUploading}
               onChange={handleFileChange}
-              className="w-full min-h-[44px] p-2 border-2 border-[var(--c-ink)] font-mono text-xs bg-[var(--c-bg)]"
+              className="w-full min-h-[44px] p-2 border-2 border-[var(--outline)] font-mono text-base bg-[var(--night-1)] text-[var(--text-1)]"
             />
           </Field>
 
           {/* Selected Files List */}
           {files.length > 0 && (
-            <div className="space-y-1.5 p-2 bg-[var(--c-bg)] border-2 border-[var(--c-ink)] max-h-44 overflow-y-auto">
+            <div className="space-y-1.5 p-2 bg-[var(--night-1)] border-2 border-[var(--outline)] max-h-44 overflow-y-auto">
               <div className="flex justify-between items-center text-xs font-display">
                 <span>
                   {files.length} {files.length === 1 ? 'FILE' : 'FILES'} SELECTED:
                 </span>
-                <span className="font-mono text-[11px] text-[var(--text-2)]">
+                <span className="font-mono text-[12px] text-[var(--text-2)]">
                   {(totalBytes / (1024 * 1024)).toFixed(1)} MB total
                 </span>
               </div>
               {files.map((f, idx) => (
                 <div
                   key={idx}
-                  className="flex justify-between items-center p-1.5 bg-[var(--c-panel)] border border-[var(--c-ink)] font-mono text-xs"
+                  className="flex justify-between items-center p-1.5 bg-[var(--night-2)] border border-[var(--outline)] font-mono text-xs"
                 >
-                  <span className="truncate max-w-[220px] font-bold">
+                  <span className="truncate max-w-[220px] font-bold text-[var(--text-1)]">
                     #{idx + 1} {f.name}
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-[var(--text-2)]">
+                    <span className="text-[12px] text-[var(--text-2)]">
                       {(f.size / (1024 * 1024)).toFixed(1)} MB
                     </span>
                     {!isUploading && (
                       <button
                         type="button"
                         onClick={() => removeFile(idx)}
-                        className="text-[var(--c-red)] font-bold px-1 hover:bg-[var(--c-peach)] cursor-pointer"
+                        className="text-[var(--neon-red)] font-bold px-1 hover:bg-[var(--violet-1)] cursor-pointer"
                         aria-label={`Remove ${f.name}`}
                       >
                         ✕
@@ -308,8 +308,8 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
 
           {/* Video Format Warning Alert */}
           {formatWarning && !warningIgnored && (
-            <div className="p-3 bg-[var(--c-peach)] border-2 border-[var(--c-orange)] text-[var(--text-1)] space-y-2 text-xs">
-              <p className="font-bold text-[var(--c-brown)]">VIDEO FORMAT WARNING</p>
+            <div className="p-3 bg-[var(--violet-2)] border-2 border-[var(--neon-orange)] text-[var(--text-1)] space-y-2 text-xs">
+              <p className="font-bold text-[var(--neon-gold)]">VIDEO FORMAT WARNING</p>
               <p>{formatWarning}</p>
               <div className="flex gap-2 pt-1">
                 <PixelButton
@@ -335,14 +335,14 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
 
           {/* Upload Progress Bar */}
           {isUploading && (
-            <div className="p-4 bg-[var(--c-bg)] border-2 border-[var(--c-ink)] space-y-2">
+            <div className="p-4 bg-[var(--night-1)] border-2 border-[var(--outline)] space-y-2">
               <div className="flex justify-between font-display text-xs text-[var(--text-1)]">
                 <span className="truncate max-w-[300px]">{uploadStatus}</span>
                 <span className="font-bold text-[var(--neon-cyan)]">{progressPercent}%</span>
               </div>
-              <div className="w-full h-4 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] overflow-hidden">
+              <div className="w-full h-4 bg-[var(--night-2)] border-2 border-[var(--outline)] overflow-hidden">
                 <div
-                  className="h-full bg-[var(--c-green)] transition-all duration-300"
+                  className="h-full bg-[var(--neon-green)] transition-all duration-300"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
@@ -356,14 +356,14 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
                   </span>
                 </div>
               )}
-              <div className="p-2 bg-[var(--c-yellow)] border border-[var(--c-ink)] text-center font-display text-[10px] text-[var(--on-neon)] font-bold animate-pulse">
+              <div className="p-2 bg-[var(--neon-gold)] border border-[var(--outline)] text-center font-display text-[8px] text-[var(--on-neon)] font-bold animate-pulse">
                 UPLOADING TO GOOGLE DRIVE · SCREEN WAKE LOCK ACTIVE
               </div>
             </div>
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-3 border-t-2 border-[var(--c-ink)]">
+          <div className="flex gap-3 pt-3 border-t-2 border-[var(--outline)]">
             <PixelButton
               size="md"
               variant="secondary"
