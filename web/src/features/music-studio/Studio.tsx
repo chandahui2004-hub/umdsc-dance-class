@@ -64,7 +64,8 @@ export const Studio: React.FC = () => {
   // Audio player engine
   const player = useAudioPlayer({
     audioRef,
-    markers: markerEngine.markers
+    markers: markerEngine.markers,
+    draftRange: markerDraftRange
   });
 
   const preloadedMusicRef = useRef<string | null>(null);
@@ -216,50 +217,62 @@ export const Studio: React.FC = () => {
     return null;
   }, [selectedVideoId, localVideoFile, activeDanceVideo]);
 
-  if (isFullscreen) {
-    return (
-      <FullscreenStudio
-        master={player.master}
-        activeMusicTitle={activeMusicTitle}
-        currentTime={player.currentTime}
-        duration={player.duration}
-        isPlaying={player.isPlaying}
-        isLooping={player.isLooping}
-        markerDraftRange={markerDraftRange}
-        playbackRate={player.playbackRate}
-        speedDisabled={player.speedDisabled}
-        activeSource={player.activeSource}
-        youtubeVideoId={youtubeVideoId}
-        danceVideoUrl={activeDanceVideoUrl}
-        videoCurrentTime={player.currentTime}
-        videoDuration={player.duration}
-        videoStart={videoStart}
-        onPlay={() => void player.play()}
-        onPause={player.pause}
-        onToggleLoop={player.toggleLoop}
-        onSeek={player.seekTo}
-        onSpeedChange={player.setSpeed}
-        onSetInPoint={() =>
-          setMarkerDraftRange(prev => ({
-            start: player.currentTime,
-            end: prev ? Math.max(player.currentTime + 1, prev.end) : Math.min(player.duration, player.currentTime + 5)
-          }))
-        }
-        onSetOutPoint={() =>
-          setMarkerDraftRange(prev => ({
-            start: prev ? Math.min(prev.start, player.currentTime - 1) : Math.max(0, player.currentTime - 5),
-            end: player.currentTime
-          }))
-        }
-        onExitFullscreen={() => setIsFullscreen(false)}
-        speechTranscript={speech.lastTranscript}
-        speechListening={speech.isListening}
-      />
-    );
-  }
-
   return (
     <div className="dancecue-root w-full">
+      {isFullscreen && (
+        <FullscreenStudio
+          master={player.master}
+          activeMusicTitle={activeMusicTitle}
+          currentTime={player.currentTime}
+          duration={player.duration}
+          isPlaying={player.isPlaying}
+          isLooping={player.isLooping}
+          loopMarker={player.loopMarker}
+          markerDraftRange={markerDraftRange}
+          playbackRate={player.playbackRate}
+          speedDisabled={player.speedDisabled}
+          activeSource={player.activeSource}
+          youtubeVideoId={youtubeVideoId}
+          danceVideoUrl={activeDanceVideoUrl}
+          videoCurrentTime={player.currentTime}
+          videoDuration={player.duration}
+          videoStart={videoStart}
+          markers={markerEngine.markers}
+          classMarkers={markerEngine.classMarkers}
+          myLoops={markerEngine.myLoops}
+          onPlay={() => void player.play()}
+          onPause={player.pause}
+          onToggleLoop={player.toggleLoop}
+          onSeek={player.seekTo}
+          onSpeedChange={player.setSpeed}
+          onSetInPoint={() =>
+            setMarkerDraftRange(prev => ({
+              start: player.currentTime,
+              end: prev ? Math.max(player.currentTime + 1, prev.end) : Math.min(player.duration, player.currentTime + 5)
+            }))
+          }
+          onSetOutPoint={() =>
+            setMarkerDraftRange(prev => ({
+              start: prev ? Math.min(prev.start, player.currentTime - 1) : Math.max(0, player.currentTime - 5),
+              end: player.currentTime
+            }))
+          }
+          onStartLoopMarker={player.startLoop}
+          onStopLoopMarker={player.stopLoop}
+          onAddLoopMarker={(name, start, end) => {
+            markerEngine.addMyLoop(name, start, end);
+            setMarkerDraftRange(null);
+          }}
+          onUpdateLoopMarker={markerEngine.updateMyLoop}
+          onDeleteLoopMarker={markerEngine.deleteMyLoop}
+          onJumpToMarker={player.jumpToMarker}
+          onMarkerDraftChange={setMarkerDraftRange}
+          onExitFullscreen={() => setIsFullscreen(false)}
+          speechTranscript={speech.lastTranscript}
+          speechListening={speech.isListening}
+        />
+      )}
+
       <main className="min-h-screen bg-[#101114] px-3 py-4 font-sans text-zinc-100 sm:px-6">
         <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-6xl flex-col border-4 border-black bg-[#17181c] shadow-[8px_8px_0_#000]">
           {/* Header */}

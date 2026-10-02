@@ -88,4 +88,100 @@ describe('FullscreenStudio Component', () => {
     expect(screen.getByText(/MUSIC:/i)).toBeInTheDocument();
     expect(screen.getByText(/VIDEO:/i)).toBeInTheDocument();
   });
+
+  it('allows opening loops drawer and selecting a loop to rehearse', () => {
+    const onStartLoopMarker = vi.fn();
+    const testMarkers = [
+      { id: 'class-1', name: 'Intro Routine', time: 5, endTime: 15 },
+      { id: 'loop-2', name: 'Choreo Section 1', time: 20, endTime: 35 }
+    ];
+
+    render(
+      <FullscreenStudio
+        {...defaultProps}
+        markers={testMarkers}
+        classMarkers={[testMarkers[0]]}
+        myLoops={[testMarkers[1]]}
+        onStartLoopMarker={onStartLoopMarker}
+      />
+    );
+
+    // Click LOOPS button on HUD
+    const toggleLoopsBtn = screen.getByRole('button', { name: /toggle loops/i });
+    fireEvent.click(toggleLoopsBtn);
+
+    // Loop drawer should be visible
+    expect(screen.getByTestId('fullscreen-loops-drawer')).toBeInTheDocument();
+    expect(screen.getByText('Intro Routine')).toBeInTheDocument();
+    expect(screen.getByText('Choreo Section 1')).toBeInTheDocument();
+
+    // Click LOOP on Choreo Section 1
+    const loopBtns = screen.getAllByRole('button', { name: /▶ loop/i });
+    fireEvent.click(loopBtns[1]);
+    expect(onStartLoopMarker).toHaveBeenCalledWith(testMarkers[1]);
+  });
+
+  it('supports adding, editing, and deleting loops in fullscreen mode', () => {
+    const onAddLoopMarker = vi.fn();
+    const onUpdateLoopMarker = vi.fn();
+    const onDeleteLoopMarker = vi.fn();
+
+    const myLoop = { id: 'my-loop-1', name: 'Practice Verse', time: 10, endTime: 25 };
+
+    render(
+      <FullscreenStudio
+        {...defaultProps}
+        markers={[myLoop]}
+        myLoops={[myLoop]}
+        onAddLoopMarker={onAddLoopMarker}
+        onUpdateLoopMarker={onUpdateLoopMarker}
+        onDeleteLoopMarker={onDeleteLoopMarker}
+      />
+    );
+
+    // 1. Add loop
+    const saveBtn = screen.getByRole('button', { name: /save loop/i });
+    fireEvent.click(saveBtn);
+
+    expect(screen.getByTestId('fullscreen-loops-drawer')).toBeInTheDocument();
+    const nameInput = screen.getByPlaceholderText(/loop name/i);
+    fireEvent.change(nameInput, { target: { value: 'New Footwork' } });
+
+    const submitBtn = screen.getByRole('button', { name: /^save$/i });
+    fireEvent.click(submitBtn);
+    expect(onAddLoopMarker).toHaveBeenCalledWith('New Footwork', expect.any(Number), expect.any(Number));
+
+    // 2. Edit loop
+    const editBtn = screen.getByTitle(/edit loop timing/i);
+    fireEvent.click(editBtn);
+
+    const editNameInput = screen.getByPlaceholderText(/loop name/i);
+    fireEvent.change(editNameInput, { target: { value: 'Updated Footwork' } });
+    const updateBtn = screen.getByRole('button', { name: /^update$/i });
+    fireEvent.click(updateBtn);
+    expect(onUpdateLoopMarker).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'my-loop-1', name: 'Updated Footwork' })
+    );
+
+    // 3. Delete loop
+    const deleteBtn = screen.getByTitle(/delete loop/i);
+    fireEvent.click(deleteBtn);
+    expect(onDeleteLoopMarker).toHaveBeenCalledWith('my-loop-1');
+  });
+
+  it('functions in video-only mode when activeSource is null', () => {
+    render(
+      <FullscreenStudio
+        {...defaultProps}
+        activeSource={null}
+        activeMusicTitle={null}
+        danceVideoUrl="blob:http://localhost:5173/test-video"
+      />
+    );
+
+    // Shows Video Track in timeline
+    expect(screen.getByText(/VIDEO TRACK:/i)).toBeInTheDocument();
+    expect(screen.getByTestId('fullscreen-dance-video')).toBeInTheDocument();
+  });
 });
+

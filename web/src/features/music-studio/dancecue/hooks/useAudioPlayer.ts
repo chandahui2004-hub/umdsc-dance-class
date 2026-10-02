@@ -8,6 +8,7 @@ import { shouldRestartLoop } from "../../sync/loopMath";
 type UseAudioPlayerOptions = {
   audioRef: RefObject<HTMLAudioElement | null>;
   markers: Marker[];
+  draftRange?: { start: number; end: number } | null;
 };
 
 export type PlayerSource = "file" | "drive" | "youtube" | "soundcloud" | null;
@@ -19,7 +20,9 @@ const youtubeStates = {
   cued: 5,
 };
 
-export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
+export function useAudioPlayer({ audioRef, markers, draftRange }: UseAudioPlayerOptions) {
+  const draftRangeRef = useRef(draftRange);
+  draftRangeRef.current = draftRange;
   const [activeSource, setActiveSource] = useState<PlayerSource>(null);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -417,17 +420,22 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
       markerPlaybackEndRef.current = null;
       setMarkerPlaybackMarkerId(null);
 
+      const hasDraft = Boolean(draftRangeRef.current && draftRangeRef.current.end > draftRangeRef.current.start);
+
       if (audioRef.current && activeSource !== "youtube" && activeSource !== "soundcloud") {
-        audioRef.current.loop = nextValue;
+        audioRef.current.loop = nextValue && !hasDraft;
       }
 
       if (nextValue) {
         setLoopMarkerId(null);
+        if (hasDraft && draftRangeRef.current) {
+          seekTo(draftRangeRef.current.start);
+        }
       }
 
       return nextValue;
     });
-  }, [activeSource, audioRef]);
+  }, [activeSource, audioRef, seekTo]);
 
   const setSpeed = useCallback(
     (speed: number) => {
@@ -534,18 +542,25 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
 
       setCurrentTime(now);
 
-      if (loopMarker) {
-        if (shouldRestartLoop(now, { start: loopMarker.time, end: loopMarker.endTime }, duration)) {
+      const currentDraftRange = draftRangeRef.current;
+      const effectiveLoop = loopMarker
+        ? { start: loopMarker.time, end: loopMarker.endTime }
+        : isLooping && currentDraftRange && currentDraftRange.end > currentDraftRange.start
+          ? currentDraftRange
+          : null;
+
+      if (effectiveLoop) {
+        if (shouldRestartLoop(now, effectiveLoop, duration)) {
           if (activeSource === "youtube") {
-            yt?.seekTo(loopMarker.time, true);
+            yt?.seekTo(effectiveLoop.start, true);
           } else if (activeSource === "soundcloud") {
-            sc?.seekTo(loopMarker.time * 1000);
-            soundcloudPositionRef.current = loopMarker.time;
+            sc?.seekTo(effectiveLoop.start * 1000);
+            soundcloudPositionRef.current = effectiveLoop.start;
           } else if (audio) {
-            audio.currentTime = loopMarker.time;
+            audio.currentTime = effectiveLoop.start;
           }
-          setCurrentTime(loopMarker.time);
-          notifyLoopRestart(loopMarker.time);
+          setCurrentTime(effectiveLoop.start);
+          notifyLoopRestart(effectiveLoop.start);
         }
       } else if (markerPlaybackEndRef.current !== null) {
         if (now >= markerPlaybackEndRef.current) {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import type { MusicItem, DanceStyle, EventSummary } from '@umdsc/shared';
 
 const SOURCE_LABEL: Record<MusicItem['sourceType'], string> = {
@@ -23,8 +23,19 @@ export const ClassMusicList: React.FC<ClassMusicListProps> = ({
   selectedMusicId,
   onSelectMusic
 }) => {
+  const [filterEventId, setFilterEventId] = useState<string>('all');
+  const [filterStyleId, setFilterStyleId] = useState<string>('all');
+
   const stylesMap = new Map(styles.map(s => [s.id, s]));
   const eventsMap = new Map(events.map(e => [e.id, e]));
+
+  const filteredMusic = useMemo(() => {
+    return music.filter(item => {
+      if (filterEventId !== 'all' && item.eventId !== filterEventId) return false;
+      if (filterStyleId !== 'all' && item.styleId !== filterStyleId) return false;
+      return true;
+    });
+  }, [music, filterEventId, filterStyleId]);
 
   if (!music || music.length === 0) {
     return (
@@ -37,8 +48,53 @@ export const ClassMusicList: React.FC<ClassMusicListProps> = ({
   }
 
   return (
-    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-      {music.map(item => {
+    <div className="space-y-3">
+      {/* Event and Dance Style Filter Controls */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-black/30 p-2 border border-white/10 rounded-xl">
+        <label className="flex flex-col gap-1 text-[10px] font-mono text-cyan-200">
+          <span className="font-bold">FILTER BY EVENT</span>
+          <select
+            aria-label="Filter music by event"
+            value={filterEventId}
+            onChange={e => setFilterEventId(e.target.value)}
+            className="w-full bg-[#101114] text-white border border-white/20 rounded-lg px-2 py-1.5 text-xs font-mono focus:border-cyan-300 outline-none"
+          >
+            <option value="all">ALL EVENTS ({events.length})</option>
+            {events.map(ev => (
+              <option key={ev.id} value={ev.id}>
+                {ev.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-[10px] font-mono text-fuchsia-200">
+          <span className="font-bold">FILTER BY DANCE STYLE</span>
+          <select
+            aria-label="Filter music by style"
+            value={filterStyleId}
+            onChange={e => setFilterStyleId(e.target.value)}
+            className="w-full bg-[#101114] text-white border border-white/20 rounded-lg px-2 py-1.5 text-xs font-mono focus:border-fuchsia-300 outline-none"
+          >
+            <option value="all">ALL DANCE STYLES ({styles.length})</option>
+            {styles.map(st => (
+              <option key={st.id} value={st.id}>
+                {st.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {filteredMusic.length === 0 ? (
+        <div className="p-4 text-center border-2 border-dashed border-white/10 rounded-2xl bg-black/20">
+          <p className="font-mono text-xs text-zinc-400">
+            No class music matches the selected filters.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+          {filteredMusic.map(item => {
         const style = stylesMap.get(item.styleId);
         const event = eventsMap.get(item.eventId);
         const isSelected = selectedMusicId === item.id;
@@ -83,6 +139,9 @@ export const ClassMusicList: React.FC<ClassMusicListProps> = ({
           </div>
         );
       })}
+        </div>
+      )}
     </div>
   );
 };
+
