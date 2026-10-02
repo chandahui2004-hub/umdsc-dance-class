@@ -186,6 +186,29 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
     }
   });
 
+  it('dancerLogin returns per-step timings only when debugTimings is true', () => {
+    const login = (extra: Record<string, unknown>) =>
+      handleRequest(
+        {
+          action: 'auth.dancerLogin',
+          payload: { fullName: 'ahmad fiqri mohd zamri', matric: '22004591', ...extra }
+        },
+        ctx,
+        secrets
+      );
+
+    const plain = login({});
+    const debug = login({ debugTimings: true });
+
+    expect(plain.ok && (plain.data as any).timings).toBeUndefined();
+    expect(debug.ok).toBe(true);
+    if (debug.ok) {
+      const timings = (debug.data as any).timings as Record<string, number>;
+      expect(Object.keys(timings)).toEqual(expect.arrayContaining(['memberIndex', 'sign']));
+      expect(Object.values(timings).every(ms => typeof ms === 'number' && ms >= 0)).toBe(true);
+    }
+  });
+
   it('dancerLogin: typed "s2199647" matches stored "S2199647"', () => {
     const res = handleRequest(
       {

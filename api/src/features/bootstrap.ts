@@ -11,6 +11,7 @@ import {
   Section
 } from '@umdsc/shared';
 import { dancerStylesInEvent } from './eventMembers';
+import type { Timer } from '../logic/timing';
 
 export function getAdminBootstrap(
   ctx: Ctx,
@@ -62,7 +63,8 @@ export function getDancerBootstrap(
   ctx: Ctx,
   matricKey: string,
   perms: PermMap,
-  sinceVersion?: number
+  sinceVersion?: number,
+  timer?: Timer
 ): DancerBootstrap | { notModified: true } {
   const dataVersion = Number(ctx.props.get('DATA_VERSION') || 1);
   if (sinceVersion !== undefined && Number(sinceVersion) === dataVersion) {
@@ -100,6 +102,7 @@ export function getDancerBootstrap(
 
   const dancerEventIds: string[] = dancer.eventIds || [];
   const dancerEvents = ctx.db.events.find(e => e.active && dancerEventIds.includes(e.id));
+  timer?.mark('bootstrap.events');
 
   // The dancer's styles per event come from that event's Members sheet
   const eventStylesMap = new Map<string, Set<string>>();
@@ -123,6 +126,8 @@ export function getDancerBootstrap(
     }
     eventStylesMap.set(event.id, styleSet);
   }
+
+  timer?.mark('bootstrap.styles');
 
   const sessionsMap = new Map<string, ClassSession>();
   const videosMap = new Map<string, VideoItem>();
@@ -163,6 +168,8 @@ export function getDancerBootstrap(
       for (const sec of chunkData.sections) sectionsMap.set(sec.id, sec);
     }
   }
+
+  timer?.mark('bootstrap.chunks');
 
   // Attendance
   const attendance: { sessionId: string; present: boolean }[] = [];
@@ -226,6 +233,8 @@ export function getDancerBootstrap(
       }
     }
   }
+
+  timer?.mark('bootstrap.attendance');
 
   const styles = ctx.db.styles.find(s => allDancerStyleIds.has(s.id) && s.active);
   const instructorIds = new Set(Array.from(sessionsMap.values()).map(s => s.instructorId).filter(Boolean));

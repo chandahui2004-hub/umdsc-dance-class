@@ -7,6 +7,7 @@ import { signToken } from '../security/tokens';
 import { resolvePermissions } from '../logic/permissions';
 import { TokenClaims, PermissionCode } from '@umdsc/shared';
 import { getAdminBootstrap, getDancerBootstrap } from './bootstrap';
+import { createTimer, logTimings } from '../logic/timing';
 
 export function getAuthRoutes(): Record<string, Route> {
   return {
@@ -74,6 +75,7 @@ export function getAuthRoutes(): Record<string, Route> {
       perm: 'public',
       write: false,
       handler: (ctx, auth, payload: any) => {
+        const timer = createTimer();
         const fullName = payload?.fullName ? String(payload.fullName).trim() : '';
         const matric = payload?.matric ? String(payload.matric).trim() : '';
 
@@ -84,6 +86,7 @@ export function getAuthRoutes(): Record<string, Route> {
         const matricKey = normalizeMatric(matric);
         const throttleKey = 'fail:dancer:' + matricKey;
         checkThrottle(ctx.cache, throttleKey, 5, 600);
+        timer.mark('throttle');
 
         const dancer = ctx.db.memberIndex.find(m => m.matricKey === matricKey && m.active)[0];
         if (!dancer) {
@@ -101,15 +104,18 @@ export function getAuthRoutes(): Record<string, Route> {
         }
 
         clearFailures(ctx.cache, throttleKey);
+        timer.mark('memberIndex');
 
         // Fetch Dancer role + MemberRoles extras
         const dancerRole = ctx.db.roles.find(
           r => r.name === 'Dancer' && r.loginType === 'dancer' && r.active
         )[0] || { id: 'role_dancer' };
 
+        timer.mark('roles');
         const memberRoles = ctx.db.memberRoles.find(
           mr => mr.matricKey === matricKey && mr.active
         );
+        timer.mark('memberRoles');
 
         const allRoleIds = Array.from(
           new Set([dancerRole.id, ...memberRoles.map(mr => mr.roleId)])
@@ -121,6 +127,8 @@ export function getAuthRoutes(): Record<string, Route> {
             .find(rp => rp.roleId === rId && rp.active)
             .map(rp => rp.permission);
         }
+
+        timer.mark('rolePermissions');
 
         const perms = resolvePermissions({
           roleIds: [dancerRole.id],
@@ -145,10 +153,13 @@ export function getAuthRoutes(): Record<string, Route> {
 
         const hmac = (ctx as any)._secrets?.hmac;
         const token = signToken(claims, (ctx as any)._secrets?.tokenSecret, hmac);
+        timer.mark('sign');
 
-        const bootstrap = getDancerBootstrap(ctx, matricKey, perms);
+        const bootstrap = getDancerBootstrap(ctx, matricKey, perms, undefined, timer);
 
-        return { token, claims, bootstrap };
+        const timings = timer.result();
+        logTimings('auth.dancerLogin', timings);
+        return { token, claims, bootstrap, ...(payload?.debugTimings === true ? { timings } : {}) };
       }
     },
 
