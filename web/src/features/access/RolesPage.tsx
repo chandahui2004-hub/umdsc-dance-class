@@ -156,8 +156,8 @@ export const RolesPage: React.FC = () => {
       </div>
 
       {/* Relogin notification banner */}
-      <div className="bg-[var(--c-peach)] border-4 border-[var(--c-ink)] p-4 shadow-[4px_4px_0_var(--c-ink)] space-y-1">
-        <h4 className="font-display text-xs text-[var(--text-1)] uppercase">
+      <div className="bg-[var(--violet-2)] border-2 border-[var(--outline)] p-4 shadow-[2px_2px_0_var(--outline)] space-y-1">
+        <h4 className="font-display text-xs text-[var(--neon-gold)] uppercase font-bold">
           SESSION PERMISSION NOTICE
         </h4>
         <p className="font-body text-base text-[var(--text-2)]">
@@ -171,6 +171,7 @@ export const RolesPage: React.FC = () => {
         </div>
       ) : roles.length === 0 ? (
         <EmptyState
+          scene="shutter"
           title="NO ROLES DEFINED"
           description="Click '+ NEW ROLE' to configure system and custom roles."
           action={
@@ -185,20 +186,20 @@ export const RolesPage: React.FC = () => {
             <Panel
               key={role.id}
               title={role.name}
-              className="px-corners space-y-3"
+              className="px-corners bg-[var(--night-2)] space-y-3"
             >
               <div className="flex flex-wrap items-center gap-2">
                 <span
-                  className={`px-2 py-0.5 border-2 border-[var(--c-ink)] font-mono text-xs font-bold uppercase ${
+                  className={`px-2 py-0.5 border-2 border-[var(--outline)] font-mono text-xs font-bold uppercase ${
                     role.loginType === 'admin'
-                      ? 'bg-[var(--c-lavender)] text-[var(--on-neon)]'
-                      : 'bg-[var(--c-green)] text-[var(--on-neon)]'
+                      ? 'bg-[var(--violet-2)] text-[var(--neon-gold)]'
+                      : 'bg-[var(--night-1)] text-[var(--neon-cyan)]'
                   }`}
                 >
                   {role.loginType} LOGIN
                 </span>
                 {role.isSystem && (
-                  <span className="px-2 py-0.5 border-2 border-[var(--c-ink)] bg-[var(--c-yellow)] text-[var(--on-neon)] font-mono text-xs font-bold uppercase">
+                  <span className="px-2 py-0.5 border-2 border-[var(--outline)] bg-[var(--neon-gold)] text-[var(--on-neon)] font-mono text-xs font-bold uppercase">
                     SYSTEM ROLE
                   </span>
                 )}
@@ -217,10 +218,10 @@ export const RolesPage: React.FC = () => {
                 </strong>
               </div>
 
-              <div className="flex flex-wrap gap-2 pt-2 border-t-2 border-[var(--c-ink)]">
+              <div className="flex flex-wrap gap-2 pt-2 border-t-2 border-[var(--outline)]">
                 <PixelButton
                   size="md"
-                  variant="primary"
+                  variant="secondary"
                   className="flex-1"
                   onClick={() => openPermissions(role)}
                 >
@@ -254,16 +255,16 @@ export const RolesPage: React.FC = () => {
 
       {/* Permission Matrix & Member Assignment Modal */}
       {selectedRole && (
-        <div className="fixed inset-0 bg-[var(--c-ink)]/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="w-full max-w-3xl my-8 space-y-4">
             <Panel
               title={`PERMISSIONS: ${selectedRole.name}`}
-              className="px-corners bg-[var(--c-panel)] space-y-4"
+              className="px-corners bg-[var(--night-2)] space-y-4"
             >
               <div className="flex justify-between items-center">
-                <div className="font-mono text-xs">
+                <div className="font-mono text-xs text-[var(--text-1)]">
                   Login Type:{' '}
-                  <span className="font-bold uppercase text-[var(--text-1)]">
+                  <span className="font-bold uppercase text-[var(--neon-cyan)]">
                     {selectedRole.loginType}
                   </span>
                 </div>
@@ -275,17 +276,17 @@ export const RolesPage: React.FC = () => {
               {formError && (
                 <div
                   role="alert"
-                  className="bg-[var(--c-peach)] border-4 border-[var(--c-red)] p-3 text-[var(--c-red)] font-body font-bold text-sm"
+                  className="bg-[var(--violet-2)] border-2 border-[var(--neon-red)] p-3 text-[var(--neon-red)] font-body font-bold text-xs"
                 >
                   {formError}
                 </div>
               )}
 
               {/* Grouped Permission Checkbox Matrix */}
-              <div className="space-y-4 max-h-[50vh] overflow-y-auto p-2 border-2 border-[var(--c-ink)] bg-[var(--c-bg)]">
+              <div className="space-y-4 max-h-[50vh] overflow-y-auto p-2 border-2 border-[var(--outline)] bg-[var(--night-1)] pixel-scrollbar">
                 {Object.entries(groupedPerms).map(([group, perms]) => (
                   <div key={group} className="space-y-2">
-                    <h4 className="font-display text-xs text-[var(--neon-cyan)] uppercase tracking-wider border-b-2 border-[var(--c-ink)] pb-1">
+                    <h4 className="font-display text-xs text-[var(--neon-cyan)] uppercase tracking-wider border-b-2 border-[var(--outline)] pb-1">
                       {group}
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -303,10 +304,10 @@ export const RolesPage: React.FC = () => {
                                 ? 'Admin login required for this permission'
                                 : undefined
                             }
-                            className={`flex items-center gap-2 p-2 border-2 border-[var(--c-ink)] bg-[var(--c-panel)] text-xs font-mono select-none ${
+                            className={`flex items-center gap-2 p-2 border-2 border-[var(--outline)] bg-[var(--night-2)] text-xs font-mono select-none ${
                               isDisabled
-                                ? 'opacity-40 cursor-not-allowed bg-[var(--c-grey)]'
-                                : 'cursor-pointer hover:bg-[var(--c-peach)]'
+                                ? 'opacity-40 cursor-not-allowed'
+                                : 'cursor-pointer hover:bg-[var(--violet-1)]'
                             }`}
                           >
                             <input
@@ -323,7 +324,7 @@ export const RolesPage: React.FC = () => {
                                 {p.code}
                               </span>
                               {isDisabled && (
-                                <span className="text-[10px] text-[var(--c-red)] italic">
+                                <span className="text-[12px] text-[var(--neon-red)] italic">
                                   Admin login required
                                 </span>
                               )}
@@ -336,7 +337,7 @@ export const RolesPage: React.FC = () => {
                 ))}
               </div>
 
-              <div className="flex gap-3 pt-2 border-t-2 border-[var(--c-ink)]">
+              <div className="flex gap-3 pt-2 border-t-2 border-[var(--outline)]">
                 <PixelButton
                   size="md"
                   variant="primary"
@@ -367,16 +368,16 @@ export const RolesPage: React.FC = () => {
 
       {/* Create / Edit Role Modal */}
       {(isCreating || editingRole) && (
-        <div className="fixed inset-0 bg-[var(--c-ink)]/50 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md">
             <Panel
               title={isCreating ? 'CREATE NEW ROLE' : `EDIT ${editingRole?.name}`}
-              className="px-corners bg-[var(--c-panel)] space-y-4"
+              className="px-corners bg-[var(--night-2)] space-y-4"
             >
               {formError && (
                 <div
                   role="alert"
-                  className="bg-[var(--c-peach)] border-4 border-[var(--c-red)] p-3 text-[var(--c-red)] font-body font-bold text-sm"
+                  className="bg-[var(--violet-2)] border-2 border-[var(--neon-red)] p-3 text-[var(--neon-red)] font-body font-bold text-xs"
                 >
                   {formError}
                 </div>
@@ -390,7 +391,7 @@ export const RolesPage: React.FC = () => {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Class Lead, Choreographer"
-                  className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-body text-base bg-[var(--c-bg)]"
+                  className="w-full min-h-[44px] px-3 border-2 border-[var(--outline)] font-body text-base bg-[var(--night-1)] text-[var(--text-1)]"
                   required
                 />
               </Field>
@@ -403,7 +404,7 @@ export const RolesPage: React.FC = () => {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="e.g. Can take class attendance"
-                  className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-body text-base bg-[var(--c-bg)]"
+                  className="w-full min-h-[44px] px-3 border-2 border-[var(--outline)] font-body text-base bg-[var(--night-1)] text-[var(--text-1)]"
                 />
               </Field>
 
@@ -414,7 +415,7 @@ export const RolesPage: React.FC = () => {
                     aria-label="Login Type"
                     value={loginType}
                     onChange={(e) => setLoginType(e.target.value as 'dancer' | 'admin')}
-                    className="w-full min-h-[44px] px-2 border-2 border-[var(--c-ink)] font-body text-sm bg-[var(--c-bg)]"
+                    className="w-full min-h-[44px] px-2 border-2 border-[var(--outline)] font-body text-base bg-[var(--night-1)] text-[var(--text-1)]"
                   >
                     <option value="dancer">Dancer (Matric Login)</option>
                     <option value="admin">Admin (Password Login)</option>
@@ -422,7 +423,7 @@ export const RolesPage: React.FC = () => {
                 </Field>
               )}
 
-              <div className="flex gap-3 pt-3 border-t-2 border-[var(--c-ink)]">
+              <div className="flex gap-3 pt-3 border-t-2 border-[var(--outline)]">
                 <PixelButton
                   size="md"
                   variant="primary"

@@ -80,7 +80,7 @@ export const MemberRolesPanel: React.FC<MemberRolesPanelProps> = ({ role, styles
   return (
     <Panel
       title={`MEMBERS ASSIGNED TO: ${role.name}`}
-      className="px-corners space-y-4"
+      className="px-corners bg-[var(--night-2)] space-y-4"
     >
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <p className="font-body text-sm text-[var(--text-2)]">
@@ -98,7 +98,7 @@ export const MemberRolesPanel: React.FC<MemberRolesPanelProps> = ({ role, styles
       </div>
 
       {isAssigning && (
-        <div className="bg-[var(--c-bg)] border-2 border-[var(--c-ink)] p-4 space-y-3">
+        <div className="bg-[var(--night-1)] border-2 border-[var(--outline)] p-4 space-y-3">
           <h4 className="font-display text-xs text-[var(--text-1)] uppercase">
             ASSIGN DANCER TO {role.name}
           </h4>
@@ -106,7 +106,7 @@ export const MemberRolesPanel: React.FC<MemberRolesPanelProps> = ({ role, styles
           {formError && (
             <div
               role="alert"
-              className="bg-[var(--c-peach)] border-2 border-[var(--c-red)] p-2 text-[var(--c-red)] font-body font-bold text-xs"
+              className="bg-[var(--violet-2)] border-2 border-[var(--neon-red)] p-2 text-[var(--neon-red)] font-body font-bold text-xs"
             >
               {formError}
             </div>
@@ -120,7 +120,7 @@ export const MemberRolesPanel: React.FC<MemberRolesPanelProps> = ({ role, styles
               value={matricInput}
               onChange={(e) => setMatricInput(e.target.value)}
               placeholder="e.g. 22001234"
-              className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-mono text-sm bg-[var(--c-panel)]"
+              className="w-full min-h-[44px] px-3 border-2 border-[var(--outline)] font-mono text-base bg-[var(--night-2)] text-[var(--text-1)]"
               required
             />
           </Field>
@@ -133,7 +133,7 @@ export const MemberRolesPanel: React.FC<MemberRolesPanelProps> = ({ role, styles
               {styles.map((s) => (
                 <label
                   key={s.id}
-                  className="flex items-center gap-2 p-2 border-2 border-[var(--c-ink)] bg-[var(--c-panel)] cursor-pointer text-xs font-mono"
+                  className="flex items-center gap-2 p-2 border-2 border-[var(--outline)] bg-[var(--night-2)] cursor-pointer text-xs font-mono text-[var(--text-1)]"
                 >
                   <input
                     type="checkbox"
@@ -147,7 +147,7 @@ export const MemberRolesPanel: React.FC<MemberRolesPanelProps> = ({ role, styles
             </div>
           </div>
 
-          <div className="flex gap-2 pt-2 border-t-2 border-[var(--c-ink)]">
+          <div className="flex gap-2 pt-2 border-t-2 border-[var(--outline)]">
             <PixelButton
               size="md"
               variant="primary"
@@ -179,20 +179,20 @@ export const MemberRolesPanel: React.FC<MemberRolesPanelProps> = ({ role, styles
           No dancers are currently assigned to this role.
         </p>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="pixel-scrollbar overflow-x-auto">
           <table className="w-full text-left font-body text-sm border-collapse">
             <thead>
-              <tr className="border-b-4 border-[var(--c-ink)] bg-[var(--c-bg)] font-display text-[10px] text-[var(--text-1)]">
+              <tr className="border-b-2 border-[var(--neon-cyan)] bg-[var(--night-2)] font-display text-[12px] text-[var(--text-1)]">
                 <th className="p-2">MATRIC</th>
                 <th className="p-2">SCOPED STYLES</th>
                 <th className="p-2 text-right">ACTION</th>
               </tr>
             </thead>
-            <tbody className="divide-y-2 divide-[var(--c-ink)]">
+            <tbody className="divide-y-2 divide-[var(--outline)]">
               {assignments.map((item) => (
-                <tr key={item.id} className="hover:bg-[var(--c-bg)]">
-                  <td className="p-2 font-mono font-bold">{item.matricKey}</td>
-                  <td className="p-2 font-mono text-xs">{getStyleNames(item.styleIds)}</td>
+                <tr key={item.id} className="min-h-[48px] odd:bg-[var(--night-2)] even:bg-[var(--violet-1)] hover:bg-[var(--violet-2)]">
+                  <td className="p-2 font-mono font-bold text-[var(--text-1)]">{item.matricKey}</td>
+                  <td className="p-2 font-mono text-xs text-[var(--text-2)]">{getStyleNames(item.styleIds)}</td>
                   <td className="p-2 text-right">
                     <PixelButton
                       size="md"

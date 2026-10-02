@@ -159,10 +159,10 @@ export const StylesPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="font-display text-lg tracking-wider text-[var(--text-1)]">
+          <h1 className="font-display text-[24px] md:text-[32px] text-[var(--text-1)] px-glow-text">
             Dance Styles
           </h1>
-          <p className="font-body text-base text-[var(--text-2)] mt-1">
+          <p className="font-body text-[14px] text-[var(--text-2)] mt-1">
             Configure genre metadata, schedules, colors, and Drive folder links.
           </p>
         </div>
@@ -179,6 +179,7 @@ export const StylesPage: React.FC = () => {
         <EmptyState
           title="NO DANCE STYLES"
           description="No dance styles exist yet. Click '+ NEW STYLE' to create one."
+          scene="shutter"
           action={
             <PixelButton size="md" variant="primary" onClick={openCreate}>
               + NEW STYLE
@@ -200,16 +201,16 @@ export const StylesPage: React.FC = () => {
               >
                 <div className="flex items-center gap-3">
                   <div
-                    className="w-6 h-6 border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] shrink-0"
+                    className="w-6 h-6 border-2 border-[var(--outline)] shrink-0"
                     style={{ backgroundColor: swatch.css }}
                     title={swatch.label}
                   />
-                  <h3 className="font-display text-sm font-bold">{style.name}</h3>
+                  <h3 className="font-display text-[14px] font-bold text-[var(--text-1)]">{style.name}</h3>
                 </div>
 
                 {/* Aliases */}
                 <div className="space-y-1">
-                  <span className="font-display text-[10px] text-[var(--text-2)] uppercase">
+                  <span className="font-display text-[8px] text-[var(--text-2)] uppercase">
                     Aliases:
                   </span>
                   <div className="flex flex-wrap gap-1">
@@ -217,13 +218,13 @@ export const StylesPage: React.FC = () => {
                       style.aliases.map((al) => (
                         <span
                           key={al}
-                          className="bg-[var(--c-bg)] border border-[var(--c-ink)] px-2 py-0.5 font-mono text-xs uppercase"
+                          className="bg-[var(--night-1)] border border-[var(--outline)] px-2 py-0.5 font-mono text-[12px] uppercase text-[var(--text-1)]"
                         >
                           {al}
                         </span>
                       ))
                     ) : (
-                      <span className="font-body text-xs text-[var(--text-2)] italic">
+                      <span className="font-body text-[12px] text-[var(--text-2)] italic">
                         None
                       </span>
                     )}
@@ -231,24 +232,24 @@ export const StylesPage: React.FC = () => {
                 </div>
 
                 {/* Default Schedule & Venue */}
-                <div className="bg-[var(--c-bg)] border-2 border-[var(--c-ink)] p-2 font-mono text-xs space-y-1">
+                <div className="px-well p-2 font-mono text-[12px] space-y-1 text-[var(--text-2)]">
                   <div>
-                    <span className="font-bold">Schedule:</span> {weekday?.name || 'Unset'}, {style.defaultStart} - {style.defaultEnd}
+                    <span className="font-bold text-[var(--text-1)]">Schedule:</span> {weekday?.name || 'Unset'}, {style.defaultStart} - {style.defaultEnd}
                   </div>
                   <div>
-                    <span className="font-bold">Venue:</span> {style.defaultVenue || 'Unset'}
+                    <span className="font-bold text-[var(--text-1)]">Venue:</span> {style.defaultVenue || 'Unset'}
                   </div>
                   <div>
-                    <span className="font-bold">Default Instructor:</span> {instructor?.name || 'Unset'}
+                    <span className="font-bold text-[var(--text-1)]">Default Instructor:</span> {instructor?.name || 'Unset'}
                   </div>
                 </div>
 
                 {/* Drive Folders */}
-                <div className="font-mono text-xs space-y-1 text-[var(--text-2)]">
+                <div className="font-mono text-[12px] space-y-1 text-[var(--text-2)]">
                   <div>
                     <span className="font-bold text-[var(--text-1)]">Attendance Folder:</span>{' '}
                     {style.attendanceFolderId ? (
-                      <span className="text-[var(--neon-green)]">Configured</span>
+                      <span className="text-[var(--neon-green)] font-bold">Configured</span>
                     ) : (
                       <span className="italic">Using Default</span>
                     )}
@@ -256,14 +257,14 @@ export const StylesPage: React.FC = () => {
                   <div>
                     <span className="font-bold text-[var(--text-1)]">Video Folder:</span>{' '}
                     {style.videoFolderId ? (
-                      <span className="text-[var(--neon-green)]">Configured</span>
+                      <span className="text-[var(--neon-green)] font-bold">Configured</span>
                     ) : (
                       <span className="italic">Using Default</span>
                     )}
                   </div>
                 </div>
 
-                <div className="flex gap-2 pt-2 border-t-2 border-[var(--c-ink)]">
+                <div className="flex gap-2 pt-2 border-t-2 border-[var(--outline)]">
                   <PixelButton
                     size="md"
                     variant="secondary"
@@ -292,16 +293,16 @@ export const StylesPage: React.FC = () => {
 
       {/* Create / Edit Modal */}
       {(isCreating || editingStyle) && (
-        <div className="fixed inset-0 bg-[var(--c-ink)]/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 bg-[var(--night-1)]/80 z-[var(--z-modal)] flex items-center justify-center p-4 overflow-y-auto">
           <div className="w-full max-w-2xl my-8">
             <Panel
               title={isCreating ? 'CREATE DANCE STYLE' : `EDIT ${editingStyle?.name}`}
-              className="px-corners bg-[var(--c-panel)] p-4 sm:p-6 space-y-5"
+              className="px-corners bg-[var(--night-2)] p-4 sm:p-6 space-y-5"
             >
               {formError && (
                 <div
                   role="alert"
-                  className="bg-[var(--c-peach)] border-4 border-[var(--c-red)] p-3 text-[var(--c-red)] font-body font-bold text-sm"
+                  className="bg-[var(--night-2)] border-2 border-[var(--neon-red)] p-3 text-[var(--neon-red)] font-body font-bold text-[14px]"
                 >
                   {formError}
                 </div>
@@ -315,7 +316,7 @@ export const StylesPage: React.FC = () => {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Popping, Locking"
-                  className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-body text-base bg-[var(--c-bg)]"
+                  className="w-full min-h-[44px] px-3 px-well font-body text-[16px] text-[var(--text-1)] placeholder:text-[var(--text-3)]"
                   required
                 />
               </Field>
@@ -328,7 +329,7 @@ export const StylesPage: React.FC = () => {
                   value={aliases}
                   onChange={(e) => setAliases(e.target.value)}
                   placeholder="e.g. popping, pop, electric boogaloo"
-                  className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-body text-base bg-[var(--c-bg)]"
+                  className="w-full min-h-[44px] px-3 px-well font-body text-[16px] text-[var(--text-1)] placeholder:text-[var(--text-3)]"
                 />
               </Field>
 
@@ -340,8 +341,8 @@ export const StylesPage: React.FC = () => {
               />
 
               {/* Default Schedule */}
-              <div className="space-y-4 pt-3 border-t-2 border-[var(--c-ink)]/20">
-                <h3 className="font-display text-xs text-[var(--text-1)] tracking-wider">
+              <div className="space-y-4 pt-3 border-t-2 border-[var(--outline)]">
+                <h3 className="font-display text-[12px] text-[var(--text-1)] tracking-wider">
                   DEFAULT SCHEDULE & ASSIGNMENTS
                 </h3>
 
@@ -349,7 +350,7 @@ export const StylesPage: React.FC = () => {
                   <select
                     value={defaultWeekday}
                     onChange={(e) => setDefaultWeekday(Number(e.target.value))}
-                    className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-body text-base bg-[var(--c-bg)]"
+                    className="w-full min-h-[44px] px-3 px-well font-body text-[16px] text-[var(--text-1)] bg-[var(--night-1)]"
                   >
                     {WEEKDAYS.map((w) => (
                       <option key={w.val} value={w.val}>
@@ -365,7 +366,7 @@ export const StylesPage: React.FC = () => {
                       type="time"
                       value={defaultStart}
                       onChange={(e) => setDefaultStart(e.target.value)}
-                      className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-mono text-base bg-[var(--c-bg)]"
+                      className="w-full min-h-[44px] px-3 px-well font-mono text-[16px] text-[var(--text-1)]"
                     />
                   </Field>
 
@@ -374,7 +375,7 @@ export const StylesPage: React.FC = () => {
                       type="time"
                       value={defaultEnd}
                       onChange={(e) => setDefaultEnd(e.target.value)}
-                      className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-mono text-base bg-[var(--c-bg)]"
+                      className="w-full min-h-[44px] px-3 px-well font-mono text-[16px] text-[var(--text-1)]"
                     />
                   </Field>
                 </div>
@@ -384,7 +385,7 @@ export const StylesPage: React.FC = () => {
                     <select
                       value={defaultInstructorId}
                       onChange={(e) => setDefaultInstructorId(e.target.value)}
-                      className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-body text-base bg-[var(--c-bg)]"
+                      className="w-full min-h-[44px] px-3 px-well font-body text-[16px] text-[var(--text-1)] bg-[var(--night-1)]"
                     >
                       <option value="">-- None (TBA) --</option>
                       {instructors.map((inst) => (
@@ -403,7 +404,7 @@ export const StylesPage: React.FC = () => {
                       value={defaultVenue}
                       onChange={(e) => setDefaultVenue(e.target.value)}
                       placeholder="e.g. Studio A"
-                      className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-body text-base bg-[var(--c-bg)]"
+                      className="w-full min-h-[44px] px-3 px-well font-body text-[16px] text-[var(--text-1)] placeholder:text-[var(--text-3)]"
                     />
                   </Field>
                 </div>
@@ -416,7 +417,7 @@ export const StylesPage: React.FC = () => {
                   value={attendanceFolderUrl}
                   onChange={(e) => setAttendanceFolderUrl(e.target.value)}
                   placeholder="https://drive.google.com/drive/folders/..."
-                  className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-mono text-xs bg-[var(--c-bg)]"
+                  className="w-full min-h-[44px] px-3 px-well font-mono text-[16px] text-[var(--text-1)] placeholder:text-[var(--text-3)]"
                 />
               </Field>
 
@@ -426,11 +427,11 @@ export const StylesPage: React.FC = () => {
                   value={videoFolderUrl}
                   onChange={(e) => setVideoFolderUrl(e.target.value)}
                   placeholder="https://drive.google.com/drive/folders/..."
-                  className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-mono text-xs bg-[var(--c-bg)]"
+                  className="w-full min-h-[44px] px-3 px-well font-mono text-[16px] text-[var(--text-1)] placeholder:text-[var(--text-3)]"
                 />
               </Field>
 
-              <div className="flex gap-3 pt-3 border-t-2 border-[var(--c-ink)]">
+              <div className="flex gap-3 pt-3 border-t-2 border-[var(--outline)]">
                 <PixelButton
                   size="md"
                   variant="primary"
@@ -457,3 +458,4 @@ export const StylesPage: React.FC = () => {
   );
 };
 export default StylesPage;
+

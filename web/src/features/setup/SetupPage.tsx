@@ -45,10 +45,10 @@ export const SetupPage: React.FC = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-[var(--c-bg)] flex items-center justify-center p-4">
+      <div className="min-h-[100dvh] px-starfield flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <Panel title="SETUP COMPLETE" className="px-corners text-center space-y-4">
-            <div className="bg-[var(--c-green)] text-[var(--on-neon)] p-3 font-display text-xs border-2 border-[var(--c-ink)]">
+            <div className="bg-[var(--neon-green)] text-[var(--on-neon)] p-3 font-display text-[12px] border-2 border-[var(--outline)] shadow-[0_2px_0_var(--outline)]">
               INITIALIZATION SUCCESSFUL!
             </div>
             <p className="font-body text-base text-[var(--text-1)]">
@@ -71,12 +71,12 @@ export const SetupPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--c-bg)] flex flex-col items-center justify-center p-4">
+    <div className="min-h-[100dvh] px-starfield flex flex-col items-center justify-center p-4">
       <div className="text-center mb-6">
-        <h1 className="font-display text-xl md:text-2xl text-[var(--text-1)]">
+        <h1 className="font-display text-[24px] md:text-[32px] text-[var(--text-1)] px-glow-text">
           SYSTEM SETUP
         </h1>
-        <p className="font-body text-sm text-[var(--text-2)] mt-1">
+        <p className="font-body text-[14px] text-[var(--text-2)] mt-1">
           First-Time Club Database Initialization
         </p>
       </div>
@@ -87,7 +87,7 @@ export const SetupPage: React.FC = () => {
             {error && (
               <div
                 role="alert"
-                className="bg-[var(--c-peach)] border-2 border-[var(--c-red)] text-[var(--c-red)] p-3 text-xs font-body font-bold"
+                className="bg-[var(--night-2)] border-2 border-[var(--neon-red)] text-[var(--neon-red)] p-3 text-[12px] font-body font-bold"
               >
                 {error}
               </div>

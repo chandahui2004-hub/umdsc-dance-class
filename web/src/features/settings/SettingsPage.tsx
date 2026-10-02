@@ -97,12 +97,12 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
   const color = STYLE_COLOR[style.colorKey] || `var(--c-${style.colorKey})`;
 
   return (
-    <div className="p-3 md:p-4 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] space-y-3">
+    <div className="p-3 md:p-4 bg-[var(--night-2)] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] space-y-3">
       {/* Style Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b-2 border-[var(--c-ink)]">
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b-2 border-[var(--outline)]">
         <div className="flex items-center gap-2">
           <span
-            className="w-4 h-4 border border-[var(--c-ink)] inline-block flex-shrink-0"
+            className="w-4 h-4 border border-[var(--outline)] inline-block flex-shrink-0"
             style={{ backgroundColor: color }}
           />
           <span className="font-display text-xs md:text-sm text-[var(--text-1)] font-bold">
@@ -119,8 +119,8 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
           role="alert"
           className={`p-2 font-body font-bold text-xs border-2 ${
             status.type === 'error'
-              ? 'bg-[var(--c-peach)] border-[var(--c-red)] text-[var(--c-red)]'
-              : 'bg-[var(--c-bg)] border-[var(--c-darkgreen)] text-[var(--neon-green)]'
+              ? 'bg-[var(--violet-2)] border-[var(--neon-red)] text-[var(--neon-red)]'
+              : 'bg-[var(--night-1)] border-[var(--neon-green)] text-[var(--neon-green)]'
           }`}
         >
           {status.type === 'error' ? '⚠ ' : '✓ '} {status.text}
@@ -129,7 +129,7 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
 
       {/* Folders List */}
       {folders.length === 0 ? (
-        <p className="font-body text-xs text-[var(--c-red)] font-bold">
+        <p className="font-body text-xs text-[var(--neon-red)] font-bold">
           No video folders configured for this style yet.
         </p>
       ) : (
@@ -141,18 +141,18 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
                 key={folder.id}
                 className={`p-2.5 border-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 ${
                   isActive
-                    ? 'bg-[var(--c-bg)] border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)]'
-                    : 'bg-[var(--c-panel)] border-[var(--c-darkgrey)]'
+                    ? 'bg-[var(--night-1)] border-[var(--outline)] shadow-[2px_2px_0_var(--outline)]'
+                    : 'bg-[var(--night-2)] border-[var(--outline)]'
                 }`}
               >
                 <div className="space-y-1 min-w-0">
                   <div className="flex items-center gap-2">
                     {isActive ? (
-                      <span className="font-display text-[9px] px-1.5 py-0.5 bg-[var(--c-green)] text-[var(--on-neon)] border border-[var(--c-ink)] font-bold">
+                      <span className="font-display text-[8px] px-1.5 py-0.5 bg-[var(--neon-green)] text-[var(--on-neon)] border border-[var(--outline)] font-bold">
                         ● ACTIVE
                       </span>
                     ) : (
-                      <span className="font-display text-[9px] px-1.5 py-0.5 bg-[var(--c-panel)] text-[var(--text-2)] border border-[var(--c-darkgrey)] font-bold">
+                      <span className="font-display text-[8px] px-1.5 py-0.5 bg-[var(--night-1)] text-[var(--text-2)] border border-[var(--outline)] font-bold">
                         INACTIVE
                       </span>
                     )}
@@ -160,7 +160,7 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
                       {folder.name || 'Video Folder'}
                     </span>
                   </div>
-                  <div className="font-mono text-[11px]">
+                  <div className="font-mono text-[12px]">
                     <a
                       href={`https://drive.google.com/drive/folders/${folder.id}`}
                       target="_blank"
@@ -199,8 +199,8 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
       )}
 
       {/* Add Folder Form */}
-      <div className="pt-2 border-t border-[var(--c-ink)] space-y-1">
-        <span className="font-display text-[10px] text-[var(--text-1)] font-bold">
+      <div className="pt-2 border-t border-[var(--outline)] space-y-1">
+        <span className="font-display text-[8px] text-[var(--text-1)] font-bold">
           + ADD GOOGLE DRIVE FOLDER LINK:
         </span>
         <div className="flex flex-col sm:flex-row gap-2">
@@ -210,7 +210,7 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://drive.google.com/drive/folders/..."
-            className="flex-1 min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-mono text-xs md:text-sm bg-[var(--c-bg)]"
+            className="flex-1 min-h-[44px] px-3 border-2 border-[var(--outline)] font-mono text-base bg-[var(--night-1)] text-[var(--text-1)]"
           />
           <PixelButton
             size="md"
@@ -306,13 +306,13 @@ export const SettingsPage: React.FC = () => {
       <RetentionPanel />
 
       {/* Permissions & Service Account Banner */}
-      <div className="bg-[var(--c-peach)] border-4 border-[var(--c-ink)] p-4 shadow-[4px_4px_0_var(--c-ink)] space-y-2">
-        <h3 className="font-display text-xs text-[var(--text-1)] uppercase">
+      <div className="bg-[var(--violet-2)] border-2 border-[var(--outline)] p-4 shadow-[2px_2px_0_var(--outline)] space-y-2">
+        <h3 className="font-display text-xs text-[var(--neon-gold)] uppercase font-bold">
           GOOGLE DRIVE ACCESS REQUIREMENT
         </h3>
         <p className="font-body text-base text-[var(--text-2)]">
           Every Google Drive folder or spreadsheet used by this system must be shared with{' '}
-          <strong className="font-mono text-sm text-[var(--text-1)] bg-[var(--c-bg)] px-2 py-0.5 border border-[var(--c-ink)]">
+          <strong className="font-mono text-sm text-[var(--neon-gold)] bg-[var(--night-1)] px-2 py-0.5 border border-[var(--outline)]">
             {clubEmail}
           </strong>{' '}
           as <strong className="text-[var(--text-1)]">Editor</strong> before setting the link.
@@ -326,7 +326,7 @@ export const SettingsPage: React.FC = () => {
       ) : (
         <div className="space-y-6">
           {/* Default Attendance Folder */}
-          <Panel title="DEFAULT ATTENDANCE FOLDER" className="px-corners space-y-3">
+          <Panel title="DEFAULT ATTENDANCE FOLDER" className="px-corners bg-[var(--night-2)] space-y-3">
             <div className="font-mono text-xs text-[var(--text-2)]">
               Current ID:{' '}
               <span className="text-[var(--text-1)] font-bold">
@@ -337,10 +337,10 @@ export const SettingsPage: React.FC = () => {
             {statusMessage?.key === 'defaultAttendanceFolderId' && (
               <div
                 role="alert"
-                className={`p-3 font-body font-bold text-sm border-4 ${
+                className={`p-3 font-body font-bold text-sm border-2 ${
                   statusMessage.type === 'error'
-                    ? 'bg-[var(--c-peach)] border-[var(--c-red)] text-[var(--c-red)]'
-                    : 'bg-[var(--c-bg)] border-[var(--c-darkgreen)] text-[var(--neon-green)]'
+                    ? 'bg-[var(--violet-2)] border-[var(--neon-red)] text-[var(--neon-red)]'
+                    : 'bg-[var(--night-1)] border-[var(--neon-green)] text-[var(--neon-green)]'
                 }`}
               >
                 {statusMessage.text}
@@ -359,7 +359,7 @@ export const SettingsPage: React.FC = () => {
                   value={attUrl}
                   onChange={(e) => setAttUrl(e.target.value)}
                   placeholder="https://drive.google.com/drive/folders/..."
-                  className="flex-1 min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-mono text-xs bg-[var(--c-bg)]"
+                  className="flex-1 min-h-[44px] px-3 border-2 border-[var(--outline)] font-mono text-base bg-[var(--night-1)] text-[var(--text-1)]"
                 />
                 <PixelButton
                   size="md"
@@ -379,7 +379,7 @@ export const SettingsPage: React.FC = () => {
           </Panel>
 
           {/* Video Folders by Dance Style */}
-          <Panel title="VIDEO FOLDERS BY DANCE STYLE" className="px-corners space-y-3">
+          <Panel title="VIDEO FOLDERS BY DANCE STYLE" className="px-corners bg-[var(--night-2)] space-y-3">
             <p className="font-body text-sm text-[var(--text-2)]">
               Class recap videos are stored in Google Drive. Different dance styles can have different Google Drive folder links, managed by each dance style&apos;s team member or account.
             </p>
@@ -400,7 +400,7 @@ export const SettingsPage: React.FC = () => {
           </Panel>
 
           {/* Default / Fallback Video Folder */}
-          <Panel title="DEFAULT / FALLBACK VIDEO FOLDER" className="px-corners space-y-3">
+          <Panel title="DEFAULT / FALLBACK VIDEO FOLDER" className="px-corners bg-[var(--night-2)] space-y-3">
             <div className="font-mono text-xs text-[var(--text-2)]">
               Current ID:{' '}
               <span className="text-[var(--text-1)] font-bold">
@@ -411,10 +411,10 @@ export const SettingsPage: React.FC = () => {
             {statusMessage?.key === 'defaultVideoFolderId' && (
               <div
                 role="alert"
-                className={`p-3 font-body font-bold text-sm border-4 ${
+                className={`p-3 font-body font-bold text-sm border-2 ${
                   statusMessage.type === 'error'
-                    ? 'bg-[var(--c-peach)] border-[var(--c-red)] text-[var(--c-red)]'
-                    : 'bg-[var(--c-bg)] border-[var(--c-darkgreen)] text-[var(--neon-green)]'
+                    ? 'bg-[var(--violet-2)] border-[var(--neon-red)] text-[var(--neon-red)]'
+                    : 'bg-[var(--night-1)] border-[var(--neon-green)] text-[var(--neon-green)]'
                 }`}
               >
                 {statusMessage.text}
@@ -433,7 +433,7 @@ export const SettingsPage: React.FC = () => {
                   value={vidUrl}
                   onChange={(e) => setVidUrl(e.target.value)}
                   placeholder="https://drive.google.com/drive/folders/..."
-                  className="flex-1 min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-mono text-xs md:text-sm bg-[var(--c-bg)]"
+                  className="flex-1 min-h-[44px] px-3 border-2 border-[var(--outline)] font-mono text-base bg-[var(--night-1)] text-[var(--text-1)]"
                 />
                 <PixelButton
                   size="md"
@@ -454,7 +454,7 @@ export const SettingsPage: React.FC = () => {
           </Panel>
 
           {/* Database Folder */}
-          <Panel title="DATABASE FOLDER" className="px-corners space-y-3">
+          <Panel title="DATABASE FOLDER" className="px-corners bg-[var(--night-2)] space-y-3">
             <div className="font-mono text-xs text-[var(--text-2)]">
               Current ID:{' '}
               <span className="text-[var(--text-1)] font-bold">
@@ -465,10 +465,10 @@ export const SettingsPage: React.FC = () => {
             {statusMessage?.key === 'dbFolderId' && (
               <div
                 role="alert"
-                className={`p-3 font-body font-bold text-sm border-4 ${
+                className={`p-3 font-body font-bold text-sm border-2 ${
                   statusMessage.type === 'error'
-                    ? 'bg-[var(--c-peach)] border-[var(--c-red)] text-[var(--c-red)]'
-                    : 'bg-[var(--c-bg)] border-[var(--c-darkgreen)] text-[var(--neon-green)]'
+                    ? 'bg-[var(--violet-2)] border-[var(--neon-red)] text-[var(--neon-red)]'
+                    : 'bg-[var(--night-1)] border-[var(--neon-green)] text-[var(--neon-green)]'
                 }`}
               >
                 {statusMessage.text}
@@ -487,7 +487,7 @@ export const SettingsPage: React.FC = () => {
                   value={dbUrl}
                   onChange={(e) => setDbUrl(e.target.value)}
                   placeholder="https://drive.google.com/drive/folders/..."
-                  className="flex-1 min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-mono text-xs bg-[var(--c-bg)]"
+                  className="flex-1 min-h-[44px] px-3 border-2 border-[var(--outline)] font-mono text-base bg-[var(--night-1)] text-[var(--text-1)]"
                 />
                 <PixelButton
                   size="md"
@@ -507,7 +507,7 @@ export const SettingsPage: React.FC = () => {
           </Panel>
 
           {/* Link History */}
-          <Panel title="LINK UPDATE HISTORY" className="px-corners space-y-3">
+          <Panel title="LINK UPDATE HISTORY" className="px-corners bg-[var(--night-2)] space-y-3">
             {loadingHistory ? (
               <div className="p-4 text-center">
                 <Spinner />
@@ -517,10 +517,10 @@ export const SettingsPage: React.FC = () => {
                 No link changes recorded in history yet.
               </p>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="pixel-scrollbar overflow-x-auto">
                 <table className="w-full text-left font-mono text-xs border-collapse">
                   <thead>
-                    <tr className="border-b-4 border-[var(--c-ink)] bg-[var(--c-bg)] font-display text-[10px] text-[var(--text-1)]">
+                    <tr className="border-b-2 border-[var(--neon-cyan)] bg-[var(--night-2)] font-display text-[12px] text-[var(--text-1)]">
                       <th className="p-2">KEY</th>
                       <th className="p-2">OLD VALUE</th>
                       <th className="p-2">NEW VALUE</th>
@@ -528,14 +528,14 @@ export const SettingsPage: React.FC = () => {
                       <th className="p-2">DATE</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y-2 divide-[var(--c-ink)]">
+                  <tbody className="divide-y-2 divide-[var(--outline)]">
                     {history.map((h, i) => (
-                      <tr key={h.id || i} className="hover:bg-[var(--c-bg)]">
-                        <td className="p-2 font-bold">{h.key}</td>
+                      <tr key={h.id || i} className="min-h-[48px] odd:bg-[var(--night-2)] even:bg-[var(--violet-1)] hover:bg-[var(--violet-2)]">
+                        <td className="p-2 font-bold text-[var(--text-1)]">{h.key}</td>
                         <td className="p-2 text-[var(--text-2)] truncate max-w-[120px]">{h.oldValue || '-'}</td>
                         <td className="p-2 text-[var(--neon-green)] truncate max-w-[120px] font-bold">{h.newValue}</td>
-                        <td className="p-2">{h.changedBy}</td>
-                        <td className="p-2">{new Date(h.changedAt).toLocaleString()}</td>
+                        <td className="p-2 text-[var(--text-1)]">{h.changedBy}</td>
+                        <td className="p-2 text-[var(--text-2)]">{new Date(h.changedAt).toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>

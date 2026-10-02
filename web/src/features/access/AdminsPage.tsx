@@ -132,6 +132,7 @@ export const AdminsPage: React.FC = () => {
         </div>
       ) : admins.length === 0 ? (
         <EmptyState
+          scene="shutter"
           title="NO ADMINS FOUND"
           description="Click '+ NEW ADMIN' to create an administrator account."
           action={
@@ -141,29 +142,29 @@ export const AdminsPage: React.FC = () => {
           }
         />
       ) : (
-        <Panel title={`ALL ADMINS (${admins.length})`} className="px-corners">
-          <div className="overflow-x-auto">
+        <Panel title={`ALL ADMINS (${admins.length})`} className="px-corners bg-[var(--night-2)]">
+          <div className="pixel-scrollbar overflow-x-auto">
             <table className="w-full text-left font-body text-base border-collapse">
               <thead>
-                <tr className="border-b-4 border-[var(--c-ink)] bg-[var(--c-bg)] font-display text-xs text-[var(--text-1)]">
+                <tr className="border-b-2 border-[var(--neon-cyan)] bg-[var(--night-2)] font-display text-xs text-[var(--text-1)]">
                   <th className="p-3">USERNAME</th>
                   <th className="p-3">DISPLAY NAME</th>
                   <th className="p-3">ROLE</th>
                   <th className="p-3 text-right">ACTIONS</th>
                 </tr>
               </thead>
-              <tbody className="divide-y-2 divide-[var(--c-ink)]">
+              <tbody className="divide-y-2 divide-[var(--outline)]">
                 {admins.map((admin) => {
                   const role = roles.find((r) => r.id === admin.roleId);
 
                   return (
-                    <tr key={admin.id} className="hover:bg-[var(--c-bg)]">
-                      <td className="p-3 font-mono font-bold text-sm">
+                    <tr key={admin.id} className="min-h-[48px] odd:bg-[var(--night-2)] even:bg-[var(--violet-1)] hover:bg-[var(--violet-2)]">
+                      <td className="p-3 font-mono font-bold text-sm text-[var(--text-1)]">
                         {admin.username}
                       </td>
-                      <td className="p-3 font-display text-xs">{admin.displayName}</td>
+                      <td className="p-3 font-display text-xs text-[var(--text-1)]">{admin.displayName}</td>
                       <td className="p-3">
-                        <span className="px-2 py-0.5 border border-[var(--c-ink)] bg-[var(--c-lavender)] text-[var(--on-neon)] font-mono text-xs uppercase font-bold">
+                        <span className="px-2 py-0.5 border border-[var(--outline)] bg-[var(--violet-2)] text-[var(--neon-gold)] font-mono text-xs uppercase font-bold">
                           {role?.name || 'Admin'}
                         </span>
                       </td>
@@ -204,16 +205,16 @@ export const AdminsPage: React.FC = () => {
 
       {/* Create Admin Modal */}
       {isCreating && (
-        <div className="fixed inset-0 bg-[var(--c-ink)]/50 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md">
             <Panel
               title="CREATE ADMIN ACCOUNT"
-              className="px-corners bg-[var(--c-panel)] space-y-4"
+              className="px-corners bg-[var(--night-2)] space-y-4"
             >
               {formError && (
                 <div
                   role="alert"
-                  className="bg-[var(--c-peach)] border-4 border-[var(--c-red)] p-3 text-[var(--c-red)] font-body font-bold text-sm"
+                  className="bg-[var(--violet-2)] border-2 border-[var(--neon-red)] p-3 text-[var(--neon-red)] font-body font-bold text-xs"
                 >
                   {formError}
                 </div>
@@ -227,7 +228,7 @@ export const AdminsPage: React.FC = () => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="e.g. treasurer"
-                  className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-mono text-sm bg-[var(--c-bg)]"
+                  className="w-full min-h-[44px] px-3 border-2 border-[var(--outline)] font-mono text-base bg-[var(--night-1)] text-[var(--text-1)]"
                   required
                 />
               </Field>
@@ -240,7 +241,7 @@ export const AdminsPage: React.FC = () => {
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="e.g. Club Treasurer"
-                  className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-body text-base bg-[var(--c-bg)]"
+                  className="w-full min-h-[44px] px-3 border-2 border-[var(--outline)] font-body text-base bg-[var(--night-1)] text-[var(--text-1)]"
                   required
                 />
               </Field>
@@ -253,7 +254,7 @@ export const AdminsPage: React.FC = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-mono text-sm bg-[var(--c-bg)]"
+                  className="w-full min-h-[44px] px-3 border-2 border-[var(--outline)] font-mono text-base bg-[var(--night-1)] text-[var(--text-1)]"
                   required
                 />
               </Field>
@@ -264,7 +265,7 @@ export const AdminsPage: React.FC = () => {
                   aria-label="Assigned Role"
                   value={roleId}
                   onChange={(e) => setRoleId(e.target.value)}
-                  className="w-full min-h-[44px] px-2 border-2 border-[var(--c-ink)] font-body text-sm bg-[var(--c-bg)]"
+                  className="w-full min-h-[44px] px-2 border-2 border-[var(--outline)] font-body text-base bg-[var(--night-1)] text-[var(--text-1)]"
                   required
                 >
                   {adminRoles.map((r) => (
@@ -275,7 +276,7 @@ export const AdminsPage: React.FC = () => {
                 </select>
               </Field>
 
-              <div className="flex gap-3 pt-3 border-t-2 border-[var(--c-ink)]">
+              <div className="flex gap-3 pt-3 border-t-2 border-[var(--outline)]">
                 <PixelButton
                   size="md"
                   variant="primary"
@@ -306,16 +307,16 @@ export const AdminsPage: React.FC = () => {
 
       {/* Reset Password Modal */}
       {resettingAdmin && (
-        <div className="fixed inset-0 bg-[var(--c-ink)]/50 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md">
             <Panel
               title={`RESET PASSWORD: ${resettingAdmin.username}`}
-              className="px-corners bg-[var(--c-panel)] space-y-4"
+              className="px-corners bg-[var(--night-2)] space-y-4"
             >
               {formError && (
                 <div
                   role="alert"
-                  className="bg-[var(--c-peach)] border-4 border-[var(--c-red)] p-3 text-[var(--c-red)] font-body font-bold text-sm"
+                  className="bg-[var(--violet-2)] border-2 border-[var(--neon-red)] p-3 text-[var(--neon-red)] font-body font-bold text-xs"
                 >
                   {formError}
                 </div>
@@ -329,12 +330,12 @@ export const AdminsPage: React.FC = () => {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] font-mono text-sm bg-[var(--c-bg)]"
+                  className="w-full min-h-[44px] px-3 border-2 border-[var(--outline)] font-mono text-base bg-[var(--night-1)] text-[var(--text-1)]"
                   required
                 />
               </Field>
 
-              <div className="flex gap-3 pt-3 border-t-2 border-[var(--c-ink)]">
+              <div className="flex gap-3 pt-3 border-t-2 border-[var(--outline)]">
                 <PixelButton
                   size="md"
                   variant="primary"
