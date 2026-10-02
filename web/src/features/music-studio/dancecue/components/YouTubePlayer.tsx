@@ -44,6 +44,8 @@ type YouTubePlayerProps = {
   onReady: (player: YouTubePlayerHandle) => void;
   onStateChange: (state: number) => void;
   videoId: string | null;
+  /** Phones can block play on an untouched iframe: ask for one tap on the visible player. */
+  needsTap?: boolean;
 };
 
 const youtubePlayerStates = {
@@ -100,6 +102,7 @@ export function YouTubePlayer({
   onReady,
   onStateChange,
   videoId,
+  needsTap = false,
 }: YouTubePlayerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const latestVideoIdRef = useRef(videoId);
@@ -246,9 +249,16 @@ export function YouTubePlayer({
 
   return (
     <>
+      {/* One mounted box: the YouTube script builds the player into it once. It stays on screen while
+          YouTube is the active source (200x200 is YouTube's minimum player size) so a dancer can tap it. */}
       <div
-        className="pointer-events-none fixed left-0 top-0 h-[200px] w-[200px] overflow-hidden opacity-0"
-        aria-hidden="true"
+        data-testid="youtube-player-box"
+        className={
+          isVisible
+            ? "mx-auto h-[200px] w-[200px] overflow-hidden border-2 border-black bg-black [&_iframe]:h-full [&_iframe]:w-full"
+            : "pointer-events-none fixed left-0 top-0 h-[200px] w-[200px] overflow-hidden opacity-0"
+        }
+        aria-hidden={isVisible ? undefined : "true"}
       >
         <div ref={containerRef} className="h-[200px] w-[200px]" />
       </div>
@@ -280,6 +290,11 @@ export function YouTubePlayer({
               {statusMessage}
             </p>
           </div>
+          {needsTap ? (
+            <p className="mt-2 text-xs font-bold text-yellow-200">
+              Tap the YouTube player once to start
+            </p>
+          ) : null}
         </section>
       ) : null}
     </>

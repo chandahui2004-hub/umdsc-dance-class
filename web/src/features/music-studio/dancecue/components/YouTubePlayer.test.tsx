@@ -171,3 +171,43 @@ describe('YouTubePlayer construction (real API rejects an empty videoId)', () =>
     expect(instance.cueVideoById).not.toHaveBeenCalled();
   });
 });
+
+describe('YouTubePlayer visible tap-to-start box', () => {
+  beforeEach(() => {
+    window.YT = {
+      Player: vi.fn(() => ({
+        cueVideoById: vi.fn(),
+        getDuration: vi.fn(() => 0)
+      })) as any
+    };
+  });
+
+  const show = (props: { isVisible: boolean; needsTap?: boolean }) =>
+    render(
+      <YouTubePlayer
+        isVisible={props.isVisible}
+        needsTap={props.needsTap}
+        onReady={vi.fn()}
+        onStateChange={vi.fn()}
+        videoId="4_KN-gA6uXY"
+      />
+    );
+
+  it('keeps the player box on screen while a YouTube track is active', () => {
+    show({ isVisible: true });
+    expect(screen.getByTestId('youtube-player-box').className).not.toContain('opacity-0');
+  });
+
+  it('hides the player box when YouTube is not the active source', () => {
+    show({ isVisible: false });
+    expect(screen.getByTestId('youtube-player-box').className).toContain('opacity-0');
+  });
+
+  it('shows the tap hint only when needsTap', () => {
+    const { unmount } = show({ isVisible: true, needsTap: false });
+    expect(screen.queryByText('Tap the YouTube player once to start')).toBeNull();
+    unmount();
+    show({ isVisible: true, needsTap: true });
+    expect(screen.getByText('Tap the YouTube player once to start')).toBeInTheDocument();
+  });
+});

@@ -34,6 +34,25 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
   // YouTube drops a playVideo() that arrives before the cued track has loaded, so a Play pressed
   // too early is remembered and re-sent when the player reports the track as cued.
   const youtubePlayRequestedRef = useRef(false);
+  // Phones block playVideo() on an iframe the dancer never touched: when YouTube has not started
+  // 3 s after Play, the UI asks for one tap on the visible player.
+  const [needsTap, setNeedsTap] = useState(false);
+  const tapTimerRef = useRef<number | null>(null);
+
+  const clearTapPrompt = useCallback(() => {
+    if (tapTimerRef.current !== null) {
+      window.clearTimeout(tapTimerRef.current);
+      tapTimerRef.current = null;
+    }
+    setNeedsTap(false);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (tapTimerRef.current !== null) window.clearTimeout(tapTimerRef.current);
+    },
+    []
+  );
   const youtubePlayerRef = useRef<YouTubePlayerHandle | null>(null);
   const loopRestartListenersRef = useRef<Set<(loopStart: number) => void>>(new Set());
 
@@ -140,6 +159,7 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
 
       pendingYouTubeVideoIdRef.current = videoId;
       youtubePlayRequestedRef.current = false;
+      clearTapPrompt();
       setActiveSource("youtube");
       setCurrentTime(0);
       setDuration(0);
@@ -155,7 +175,7 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
         youtubePlayerRef.current.setPlaybackRate(1);
       }
     },
-    [audioRef],
+    [audioRef, clearTapPrompt],
   );
 
   const attachYouTubePlayer = useCallback((player: YouTubePlayerHandle) => {
@@ -179,15 +199,21 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
       youtubePlayRequestedRef.current = false;
     }
 
+    if (state === youtubeStates.playing) {
+      clearTapPrompt();
+    }
+
     if (state === youtubeStates.ended) {
       setIsPlaying(false);
     }
-  }, []);
+  }, [clearTapPrompt]);
 
   const startPlayback = useCallback(async () => {
     if (activeSource === "youtube") {
       youtubePlayRequestedRef.current = true;
       youtubePlayerRef.current?.playVideo();
+      if (tapTimerRef.current !== null) window.clearTimeout(tapTimerRef.current);
+      tapTimerRef.current = window.setTimeout(() => setNeedsTap(true), 3000);
       return;
     }
 
@@ -209,12 +235,13 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
   const pause = useCallback(() => {
     if (activeSource === "youtube") {
       youtubePlayRequestedRef.current = false;
+      clearTapPrompt();
       youtubePlayerRef.current?.pauseVideo();
       return;
     }
 
     audioRef.current?.pause();
-  }, [activeSource, audioRef]);
+  }, [activeSource, audioRef, clearTapPrompt]);
 
   const restart = useCallback(() => {
     markerPlaybackEndRef.current = null;
@@ -518,6 +545,7 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
     duration,
     effectiveRate,
     handleYouTubeStateChange,
+    needsTap,
     isLooping,
     isPlaying,
     playbackRate,

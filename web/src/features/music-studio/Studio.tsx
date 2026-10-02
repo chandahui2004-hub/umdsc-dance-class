@@ -191,6 +191,7 @@ export const Studio: React.FC = () => {
               videoId={youtubeVideoId}
               onReady={player.attachYouTubePlayer}
               onStateChange={player.handleYouTubeStateChange}
+              needsTap={player.needsTap}
             />
 
             {/* Audio Player Controls */}

@@ -87,3 +87,62 @@ describe('useAudioPlayer YouTube play requests', () => {
     expect(yt.playVideo).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('useAudioPlayer needsTap (phones block play on an untouched iframe)', () => {
+  it('sets needsTap when YouTube has not started playing within 3 s, and clears it on playing', async () => {
+    vi.useFakeTimers();
+    try {
+      const { hook } = setup();
+      await act(async () => {
+        await hook.result.current.play();
+      });
+      expect(hook.result.current.needsTap).toBe(false);
+
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+      expect(hook.result.current.needsTap).toBe(true);
+
+      act(() => hook.result.current.handleYouTubeStateChange(PLAYING));
+      expect(hook.result.current.needsTap).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not set needsTap when playing starts in time', async () => {
+    vi.useFakeTimers();
+    try {
+      const { hook } = setup();
+      await act(async () => {
+        await hook.result.current.play();
+      });
+      act(() => hook.result.current.handleYouTubeStateChange(PLAYING));
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
+      expect(hook.result.current.needsTap).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('clears needsTap when the dancer pauses or picks another track', async () => {
+    vi.useFakeTimers();
+    try {
+      const { hook } = setup();
+      await act(async () => {
+        await hook.result.current.play();
+      });
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+      expect(hook.result.current.needsTap).toBe(true);
+
+      act(() => hook.result.current.loadYouTube('aaaaaaaaaaa'));
+      expect(hook.result.current.needsTap).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
