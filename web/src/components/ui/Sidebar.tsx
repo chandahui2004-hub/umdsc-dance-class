@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { TabDef, NavSubItem } from './TabBar';
 import { UserInfoBoard } from './UserInfoBoard';
+import { LogoBadge } from './LogoBadge';
 
 export interface SidebarProps {
   nav: TabDef[];
@@ -57,22 +58,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
       data-collapsed={isCollapsed}
       className={`${
         isCollapsed ? 'w-20' : 'w-64'
-      } bg-[var(--c-panel)] border-r-4 border-[var(--c-ink)] flex flex-col h-screen sticky top-0 shadow-[4px_0_0_var(--c-ink)] transition-[width] duration-150 shrink-0 select-none z-30`}
+      } bg-[var(--night-2)] border-r-4 border-[var(--outline)] flex flex-col h-screen sticky top-0 shadow-[4px_0_0_var(--outline)] transition-[width] duration-150 shrink-0 select-none z-30`}
     >
       {/* Brand Header */}
-      <div className="p-3 bg-[var(--c-navy)] text-[var(--text-1)] border-b-4 border-[var(--c-ink)]">
+      <div className="p-3 bg-[var(--night-2)] text-[var(--text-1)] border-b-4 border-[var(--outline)]">
         {!isCollapsed ? (
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="p-1 bg-white border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] shrink-0">
-                <img
-                  src="/logo.png"
-                  alt="UMDSC Logo"
-                  className="w-12 h-12 object-contain"
-                />
-              </div>
+              <LogoBadge height={56} />
               <div className="overflow-hidden">
-                <h1 className="font-display text-sm tracking-wider uppercase text-[var(--c-yellow)] truncate">
+                <h1 className="font-display text-sm tracking-wider uppercase text-[var(--neon-gold)] truncate">
                   {title}
                 </h1>
                 <p className="font-body text-xs text-[var(--text-2)] tracking-wide mt-0.5 truncate">
@@ -86,27 +81,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
               aria-label="Collapse navigation"
               title="Collapse navigation"
               data-testid="sidebar-toggle-btn"
-              className="p-1.5 bg-[var(--c-ink)] text-[var(--c-yellow)] hover:bg-[var(--c-darkgrey)] border border-[var(--c-yellow)] shadow-[1px_1px_0_var(--c-ink)] active:translate-x-[1px] active:translate-y-[1px] flex items-center justify-center font-display text-xs cursor-pointer shrink-0"
+              className="p-1.5 bg-[var(--night-0)] text-[var(--neon-gold)] hover:bg-[var(--violet-2)] border border-[var(--outline)] shadow-[1px_1px_0_var(--outline)] active:translate-x-[1px] active:translate-y-[1px] flex items-center justify-center font-display text-xs cursor-pointer shrink-0"
             >
               ◀
             </button>
           </div>
         ) : (
           <div className="w-full flex flex-col items-center gap-2">
-            <div className="p-1.5 bg-white border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)]">
-              <img
-                src="/logo.png"
-                alt="UMDSC Logo"
-                className="w-11 h-11 object-contain"
-              />
-            </div>
+            <LogoBadge height={36} />
             <button
               type="button"
               onClick={toggleCollapse}
               aria-label="Expand navigation"
               title="Expand navigation"
               data-testid="sidebar-toggle-btn"
-              className="w-full p-1 bg-[var(--c-ink)] text-[var(--c-yellow)] hover:bg-[var(--c-darkgrey)] border border-[var(--c-yellow)] shadow-[1px_1px_0_var(--c-ink)] active:translate-x-[1px] active:translate-y-[1px] flex items-center justify-center font-display text-xs cursor-pointer"
+              className="w-full p-1 bg-[var(--night-0)] text-[var(--neon-gold)] hover:bg-[var(--violet-2)] border border-[var(--outline)] shadow-[1px_1px_0_var(--outline)] active:translate-x-[1px] active:translate-y-[1px] flex items-center justify-center font-display text-xs cursor-pointer"
             >
               ▶
             </button>
@@ -115,7 +104,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex-1 p-2 space-y-2 overflow-y-auto overflow-x-hidden">
+      <nav className="flex-1 p-2 space-y-2 overflow-y-auto pixel-scrollbar overflow-x-hidden">
         {nav.map(item => {
           const isMore = item.id === 'more';
 
@@ -133,10 +122,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   data-testid="sidebar-more-toggle-btn"
                   className={`w-full flex items-center ${
                     isCollapsed ? 'justify-center px-1' : 'justify-between px-3'
-                  } py-2.5 min-h-[44px] border-2 border-[var(--c-ink)] font-display text-xs select-none transition-none cursor-pointer ${
+                  } py-2.5 min-h-[48px] border-2 border-[var(--outline)] font-display text-xs select-none transition-none cursor-pointer ${
                     isAnyMoreActive || isMoreExpanded
-                      ? 'bg-[var(--c-yellow)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--c-ink)]'
-                      : 'bg-[var(--c-panel)] text-[var(--text-1)] hover:bg-[var(--c-peach)]'
+                      ? 'bg-[var(--violet-2)] text-[var(--text-1)] font-bold border-l-4 border-l-[var(--neon-gold)]'
+                      : 'bg-[var(--night-1)] text-[var(--text-2)] hover:bg-[var(--violet-1)] hover:text-[var(--text-1)]'
                   }`}
                 >
                   <div className="flex items-center gap-3 overflow-hidden">
@@ -151,7 +140,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </button>
 
                 {isMoreExpanded && !isCollapsed && (
-                  <div className="pl-3 pr-1 py-1 space-y-1.5 border-l-2 border-[var(--c-ink)] ml-4 animate-in fade-in duration-100">
+                  <div className="pl-3 pr-1 py-1 space-y-1.5 border-l-2 border-[var(--outline)] ml-4 animate-in fade-in duration-100">
                     {moreItems.map(sub => (
                       <NavLink
                         key={sub.id}
@@ -159,10 +148,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         title={sub.label}
                         aria-label={sub.label}
                         className={({ isActive }) =>
-                          `flex items-center gap-2 px-2 py-2 min-h-[38px] border-2 border-[var(--c-ink)] font-display text-[9px] select-none transition-none ${
+                          `flex items-center gap-2 px-2 py-2 min-h-[40px] border-2 border-[var(--outline)] font-display text-[9px] select-none transition-none ${
                             isActive
-                              ? 'bg-[var(--c-yellow)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--c-ink)] translate-x-[2px]'
-                              : 'bg-[var(--c-bg)] text-[var(--text-1)] hover:bg-[var(--c-peach)]'
+                              ? 'bg-[var(--violet-2)] text-[var(--text-1)] font-bold border-l-4 border-l-[var(--neon-gold)] translate-x-[2px]'
+                              : 'bg-[var(--night-0)] text-[var(--text-2)] hover:bg-[var(--violet-1)] hover:text-[var(--text-1)]'
                           }`
                         }
                       >
@@ -187,10 +176,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className={({ isActive }) =>
                 `flex items-center ${
                   isCollapsed ? 'justify-center px-1' : 'justify-start gap-3 px-3'
-                } py-2.5 min-h-[44px] border-2 border-[var(--c-ink)] font-display text-xs select-none transition-none relative ${
+                } py-2.5 min-h-[48px] border-2 border-[var(--outline)] font-display text-xs select-none transition-none relative ${
                   isActive
-                    ? 'bg-[var(--c-yellow)] text-[var(--on-neon)] shadow-[2px_2px_0_var(--c-ink)] translate-x-[2px]'
-                    : 'bg-[var(--c-panel)] text-[var(--text-1)] hover:bg-[var(--c-peach)]'
+                    ? 'bg-[var(--violet-2)] text-[var(--text-1)] font-bold border-l-4 border-l-[var(--neon-gold)]'
+                    : 'bg-[var(--night-1)] text-[var(--text-2)] hover:bg-[var(--violet-1)] hover:text-[var(--text-1)]'
                 }`
               }
             >
@@ -206,7 +195,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     isCollapsed
                       ? 'absolute -top-1 -right-1'
                       : 'ml-auto'
-                  } bg-[var(--c-red)] text-[var(--on-neon)] text-[8px] px-1 border border-[var(--c-ink)]`}
+                  } bg-[var(--neon-red)] text-[var(--on-neon)] text-[8px] px-1 border border-[var(--outline)]`}
                 >
                   {item.badge}
                 </span>
@@ -217,7 +206,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </nav>
 
       {/* Footer / User Information Board */}
-      <div className="border-t-4 border-[var(--c-ink)] bg-[var(--c-bg)] overflow-hidden">
+      <div className="border-t-4 border-[var(--outline)] bg-[var(--night-1)] overflow-hidden">
         {footer ? (
           <div className="p-2">{footer}</div>
         ) : (

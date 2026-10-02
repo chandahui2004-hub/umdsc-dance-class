@@ -21,7 +21,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   return (
     <div
       data-testid="desktop-shell"
-      className="min-h-screen bg-[var(--c-bg)] text-[var(--text-1)] flex"
+      className="min-h-screen px-starfield text-[var(--text-1)] flex"
     >
       {/* Fixed Sidebar */}
       <Sidebar nav={nav} moreItems={moreItems} footer={userFooter} />
@@ -29,7 +29,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
       {/* Main Content Area */}
       <main className="flex-1 p-8 overflow-y-auto max-w-7xl mx-auto w-full">
         {topBar && (
-          <div className="mb-6 p-3 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] max-w-xl">
+          <div className="mb-6 p-3 px-panel max-w-xl">
             {topBar}
           </div>
         )}

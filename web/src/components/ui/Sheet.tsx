@@ -4,6 +4,8 @@ export interface SheetProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
+  backdropTestId?: string;
+  contentTestId?: string;
   children: React.ReactNode;
 }
 
@@ -11,6 +13,8 @@ export const Sheet: React.FC<SheetProps> = ({
   isOpen,
   onClose,
   title,
+  backdropTestId,
+  contentTestId,
   children
 }) => {
   useEffect(() => {
@@ -36,10 +40,14 @@ export const Sheet: React.FC<SheetProps> = ({
         className="fixed inset-0 bg-[var(--night-0)]/80 px-dither cursor-pointer"
         onClick={onClose}
         aria-hidden="true"
+        data-testid={backdropTestId}
       />
 
       {/* Sheet Content */}
-      <div className="relative z-10 w-full max-w-lg px-panel border-t-2 border-t-[var(--neon-cyan)] max-h-[calc(100dvh-48px)] flex flex-col px-sheet-animated">
+      <div
+        data-testid={contentTestId}
+        className="relative z-10 w-full max-w-lg px-panel border-t-2 border-t-[var(--neon-cyan)] max-h-[calc(100dvh-48px)] flex flex-col px-sheet-animated"
+      >
         {/* Grab bar for phone */}
         <div className="flex sm:hidden justify-center items-center gap-1 pt-2 pb-1 bg-[var(--night-2)]" aria-hidden="true">
           <div className="w-1 h-1 bg-[var(--violet-4)]" />

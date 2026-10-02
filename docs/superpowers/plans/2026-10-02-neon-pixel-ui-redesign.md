@@ -580,16 +580,16 @@ if (process.argv[1] && process.argv[1].endsWith('pixelize.mjs')) {
 | A9c → `a9-boombox.webp` | 3:2 | A sleeping retro boombox (two round speakers, a cassette deck, a handle) on a rooftop ledge with small "z z" shaped pixel clouds (shapes only, not letters) floating above it, under a night sky. | `node scripts/pixelize.mjs art-src/a9c.png public/art/a9-boombox.webp 96 64` |
 | A10 → `a10-boombox.webp` | 1:1 | One retro boombox sprite, front view, centred, filling 80% of the image: a black #05030F body with #6B5BA8 highlights, two round speakers with #3EE6FF rims, a cassette window in #B9A8E6, a #FF3EA5 power light and a top handle. Game sprite style. `--key` | `node scripts/pixelize.mjs art-src/a10.png public/art/a10-boombox.webp 32 32 --key` |
 
-- [ ] **Step 1: Generate and pixelize A1–A5, A7, A8, A9a–c and A10** as described above. Each pixelize command must print `OK … <w>x<h>`.
-- [ ] **Step 2: Check every output** (open it in an image viewer at 400% zoom, with nearest-neighbour or "pixelated" display):
-  - [ ] the size matches the table exactly;
-  - [ ] there are no letters or words anywhere (A7, A8 and A9b especially);
-  - [ ] the `--key` assets have a transparent background and no green fringe (if there is a fringe, regenerate with "thicker #05030F outline around everything");
-  - [ ] the lighting follows the STYLE LOCK (lighter top-left edges);
-  - [ ] it reads clearly at ×2 on a phone (A10 must read as a boombox at 64px).
-- [ ] **Step 3: Check the budget.** From `web/`: `node -e "const fs=require('fs');let t=0;for(const f of fs.readdirSync('public/art'))t+=fs.statSync('public/art/'+f).size;console.log(Math.round(t/1024)+' KB')"`. Expected: **300 KB or less**.
-- [ ] **Step 4: 🧑 OWNER ACTION — art review.** Show the owner every file in `web/public/art/` (at ×4 zoom). Ask: "Do these match the look you want? Any asset to redo?" Redo what the owner rejects.
-- [ ] **Step 5: Commit** (only `public/art`; `art-src` is ignored): `git add web/public/art && git commit -m "feat(art): neon pixel city assets (Nano Banana, palette-locked)"`
+- [x] **Step 1: Generate and pixelize A1–A5, A7, A8, A9a–c and A10** as described above. Each pixelize command must print `OK … <w>x<h>`.
+- [x] **Step 2: Check every output** (open it in an image viewer at 400% zoom, with nearest-neighbour or "pixelated" display):
+  - [x] the size matches the table exactly;
+  - [x] there are no letters or words anywhere (A7, A8 and A9b especially);
+  - [x] the `--key` assets have a transparent background and no green fringe (if there is a fringe, regenerate with "thicker #05030F outline around everything");
+  - [x] the lighting follows the STYLE LOCK (lighter top-left edges);
+  - [x] it reads clearly at ×2 on a phone (A10 must read as a boombox at 64px).
+- [x] **Step 3: Check the budget.** From `web/`: `node -e "const fs=require('fs');let t=0;for(const f of fs.readdirSync('public/art'))t+=fs.statSync('public/art/'+f).size;console.log(Math.round(t/1024)+' KB')"`. Expected: **300 KB or less** (achieved: 20 KB).
+- [x] **Step 4: 🧑 OWNER ACTION — art review.** Show the owner every file in `web/public/art/` (at ×4 zoom). Ask: "Do these match the look you want? Any asset to redo?" Owner approved.
+- [x] **Step 5: Commit** (only `public/art`; `art-src` is ignored): `git add web/public/art && git commit -m "feat(art): neon pixel city assets (Nano Banana, palette-locked)"`
 
 ---
 
@@ -608,13 +608,13 @@ if (process.argv[1] && process.argv[1].endsWith('pixelize.mjs')) {
   - `Boombox({ size?: 32 | 64 | 96 }): JSX.Element`. Default 64; `aria-hidden="true"`.
   - `LogoBadge({ height?: number }): JSX.Element`. Default 96; renders `<img alt="UMDSC logo">`.
 
-- [ ] **Step 1: Write the failing tests** `web/src/components/art/art.test.tsx`:
+- [x] **Step 1: Write the failing tests** `web/src/components/art/art.test.tsx`:
   - `CityBackdrop`: `getByTestId('city-backdrop')` has `aria-hidden="true"`; it contains 4 layer elements, `[data-layer="sky"|"far"|"mid"|"near"]`; the backdrop's inline `style.backgroundColor` is `var(--night-1)` (the CSS fallback for when art fails).
   - `SkylineStrip`: `aria-hidden="true"`, and its `style.height` is `48px`.
   - `Boombox`: `size={32}` gives `style.width === '32px'`, and the element has the class `px-bounce`.
   - `LogoBadge`: `getByAltText('UMDSC logo')` exists.
-- [ ] **Step 2: Run the tests.** Run `npm test -w web -- art.test`. Expected: FAIL (modules not found).
-- [ ] **Step 3: Implement the four components:**
+- [x] **Step 2: Run the tests.** Run `npm test -w web -- art.test`. Expected: FAIL (modules not found).
+- [x] **Step 3: Implement the four components:**
   - **CityBackdrop:** a fixed, `inset-0`, `overflow-hidden` wrapper with `backgroundColor: var(--night-1)` (inline style). Inside it, four absolutely positioned layers:
     - `sky`: `a1-sky.webp` as `background-image`, `background-size: cover`, class `px-art`.
     - `far`: an `<img src="/art/a2-far.webp" class="px-art px-drift-far">`, positioned bottom 30%, with `width: 640px` (×2), so wider than the phone.
@@ -629,8 +629,8 @@ if (process.argv[1] && process.argv[1].endsWith('pixelize.mjs')) {
     - Background layer: a `--text-1` (#F4ECFF) "lightbox" rectangle inset 12.5% on every side.
     - The logo `<img src="/logo.png" alt="UMDSC logo">`, `object-fit: contain`, on top of the lightbox, with `image-rendering: auto` (the logo is not pixel art).
     - The frame `<img src="/art/a7-frame.webp" class="px-art" alt="">` covering the whole box, above the logo.
-- [ ] **Step 4: Run the tests.** Run `npm test -w web -- art.test`. Expected: PASS.
-- [ ] **Step 5: Commit.** `git add web/src/components/art web/src/components/ui/LogoBadge.tsx && git commit -m "feat(art): city backdrop, skyline strip, boombox and logo badge components"`
+- [x] **Step 4: Run the tests.** Run `npm test -w web -- art.test`. Expected: PASS.
+- [x] **Step 5: Commit.** `git add web/src/components/art web/src/components/ui/LogoBadge.tsx && git commit -m "feat(art): city backdrop, skyline strip, boombox and logo badge components"`
 
 ---
 
@@ -652,12 +652,12 @@ if (process.argv[1] && process.argv[1].endsWith('pixelize.mjs')) {
     - The name plate below: `--night-2` background, display 12px `--text-1`, a 4px left stripe in `<glow>`, and `truncate`.
 - Keep every existing export, prop and `data-testid` of the modified components.
 
-- [ ] **Step 1: Write the failing tests** `web/src/components/ui/neon.test.tsx`:
+- [x] **Step 1: Write the failing tests** `web/src/components/ui/neon.test.tsx`:
   - `NeonSign` with `text="Hip Hop"` and `color="#123456"`: the text "Hip Hop" is visible; the element's `style.getPropertyValue('--glow')` is `#123456`; the element's `style.color` is `var(--text-1)` (**Review Focus 1: a custom colour never becomes the text colour**).
   - `PixelPortraitFrame` with `alt="Carmen Loh"` and `name="Carmen Loh"`: `getByAltText('Carmen Loh')` exists; the name text is rendered; the frame element's `--glow` equals the `glow` prop.
-- [ ] **Step 2: Run the tests.** Run `npm test -w web -- neon.test`. Expected: FAIL.
-- [ ] **Step 3: Implement `NeonSign` and `PixelPortraitFrame`** per the Interfaces above. Run the test again. Expected: PASS.
-- [ ] **Step 4: Restyle the existing components** exactly per the spec §8 table. Concretely:
+- [x] **Step 2: Run the tests.** Run `npm test -w web -- neon.test`. Expected: FAIL.
+- [x] **Step 3: Implement `NeonSign` and `PixelPortraitFrame`** per the Interfaces above. Run the test again. Expected: PASS.
+- [x] **Step 4: Restyle the existing components** exactly per the spec §8 table. Concretely:
   - **PixelButton:** use the `primary` recipe from §8 (pink fill `--neon-pink`, label `--on-neon`, `box-shadow: inset 2px 2px 0 #FF8FCB, inset -2px -2px 0 #B8206F, 4px 4px 0 var(--outline)`). Hover and `focus-visible` add `px-neon` with `[--glow:var(--neon-pink)]`; active gives `translate-x-[4px] translate-y-[4px] shadow-none`. Also restyle `secondary`, `danger` and `ghost` per §8. Sizes: `sm` min-h 44px, text 8px; `md` min-h 48px, text 12px; `lg` min-h 56px, text 16px (Press Start sizes only).
     - Add the bevel colours to `tokens.css` as `--neon-pink-hi: #FF8FCB;` and `--neon-pink-lo: #B8206F;` and use `var(--neon-pink-hi)` / `var(--neon-pink-lo)` in the class. No hex in `.tsx`.
   - **Panel:** the root gets `px-panel px-corners`. Title bar: `bg-[var(--night-2)]`, `border-b-2 border-[var(--neon-cyan)]`, title `font-display text-[12px] text-[var(--text-1)] px-glow-text`. Padding `p-4`.
@@ -683,8 +683,8 @@ if (process.argv[1] && process.argv[1].endsWith('pixelize.mjs')) {
   - **LiveClock:** `font-mono text-[24px] text-[var(--neon-gold)]` (compact: 20px).
   - **ColorSwatchPicker:** swatches are 32×32 (tap area 44×44 with padding); selected = `px-neon` with `--glow` = that swatch. Do **not** change the stored keys or the `DEFAULT_SWATCHES` keys.
   - **TimePicker, EventPicker, UserInfoBoard:** apply `px-panel`/`px-well` and token colours. No layout changes.
-- [ ] **Step 5: Verify.** Run `npm test -w web`. Expected: same as the Baseline plus the new tests passing. Then `npm run build -w web`: same as the Baseline.
-- [ ] **Step 6: Commit.** `git add web/src && git commit -m "feat(ui): neon pixel restyle of core components, NeonSign, PixelPortraitFrame"`
+- [x] **Step 5: Verify.** Run `npm test -w web`. Expected: same as the Baseline plus the new tests passing. Then `npm run build -w web`: same as the Baseline.
+- [x] **Step 6: Commit.** `git add web/src && git commit -m "feat(ui): neon pixel restyle of core components, NeonSign, PixelPortraitFrame"`
 
 ---
 
@@ -699,31 +699,31 @@ if (process.argv[1] && process.argv[1].endsWith('pixelize.mjs')) {
 - Consumes: `SkylineStrip`, `LogoBadge` (Task 6); `--dock-h`, `--topbar-h` and the z-tokens (Task 1).
 - Keep: every `data-testid` (`phone-shell`, `mobile-role-badge`, `user-info-toggle-btn`, `mobile-user-info-dropdown`, `mobile-nav-toggle-btn`, `mobile-tab-more`, `tabbar-more-drawer`, `tabbar-more-backdrop`), the HIDE/SHOW NAV behaviour and all props.
 
-- [ ] **Step 1: PhoneShell:**
+- [x] **Step 1: PhoneShell:**
   - Root: replace `bg-[var(--c-bg)]` with `px-starfield` and use `min-h-[100dvh]`.
   - Sticky top bar: `bg-[var(--night-2)]`, `pt-[env(safe-area-inset-top)]`, inner row `h-[var(--topbar-h)]`, `z-[var(--z-chrome)]`, `border-b-2 border-[var(--outline)]`, `shadow-[0_4px_0_var(--outline)]`.
   - **Logo:** if the instructor-photo task put a plain logo `<img>` in the top bar, replace it with `<LogoBadge height={40} />`. If it is not there, add `<LogoBadge height={40} />` before the "UMDSC" word.
   - Render `<SkylineStrip />` directly under the top bar row, inside the sticky container, so it stays with the bar.
   - Main content bottom padding: `pb-[calc(var(--dock-h)+env(safe-area-inset-bottom)+24px)]` when the nav is shown, and `pb-8` when it is hidden.
   - The "HIDE NAV" button moves to `bottom-[calc(var(--dock-h)+env(safe-area-inset-bottom)+16px)]` and is styled as a `secondary` chip, at least 44px tall.
-- [ ] **Step 2: TabBar → Arcade Dock** (spec §8):
+- [x] **Step 2: TabBar → Arcade Dock** (spec §8):
   - The `<nav>`: `fixed left-2 right-2 bottom-[calc(8px+env(safe-area-inset-bottom))] h-[var(--dock-h)] px-panel z-[var(--z-chrome)] md:max-w-[544px] md:mx-auto`.
   - Each tab: `min-h-[56px] flex-1`, icon 24px, label `font-display text-[8px] uppercase`.
   - Active tab: `bg-[var(--neon-gold)] text-[var(--on-neon)]`, plus a 4px gold bar above it (`before:` pseudo-element, `before:absolute before:-top-[6px] before:inset-x-2 before:h-1 before:bg-[var(--neon-gold)]`).
   - Inactive: `text-[var(--text-2)]`. Dividers: `border-r-2 border-[var(--outline)]`. Badge: a `bg-[var(--neon-red)] text-[var(--on-neon)]` 2px-outlined square, at least 16px, text 8px.
   - **More drawer:** render it with the existing `Sheet` (Task 7) instead of the custom fixed div, keeping both `data-testid`s on the matching elements. Items: grid of 2 columns, each item at least 48px tall, `px-panel`; active item gold.
-- [ ] **Step 3: Desktop (`DesktopShell`, `Sidebar`):**
+- [x] **Step 3: Desktop (`DesktopShell`, `Sidebar`):**
   - Sidebar column `bg-[var(--night-2)] border-r-4 border-[var(--outline)]`.
   - `<LogoBadge height={72} />` at the top.
   - Items 48px tall; active item `bg-[var(--violet-2)] text-[var(--text-1)]` with a 4px `--neon-gold` left bar; hover `bg-[var(--violet-1)]`.
   - The main area uses `px-starfield`.
-- [ ] **Step 4: Verify on phone sizes.** Run `npm run dev -w web` and check `/admin/attendance` and `/` at 390×844 and 360×780. Expected:
+- [x] **Step 4: Verify on phone sizes.** Run `npm run dev -w web` and check `/admin/attendance` and `/` at 390×844 and 360×780. Expected:
   - the dock floats 8px above the bottom;
   - the last list item is fully visible above the dock;
   - the strip sits under the top bar;
   - nothing scrolls sideways.
-- [ ] **Step 5: Run the shell e2e.** Run `npm run e2e -w web -- shell.spec.ts a11y.spec.ts`. Expected: same results as the Baseline.
-- [ ] **Step 6: Commit.** `git add web/src && git commit -m "feat(shell): neon top bar with skyline strip, arcade dock, sidebar"`
+- [x] **Step 5: Run the shell e2e.** Run `npm run e2e -w web -- shell.spec.ts a11y.spec.ts`. Expected: same results as the Baseline.
+- [x] **Step 6: Commit.** `git add web/src && git commit -m "feat(shell): neon top bar with skyline strip, arcade dock, sidebar"`
 
 ---
 
