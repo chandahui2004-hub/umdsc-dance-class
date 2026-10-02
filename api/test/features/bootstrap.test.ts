@@ -258,4 +258,30 @@ describe('Feature: Bootstrap with Caching (features/bootstrap)', () => {
       }
     });
   });
+
+  it('still shows a dancer their styles when the event Members list is too big for the cache', () => {
+    const many = Array.from({ length: 1500 }, (_, n) => ({
+      matricKey: `3${String(n).padStart(7, '0')}`,
+      fullName: `Member Number ${n} ${'x'.repeat(40)}`,
+      styleIds: ['st_popping']
+    }));
+    const big = seedEvent(ctx, {
+      name: 'BIG EVENT',
+      styleIds: ['st_popping'],
+      members: [{ matricKey: '22009999', fullName: 'Big Dancer', styleIds: ['st_popping'] }, ...many]
+    });
+    addIndex('22009999', 'Big Dancer', [big.id]); // indexed before eventStyles existed: reads the Members sheet
+    const realPut = ctx.cache.put.bind(ctx.cache);
+    ctx.cache.put = (key: string, value: string, ttl: number) => {
+      if (value.length > 100_000) throw new Error('Argument too large: value');
+      realPut(key, value, ttl);
+    };
+
+    const res = handleRequest({ action: 'dancer.bootstrap', token: dancerTokenFor('22009999', 'Big Dancer') }, ctx, secrets);
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect((res.data as any).styles.map((st: any) => st.name)).toEqual(['Popping']);
+    }
+  });
 });

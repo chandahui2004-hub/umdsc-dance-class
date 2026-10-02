@@ -8,6 +8,7 @@ import {
 } from './gas/adapters';
 import { openDb } from './db/db';
 import { Ctx } from './ports';
+import { warmCaches } from './features/warmup';
 import { Hmac } from './security/tokens';
 import { ApiRequest } from '@umdsc/shared';
 
@@ -36,16 +37,7 @@ export function doGet(e?: GoogleAppsScript.Events.DoGet): GoogleAppsScript.Conte
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-export function doPost(e?: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Content.TextOutput {
-  let req: ApiRequest = { action: 'unknown' };
-  if (e?.postData?.contents) {
-    try {
-      req = JSON.parse(e.postData.contents);
-    } catch {
-      req = { action: e?.parameter?.action || 'unknown' };
-    }
-  }
-
+function buildCtx(): { ctx: Ctx; props: GasPropsAdapter } {
   const drive = new GasDriveAdapter();
   const cache = new GasCacheAdapter();
   const lock = new GasLockAdapter();
@@ -64,6 +56,37 @@ export function doPost(e?: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Con
     db,
     clubEmail
   };
+  return { ctx, props };
+}
+
+/** Run by the time-driven trigger: keeps dancers' first request from paying for cold caches. */
+export function warmDancerCaches(): void {
+  const { ctx } = buildCtx();
+  const result = warmCaches(ctx);
+  console.log(JSON.stringify({ action: 'warmDancerCaches', result }));
+}
+
+/** Run once from the Apps Script editor: (re)creates the 5-minute warm-up trigger. */
+export function installWarmTrigger(): void {
+  for (const trigger of ScriptApp.getProjectTriggers()) {
+    if (trigger.getHandlerFunction() === 'warmDancerCaches') {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  }
+  ScriptApp.newTrigger('warmDancerCaches').timeBased().everyMinutes(5).create();
+}
+
+export function doPost(e?: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Content.TextOutput {
+  let req: ApiRequest = { action: 'unknown' };
+  if (e?.postData?.contents) {
+    try {
+      req = JSON.parse(e.postData.contents);
+    } catch {
+      req = { action: e?.parameter?.action || 'unknown' };
+    }
+  }
+
+  const { ctx, props } = buildCtx();
 
   const tokenSecret = props.get('TOKEN_SECRET') || 'default_secret';
   const secrets = {

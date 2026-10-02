@@ -6,6 +6,7 @@ import { sessionLabel, locateCell } from '../logic/attendanceGrid';
 import { onSessionChanged } from './sessions';
 import { getEvent, readEventMembers } from './eventMembers';
 import { ensureEventSheets } from './eventSheets';
+import { safeCachePut } from '../logic/cache';
 
 const versionKey = (eventId: string, styleId: string) => `attv:${eventId}:${styleId}`;
 const gridKey = (eventId: string, styleId: string, ver: number) => `att:${eventId}:${styleId}:${ver}`;
@@ -100,7 +101,7 @@ export function getAttendanceRoutes(): Record<string, Route> {
           grid.present[mId] = sessionCols.filter(sc => row[sc.colIdx] === '/').map(sc => sc.id);
         }
 
-        ctx.cache.put(gridKey(eventId, styleId, curVer), JSON.stringify(grid), 60);
+        safeCachePut(ctx.cache, gridKey(eventId, styleId, curVer), JSON.stringify(grid), 60);
         return grid;
       }
     },

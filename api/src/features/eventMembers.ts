@@ -1,6 +1,7 @@
 import { EventItem, Member } from '@umdsc/shared';
 import { Ctx } from '../ports';
 import { AppError } from '../errors';
+import { safeCachePut } from '../logic/cache';
 
 export function getEvent(ctx: Ctx, eventId: string): EventItem {
   const event = eventId ? ctx.db.events.find(e => e.id === eventId && e.active)[0] : undefined;
@@ -57,7 +58,7 @@ export function readEventMembers(ctx: Ctx, event: EventItem): Member[] {
     });
   }
 
-  ctx.cache.put(cacheKey, JSON.stringify(members), 600);
+  safeCachePut(ctx.cache, cacheKey, JSON.stringify(members), 600);
   return members;
 }
 

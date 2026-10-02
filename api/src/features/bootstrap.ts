@@ -12,6 +12,7 @@ import {
   EventItem
 } from '@umdsc/shared';
 import { dancerStylesInEvent } from './eventMembers';
+import { safeCachePut } from '../logic/cache';
 import { createTimer, logTimings, type Timer } from '../logic/timing';
 
 export function getAdminBootstrap(
@@ -51,7 +52,7 @@ export function getAdminBootstrap(
     settings.clubEmail = ctx.clubEmail;
 
     sharedData = { styles, instructors, sessions, roles: roles as any, events, settings };
-    ctx.cache.put(cacheKey, JSON.stringify(sharedData), 600);
+    safeCachePut(ctx.cache, cacheKey, JSON.stringify(sharedData), 600);
   }
 
   return {
@@ -76,7 +77,7 @@ function loadDancerIndex(ctx: Ctx, matricKey: string): any {
   if (!dancer) {
     throw new AppError('NOT_FOUND', 'Dancer record not found');
   }
-  ctx.cache.put(miKey, JSON.stringify(dancer), 600);
+  safeCachePut(ctx.cache, miKey, JSON.stringify(dancer), 600);
   return dancer;
 }
 
@@ -179,7 +180,8 @@ export function getDancerAttendance(
             presentMap[rowMId] = sessCols.filter(sc => data[r][sc.colIdx] === '/').map(sc => sc.id);
           }
 
-          ctx.cache.put(
+          safeCachePut(
+            ctx.cache,
             `att:${eventId}:${styleId}:${curAttVer}`,
             JSON.stringify({ present: presentMap, sessions: gridSessions }),
             600
@@ -198,6 +200,37 @@ export function getDancerAttendance(
 
   timer?.mark('attendance');
   return attendance;
+}
+
+export interface DancerChunk {
+  sessions: ClassSession[];
+  videos: VideoItem[];
+  music: MusicItem[];
+  sections: Section[];
+}
+
+/** One event+style's shared content (same for every dancer in it), cached per data version. */
+export function getDancerChunk(ctx: Ctx, eventId: string, styleId: string, dataVersion: number): DancerChunk {
+  const chunkKey = `boot:chunk:${eventId}:${styleId}:${dataVersion}`;
+  const cachedChunk = ctx.cache.get(chunkKey);
+  if (cachedChunk) {
+    try {
+      return JSON.parse(cachedChunk);
+    } catch {
+      // rebuild below
+    }
+  }
+
+  const chunkMusic = ctx.db.music.find(mus => mus.eventId === eventId && mus.styleId === styleId && mus.active);
+  const musicIds = new Set(chunkMusic.map(mus => mus.id));
+  const chunkData: DancerChunk = {
+    sessions: ctx.db.sessions.find(s => s.eventId === eventId && s.styleId === styleId && s.active),
+    videos: ctx.db.videos.find(v => v.eventId === eventId && v.styleId === styleId && v.active),
+    music: chunkMusic,
+    sections: ctx.db.sections.find(sec => musicIds.has(sec.musicId) && sec.active)
+  };
+  safeCachePut(ctx.cache, chunkKey, JSON.stringify(chunkData), 600);
+  return chunkData;
 }
 
 export function getDancerBootstrap(
@@ -236,29 +269,7 @@ export function getDancerBootstrap(
     for (const styleId of styleSet) {
       allDancerStyleIds.add(styleId);
 
-      const chunkKey = `boot:chunk:${eventId}:${styleId}:${dataVersion}`;
-      let chunkData: any = null;
-      const cachedChunk = ctx.cache.get(chunkKey);
-      if (cachedChunk) {
-        try {
-          chunkData = JSON.parse(cachedChunk);
-        } catch {
-          // ignore
-        }
-      }
-
-      if (!chunkData) {
-        const chunkMusic = ctx.db.music.find(mus => mus.eventId === eventId && mus.styleId === styleId && mus.active);
-        const musicIds = new Set(chunkMusic.map(mus => mus.id));
-        chunkData = {
-          sessions: ctx.db.sessions.find(s => s.eventId === eventId && s.styleId === styleId && s.active),
-          videos: ctx.db.videos.find(v => v.eventId === eventId && v.styleId === styleId && v.active),
-          music: chunkMusic,
-          sections: ctx.db.sections.find(sec => musicIds.has(sec.musicId) && sec.active)
-        };
-        ctx.cache.put(chunkKey, JSON.stringify(chunkData), 600);
-      }
-
+      const chunkData = getDancerChunk(ctx, eventId, styleId, dataVersion);
       for (const s of chunkData.sessions) sessionsMap.set(s.id, s);
       for (const v of chunkData.videos) videosMap.set(v.id, v);
       for (const mus of chunkData.music) musicMap.set(mus.id, mus);
@@ -291,7 +302,7 @@ export function getDancerBootstrap(
     sections: Array.from(sectionsMap.values())
   };
 
-  ctx.cache.put(dancerBootKey, JSON.stringify(result), 300);
+  safeCachePut(ctx.cache, dancerBootKey, JSON.stringify(result), 300);
 
   return result;
 }
