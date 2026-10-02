@@ -1,5 +1,37 @@
 /* Pixel & Retro Utilities */
 
+/* Surface recipes (spec §6.3) */
+.px-panel {
+  background: var(--violet-1);
+  border: 4px solid var(--outline);
+  box-shadow:
+    inset 2px 2px 0 var(--violet-3),     /* moonlit top-left bevel */
+    inset -2px -2px 0 var(--night-0),    /* shaded bottom-right bevel */
+    4px 4px 0 var(--outline);            /* hard drop shadow */
+}
+
+.px-well {
+  background: var(--night-1);
+  border: 2px solid var(--outline);
+  box-shadow:
+    inset 2px 2px 0 var(--night-0),      /* shadow falls INTO the well top-left */
+    inset -2px -2px 0 var(--violet-2);   /* lit lip bottom-right */
+}
+
+.px-pressed {
+  transform: translate(4px, 4px);
+  box-shadow: inset 2px 2px 0 var(--night-0);
+}
+
+.px-neon {
+  --glow: var(--neon-cyan);
+  border: 2px solid var(--glow);
+  box-shadow:
+    0 0 0 2px var(--outline),
+    0 0 0 4px color-mix(in srgb, var(--glow) 45%, transparent),
+    0 0 0 6px color-mix(in srgb, var(--glow) 18%, transparent);
+}
+
 /* 4px Notched Corners */
 .px-corners {
   clip-path: polygon(
@@ -20,7 +52,7 @@
 
 /* 2x2 Checker Dither Background */
 .px-dither {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2' viewBox='0 0 2 2'%3E%3Crect x='0' y='0' width='1' height='1' fill='%23000000' fill-opacity='0.05'/%3E%3Crect x='1' y='1' width='1' height='1' fill='%23000000' fill-opacity='0.05'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2' viewBox='0 0 2 2'%3E%3Crect x='0' y='0' width='1' height='1' fill='%234E3C99' fill-opacity='0.08'/%3E%3Crect x='1' y='1' width='1' height='1' fill='%234E3C99' fill-opacity='0.08'/%3E%3C/svg%3E");
 }
 
 /* 8-bit Blink Animation */
@@ -37,11 +69,52 @@
   animation: px-blink-anim 1s steps(2, start) infinite;
 }
 
-/* Global 8-bit Focus Ring */
+/* Scanlines */
+.px-scanlines { position: relative; }
+.px-scanlines::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(to bottom, transparent 0 2px, rgb(0 0 0 / .18) 2px 3px);
+}
+
+/* Glow Text */
+.px-glow-text {
+  text-shadow: 2px 2px 0 var(--outline), 0 0 6px color-mix(in srgb, currentColor 55%, transparent);
+}
+
+/* Pixel Art Image Rendering */
+.px-art { image-rendering: pixelated; image-rendering: crisp-edges; }
+
+/* A6 starfield: 64x64 tile, 1px stars, drawn ×2 */
+.px-starfield {
+  background-color: var(--night-1);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' shape-rendering='crispEdges'%3E%3Crect x='5' y='9' width='1' height='1' fill='%23F4ECFF'/%3E%3Crect x='41' y='4' width='1' height='1' fill='%23B9A8E6'/%3E%3Crect x='22' y='27' width='1' height='1' fill='%23B9A8E6'/%3E%3Crect x='57' y='33' width='1' height='1' fill='%23F4ECFF'/%3E%3Crect x='12' y='50' width='1' height='1' fill='%236B5BA8'/%3E%3Crect x='35' y='58' width='1' height='1' fill='%23B9A8E6'/%3E%3Crect x='48' y='17' width='1' height='1' fill='%233EE6FF' fill-opacity='.7'/%3E%3C/svg%3E");
+  background-size: 128px 128px;
+  image-rendering: pixelated;
+}
+
+@keyframes px-twinkle { 0%, 60% { opacity: 1 } 61%, 100% { opacity: .25 } }
+.px-twinkle { animation: px-twinkle 2.4s steps(1, end) infinite; }
+
+@keyframes px-drift-far { from { transform: translateX(0) } to { transform: translateX(-64px) } }
+@keyframes px-drift-mid { from { transform: translateX(0) } to { transform: translateX(-128px) } }
+.px-drift-far { animation: px-drift-far 40s steps(64) infinite alternate; }
+.px-drift-mid { animation: px-drift-mid 40s steps(128) infinite alternate; }
+
+@keyframes px-bounce { 0%, 100% { transform: translateY(0) } 25%, 75% { transform: translateY(-1px) } 50% { transform: translateY(-2px) } }
+.px-bounce { animation: px-bounce .66s steps(1, end) infinite; }
+
+.px-paused * { animation-play-state: paused !important; }
+
+/* Global 8-bit Focus Ring (spec §8) */
 :focus-visible {
-  outline: 4px solid var(--c-yellow) !important;
+  outline: 2px solid var(--neon-cyan) !important;
   outline-offset: 2px !important;
-  box-shadow: 0 0 0 6px var(--c-ink) !important;
+  box-shadow: 0 0 0 6px var(--outline) !important;
+}
+
+/* Radius Guard (no rounded corners except tiny dots) */
+*:not(.rounded-full) {
+  border-radius: 0 !important;
 }
 
 /* Accessible Reduced Motion */
@@ -55,9 +128,18 @@
     scroll-behavior: auto !important;
   }
 
-  .px-blink {
+  .px-blink,
+  .px-twinkle,
+  .px-drift-far,
+  .px-drift-mid,
+  .px-bounce {
     animation: none !important;
   }
+}
+
+/* Input zoom guard (iOS) */
+input, select, textarea {
+  font-size: max(16px, 1em);
 }
 
 /* Minimum Text Size (enforced 8px minimum floor across all elements) */
@@ -85,23 +167,22 @@ body, table, th, td, button, input, select, textarea, p, span, h1, h2, h3, h4, h
   font-size: max(8px, 1em) !important;
 }
 
-/* Pixel Scrollbar */
+/* Pixel Scrollbar (spec §8) */
 .pixel-scrollbar::-webkit-scrollbar {
   width: 12px;
   height: 12px;
 }
 .pixel-scrollbar::-webkit-scrollbar-track {
-  background: var(--c-panel);
-  border-left: 2px solid var(--c-ink);
+  background: var(--night-1);
 }
 .pixel-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--c-ink);
-  border: 2px solid var(--c-yellow);
+  background: var(--violet-3);
+  border: 2px solid var(--outline);
 }
 .pixel-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: var(--c-peach);
+  background: var(--neon-cyan);
 }
 .pixel-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: var(--c-ink) var(--c-panel);
+  scrollbar-color: var(--violet-3) var(--night-1);
 }

@@ -171,8 +171,8 @@ for (const [fg, bg, min] of PAIRS) {
   - `.px-twinkle`, `.px-drift-far`, `.px-drift-mid`, `.px-bounce`
   - the existing `.px-corners`, `.px-dither`, `.px-blink` and `.pixel-scrollbar`
 
-- [ ] **Step 1: Add the recipes.** Add to `pixel.css` the exact `.px-panel`, `.px-well` and `.px-pressed` blocks from spec §6.3, and `.px-neon` from §6.4, adding `--glow: var(--neon-cyan);` as the default inside `.px-neon`.
-- [ ] **Step 2: Add the remaining classes:**
+- [x] **Step 1: Add the recipes.** Add to `pixel.css` the exact `.px-panel`, `.px-well` and `.px-pressed` blocks from spec §6.3, and `.px-neon` from §6.4, adding `--glow: var(--neon-cyan);` as the default inside `.px-neon`.
+- [x] **Step 2: Add the remaining classes:**
 
 ```css
 .px-scanlines { position: relative; }
@@ -202,7 +202,7 @@ for (const [fg, bg, min] of PAIRS) {
 .px-paused * { animation-play-state: paused !important; }
 ```
 
-- [ ] **Step 3: Update the global rules in `pixel.css`:**
+- [x] **Step 3: Update the global rules in `pixel.css`:**
   - **Focus ring:** replace the `:focus-visible` block with spec §8 "Focus ring": `outline: 2px solid var(--neon-cyan); outline-offset: 2px; box-shadow: 0 0 0 6px var(--outline);` (keep `!important`).
   - **Minimum text:** in the "Minimum Text Size" block, change every `5px` to `8px`. (`min-font-size` is not a real CSS property, so leave it, but the real guard is `max(8px, 1em)` in the `.text-min-*` rule.)
   - **Input zoom guard (iOS):** add `input, select, textarea { font-size: max(16px, 1em); }`.
@@ -210,12 +210,12 @@ for (const [fg, bg, min] of PAIRS) {
   - **Scrollbar:** recolour `.pixel-scrollbar` per spec §8: track `--night-1`, thumb `--violet-3` with a 2px `--outline` border, hover `--neon-cyan`; `scrollbar-color: var(--violet-3) var(--night-1)`.
   - **Dither:** recolour the `.px-dither` SVG fill from `%23000000`/`0.05` to `%234E3C99`/`0.08`.
   - **Reduced motion:** in the `prefers-reduced-motion` block, add `.px-twinkle, .px-drift-far, .px-drift-mid, .px-bounce { animation: none !important; }`.
-- [ ] **Step 4: Edit `web/index.html`:**
+- [x] **Step 4: Edit `web/index.html`:**
   - viewport meta → `content="width=device-width, initial-scale=1.0, viewport-fit=cover"`
   - add `<meta name="theme-color" content="#0E0A24" />`
   - body class → `bg-[var(--c-bg)] text-[var(--text-1)] font-body antialiased m-0 p-0 selection:bg-[var(--neon-gold)] selection:text-[var(--on-neon)]`
-- [ ] **Step 5: Verify.** Run `npm test -w web` (expected: same counts as the Baseline) and `npm run build -w web` (expected: same result as the Baseline).
-- [ ] **Step 6: Commit.** `git add web/src/theme/pixel.css web/index.html && git commit -m "feat(theme): pixel surface recipes, neon glow, starfield, global pixel rules"`
+- [x] **Step 5: Verify.** Run `npm test -w web` (expected: same counts as the Baseline) and `npm run build -w web` (expected: same result as the Baseline).
+- [x] **Step 6: Commit.** `git add web/src/theme/pixel.css web/index.html && git commit -m "feat(theme): pixel surface recipes, neon glow, starfield, global pixel rules"`
 
 ---
 
