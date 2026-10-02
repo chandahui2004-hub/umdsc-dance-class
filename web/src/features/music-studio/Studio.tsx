@@ -150,28 +150,76 @@ export const Studio: React.FC = () => {
     [musicList, selectedMusicId]
   );
 
-  const activeDanceVideo = useMemo(() => {
-    if (player.loopMarker?.videoId) {
-      const match = videosList.find(v => v.id === player.loopMarker?.videoId);
-      if (match) return match;
-    }
-    if (activeMusic) {
-      const match = videosList.find(v => {
-        if (activeMusic.sessionId && v.sessionId === activeMusic.sessionId) return true;
-        if (activeMusic.styleId && v.styleId === activeMusic.styleId) return true;
-        if (activeMusic.eventId && v.eventId === activeMusic.eventId) return true;
-        return false;
-      });
-      if (match) return match;
-    }
-    return videosList[0] || null;
-  }, [videosList, player.loopMarker, activeMusic]);
+  // Synced Class Video / Local Practice Video state
+  const [selectedVideoId, setSelectedVideoId] = useState<string>('');
+  const [localVideoFile, setLocalVideoFile] = useState<{ name: string; url: string; file: File } | null>(null);
+  const [videoStart, setVideoStart] = useState<number>(0);
 
-  const activeDanceVideoUrl = activeDanceVideo ? streamUrl(activeDanceVideo.driveFileId) : null;
+  const handleSelectLocalVideo = useCallback((file: File) => {
+    setLocalVideoFile(prev => {
+      if (prev?.url) {
+        URL.revokeObjectURL(prev.url);
+      }
+      const url = URL.createObjectURL(file);
+      return { name: file.name, url, file };
+    });
+    setSelectedVideoId('local');
+    setVideoStart(0);
+  }, []);
+
+  const handleClearLocalVideo = useCallback(() => {
+    setLocalVideoFile(prev => {
+      if (prev?.url) {
+        URL.revokeObjectURL(prev.url);
+      }
+      return null;
+    });
+    setSelectedVideoId('');
+    setVideoStart(0);
+  }, []);
+
+  // Cleanup object url on unmount
+  useEffect(() => {
+    return () => {
+      if (localVideoFile?.url) {
+        URL.revokeObjectURL(localVideoFile.url);
+      }
+    };
+  }, [localVideoFile?.url]);
+
+  // Synchronize from loop marker when an active marker specifies a video
+  useEffect(() => {
+    if (player.loopMarker) {
+      if (player.loopMarker.videoId) {
+        setSelectedVideoId(player.loopMarker.videoId);
+      }
+      if (typeof player.loopMarker.videoStart === 'number') {
+        setVideoStart(player.loopMarker.videoStart);
+      }
+    }
+  }, [player.loopMarker]);
+
+  const activeDanceVideo = useMemo(() => {
+    if (selectedVideoId === 'local' || !selectedVideoId) {
+      return null;
+    }
+    return videosList.find(v => v.id === selectedVideoId) || null;
+  }, [videosList, selectedVideoId]);
+
+  const activeDanceVideoUrl = useMemo(() => {
+    if (selectedVideoId === 'local' && localVideoFile) {
+      return localVideoFile.url;
+    }
+    if (activeDanceVideo) {
+      return streamUrl(activeDanceVideo.driveFileId);
+    }
+    return null;
+  }, [selectedVideoId, localVideoFile, activeDanceVideo]);
 
   if (isFullscreen) {
     return (
       <FullscreenStudio
+        master={player.master}
         activeMusicTitle={activeMusicTitle}
         currentTime={player.currentTime}
         duration={player.duration}
@@ -185,7 +233,7 @@ export const Studio: React.FC = () => {
         danceVideoUrl={activeDanceVideoUrl}
         videoCurrentTime={player.currentTime}
         videoDuration={player.duration}
-        videoStart={player.loopMarker?.videoStart ?? 0}
+        videoStart={videoStart}
         onPlay={() => void player.play()}
         onPause={player.pause}
         onToggleLoop={player.toggleLoop}
@@ -327,8 +375,17 @@ export const Studio: React.FC = () => {
             <VideoPanel
               master={player.master}
               videos={videosList}
-              activeMusic={musicList.find((m: MusicItem) => m.id === selectedMusicId) || null}
+              events={eventsList}
+              styles={stylesList}
+              activeMusic={activeMusic}
               activeLoopMarker={player.loopMarker}
+              selectedVideoId={selectedVideoId}
+              localVideoFile={localVideoFile}
+              videoStart={videoStart}
+              onSelectVideoId={setSelectedVideoId}
+              onSelectLocalVideo={handleSelectLocalVideo}
+              onClearLocalVideo={handleClearLocalVideo}
+              onSetVideoStart={setVideoStart}
               onSaveLoopWithVideo={markerEngine.saveLoopWithVideo}
             />
 

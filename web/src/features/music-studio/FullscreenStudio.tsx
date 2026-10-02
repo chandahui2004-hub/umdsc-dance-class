@@ -1,6 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import type { Master } from './sync/types';
+import { useSyncedVideo } from './sync/useSyncedVideo';
 
 export interface FullscreenStudioProps {
+  master?: Master;
   activeMusicTitle: string | null;
   currentTime: number;
   duration: number;
@@ -40,6 +43,7 @@ function formatTime(totalSeconds: number): string {
 const speedOptions = [0.75, 0.8, 0.9, 1, 1.25];
 
 export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
+  master,
   activeMusicTitle,
   currentTime,
   duration,
@@ -54,7 +58,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
   videoCurrentTime,
   videoDuration,
   videoStart,
-  danceVideoRef,
+  danceVideoRef: externalVideoRef,
   onPlay,
   onPause,
   onToggleLoop,
@@ -145,13 +149,33 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
   const hasDanceVideo = Boolean(danceVideoUrl);
   const hasYouTubeVideo = !hasDanceVideo && activeSource === 'youtube' && Boolean(youtubeVideoId);
 
+  const internalVideoRef = useRef<HTMLVideoElement>(null);
+  const activeVideoRef = externalVideoRef || internalVideoRef;
+
+  const dummyMaster = useMemo<Master>(() => ({
+    getTime: () => currentTime,
+    isPlaying,
+    rate: playbackRate,
+    source: activeSource || 'file',
+    onLoopRestart: () => () => {},
+    pauseForBuffer: () => {},
+    resumeFromBuffer: () => {}
+  }), [currentTime, isPlaying, playbackRate, activeSource]);
+
+  useSyncedVideo({
+    master: master || dummyMaster,
+    videoRef: activeVideoRef,
+    videoStart,
+    enabled: Boolean(danceVideoUrl)
+  });
+
   return (
     <div className="fixed inset-0 z-50 bg-[#101114] flex flex-col overflow-hidden select-none">
       {/* Top Video / Media Viewport (Takes majority of screen) */}
       <div className="flex-1 relative min-h-0 w-full flex items-center justify-center bg-black overflow-hidden">
         {hasDanceVideo ? (
           <video
-            ref={danceVideoRef}
+            ref={activeVideoRef}
             data-testid="fullscreen-dance-video"
             src={danceVideoUrl!}
             className="w-full h-full object-contain"

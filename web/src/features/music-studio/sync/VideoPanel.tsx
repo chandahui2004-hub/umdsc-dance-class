@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import type { VideoItem, MusicItem } from '@umdsc/shared';
+import type { VideoItem, MusicItem, DanceStyle, EventSummary } from '@umdsc/shared';
 import type { Master } from './types';
 import type { Marker } from '../dancecue/types/marker';
 import { useSyncedVideo } from './useSyncedVideo';
@@ -9,28 +9,84 @@ import { streamUrl } from '../../../lib/google/driveUrls';
 export interface VideoPanelProps {
   master: Master;
   videos: VideoItem[];
+  events?: EventSummary[];
+  styles?: DanceStyle[];
   activeMusic: MusicItem | null;
   activeLoopMarker: Marker | null;
+  selectedVideoId?: string;
+  localVideoFile?: { name: string; url: string; file: File } | null;
+  videoStart?: number;
+  onSelectVideoId?: (id: string) => void;
+  onSelectLocalVideo?: (file: File) => void;
+  onClearLocalVideo?: () => void;
+  onSetVideoStart?: (start: number) => void;
   onSaveLoopWithVideo?: (markerId: string, videoId: string, videoStart: number) => void;
 }
 
 export const VideoPanel: React.FC<VideoPanelProps> = ({
   master,
   videos,
+  events = [],
+  styles = [],
   activeMusic,
   activeLoopMarker,
+  selectedVideoId: propSelectedVideoId,
+  localVideoFile,
+  videoStart: propVideoStart,
+  onSelectVideoId,
+  onSelectLocalVideo,
+  onClearLocalVideo,
+  onSetVideoStart,
   onSaveLoopWithVideo,
 }) => {
-  const [selectedVideoId, setSelectedVideoId] = useState<string>('');
-  const [videoStart, setVideoStart] = useState<number>(0);
+  // Support both controlled and uncontrolled usage
+  const [internalVideoId, setInternalVideoId] = useState<string>('');
+  const [internalVideoStart, setInternalVideoStart] = useState<number>(0);
+
+  const isControlledId = propSelectedVideoId !== undefined;
+  const selectedVideoId = isControlledId ? propSelectedVideoId : internalVideoId;
+  const setSelectedVideoId = (id: string) => {
+    if (onSelectVideoId) {
+      onSelectVideoId(id);
+    }
+    if (!isControlledId) {
+      setInternalVideoId(id);
+    }
+  };
+
+  const isControlledStart = propVideoStart !== undefined;
+  const videoStart = isControlledStart ? propVideoStart : internalVideoStart;
+  const setVideoStart = (start: number) => {
+    if (onSetVideoStart) {
+      onSetVideoStart(start);
+    }
+    if (!isControlledStart) {
+      setInternalVideoStart(start);
+    }
+  };
+
+  // Event & Style filtering state
+  const [eventFilter, setEventFilter] = useState<string>('all');
+  const [styleFilter, setStyleFilter] = useState<string>('all');
+
+  // Pre-filter based on activeMusic if available
+  useEffect(() => {
+    if (activeMusic?.eventId && events.some(e => e.id === activeMusic.eventId)) {
+      setEventFilter(activeMusic.eventId);
+    }
+    if (activeMusic?.styleId && styles.some(s => s.id === activeMusic.styleId)) {
+      setStyleFilter(activeMusic.styleId);
+    }
+  }, [activeMusic?.eventId, activeMusic?.styleId, events, styles]);
+
   const [videoCurrentTime, setVideoCurrentTime] = useState<number>(0);
   const [videoDuration, setVideoDuration] = useState<number>(0);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
-  const [showAllVideos, setShowAllVideos] = useState<boolean>(false);
   // True when the file loaded (sound works) but the browser cannot decode its picture, e.g. H.265.
   const [noPicture, setNoPicture] = useState<boolean>(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Pre-selection from active loop marker or class section
   useEffect(() => {
@@ -44,32 +100,49 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
     }
   }, [activeLoopMarker]);
 
-  // Filter videos relevant to active music (style / session / event)
+  // Filter videos by Event and Dance Style
   const filteredVideos = useMemo(() => {
-    if (showAllVideos || !activeMusic) return videos;
-    const matched = videos.filter(v => {
-      if (activeMusic.sessionId && v.sessionId === activeMusic.sessionId) return true;
-      if (activeMusic.styleId && v.styleId === activeMusic.styleId) return true;
-      if (activeMusic.eventId && v.eventId === activeMusic.eventId) return true;
-      return false;
+    return videos.filter(v => {
+      // Event filter
+      if (eventFilter !== 'all' && v.eventId !== eventFilter) {
+        return false;
+      }
+      // Style filter
+      if (styleFilter !== 'all') {
+        const matchId = v.styleId === styleFilter;
+        const styleObj = styles.find(s => s.id === styleFilter);
+        const matchName = styleObj && v.styleId?.toLowerCase() === styleObj.name.toLowerCase();
+        if (!matchId && !matchName) return false;
+      }
+      return true;
     });
-    return matched.length > 0 ? matched : videos;
-  }, [videos, activeMusic, showAllVideos]);
+  }, [videos, eventFilter, styleFilter, styles]);
 
+  const isLocalVideo = selectedVideoId === 'local' && !!localVideoFile;
   const selectedVideo = useMemo(
-    () => videos.find(v => v.id === selectedVideoId) || null,
-    [videos, selectedVideoId]
+    () => (!isLocalVideo && selectedVideoId ? videos.find(v => v.id === selectedVideoId) || null : null),
+    [videos, selectedVideoId, isLocalVideo]
   );
+
+  const currentVideoSrc = useMemo(() => {
+    if (isLocalVideo && localVideoFile) {
+      return localVideoFile.url;
+    }
+    if (selectedVideo) {
+      return streamUrl(selectedVideo.driveFileId);
+    }
+    return '';
+  }, [isLocalVideo, localVideoFile, selectedVideo]);
 
   useEffect(() => {
     setNoPicture(false);
-  }, [selectedVideoId]);
+  }, [selectedVideoId, currentVideoSrc]);
 
   const { muted, setMuted, status } = useSyncedVideo({
     master,
     videoRef,
     videoStart,
-    enabled: !!selectedVideoId,
+    enabled: Boolean(currentVideoSrc),
     anchor: activeLoopMarker?.time,
   });
 
@@ -93,7 +166,7 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
     };
-  }, [selectedVideo]);
+  }, [currentVideoSrc]);
 
   const handleSeek = (time: number) => {
     if (videoRef.current) {
@@ -116,10 +189,20 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
     }
   };
 
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (onSelectLocalVideo) {
+        onSelectLocalVideo(file);
+      }
+      e.target.value = '';
+    }
+  };
+
   return (
     <div className="bg-[#1D2B53] border-4 border-black p-3 text-white shadow-[4px_4px_0_#000] mb-6">
       {/* Header bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-black/40 pb-2 mb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-black/40 pb-3 mb-3">
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 bg-[#FFEC27] border border-black inline-block" />
           <h3 className="font-['Press_Start_2P'] text-[11px] min-text-5px text-[#FFEC27] tracking-wider uppercase">
@@ -137,43 +220,127 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
           )}
         </div>
 
-        {/* Video picker */}
+        {/* Local Video Upload Button */}
         <div className="flex items-center gap-2">
-          <select
-            value={selectedVideoId}
-            onChange={e => setSelectedVideoId(e.target.value)}
-            className="bg-black text-white text-[10px] min-text-5px border-2 border-black px-2 py-1 font-mono outline-none focus:border-[#FFEC27]"
-            aria-label="Select class video"
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="px-2.5 py-1 bg-[#29ADFF] text-black font-['Press_Start_2P'] text-[9px] min-text-5px border-2 border-black shadow-[2px_2px_0_#000] hover:bg-[#FFF1E8] active:translate-x-0.5 active:translate-y-0.5 flex items-center gap-1.5 cursor-pointer"
+            title="Upload your own rehearsal video to play in sync (played locally, not stored on Google Drive)"
           >
-            <option value="">-- No Video (Audio Only) --</option>
-            {filteredVideos.map(vid => (
-              <option key={vid.id} value={vid.id}>
-                {vid.title || `Video ${vid.id.slice(0, 8)}`}
-              </option>
-            ))}
-          </select>
-
-          {videos.length > filteredVideos.length && (
-            <button
-              type="button"
-              onClick={() => setShowAllVideos(!showAllVideos)}
-              className="text-[9px] min-text-5px underline text-[#29ADFF] hover:text-[#FFEC27]"
-            >
-              {showAllVideos ? 'Show Related' : 'Show All'}
-            </button>
-          )}
+            <span>📁 LOCAL VIDEO</span>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="video/mp4,video/webm,video/quicktime,video/*"
+            className="sr-only"
+            onChange={handleFileInputChange}
+          />
         </div>
       </div>
 
+      {/* Filter and Video Picker Bar */}
+      <div className="bg-black/30 border-2 border-black p-2 mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Event Filter */}
+          {events.length > 0 && (
+            <label className="flex items-center gap-1 font-mono text-[10px]">
+              <span className="text-[#C2C3C7]">EVENT:</span>
+              <select
+                aria-label="Filter videos by event"
+                value={eventFilter}
+                onChange={e => setEventFilter(e.target.value)}
+                className="bg-black text-[#FFEC27] text-[10px] min-text-5px border-2 border-black px-2 py-1 font-mono outline-none focus:border-[#FFEC27]"
+              >
+                <option value="all">ALL EVENTS ({videos.length})</option>
+                {events.map(ev => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          {/* Style Filter */}
+          {styles.length > 0 && (
+            <label className="flex items-center gap-1 font-mono text-[10px]">
+              <span className="text-[#C2C3C7]">STYLE:</span>
+              <select
+                aria-label="Filter videos by style"
+                value={styleFilter}
+                onChange={e => setStyleFilter(e.target.value)}
+                className="bg-black text-[#FFEC27] text-[10px] min-text-5px border-2 border-black px-2 py-1 font-mono outline-none focus:border-[#FFEC27]"
+              >
+                <option value="all">ALL STYLES</option>
+                {styles.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+
+        {/* Video selector dropdown */}
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[10px] text-[#C2C3C7]">SELECT:</span>
+          <select
+            value={selectedVideoId}
+            onChange={e => setSelectedVideoId(e.target.value)}
+            className="bg-black text-white text-[10px] min-text-5px border-2 border-black px-2 py-1 font-mono outline-none focus:border-[#FFEC27] max-w-[280px] truncate"
+            aria-label="Select class video"
+          >
+            <option value="">-- No Video (Audio Only) --</option>
+            {localVideoFile && (
+              <option value="local">📁 Local: {localVideoFile.name}</option>
+            )}
+            {filteredVideos.length > 0 ? (
+              <optgroup label={`Class Videos (${filteredVideos.length})`}>
+                {filteredVideos.map(vid => (
+                  <option key={vid.id} value={vid.id}>
+                    {vid.title || `Video ${vid.id.slice(0, 8)}`}
+                  </option>
+                ))}
+              </optgroup>
+            ) : (
+              <option disabled value="__empty__">
+                (No class videos match filters)
+              </option>
+            )}
+          </select>
+        </div>
+      </div>
+
+      {/* Local Video notice banner */}
+      {isLocalVideo && localVideoFile && (
+        <div className="flex items-center justify-between bg-[#29ADFF]/20 border border-[#29ADFF] px-2.5 py-1 mb-3 text-[10px] font-mono text-[#29ADFF]">
+          <span className="truncate">
+            📁 Playing Local Practice Video: <strong>{localVideoFile.name}</strong> (Not saved to Google Drive)
+          </span>
+          {onClearLocalVideo && (
+            <button
+              type="button"
+              onClick={onClearLocalVideo}
+              className="text-[#FF004D] hover:underline font-bold ml-2 shrink-0 cursor-pointer"
+            >
+              ✕ Remove
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Screen Frame */}
       <div className="relative bg-black border-4 border-[#000] p-1 shadow-inner mb-3">
-        {selectedVideo ? (
+        {currentVideoSrc ? (
           <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
             <video
               ref={videoRef}
               playsInline
               muted={muted}
-              src={streamUrl(selectedVideo.driveFileId)}
+              src={currentVideoSrc}
               onLoadedData={e => {
                 const el = e.currentTarget;
                 setNoPicture(el.videoWidth === 0 && el.videoHeight === 0);
@@ -202,15 +369,15 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
             <p className="font-['Press_Start_2P'] text-[9px] min-text-5px text-[#C2C3C7] mb-1">
               NO VIDEO SELECTED
             </p>
-            <p className="text-[12px] min-text-5px text-[#83769C]">
-              Select a class video above to rehearse side-by-side with your music.
+            <p className="text-[12px] min-text-5px text-[#83769C] max-w-md">
+              Select a class video above or click <strong>LOCAL VIDEO</strong> to rehearse side-by-side with your music.
             </p>
           </div>
         )}
       </div>
 
       {/* Timeline with Start Flag */}
-      {selectedVideo && (
+      {Boolean(currentVideoSrc) && (
         <div className="mb-3">
           <VideoTimeline
             currentTime={videoCurrentTime}
@@ -229,7 +396,7 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
           <button
             type="button"
             onClick={() => setMuted(!muted)}
-            disabled={!selectedVideoId}
+            disabled={!currentVideoSrc}
             className={`px-3 py-1.5 border-2 border-black font-['Press_Start_2P'] text-[9px] min-text-5px uppercase transition-colors shadow-[2px_2px_0_#000] active:translate-x-[1px] active:translate-y-[1px] ${
               muted
                 ? 'bg-[#5F574F] text-white hover:bg-[#83769C]'
@@ -243,7 +410,7 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
           <button
             type="button"
             onClick={handleSetStartToCurrent}
-            disabled={!selectedVideoId}
+            disabled={!currentVideoSrc}
             className="px-3 py-1.5 bg-[#FFEC27] text-black border-2 border-black font-['Press_Start_2P'] text-[9px] min-text-5px uppercase hover:bg-[#FFEC27]/90 shadow-[2px_2px_0_#000] active:translate-x-[1px] active:translate-y-[1px] disabled:opacity-50"
             title="Set the video alignment start flag to the currently displayed frame"
           >
@@ -263,7 +430,7 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
         </div>
 
         {/* Save Loop + Video Alignment */}
-        {activeLoopMarker && selectedVideoId && (
+        {activeLoopMarker && selectedVideoId && selectedVideoId !== 'local' && (
           <div className="flex items-center gap-2">
             <button
               type="button"
