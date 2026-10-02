@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState } from 'react';
 
 export interface VideoTimelineProps {
   currentTime: number;
@@ -24,6 +24,8 @@ export const VideoTimeline: React.FC<VideoTimelineProps> = ({
   onSetVideoStart,
 }) => {
   const barRef = useRef<HTMLDivElement>(null);
+  const isDraggingFlagRef = useRef(false);
+  const [isHoveringFlag, setIsHoveringFlag] = useState(false);
   const safeDuration = duration > 0 ? duration : 100;
 
   const getTimeFromEvent = useCallback(
@@ -38,14 +40,21 @@ export const VideoTimeline: React.FC<VideoTimelineProps> = ({
   );
 
   const handleBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // If clicking on the track, seek the video
+    if (isDraggingFlagRef.current) {
+      isDraggingFlagRef.current = false;
+      return;
+    }
     const time = getTimeFromEvent(e.clientX);
     onSeek(time);
   };
 
   const handleFlagMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
+    let moved = false;
+
     const handleMouseMove = (moveEvent: MouseEvent) => {
+      moved = true;
+      isDraggingFlagRef.current = true;
       const time = getTimeFromEvent(moveEvent.clientX);
       onSetVideoStart(time);
     };
@@ -53,6 +62,13 @@ export const VideoTimeline: React.FC<VideoTimelineProps> = ({
     const handleMouseUp = () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+      if (moved) {
+        setTimeout(() => {
+          isDraggingFlagRef.current = false;
+        }, 100);
+      } else {
+        isDraggingFlagRef.current = false;
+      }
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -61,8 +77,12 @@ export const VideoTimeline: React.FC<VideoTimelineProps> = ({
 
   const handleFlagTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     e.stopPropagation();
+    let moved = false;
+
     const handleTouchMove = (moveEvent: TouchEvent) => {
       if (moveEvent.touches[0]) {
+        moved = true;
+        isDraggingFlagRef.current = true;
         const time = getTimeFromEvent(moveEvent.touches[0].clientX);
         onSetVideoStart(time);
       }
@@ -71,6 +91,13 @@ export const VideoTimeline: React.FC<VideoTimelineProps> = ({
     const handleTouchEnd = () => {
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
+      if (moved) {
+        setTimeout(() => {
+          isDraggingFlagRef.current = false;
+        }, 100);
+      } else {
+        isDraggingFlagRef.current = false;
+      }
     };
 
     window.addEventListener('touchmove', handleTouchMove);
@@ -113,10 +140,20 @@ export const VideoTimeline: React.FC<VideoTimelineProps> = ({
         <div
           onMouseDown={handleFlagMouseDown}
           onTouchStart={handleFlagTouchStart}
+          onMouseEnter={() => setIsHoveringFlag(true)}
+          onMouseLeave={() => setIsHoveringFlag(false)}
           className="absolute -top-1.5 -bottom-1.5 w-6 -ml-3 flex flex-col items-center cursor-ew-resize z-20 group"
           style={{ left: `${startFlagPercent}%` }}
           title={`Start flag: ${formatTime(videoStart)} (drag to move)`}
         >
+          {/* Tooltip on hover/drag */}
+          <div
+            className={`absolute -top-6 px-1.5 py-0.5 bg-black border border-[#FFEC27] text-[8px] font-mono text-[#FFEC27] whitespace-nowrap shadow-[1px_1px_0_#000] pointer-events-none ${
+              isHoveringFlag ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+            } transition-opacity`}
+          >
+            Start: {formatTime(videoStart)}
+          </div>
           {/* Flag pennant */}
           <div className="w-4 h-3 bg-[#FFEC27] border border-black flex items-center justify-center shadow-[1px_1px_0_#000]">
             <span className="text-[7px] min-text-5px font-bold text-black leading-none">⚑</span>

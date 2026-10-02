@@ -1,11 +1,6 @@
 // Ported from DanceCue by JzeAnson (https://github.com/JzeAnson/DanceCue), used with permission.
 
-import { useRef } from "react";
-
-type DraftDragState =
-  | { anchorTime: number; mode: "select" }
-  | { fixedTime: number; mode: "resize" }
-  | { length: number; mode: "move"; offset: number };
+import React, { useRef, useState } from "react";
 
 type AudioPlayerProps = {
   audioRef: React.RefObject<HTMLAudioElement | null>;
@@ -71,61 +66,172 @@ export function AudioPlayer({
   playbackRate,
   speedDisabled = false,
 }: AudioPlayerProps) {
+  const trackRef = useRef<HTMLDivElement>(null);
   const dragAnchorRef = useRef<number | null>(null);
-  const draftDragStateRef = useRef<DraftDragState | null>(null);
   const didDragRef = useRef(false);
+  const [isPulsing, setIsPulsing] = useState(false);
+  const [tooltip, setTooltip] = useState<{ text: string; leftPercent: number } | null>(null);
+
   const progress = duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0;
   const hasDraftRange =
     duration > 0 && markerDraftRange && markerDraftRange.end > markerDraftRange.start;
   const draftStart = hasDraftRange ? (markerDraftRange.start / duration) * 100 : 0;
   const draftWidth = hasDraftRange ? ((markerDraftRange.end - markerDraftRange.start) / duration) * 100 : 0;
 
-  const getTimeFromPointer = (event: React.PointerEvent<HTMLDivElement>) => {
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const position = (event.clientX - bounds.left) / bounds.width;
-    const boundedPosition = Math.min(Math.max(position, 0), 1);
-
-    return boundedPosition * duration;
+  const getTimeFromClientX = (clientX: number | undefined): number => {
+    if (!trackRef.current || !duration || typeof clientX !== 'number' || Number.isNaN(clientX)) {
+      return 0;
+    }
+    const bounds = trackRef.current.getBoundingClientRect();
+    const width = bounds.width || 1;
+    const position = (clientX - (bounds.left || 0)) / width;
+    const bounded = Math.min(Math.max(position, 0), 1);
+    return bounded * duration;
   };
 
-  const updateDraftRange = (anchorTime: number, pointerTime: number) => {
-    const start = Math.min(anchorTime, pointerTime);
-    const end = Math.max(anchorTime, pointerTime);
+  // Drag Left Handle
+  const handleStartHandlePointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    if (!markerDraftRange) return;
+    const endFixed = markerDraftRange.end;
 
-    onMarkerDraftChange({ start, end });
-  };
-
-  const moveDraftRange = (pointerTime: number, length: number, offset: number) => {
-    const start = Math.min(Math.max(pointerTime - offset, 0), Math.max(duration - length, 0));
-    const end = Math.min(start + length, duration);
-
-    onMarkerDraftChange({ start, end });
-  };
-
-  const getDraftDragState = (pointerTime: number): DraftDragState => {
-    if (!markerDraftRange || markerDraftRange.end <= markerDraftRange.start) {
-      return { anchorTime: pointerTime, mode: "select" };
-    }
-
-    const start = Math.max(Math.min(markerDraftRange.start, duration), 0);
-    const end = Math.max(Math.min(markerDraftRange.end, duration), 0);
-    const edgeGrabDistance = Math.min(Math.max(duration * 0.04, 3), 10);
-    const isNearStart = Math.abs(pointerTime - start) <= edgeGrabDistance;
-    const isNearEnd = Math.abs(pointerTime - end) <= edgeGrabDistance;
-
-    if (isNearStart || pointerTime < start) {
-      return { fixedTime: end, mode: "resize" };
-    }
-
-    if (isNearEnd || pointerTime > end) {
-      return { fixedTime: start, mode: "resize" };
-    }
-
-    return {
-      length: end - start,
-      mode: "move",
-      offset: pointerTime - start,
+    const onPointerMove = (moveEv: PointerEvent) => {
+      const time = getTimeFromClientX(moveEv.clientX);
+      const newStart = Math.max(0, Math.min(time, endFixed - 0.2));
+      onMarkerDraftChange({ start: newStart, end: endFixed });
+      setTooltip({
+        text: `Start: ${formatTime(newStart)} (${(endFixed - newStart).toFixed(1)}s)`,
+        leftPercent: (newStart / duration) * 100
+      });
     };
+
+    const onPointerUp = () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      setTooltip(null);
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  };
+
+  // Drag Right Handle
+  const handleEndHandlePointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    if (!markerDraftRange) return;
+    const startFixed = markerDraftRange.start;
+
+    const onPointerMove = (moveEv: PointerEvent) => {
+      const time = getTimeFromClientX(moveEv.clientX);
+      const newEnd = Math.min(duration, Math.max(time, startFixed + 0.2));
+      onMarkerDraftChange({ start: startFixed, end: newEnd });
+      setTooltip({
+        text: `End: ${formatTime(newEnd)} (${(newEnd - startFixed).toFixed(1)}s)`,
+        leftPercent: (newEnd / duration) * 100
+      });
+    };
+
+    const onPointerUp = () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      setTooltip(null);
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  };
+
+  // Drag Center Span (moves whole range)
+  const handleSpanPointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    if (!markerDraftRange) return;
+    const initialPointerTime = getTimeFromClientX(e.clientX);
+    const initialStart = markerDraftRange.start;
+    const initialEnd = markerDraftRange.end;
+    const rangeLength = initialEnd - initialStart;
+
+    const onPointerMove = (moveEv: PointerEvent) => {
+      const currentPointerTime = getTimeFromClientX(moveEv.clientX);
+      const delta = currentPointerTime - initialPointerTime;
+      const newStart = Math.min(Math.max(initialStart + delta, 0), Math.max(duration - rangeLength, 0));
+      const newEnd = Math.min(newStart + rangeLength, duration);
+
+      onMarkerDraftChange({ start: newStart, end: newEnd });
+      setTooltip({
+        text: `Loop: ${formatTime(newStart)} - ${formatTime(newEnd)} (${rangeLength.toFixed(1)}s)`,
+        leftPercent: ((newStart + newEnd) / 2 / duration) * 100
+      });
+    };
+
+    const onPointerUp = () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      setTooltip(null);
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  };
+
+  // Track Pointer Events (Seek, Double-Click, Single-Click boundary adjust)
+  const handleTrackPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!duration) return;
+    const pointerTime = getTimeFromClientX(event.clientX);
+
+    // Double-click seek
+    if (event.detail === 2) {
+      onSeek(pointerTime);
+      return;
+    }
+
+    // Single-click nearest loop point adjustment when loop is active
+    if ((isLooping || isMarkerDraftActive) && markerDraftRange && markerDraftRange.end > markerDraftRange.start) {
+      const distStart = Math.abs(pointerTime - markerDraftRange.start);
+      const distEnd = Math.abs(pointerTime - markerDraftRange.end);
+
+      if (distStart <= distEnd) {
+        onMarkerDraftChange({
+          start: Math.min(pointerTime, markerDraftRange.end - 0.2),
+          end: markerDraftRange.end
+        });
+      } else {
+        onMarkerDraftChange({
+          start: markerDraftRange.start,
+          end: Math.max(pointerTime, markerDraftRange.start + 0.2)
+        });
+      }
+
+      setIsPulsing(true);
+      setTimeout(() => setIsPulsing(false), 600);
+      return;
+    }
+
+    if (isMarkerDraftActive) {
+      dragAnchorRef.current = pointerTime;
+      didDragRef.current = false;
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } else {
+      onSeek(pointerTime);
+    }
+  };
+
+  const handleTrackPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const anchorTime = dragAnchorRef.current;
+    if (anchorTime === null || !duration) return;
+    const pointerTime = getTimeFromClientX(event.clientX);
+    if (isMarkerDraftActive && Math.abs(pointerTime - anchorTime) >= 0.05) {
+      didDragRef.current = true;
+      const start = Math.min(anchorTime, pointerTime);
+      const end = Math.max(anchorTime, pointerTime);
+      onMarkerDraftChange({ start, end });
+    }
+  };
+
+  const handleTrackPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    dragAnchorRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
   };
 
   return (
@@ -133,7 +239,8 @@ export function AudioPlayer({
       <audio ref={audioRef} />
 
       <div
-        className={`relative mt-2 h-9 touch-none overflow-hidden rounded-lg border bg-white/[0.08] ${
+        ref={trackRef}
+        className={`relative mt-2 h-9 touch-none select-none rounded-lg border bg-white/[0.08] cursor-pointer overflow-visible ${
           isMarkerDraftActive
             ? "border-cyan-200/35 shadow-[0_0_0_3px_rgba(103,232,249,0.08)]"
             : "border-white/5"
@@ -144,108 +251,78 @@ export function AudioPlayer({
         aria-valuemin={0}
         aria-valuenow={currentTime}
         tabIndex={0}
-        onPointerDown={(event) => {
-          if (!duration) {
-            return;
-          }
-
-          const pointerTime = getTimeFromPointer(event);
-          dragAnchorRef.current = pointerTime;
-          draftDragStateRef.current = isMarkerDraftActive
-            ? getDraftDragState(pointerTime)
-            : null;
-          didDragRef.current = false;
-          event.currentTarget.setPointerCapture(event.pointerId);
-        }}
-        onPointerMove={(event) => {
-          const anchorTime = dragAnchorRef.current;
-
-          if (anchorTime === null || !duration) {
-            return;
-          }
-
-          const pointerTime = getTimeFromPointer(event);
-
-          if (isMarkerDraftActive && Math.abs(pointerTime - anchorTime) >= 0.05) {
-            const draftDragState = draftDragStateRef.current;
-
-            didDragRef.current = true;
-
-            if (draftDragState?.mode === "resize") {
-              updateDraftRange(draftDragState.fixedTime, pointerTime);
-              return;
-            }
-
-            if (draftDragState?.mode === "move") {
-              moveDraftRange(pointerTime, draftDragState.length, draftDragState.offset);
-              return;
-            }
-
-            updateDraftRange(draftDragState?.anchorTime ?? anchorTime, pointerTime);
-            return;
-          }
-
-          if (!isMarkerDraftActive) {
-            didDragRef.current = true;
-            onSeek(pointerTime);
-          }
-        }}
-        onPointerUp={(event) => {
-          const anchorTime = dragAnchorRef.current;
-
-          if (anchorTime === null || !duration) {
-            return;
-          }
-
-          const pointerTime = getTimeFromPointer(event);
-
-          if (isMarkerDraftActive && didDragRef.current) {
-            const draftDragState = draftDragStateRef.current;
-
-            if (draftDragState?.mode === "resize") {
-              updateDraftRange(draftDragState.fixedTime, pointerTime);
-            } else if (draftDragState?.mode === "move") {
-              moveDraftRange(pointerTime, draftDragState.length, draftDragState.offset);
-            } else {
-              updateDraftRange(draftDragState?.anchorTime ?? anchorTime, pointerTime);
-            }
-          } else {
-            onSeek(pointerTime);
-          }
-
-          dragAnchorRef.current = null;
-          draftDragStateRef.current = null;
-          event.currentTarget.releasePointerCapture(event.pointerId);
-        }}
-        onPointerCancel={(event) => {
-          dragAnchorRef.current = null;
-          draftDragStateRef.current = null;
-          didDragRef.current = false;
-
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-            event.currentTarget.releasePointerCapture(event.pointerId);
-          }
-        }}
+        onPointerDown={handleTrackPointerDown}
+        onPointerMove={handleTrackPointerMove}
+        onPointerUp={handleTrackPointerUp}
+        onDoubleClick={(e) => onSeek(getTimeFromClientX(e.clientX))}
       >
+        {/* Floating Tooltip */}
+        {tooltip && (
+          <div
+            className="absolute -top-7 px-2 py-0.5 bg-black border border-[#FFEC27] text-[9px] font-mono text-[#FFEC27] whitespace-nowrap shadow-[2px_2px_0_#000] z-40 pointer-events-none -translate-x-1/2"
+            style={{ left: `${tooltip.leftPercent}%` }}
+          >
+            {tooltip.text}
+          </div>
+        )}
+
+        {/* Progress Bar */}
         <div
-          className="absolute inset-y-0 left-0 bg-[#29ADFF]/30 border-r-2 border-[#29ADFF]"
+          className="absolute inset-y-0 left-0 bg-[#29ADFF]/30 border-r-2 border-[#29ADFF] pointer-events-none"
           style={{ width: `${progress}%` }}
         />
+
+        {/* Loop Draft Range */}
         {hasDraftRange ? (
           <div
-            className="absolute inset-y-0 border-2 border-[#FFEC27] bg-[#FFEC27]/30 shadow-[0_0_8px_rgba(255,236,39,0.3)]"
+            className="absolute inset-y-0 z-20"
             style={{ left: `${draftStart}%`, width: `${draftWidth}%` }}
-            aria-hidden="true"
           >
-            <span className="absolute inset-y-0 left-0 w-1 bg-[#FFEC27] border-r border-black" />
-            <span className="absolute inset-y-0 right-0 w-1 bg-[#FFEC27] border-l border-black" />
+            {/* Center Span (Drag to move entire loop range) */}
+            <div
+              role="button"
+              tabIndex={0}
+              aria-label="Loop range span"
+              data-testid="loop-span"
+              onPointerDown={handleSpanPointerDown}
+              className={`absolute inset-0 cursor-grab active:cursor-grabbing bg-[#FFEC27]/30 border-y-2 border-[#FFEC27] shadow-[0_0_8px_rgba(255,236,39,0.3)] transition-colors ${
+                isPulsing ? 'animate-pulse ring-2 ring-[#FFEC27] bg-[#FFEC27]/60' : ''
+              }`}
+              title={`Loop range: ${formatTime(markerDraftRange.start)} - ${formatTime(markerDraftRange.end)} (${(markerDraftRange.end - markerDraftRange.start).toFixed(1)}s)`}
+            />
+
+            {/* Left Handle (Resize Start) */}
+            <div
+              role="slider"
+              tabIndex={0}
+              aria-label="Loop start handle"
+              data-testid="loop-handle-start"
+              onPointerDown={handleStartHandlePointerDown}
+              className="absolute inset-y-0 -left-1.5 w-3 cursor-ew-resize bg-[#FFEC27] border border-black z-30 hover:scale-110 active:scale-125 transition-transform shadow-[1px_1px_0_#000]"
+              title={`Loop start: ${formatTime(markerDraftRange.start)}`}
+            />
+
+            {/* Right Handle (Resize End) */}
+            <div
+              role="slider"
+              tabIndex={0}
+              aria-label="Loop end handle"
+              data-testid="loop-handle-end"
+              onPointerDown={handleEndHandlePointerDown}
+              className="absolute inset-y-0 -right-1.5 w-3 cursor-ew-resize bg-[#FFEC27] border border-black z-30 hover:scale-110 active:scale-125 transition-transform shadow-[1px_1px_0_#000]"
+              title={`Loop end: ${formatTime(markerDraftRange.end)}`}
+            />
           </div>
         ) : null}
+
+        {/* Current Playhead */}
         <div
-          className="absolute inset-y-0 w-2 -ml-1 bg-[#29ADFF] border border-black z-10 shadow-[1px_1px_0_#000]"
+          className="absolute inset-y-0 w-2 -ml-1 bg-[#29ADFF] border border-black z-10 shadow-[1px_1px_0_#000] pointer-events-none"
           style={{ left: `${progress}%` }}
           aria-hidden="true"
         />
+
+        {/* Waveform Graphic */}
         <div className="absolute inset-x-2 top-1/2 flex -translate-y-1/2 items-center justify-between gap-1 pointer-events-none opacity-40">
           {waveformHeights.map((height, index) => (
             <span
