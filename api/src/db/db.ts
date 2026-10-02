@@ -370,7 +370,9 @@ const defaultCodecs = {
       title: c.title || '',
       sourceType: (c.sourceType || 'mp3') as any,
       driveFileId: c.driveFileId || '',
-      youtubeId: c.youtubeId || ''
+      youtubeId: c.youtubeId || '',
+      soundcloudUrl: c.soundcloudUrl || '',
+      spotifyUrl: c.spotifyUrl || ''
     })
   },
   sections: {

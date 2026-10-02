@@ -53,7 +53,11 @@ export interface Member { memberId: string; fullName: string; matricRaw: string;
 export interface VideoItem extends RowMeta { styleId: string; eventId: string; sessionId: string; title: string; driveFileId: string;
   mimeType: string; sizeBytes: number; folderId: string; uploadedBy: string; source: 'upload'|'scan' }
 export interface MusicItem extends RowMeta { styleId: string; eventId: string; sessionId: string; title: string;
-  sourceType: 'mp3'|'youtube'; driveFileId: string; youtubeId: string }
+  sourceType: 'mp3'|'youtube'|'soundcloud'|'spotify'; driveFileId: string; youtubeId: string;
+  /** Canonical https://soundcloud.com/{user}/{track}; '' when the song is not on SoundCloud. */
+  soundcloudUrl?: string;
+  /** Canonical https://open.spotify.com/track/{id}; set when the song came from Spotify. */
+  spotifyUrl?: string }
 export interface Section extends RowMeta { musicId: string; name: string; startSec: number; endSec: number; videoId: string; videoStartSec: number|null }
 export interface Role extends RowMeta { name: string; description: string; loginType: 'admin'|'dancer'; isSystem: boolean; permissions: PermissionCode[] }
 export interface AdminUser extends RowMeta { username: string; displayName: string; roleId: string }

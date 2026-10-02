@@ -14,7 +14,7 @@ export const SCHEMA = {
   RolePermissions: ['roleId', 'permission', ...COMMON_COLUMNS],
   MemberRoles: ['matricKey', 'roleId', 'styleIds', ...COMMON_COLUMNS],
   Videos: ['styleId', 'eventId', 'sessionId', 'title', 'driveFileId', 'mimeType', 'sizeBytes', 'folderId', 'uploadedBy', 'source', ...COMMON_COLUMNS],
-  Music: ['styleId', 'eventId', 'sessionId', 'title', 'sourceType', 'driveFileId', 'youtubeId', ...COMMON_COLUMNS],
+  Music: ['styleId', 'eventId', 'sessionId', 'title', 'sourceType', 'driveFileId', 'youtubeId', 'soundcloudUrl', 'spotifyUrl', ...COMMON_COLUMNS],
   Sections: ['musicId', 'name', 'startSec', 'endSec', 'videoId', 'videoStartSec', ...COMMON_COLUMNS],
   AuditLog: ['ts', 'actor', 'action', 'target', 'detail', ...COMMON_COLUMNS]
 } as const;

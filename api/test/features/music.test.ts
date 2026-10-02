@@ -287,4 +287,31 @@ describe('Feature: Music & Sections (features/music)', () => {
       expect(res.data).toEqual([]);
     }
   });
+
+  it('a song saved before the SoundCloud and Spotify columns existed reads them as empty', () => {
+    ctx.db.music.insert(
+      { styleId: 'st_popping', eventId: 'evt_test', sessionId: '', title: 'Old song', sourceType: 'youtube', driveFileId: '', youtubeId: 'dQw4w9WgXcQ' },
+      'system',
+      ctx.now()
+    );
+
+    const song = ctx.db.music.find(m => m.title === 'Old song')[0];
+
+    expect(song.soundcloudUrl).toBe('');
+    expect(song.spotifyUrl).toBe('');
+  });
+
+  it('round-trips soundcloudUrl and spotifyUrl through the Music sheet', () => {
+    ctx.db.music.insert(
+      { styleId: 'st_popping', eventId: 'evt_test', sessionId: '', title: 'Linked', sourceType: 'soundcloud', driveFileId: '', youtubeId: '',
+        soundcloudUrl: 'https://soundcloud.com/forss/flickermood', spotifyUrl: 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT' },
+      'system',
+      ctx.now()
+    );
+
+    const song = ctx.db.music.find(m => m.title === 'Linked')[0];
+
+    expect(song.soundcloudUrl).toBe('https://soundcloud.com/forss/flickermood');
+    expect(song.spotifyUrl).toBe('https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT');
+  });
 });
