@@ -193,6 +193,33 @@ describe('importEventMembers', () => {
     expect(hh).toContain('Ali');
   });
 
+  it('sync stores each dancer styles per event in MemberIndex so login never opens the Members sheet', () => {
+    const { event } = makeEvent([
+      row('Ali', '22001111', 'Popping'),
+      row('Chong', '22003333', 'Popping, Hip Hop')
+    ]);
+
+    importEventMembers(ctx, event, { full: true });
+
+    const ali = ctx.db.memberIndex.find(m => m.matricKey === '22001111')[0];
+    const chong = ctx.db.memberIndex.find(m => m.matricKey === '22003333')[0];
+    expect(ali.eventStyles![event.id]).toEqual(['st_popping']);
+    expect([...chong.eventStyles![event.id]].sort()).toEqual(['st_hiphop', 'st_popping']);
+  });
+
+  it('a dancer who adds a style gets fresh eventStyles and a dropped cached copy', () => {
+    const { event, sourceId } = makeEvent([row('Ali', '22001111', 'Popping'), row('Bala', '22002222', 'Popping')]);
+    importEventMembers(ctx, event, { full: true });
+    ctx.cache.put('mi:22001111', JSON.stringify({ stale: true }), 600);
+
+    source(sourceId).appendRows([['2026-10-05 09:00:00', 'Ali', '22001111', '0123456789', 'a@t.com', 'Hip Hop']]);
+    importEventMembers(ctx, fresh(event), { full: false });
+
+    const ali = ctx.db.memberIndex.find(m => m.matricKey === '22001111')[0];
+    expect([...ali.eventStyles![event.id]].sort()).toEqual(['st_hiphop', 'st_popping']);
+    expect(ctx.cache.get('mi:22001111')).toBeNull();
+  });
+
   it('a member missing from the form is flagged, never removed', () => {
     const { event, sourceId } = makeEvent([row('Ali', '22001111', 'Popping'), row('Bala', '22002222', 'Popping')]);
     importEventMembers(ctx, event, { full: true });

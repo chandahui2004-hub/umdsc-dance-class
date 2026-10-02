@@ -7,7 +7,7 @@ export const SCHEMA = {
   DanceStyles: ['name', 'aliases', 'colorKey', 'defaultWeekday', 'defaultStart', 'defaultEnd', 'defaultInstructorId', 'defaultVenue', 'attendanceFolderId', 'videoFolderId', 'videoFoldersJson', ...COMMON_COLUMNS],
   Instructors: ['name', 'contact', ...COMMON_COLUMNS],
   ClassSessions: ['eventId', 'styleId', 'seq', 'date', 'start', 'end', 'instructorId', 'venue', 'status', 'note', ...COMMON_COLUMNS],
-  MemberIndex: ['matricKey', 'nameKey', 'fullName', 'eventIds', 'lastEventEnd', ...COMMON_COLUMNS],
+  MemberIndex: ['matricKey', 'nameKey', 'fullName', 'eventIds', 'lastEventEnd', 'eventStyles', ...COMMON_COLUMNS],
   AttendanceSheets: ['eventId', 'styleId', 'spreadsheetId', ...COMMON_COLUMNS],
   Admins: ['username', 'displayName', 'passwordHash', 'salt', 'iterations', 'roleId', ...COMMON_COLUMNS],
   Roles: ['name', 'description', 'loginType', 'isSystem', ...COMMON_COLUMNS],

@@ -186,10 +186,19 @@ export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boo
       const prev = index.get(m.matricKey);
       const eventIds = Array.from(new Set([...(prev ? prev.eventIds : []), event.id]));
       const lastEventEnd = prev && prev.lastEventEnd > latest.endDate ? prev.lastEventEnd : latest.endDate;
-      if (!prev || !prev.eventIds.includes(event.id) || prev.fullName !== m.fullName) {
+      const styleIds = [...m.styleIds];
+      const prevStyles = prev?.eventStyles?.[event.id];
+      if (
+        !prev ||
+        !prev.eventIds.includes(event.id) ||
+        prev.fullName !== m.fullName ||
+        !prevStyles ||
+        prevStyles.join(',') !== styleIds.join(',')
+      ) {
         ctx.cache.remove('mi:' + m.matricKey);
       }
-      return { matricKey: m.matricKey, nameKey: m.nameKey, fullName: m.fullName, eventIds, lastEventEnd };
+      const eventStyles = { ...(prev?.eventStyles || {}), [event.id]: styleIds };
+      return { matricKey: m.matricKey, nameKey: m.nameKey, fullName: m.fullName, eventIds, lastEventEnd, eventStyles };
     }),
     'sync',
     ctx.now()

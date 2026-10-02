@@ -88,6 +88,25 @@ const testCodec: RowCodec<TestItem> = {
 describe('Table', () => {
   const columns = ['name', 'category', 'id', 'version', 'updatedBy', 'updatedAt', 'active'];
 
+  it('adds schema columns missing from an older sheet, keeping old rows readable', () => {
+    // A live sheet created before `category` existed.
+    const legacyHeader = ['name', 'id', 'version', 'updatedBy', 'updatedAt', 'active'];
+    const sheet = new SharedFakeSheet('Items', [
+      [...legacyHeader], // a copy: the fake sheet keeps the array it is given
+      ['Locking', 'item_old', '1', 'admin', '2026-09-28T00:00:00.000Z', 'TRUE']
+    ]);
+
+    const table = new Table<TestItem>(sheet, columns, testCodec, 'item');
+
+    expect(sheet.rows[0]).toEqual([...legacyHeader, 'category']);
+    expect(table.get('item_old')?.category).toBe('');
+
+    const created = table.insert({ name: 'Popping', category: 'Street' }, 'admin', new Date('2026-09-28T12:00:00Z'));
+    const reopened = new Table<TestItem>(sheet, columns, testCodec, 'item');
+    expect(reopened.get(created.id)?.category).toBe('Street');
+    expect(sheet.rows[0]).toEqual([...legacyHeader, 'category']); // adding is idempotent
+  });
+
   it('insert assigns id, version 1, audit fields', () => {
     const sheet = new FakeSheet('Items', [[...columns]]);
     const table = new Table<TestItem>(sheet, columns, testCodec, 'item');

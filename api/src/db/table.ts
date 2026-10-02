@@ -26,7 +26,20 @@ export class Table<T extends RowMeta> {
   private ensureLoaded(): string[][] {
     if (this.cachedValues === null) {
       this.cachedValues = this.sheet.getDisplayValues();
-      const headers = this.cachedValues[0] || [];
+      let headers = this.cachedValues[0] || [];
+
+      // A sheet created before a column was added to the schema would silently drop that column's
+      // data (cells are matched by header name). Append the missing headers once; old rows read ''.
+      if (headers.length > 0) {
+        const present = new Set(headers.map(h => h.trim()));
+        const missing = this.columns.filter(c => !present.has(c));
+        if (missing.length > 0) {
+          this.sheet.setValues(1, headers.length + 1, [missing]);
+          headers = [...headers, ...missing];
+          this.cachedValues[0] = headers;
+        }
+      }
+
       this.headerIndices.clear();
       headers.forEach((h, idx) => {
         this.headerIndices.set(h.trim(), idx);

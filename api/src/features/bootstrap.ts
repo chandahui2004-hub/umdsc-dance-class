@@ -109,10 +109,16 @@ export function getDancerBootstrap(
   const calPerm = perms['calendar.view'];
   for (const event of dancerEvents) {
     const styleSet = new Set<string>();
-    try {
-      for (const sId of dancerStylesInEvent(ctx, event, matricKey)) styleSet.add(sId);
-    } catch {
-      // unreadable Members sheet: the dancer simply sees nothing for this event
+    // Styles stored at sync time need no sheet read; dancers indexed before that fall back to the Members sheet.
+    const stored = dancer.eventStyles?.[event.id];
+    if (Array.isArray(stored)) {
+      for (const sId of stored) styleSet.add(sId);
+    } else {
+      try {
+        for (const sId of dancerStylesInEvent(ctx, event, matricKey)) styleSet.add(sId);
+      } catch {
+        // unreadable Members sheet: the dancer simply sees nothing for this event
+      }
     }
     for (const mr of ctx.db.memberRoles.find(r => r.matricKey === matricKey && r.active)) {
       for (const sId of mr.styleIds || []) {

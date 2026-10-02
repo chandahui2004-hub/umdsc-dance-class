@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import crypto from 'node:crypto';
 import { handleRequest, registerRoutes } from '../../src/router';
 import { makeCtx } from '../fakes/makeCtx';
@@ -210,5 +210,32 @@ describe('Feature: Bootstrap with Caching (features/bootstrap)', () => {
       expect(b.months).toBeUndefined();
       expect(b.settings).toBeDefined();
     }
+  });
+
+  describe('styles from MemberIndex.eventStyles', () => {
+    it('uses the stored eventStyles instead of opening the event Members sheet', () => {
+      const mi = ctx.db.memberIndex.find(m => m.matricKey === '22001111')[0];
+      // Members sheet says Popping; the stored value says Hip Hop, so only Hip Hop data proves which one was used.
+      ctx.db.memberIndex.update(mi.id, mi.version, { eventStyles: { [event.id]: ['st_hiphop'] } } as any, 'system', ctx.now());
+      const open = vi.spyOn(ctx.drive, 'openSpreadsheet');
+
+      const res = handleRequest({ action: 'dancer.bootstrap', token: dancerToken }, ctx, secrets);
+
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        const data = res.data as any;
+        expect(data.videos.map((v: any) => v.title)).toEqual(['Hip Hop Video']);
+      }
+      expect(open).not.toHaveBeenCalledWith(event.membersSpreadsheetId);
+    });
+
+    it('falls back to the Members sheet for a dancer indexed before eventStyles existed', () => {
+      const res = handleRequest({ action: 'dancer.bootstrap', token: dancerToken }, ctx, secrets);
+
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect((res.data as any).videos.map((v: any) => v.title)).toEqual(['Popping Class 1 Video']);
+      }
+    });
   });
 });

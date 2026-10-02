@@ -33,6 +33,8 @@ export interface MemberIndexRow extends RowMeta {
   fullName: string;
   eventIds: string[];
   lastEventEnd: string;
+  /** Style ids the dancer registered for, per event id: lets login skip the event Members sheets. */
+  eventStyles?: Record<string, string[]>;
 }
 
 export interface AttendanceSheetRow extends RowMeta {
@@ -99,6 +101,17 @@ export interface Db {
 
 function parseBool(val: string): boolean {
   return String(val).toUpperCase() === 'TRUE';
+}
+
+/** Reads the eventStyles cell: JSON `{ eventId: styleId[] }`; empty or invalid text means none stored. */
+function parseEventStyles(raw: string | undefined): Record<string, string[]> {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
 }
 
 function parseList(val: string): string[] {
@@ -230,6 +243,7 @@ const defaultCodecs = {
     toCells: (r: MemberIndexRow) => ({
       ...r,
       eventIds: (r.eventIds || []).join(','),
+      eventStyles: JSON.stringify(r.eventStyles || {}),
       active: r.active ? 'TRUE' : 'FALSE'
     }),
     fromCells: (c: Record<string, string>): MemberIndexRow => ({
@@ -242,7 +256,8 @@ const defaultCodecs = {
       nameKey: c.nameKey || '',
       fullName: c.fullName || '',
       eventIds: parseList(c.eventIds),
-      lastEventEnd: c.lastEventEnd || ''
+      lastEventEnd: c.lastEventEnd || '',
+      eventStyles: parseEventStyles(c.eventStyles)
     })
   },
   attendanceSheets: {
