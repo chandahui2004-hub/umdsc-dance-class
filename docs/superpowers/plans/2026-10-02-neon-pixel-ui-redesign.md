@@ -100,7 +100,7 @@ The five things most likely to go wrong for a real user that no ordinary task te
 **Interfaces:**
 - Produces (CSS custom properties on `:root`, used by every later task): `--night-0/1/2`, `--violet-1/2/3/4`, `--neon-pink/cyan/gold/green/red/orange/lilac`, `--text-1/2/3`, `--on-neon`, `--outline`; `--z-sky 0, --z-far 1, --z-mid 2, --z-near 3, --z-content 10, --z-chrome 30, --z-overlay 50, --z-toast 70`; `--sp-1 4px, --sp-2 8px, --sp-3 12px, --sp-4 16px, --sp-6 24px, --sp-8 32px`; `--dock-h 72px`; `--topbar-h 56px`.
 
-- [ ] **Step 1: Write the failing contrast test** `web/scripts/contrast.test.mjs`:
+- [x] **Step 1: Write the failing contrast test** `web/scripts/contrast.test.mjs`:
 
 ```js
 import { test } from 'node:test';
@@ -137,22 +137,22 @@ for (const [fg, bg, min] of PAIRS) {
 }
 ```
 
-- [ ] **Step 2: Add the script entry** to `web/package.json` `scripts`: `"test:scripts": "node --test \"scripts/*.test.mjs\""`.
-- [ ] **Step 3: Run it and watch it fail.**
+- [x] **Step 2: Add the script entry** to `web/package.json` `scripts`: `"test:scripts": "node --test \"scripts/*.test.mjs\""`.
+- [x] **Step 3: Run it and watch it fail.**
   Run: `npm run test:scripts -w web`
   Expected: FAIL with `token --text-1 must be a 6-digit hex`.
-- [ ] **Step 4: Edit `web/src/theme/tokens.css`.**
+- [x] **Step 4: Edit `web/src/theme/tokens.css`.**
   - Add every token in spec §3.2 to `:root`, with exactly those hex values. Write each as a literal `#RRGGBB`; the test parses them.
   - Add the z-index, spacing, `--dock-h` and `--topbar-h` tokens from the Interfaces block above.
   - Change every `--c-*` value to the remap target in spec §3.3 (e.g. `--c-bg: var(--night-1);`).
   - Keep `--border`, `--shadow*` and the font tokens; change `--border` and the shadows to use `var(--outline)`.
   - Set `--min-font-size: 8px;` and change `@theme { --text-micro: 8px; }` (5px → 8px).
   - In `@theme` add `--color-night-1: var(--night-1); --color-violet-1: var(--violet-1); --color-neon-pink: var(--neon-pink); --color-neon-cyan: var(--neon-cyan); --color-neon-gold: var(--neon-gold); --color-text-1: var(--text-1); --color-text-2: var(--text-2); --color-on-neon: var(--on-neon); --color-outline: var(--outline);` so `bg-violet-1` / `text-text-1` utilities exist for new code.
-- [ ] **Step 5: Run the test again.**
+- [x] **Step 5: Run the test again.**
   Run: `npm run test:scripts -w web`
   Expected: `pass 14`, `fail 0`.
-- [ ] **Step 6: Look at the app.** Run `npm run dev -w web` and open `http://localhost:5173/login` in a 390×844 device view. Expected: the background and panels are now dark. Much text is unreadable (dark on dark); **that is expected** and Task 3 fixes it.
-- [ ] **Step 7: Commit.** `git add web/src/theme/tokens.css web/scripts/contrast.test.mjs web/package.json && git commit -m "feat(theme): night palette tokens, legacy remap, contrast test"`
+- [x] **Step 6: Look at the app.** Run `npm run dev -w web` and open `http://localhost:5173/login` in a 390×844 device view. Expected: the background and panels are now dark. Much text is unreadable (dark on dark); **that is expected** and Task 3 fixes it.
+- [x] **Step 7: Commit.** `git add web/src/theme/tokens.css web/scripts/contrast.test.mjs web/package.json && git commit -m "feat(theme): night palette tokens, legacy remap, contrast test"`
 
 ---
 

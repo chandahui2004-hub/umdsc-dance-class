@@ -4,24 +4,80 @@
 @import "@fontsource/vt323";
 
 :root {
-  /* PICO-8 Palette per spec §13.1 */
-  --c-bg: #FFF1E8;
-  --c-ink: #000000;
-  --c-panel: #FFFFFF;
-  --c-navy: #1D2B53;
-  --c-red: #FF004D;
-  --c-orange: #FFA300;
-  --c-yellow: #FFEC27;
-  --c-green: #00E436;
-  --c-blue: #29ADFF;
-  --c-pink: #FF77A8;
-  --c-lavender: #83769C;
-  --c-peach: #FFCCAA;
-  --c-darkgreen: #008751;
-  --c-brown: #AB5236;
-  --c-darkpurple: #7E2553;
-  --c-grey: #C2C3C7;
-  --c-darkgrey: #5F574F;
+  /* 60% — Night (spec §3.2) */
+  --night-0: #07051A;
+  --night-1: #0E0A24;
+  --night-2: #1A1440;
+
+  /* 30% — Violet */
+  --violet-1: #2A1F5C;
+  --violet-2: #3B2C7A;
+  --violet-3: #4E3C99;
+  --violet-4: #6B5BA8;
+
+  /* 10% — Neon */
+  --neon-pink: #FF3EA5;
+  --neon-cyan: #3EE6FF;
+  --neon-gold: #FFD23E;
+  --neon-green: #4DFF9A;
+  --neon-red: #FF6B8B;
+  --neon-orange: #FF9A3E;
+  --neon-lilac: #B58CFF;
+
+  /* Text */
+  --text-1: #F4ECFF;
+  --text-2: #B9A8E6;
+  --text-3: #9C8BD1;
+  --on-neon: #0B0618;
+
+  /* Lines */
+  --outline: #05030F;
+
+  /* Z-Index Scale */
+  --z-sky: 0;
+  --z-far: 1;
+  --z-mid: 2;
+  --z-near: 3;
+  --z-content: 10;
+  --z-chrome: 30;
+  --z-overlay: 50;
+  --z-toast: 70;
+
+  /* Spacing Scale */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-xs: 8px;
+  --sp-sm: 8px;
+  --sp-md: 16px;
+  --sp-lg: 24px;
+  --sp-xl: 32px;
+
+  /* Layout dimensions */
+  --dock-h: 72px;
+  --topbar-h: 56px;
+
+  /* Legacy Token Remap (spec §3.3) */
+  --c-bg: var(--night-1);
+  --c-panel: var(--violet-1);
+  --c-ink: var(--outline);
+  --c-navy: var(--night-2);
+  --c-peach: var(--violet-2);
+  --c-yellow: var(--neon-gold);
+  --c-orange: var(--neon-orange);
+  --c-red: var(--neon-red);
+  --c-green: var(--neon-green);
+  --c-darkgreen: #22C77A;
+  --c-blue: var(--neon-cyan);
+  --c-pink: var(--neon-pink);
+  --c-lavender: var(--neon-lilac);
+  --c-grey: var(--violet-4);
+  --c-darkgrey: var(--violet-4);
+  --c-brown: #C9733A;
+  --c-darkpurple: #7A2BB8;
 
   /* Typography */
   --font-display: 'Press Start 2P', monospace;
@@ -29,24 +85,28 @@
   --font-mono: 'VT323', monospace;
   --min-font-size: 8px;
 
-  /* Spacing Scale (minimum 8px) */
-  --sp-xs: 8px;
-  --sp-sm: 8px;
-  --sp-md: 16px;
-  --sp-lg: 24px;
-  --sp-xl: 32px;
-
   /* Retro Borders & Shadows */
   --border-width: 4px;
-  --border: 4px solid var(--c-ink);
-  --border-thin: 2px solid var(--c-ink);
-  --shadow: 4px 4px 0 var(--c-ink);
-  --shadow-sm: 2px 2px 0 var(--c-ink);
-  --shadow-lg: 6px 6px 0 var(--c-ink);
+  --border: 4px solid var(--outline);
+  --border-thin: 2px solid var(--outline);
+  --shadow: 4px 4px 0 var(--outline);
+  --shadow-sm: 2px 2px 0 var(--outline);
+  --shadow-lg: 6px 6px 0 var(--outline);
 }
 
 @theme {
   --text-micro: 8px;
+
+  --color-night-1: var(--night-1);
+  --color-violet-1: var(--violet-1);
+  --color-neon-pink: var(--neon-pink);
+  --color-neon-cyan: var(--neon-cyan);
+  --color-neon-gold: var(--neon-gold);
+  --color-text-1: var(--text-1);
+  --color-text-2: var(--text-2);
+  --color-on-neon: var(--on-neon);
+  --color-outline: var(--outline);
+
   --color-bg: var(--c-bg);
   --color-ink: var(--c-ink);
   --color-panel: var(--c-panel);
