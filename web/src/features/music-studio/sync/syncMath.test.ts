@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { expectedVideoTime, decideCorrection } from './syncMath';
+import { expectedVideoTime, decideCorrection, syncMasterKind } from './syncMath';
 
 describe('syncMath', () => {
   it('calculates expectedVideoTime correctly', () => {
@@ -52,6 +52,18 @@ describe('syncMath', () => {
       if (resFast.type === 'nudge') {
         expect(resFast.rate).toBeCloseTo(1.575, 3);
       }
+    });
+  });
+
+  describe('syncMasterKind', () => {
+    it.each([
+      ['youtube', 'youtube'],
+      ['soundcloud', 'youtube'], // an embedded player's clock is as coarse as YouTube's, so it gets the looser tolerance
+      ['drive', 'audio'],
+      ['file', 'audio'],
+      [null, 'audio']
+    ] as const)('maps the %s source to the %s tolerance', (source, expected) => {
+      expect(syncMasterKind(source)).toBe(expected);
     });
   });
 });

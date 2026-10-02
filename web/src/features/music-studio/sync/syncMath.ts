@@ -46,3 +46,11 @@ export function decideCorrection(
 
   return { type: 'none' };
 }
+
+/**
+ * Which drift tolerance a music source gets. YouTube and SoundCloud play inside an embedded player whose
+ * clock is read through the browser and is coarser than an audio element's, so both get the looser one.
+ */
+export function syncMasterKind(source: 'file' | 'drive' | 'youtube' | 'soundcloud' | null): 'audio' | 'youtube' {
+  return source === 'youtube' || source === 'soundcloud' ? 'youtube' : 'audio';
+}

@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import type { MusicItem, DanceStyle, EventSummary } from '@umdsc/shared';
+import { parseMusicLink, type MusicItem, type DanceStyle, type EventSummary } from '@umdsc/shared';
 import { ClassMusicList } from './ClassMusicList';
-import { getYouTubeVideoId } from '../dancecue/utils/youtube';
 
 interface SourcePickerProps {
-  activeSource: 'file' | 'drive' | 'youtube' | null;
+  activeSource: 'file' | 'drive' | 'youtube' | 'soundcloud' | null;
   activeMusicTitle?: string | null;
   classMusic: MusicItem[];
   styles: DanceStyle[];
@@ -13,6 +12,7 @@ interface SourcePickerProps {
   onSelectClassMusic: (music: MusicItem) => void;
   onFileSelected: (file: File) => void;
   onYouTubeSelected: (videoId: string) => void;
+  onSoundCloudSelected: (url: string) => void;
 }
 
 const panelClass =
@@ -35,13 +35,14 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({
   selectedMusicId,
   onSelectClassMusic,
   onFileSelected,
-  onYouTubeSelected
+  onYouTubeSelected,
+  onSoundCloudSelected
 }) => {
-  const [sourceMode, setSourceMode] = useState<'class' | 'file' | 'youtube'>(
+  const [sourceMode, setSourceMode] = useState<'class' | 'file' | 'link'>(
     selectedMusicId ? 'class' : 'class'
   );
   const [errorMessage, setErrorMessage] = useState('');
-  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [linkText, setLinkText] = useState('');
 
   return (
     <section className={panelClass} aria-label="Track source">
@@ -62,7 +63,7 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({
         </span>
       </div>
 
-      {/* Tabs: CLASS MUSIC | MY MP3 | YOUTUBE LINK */}
+      {/* Tabs: CLASS MUSIC | MY MP3 | LINK (YouTube or SoundCloud) */}
       <div className="mt-4 grid grid-cols-3 gap-1.5 rounded-xl border border-white/10 bg-black/20 p-1">
         <button
           className={`${tabClass} ${
@@ -96,18 +97,18 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({
         </button>
         <button
           className={`${tabClass} ${
-            sourceMode === 'youtube'
+            sourceMode === 'link'
               ? 'border-cyan-100/50 bg-cyan-200/18 text-cyan-50 font-bold'
               : 'border-transparent bg-transparent text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100'
           }`}
           type="button"
-          aria-pressed={sourceMode === 'youtube'}
+          aria-pressed={sourceMode === 'link'}
           onClick={() => {
-            setSourceMode('youtube');
+            setSourceMode('link');
             setErrorMessage('');
           }}
         >
-          YouTube
+          Link
         </button>
       </div>
 
@@ -158,34 +159,43 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({
         </div>
       )}
 
-      {/* YouTube URL Mode */}
-      {sourceMode === 'youtube' && (
+      {/* Link mode: a YouTube or SoundCloud song of the dancer's own */}
+      {sourceMode === 'link' && (
         <form
           className="mt-4 grid gap-2"
           onSubmit={event => {
             event.preventDefault();
-            const videoId = getYouTubeVideoId(youtubeUrl);
-            if (!videoId) {
-              setErrorMessage('Paste a valid YouTube link.');
-              return;
+            const parsed = parseMusicLink(linkText);
+            if (parsed.kind === 'youtube') {
+              setErrorMessage('');
+              onYouTubeSelected(parsed.id);
+            } else if (parsed.kind === 'soundcloud') {
+              setErrorMessage('');
+              onSoundCloudSelected(parsed.url);
+            } else if (parsed.kind === 'spotify') {
+              setErrorMessage("Spotify songs can't be played here. Paste the YouTube version, or open it in Spotify.");
+            } else if (parsed.kind === 'soundcloud-short') {
+              setErrorMessage('Paste the full SoundCloud track link instead of the short link.');
+            } else if (parsed.kind === 'drive') {
+              setErrorMessage('Google Drive files cannot be played from a link here. Download the MP3 and use the My MP3 tab.');
+            } else {
+              setErrorMessage('Paste a YouTube or SoundCloud link to a single song.');
             }
-            setErrorMessage('');
-            onYouTubeSelected(videoId);
           }}
         >
           <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
             <input
               className={inputClass}
-              aria-label="YouTube URL"
-              placeholder="Paste YouTube link"
-              value={youtubeUrl}
+              aria-label="Music link"
+              placeholder="Paste a YouTube or SoundCloud link"
+              value={linkText}
               onChange={event => {
-                setYoutubeUrl(event.target.value);
+                setLinkText(event.target.value);
                 setErrorMessage('');
               }}
             />
             <button className={buttonClass} type="submit">
-              Use YouTube
+              Use link
             </button>
           </div>
           {errorMessage && (

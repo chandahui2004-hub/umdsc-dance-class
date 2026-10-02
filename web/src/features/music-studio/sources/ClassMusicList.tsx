@@ -1,6 +1,13 @@
 import React from 'react';
 import type { MusicItem, DanceStyle, EventSummary } from '@umdsc/shared';
 
+const SOURCE_LABEL: Record<MusicItem['sourceType'], string> = {
+  mp3: 'MP3',
+  youtube: 'YouTube',
+  soundcloud: 'SoundCloud',
+  spotify: 'Spotify'
+};
+
 interface ClassMusicListProps {
   music: MusicItem[];
   styles: DanceStyle[];
@@ -53,7 +60,7 @@ export const ClassMusicList: React.FC<ClassMusicListProps> = ({
                   {item.title}
                 </span>
                 <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-fuchsia-400/20 text-fuchsia-200 border border-fuchsia-400/30">
-                  {item.sourceType === 'mp3' ? 'MP3' : 'YouTube'}
+                  {SOURCE_LABEL[item.sourceType] ?? item.sourceType}
                 </span>
               </div>
               <div className="flex items-center gap-2 mt-1 text-xs text-zinc-400 font-mono">

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Master } from './types';
-import { expectedVideoTime, decideCorrection } from './syncMath';
+import { expectedVideoTime, decideCorrection, syncMasterKind } from './syncMath';
 
 export interface UseSyncedVideoOptions {
   master: Master;
@@ -131,7 +131,7 @@ export function useSyncedVideo({
 
     let animId: number;
     const currentAnchor = anchor !== undefined && anchor !== null ? anchor : internalAnchorRef.current;
-    const masterType = master.source === 'youtube' ? 'youtube' : 'audio';
+    const masterType = syncMasterKind(master.source);
 
     const checkDrift = () => {
       const v = videoRef.current;

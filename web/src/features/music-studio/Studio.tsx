@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom';
 import { AudioPlayer } from './dancecue/components/AudioPlayer';
 import { YouTubePlayer } from './dancecue/components/YouTubePlayer';
+import { SoundCloudPlayer } from './dancecue/components/SoundCloudPlayer';
 import { VoiceCommandPanel } from './dancecue/components/VoiceCommandPanel';
 import { SourcePicker } from './sources/SourcePicker';
 import { ClassSectionsList } from './markers/ClassSectionsList';
@@ -13,7 +14,7 @@ import { session } from '../../lib/session';
 import { streamUrl } from '../../lib/google/driveUrls';
 import { api } from '../../lib/api';
 import { VideoPanel } from './sync/VideoPanel';
-import type { MusicItem, Section, VideoItem } from '@umdsc/shared';
+import { canPractise, type MusicItem, type Section, type VideoItem } from '@umdsc/shared';
 import './dancecue/dancecue.css';
 
 export const Studio: React.FC = () => {
@@ -45,6 +46,7 @@ export const Studio: React.FC = () => {
   );
   const [isMarkerDraftActive, setIsMarkerDraftActive] = useState(false);
   const [youtubeVideoId, setYoutubeVideoId] = useState<string | null>(null);
+  const [soundcloudUrl, setSoundcloudUrl] = useState<string | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -65,11 +67,13 @@ export const Studio: React.FC = () => {
 
   const preloadedMusicRef = useRef<string | null>(null);
 
-  const { loadUrl, loadYouTube } = player;
+  const { loadUrl, loadYouTube, loadSoundCloud } = player;
 
   // Handle music selection
   const handleSelectClassMusic = useCallback(
     (item: MusicItem) => {
+      if (!canPractise(item)) return; // a listen-only Spotify song has nothing to play here
+
       setSelectedMusicId(item.id);
       setActiveMusicTitle(item.title);
 
@@ -77,15 +81,23 @@ export const Studio: React.FC = () => {
         const key = sourceKey({ type: 'drive', fileId: item.driveFileId });
         setCurrentSourceKey(key);
         setYoutubeVideoId(null);
+        setSoundcloudUrl(null);
         loadUrl(streamUrl(item.driveFileId), item.title);
+      } else if (item.sourceType === 'soundcloud') {
+        const url = item.soundcloudUrl || '';
+        setCurrentSourceKey(sourceKey({ type: 'sc', url }));
+        setYoutubeVideoId(null);
+        setSoundcloudUrl(url);
+        loadSoundCloud(url);
       } else {
         const key = sourceKey({ type: 'yt', videoId: item.youtubeId });
         setCurrentSourceKey(key);
         setYoutubeVideoId(item.youtubeId);
+        setSoundcloudUrl(null);
         loadYouTube(item.youtubeId);
       }
     },
-    [loadUrl, loadYouTube]
+    [loadUrl, loadYouTube, loadSoundCloud]
   );
 
   // Preload music if ?music=<id> is present in URL
@@ -162,7 +174,7 @@ export const Studio: React.FC = () => {
             <SourcePicker
               activeSource={player.activeSource}
               activeMusicTitle={activeMusicTitle}
-              classMusic={musicList}
+              classMusic={musicList.filter(canPractise)}
               styles={stylesList}
               events={eventsList}
               selectedMusicId={selectedMusicId}
@@ -173,6 +185,7 @@ export const Studio: React.FC = () => {
                 const key = sourceKey({ type: 'file', name: file.name, size: file.size });
                 setCurrentSourceKey(key);
                 setYoutubeVideoId(null);
+                setSoundcloudUrl(null);
                 player.loadFile(file);
               }}
               onYouTubeSelected={videoId => {
@@ -181,7 +194,16 @@ export const Studio: React.FC = () => {
                 const key = sourceKey({ type: 'yt', videoId });
                 setCurrentSourceKey(key);
                 setYoutubeVideoId(videoId);
+                setSoundcloudUrl(null);
                 player.loadYouTube(videoId);
+              }}
+              onSoundCloudSelected={url => {
+                setSelectedMusicId(null);
+                setActiveMusicTitle('SoundCloud Track');
+                setCurrentSourceKey(sourceKey({ type: 'sc', url }));
+                setYoutubeVideoId(null);
+                setSoundcloudUrl(url);
+                player.loadSoundCloud(url);
               }}
             />
 
@@ -192,6 +214,15 @@ export const Studio: React.FC = () => {
               onReady={player.attachYouTubePlayer}
               onStateChange={player.handleYouTubeStateChange}
               needsTap={player.needsTap}
+            />
+
+            {/* SoundCloud Player */}
+            <SoundCloudPlayer
+              url={soundcloudUrl}
+              isVisible={player.activeSource === 'soundcloud'}
+              needsTap={player.needsTap}
+              onReady={player.attachSoundCloudPlayer}
+              onPlayState={player.handleSoundCloudPlayState}
             />
 
             {/* Audio Player Controls */}
@@ -213,6 +244,7 @@ export const Studio: React.FC = () => {
               onSkip={player.skipBy}
               onSpeedChange={player.setSpeed}
               playbackRate={player.playbackRate}
+              speedDisabled={player.speedDisabled}
             />
 
             {/* Synced Class Video Panel */}

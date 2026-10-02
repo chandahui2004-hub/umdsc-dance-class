@@ -125,6 +125,8 @@ export function DanceCueApp() {
   );
 
   const player = useAudioPlayer({ audioRef, markers: sortedMarkers });
+  // This original single-source screen has no SoundCloud support (the Studio page does), so it never shows one.
+  const legacySource = player.activeSource === "soundcloud" ? null : player.activeSource;
 
   useEffect(() => {
     if (!storedSession?.activeSource) {
@@ -188,7 +190,7 @@ export function DanceCueApp() {
     }
 
     const session: StoredDanceCueSession = {
-      activeSource: player.activeSource,
+      activeSource: legacySource,
       fileName: player.activeSource === "file" ? localFileName : null,
       fileTime: player.activeSource === "file" || player.activeSource === "drive" ? player.currentTime : 0,
       markers,
@@ -295,7 +297,7 @@ export function DanceCueApp() {
 
           <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
             <SourceLoader
-              activeSource={player.activeSource}
+              activeSource={legacySource}
               onFileSelected={(file) => {
                 setYoutubeVideoId(null);
                 setLocalFileName(file.name);

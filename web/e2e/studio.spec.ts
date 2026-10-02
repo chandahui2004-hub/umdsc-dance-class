@@ -118,7 +118,7 @@ test.describe('Music Studio (DanceCue & Sources)', () => {
     // Source picker tabs
     await expect(page.getByRole('button', { name: 'Class Music' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'My MP3' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'YouTube' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Link' })).toBeVisible();
 
     // Track in list
     await expect(page.locator('text=Hip Hop Routine Song')).toBeVisible();
@@ -157,17 +157,17 @@ test.describe('Music Studio (DanceCue & Sources)', () => {
     await expect(page.locator('text=Sarah Practice 8-Count')).not.toBeVisible();
   });
 
-  test('switches source modes between Class Music, My MP3, and YouTube', async ({ page }) => {
+  test('switches source modes between Class Music, My MP3, and Link', async ({ page }) => {
     await page.goto('/studio');
 
     // Switch to My MP3
     await page.getByRole('button', { name: 'My MP3' }).click();
     await expect(page.locator('text=Load MP3 or audio file')).toBeVisible();
 
-    // Switch to YouTube
-    await page.getByRole('button', { name: 'YouTube' }).click();
-    await expect(page.getByPlaceholder('Paste YouTube link')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Use YouTube' })).toBeVisible();
+    // Switch to Link (YouTube or SoundCloud)
+    await page.getByRole('button', { name: 'Link' }).click();
+    await expect(page.getByPlaceholder('Paste a YouTube or SoundCloud link')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Use link' })).toBeVisible();
 
     // Switch back to Class Music
     await page.getByRole('button', { name: 'Class Music' }).click();
@@ -222,5 +222,41 @@ test.describe('Music Studio YouTube class music (real YouTube, needs internet)',
         { timeout: 20000 }
       )
       .toBeGreaterThan(0);
+  });
+});
+
+test.describe('Music Studio SoundCloud class music (real SoundCloud, needs internet)', () => {
+  test('a SoundCloud song plays through the widget and has no speed control', async ({ page }) => {
+    await loginAsDancer(page);
+    const boot = {
+      ...BOOTSTRAP_DATA,
+      music: [
+        {
+          ...BOOTSTRAP_DATA.music[0],
+          id: 'm-sc',
+          title: 'SC Practice Track',
+          sourceType: 'soundcloud',
+          driveFileId: '',
+          youtubeId: '',
+          soundcloudUrl: 'https://soundcloud.com/forss/flickermood'
+        }
+      ],
+      sections: []
+    };
+    await mockApi(page, { 'dancer.bootstrap': () => boot });
+
+    await page.goto('/studio?music=m-sc');
+
+    await expect(page.getByText("Speed isn't available for SoundCloud songs.")).toBeVisible();
+    await expect(page.getByRole('combobox', { name: 'Playback speed' })).toBeDisabled();
+    // The widget loads inside SoundCloud's own iframe.
+    await expect(page.locator('iframe[title="SoundCloud player"]')).toBeVisible();
+
+    await page.waitForFunction(() => !!(window as any).SC?.Widget);
+    await page.waitForTimeout(3000); // let the widget finish loading, as a real dancer would
+    await page.getByRole('button', { name: /^play$/i }).first().click();
+
+    // The Play button turns into Pause once SoundCloud reports it is playing.
+    await expect(page.getByTitle('Pause')).toBeVisible({ timeout: 25000 });
   });
 });

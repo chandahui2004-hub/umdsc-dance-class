@@ -23,6 +23,8 @@ type AudioPlayerProps = {
   onSkip: (seconds: number) => void;
   onSpeedChange: (speed: number) => void;
   playbackRate: number;
+  /** SoundCloud's player has no speed control, so the selector is switched off with an explanation. */
+  speedDisabled?: boolean;
 };
 
 const controlButtonClass =
@@ -67,6 +69,7 @@ export function AudioPlayer({
   onSkip,
   onSpeedChange,
   playbackRate,
+  speedDisabled = false,
 }: AudioPlayerProps) {
   const dragAnchorRef = useRef<number | null>(null);
   const draftDragStateRef = useRef<DraftDragState | null>(null);
@@ -299,7 +302,8 @@ export function AudioPlayer({
         >
           <span className="sr-only">Playback speed</span>
           <select
-            className="h-full w-full cursor-pointer appearance-none bg-transparent text-center font-['Press_Start_2P'] text-[9px] min-text-5px font-bold text-black outline-none"
+            className="h-full w-full cursor-pointer appearance-none bg-transparent text-center font-['Press_Start_2P'] text-[9px] min-text-5px font-bold text-black outline-none disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={speedDisabled}
             value={playbackRate}
             onChange={(event) => onSpeedChange(Number(event.target.value))}
           >
@@ -311,7 +315,9 @@ export function AudioPlayer({
           </select>
         </label>
       </div>
-
+      {speedDisabled && (
+        <p className="mt-2 text-xs min-text-5px font-mono text-[#FFEC27]">Speed isn't available for SoundCloud songs.</p>
+      )}
     </section>
   );
 }

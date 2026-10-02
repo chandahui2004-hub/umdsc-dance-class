@@ -1,5 +1,6 @@
 import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { YouTubePlayerHandle } from "../components/YouTubePlayer";
+import type { SoundCloudHandle } from "../components/SoundCloudPlayer";
 import type { Marker } from "../types/marker";
 import type { Master } from "../../sync/types";
 import { shouldRestartLoop } from "../../sync/loopMath";
@@ -9,7 +10,7 @@ type UseAudioPlayerOptions = {
   markers: Marker[];
 };
 
-export type PlayerSource = "file" | "drive" | "youtube" | null;
+export type PlayerSource = "file" | "drive" | "youtube" | "soundcloud" | null;
 
 const youtubeStates = {
   ended: 0,
@@ -54,6 +55,10 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
     []
   );
   const youtubePlayerRef = useRef<YouTubePlayerHandle | null>(null);
+  // The SoundCloud widget reports its position asynchronously, so the last answer is kept here and
+  // read by the loop and sync code that need the time at once. Seconds, like the other sources.
+  const soundcloudPlayerRef = useRef<SoundCloudHandle | null>(null);
+  const soundcloudPositionRef = useRef(0);
   const loopRestartListenersRef = useRef<Set<(loopStart: number) => void>>(new Set());
 
   const notifyLoopRestart = useCallback((startSec: number) => {
@@ -98,6 +103,7 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
       const url = URL.createObjectURL(file);
       objectUrlRef.current = url;
       youtubePlayerRef.current?.pauseVideo();
+      soundcloudPlayerRef.current?.pause();
       audio.src = url;
       audio.loop = false;
       audio.playbackRate = 1;
@@ -130,6 +136,7 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
       }
 
       youtubePlayerRef.current?.pauseVideo();
+      soundcloudPlayerRef.current?.pause();
       audio.src = url;
       audio.loop = false;
       audio.playbackRate = playbackRate;
@@ -157,6 +164,7 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
         audio.load();
       }
 
+      soundcloudPlayerRef.current?.pause();
       pendingYouTubeVideoIdRef.current = videoId;
       youtubePlayRequestedRef.current = false;
       clearTapPrompt();
@@ -208,10 +216,59 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
     }
   }, [clearTapPrompt]);
 
+  const loadSoundCloud = useCallback(
+    (_url: string) => {
+      const audio = audioRef.current;
+
+      if (audio) {
+        audio.pause();
+        audio.removeAttribute("src");
+        audio.load();
+      }
+
+      youtubePlayerRef.current?.pauseVideo();
+      youtubePlayRequestedRef.current = false;
+      clearTapPrompt();
+      soundcloudPositionRef.current = 0;
+      setActiveSource("soundcloud");
+      setCurrentTime(0);
+      setDuration(0);
+      setIsPlaying(false);
+      setIsLooping(false);
+      setPlaybackRate(1);
+      setEffectiveRate(1);
+      setLoopMarkerId(null);
+      setMarkerPlaybackMarkerId(null);
+      markerPlaybackEndRef.current = null;
+    },
+    [audioRef, clearTapPrompt],
+  );
+
+  const attachSoundCloudPlayer = useCallback((player: SoundCloudHandle) => {
+    soundcloudPlayerRef.current = player;
+  }, []);
+
+  const handleSoundCloudPlayState = useCallback(
+    (playing: boolean) => {
+      setIsPlaying(playing);
+      if (playing) {
+        clearTapPrompt();
+      }
+    },
+    [clearTapPrompt],
+  );
+
   const startPlayback = useCallback(async () => {
     if (activeSource === "youtube") {
       youtubePlayRequestedRef.current = true;
       youtubePlayerRef.current?.playVideo();
+      if (tapTimerRef.current !== null) window.clearTimeout(tapTimerRef.current);
+      tapTimerRef.current = window.setTimeout(() => setNeedsTap(true), 3000);
+      return;
+    }
+
+    if (activeSource === "soundcloud") {
+      soundcloudPlayerRef.current?.play();
       if (tapTimerRef.current !== null) window.clearTimeout(tapTimerRef.current);
       tapTimerRef.current = window.setTimeout(() => setNeedsTap(true), 3000);
       return;
@@ -240,6 +297,12 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
       return;
     }
 
+    if (activeSource === "soundcloud") {
+      clearTapPrompt();
+      soundcloudPlayerRef.current?.pause();
+      return;
+    }
+
     audioRef.current?.pause();
   }, [activeSource, audioRef, clearTapPrompt]);
 
@@ -250,6 +313,14 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
     if (activeSource === "youtube") {
       youtubePlayerRef.current?.seekTo(0, true);
       youtubePlayerRef.current?.playVideo();
+      setCurrentTime(0);
+      return;
+    }
+
+    if (activeSource === "soundcloud") {
+      soundcloudPlayerRef.current?.seekTo(0);
+      soundcloudPlayerRef.current?.play();
+      soundcloudPositionRef.current = 0;
       setCurrentTime(0);
       return;
     }
@@ -274,6 +345,14 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
         return;
       }
 
+      if (activeSource === "soundcloud") {
+        const safeTime = Math.min(Math.max(time, 0), duration || time);
+        soundcloudPlayerRef.current?.seekTo(safeTime * 1000);
+        soundcloudPositionRef.current = safeTime;
+        setCurrentTime(safeTime);
+        return;
+      }
+
       const audio = audioRef.current;
 
       if (!audio) {
@@ -292,7 +371,9 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
       const sourceCurrentTime =
         activeSource === "youtube"
           ? youtubePlayerRef.current?.getCurrentTime() ?? currentTime
-          : audioRef.current?.currentTime ?? currentTime;
+          : activeSource === "soundcloud"
+            ? soundcloudPositionRef.current
+            : audioRef.current?.currentTime ?? currentTime;
 
       seekTo(sourceCurrentTime + seconds);
     },
@@ -336,7 +417,7 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
       markerPlaybackEndRef.current = null;
       setMarkerPlaybackMarkerId(null);
 
-      if (audioRef.current && activeSource !== "youtube") {
+      if (audioRef.current && activeSource !== "youtube" && activeSource !== "soundcloud") {
         audioRef.current.loop = nextValue;
       }
 
@@ -350,6 +431,10 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
 
   const setSpeed = useCallback(
     (speed: number) => {
+      if (activeSource === "soundcloud") {
+        return; // the SoundCloud player has no speed control; the UI says so
+      }
+
       setPlaybackRate(speed);
 
       if (activeSource === "youtube") {
@@ -402,6 +487,31 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
     return () => window.clearInterval(intervalId);
   }, [activeSource, effectiveRate]);
 
+  // SoundCloud only answers asynchronously: refresh the cached position and length often enough for loops
+  useEffect(() => {
+    if (activeSource !== "soundcloud") {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      const player = soundcloudPlayerRef.current;
+
+      if (!player) {
+        return;
+      }
+
+      player.getPosition((ms) => {
+        soundcloudPositionRef.current = ms / 1000;
+        setCurrentTime(ms / 1000);
+      });
+      player.getDuration((ms) => {
+        if (ms > 0) setDuration(ms / 1000);
+      });
+    }, 100);
+
+    return () => window.clearInterval(intervalId);
+  }, [activeSource]);
+
   // High-precision rAF loop while playing for loop restart and marker boundary checking
   useEffect(() => {
     if (!isPlaying) {
@@ -413,11 +523,14 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
     const tick = () => {
       const audio = audioRef.current;
       const yt = youtubePlayerRef.current;
+      const sc = soundcloudPlayerRef.current;
 
       const now =
         activeSource === "youtube"
           ? yt?.getCurrentTime() ?? currentTime
-          : audio?.currentTime ?? currentTime;
+          : activeSource === "soundcloud"
+            ? soundcloudPositionRef.current
+            : audio?.currentTime ?? currentTime;
 
       setCurrentTime(now);
 
@@ -425,6 +538,9 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
         if (shouldRestartLoop(now, { start: loopMarker.time, end: loopMarker.endTime }, duration)) {
           if (activeSource === "youtube") {
             yt?.seekTo(loopMarker.time, true);
+          } else if (activeSource === "soundcloud") {
+            sc?.seekTo(loopMarker.time * 1000);
+            soundcloudPositionRef.current = loopMarker.time;
           } else if (audio) {
             audio.currentTime = loopMarker.time;
           }
@@ -437,6 +553,10 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
           if (activeSource === "youtube") {
             yt?.pauseVideo();
             yt?.seekTo(end, true);
+          } else if (activeSource === "soundcloud") {
+            sc?.pause();
+            sc?.seekTo(end * 1000);
+            soundcloudPositionRef.current = end;
           } else if (audio) {
             audio.pause();
             audio.currentTime = end;
@@ -450,6 +570,10 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
         if (activeSource === "youtube") {
           yt?.seekTo(0, true);
           yt?.playVideo();
+        } else if (activeSource === "soundcloud") {
+          sc?.seekTo(0);
+          sc?.play();
+          soundcloudPositionRef.current = 0;
         } else if (audio) {
           audio.currentTime = 0;
           void audio.play();
@@ -474,7 +598,7 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
 
     const handleLoadedMetadata = () => setDuration(audio.duration || 0);
     const handleTimeUpdate = () => {
-      if (activeSource === "youtube") {
+      if (activeSource === "youtube" || activeSource === "soundcloud") {
         return;
       }
 
@@ -506,6 +630,9 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
         if (activeSource === "youtube") {
           return youtubePlayerRef.current?.getCurrentTime() ?? currentTime;
         }
+        if (activeSource === "soundcloud") {
+          return soundcloudPositionRef.current;
+        }
         return audioRef.current?.currentTime ?? currentTime;
       },
       isPlaying,
@@ -520,6 +647,8 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
       pauseForBuffer: () => {
         if (activeSource === "youtube") {
           youtubePlayerRef.current?.pauseVideo();
+        } else if (activeSource === "soundcloud") {
+          soundcloudPlayerRef.current?.pause();
         } else {
           audioRef.current?.pause();
         }
@@ -528,6 +657,8 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
         if (isPlaying) {
           if (activeSource === "youtube") {
             youtubePlayerRef.current?.playVideo();
+          } else if (activeSource === "soundcloud") {
+            soundcloudPlayerRef.current?.play();
           } else {
             void audioRef.current?.play();
           }
@@ -541,11 +672,14 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
     activeMarker,
     activeSource,
     attachYouTubePlayer,
+    attachSoundCloudPlayer,
     currentTime,
     duration,
     effectiveRate,
     handleYouTubeStateChange,
+    handleSoundCloudPlayState,
     needsTap,
+    speedDisabled: activeSource === "soundcloud",
     isLooping,
     isPlaying,
     playbackRate,
@@ -556,6 +690,7 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
     loadFile,
     loadUrl,
     loadYouTube,
+    loadSoundCloud,
     pause,
     play,
     restart,

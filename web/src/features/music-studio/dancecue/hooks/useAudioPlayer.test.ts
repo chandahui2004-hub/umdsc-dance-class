@@ -146,3 +146,115 @@ describe('useAudioPlayer needsTap (phones block play on an untouched iframe)', (
     }
   });
 });
+
+describe('useAudioPlayer with a SoundCloud song', () => {
+  const marker = { id: 'm1', name: 'Chorus', time: 10, endTime: 20 };
+
+  function setupSoundCloud() {
+    const audio = document.createElement('audio');
+    audio.pause = vi.fn();
+    audio.load = vi.fn();
+    const audioRef = { current: audio };
+    let positionMs = 0;
+    const sc = {
+      play: vi.fn(),
+      pause: vi.fn(),
+      seekTo: vi.fn(),
+      getPosition: vi.fn((cb: (ms: number) => void) => cb(positionMs)),
+      getDuration: vi.fn((cb: (ms: number) => void) => cb(214000))
+    };
+    const hook = renderHook(() => useAudioPlayer({ audioRef, markers: [marker] }));
+    act(() => hook.result.current.loadSoundCloud('https://soundcloud.com/forss/flickermood'));
+    act(() => hook.result.current.attachSoundCloudPlayer(sc));
+    return { hook, sc, setPositionMs: (ms: number) => (positionMs = ms) };
+  }
+
+  it('plays, pauses and seeks through the widget (SoundCloud takes milliseconds)', async () => {
+    const { hook, sc } = setupSoundCloud();
+
+    await act(async () => {
+      await hook.result.current.play();
+    });
+    expect(sc.play).toHaveBeenCalledTimes(1);
+
+    act(() => hook.result.current.pause());
+    expect(sc.pause).toHaveBeenCalled();
+
+    act(() => hook.result.current.seekTo(30));
+    expect(sc.seekTo).toHaveBeenCalledWith(30000);
+  });
+
+  it('is the active source and reports isPlaying from the widget events', () => {
+    const { hook } = setupSoundCloud();
+
+    expect(hook.result.current.activeSource).toBe('soundcloud');
+    act(() => hook.result.current.handleSoundCloudPlayState(true));
+    expect(hook.result.current.isPlaying).toBe(true);
+    act(() => hook.result.current.handleSoundCloudPlayState(false));
+    expect(hook.result.current.isPlaying).toBe(false);
+  });
+
+  it('has no speed control: speedDisabled, and a speed change does not alter the rate', () => {
+    const { hook } = setupSoundCloud();
+
+    expect(hook.result.current.speedDisabled).toBe(true);
+    act(() => hook.result.current.setSpeed(1.25));
+
+    expect(hook.result.current.playbackRate).toBe(1);
+    expect(hook.result.current.effectiveRate).toBe(1);
+  });
+
+  it('seeks back to the section start when the loop end is reached', async () => {
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'cancelAnimationFrame']
+    });
+    try {
+      const { hook, sc, setPositionMs } = setupSoundCloud();
+      setPositionMs(15000);
+
+      await act(async () => {
+        await hook.result.current.startLoop(marker);
+      });
+      act(() => hook.result.current.handleSoundCloudPlayState(true));
+      sc.seekTo.mockClear();
+
+      setPositionMs(20300); // past the end of the 10-20 s section
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
+
+      expect(sc.seekTo).toHaveBeenCalledWith(10000);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('asks for a tap when SoundCloud has not started 3 s after Play', async () => {
+    vi.useFakeTimers();
+    try {
+      const { hook } = setupSoundCloud();
+      await act(async () => {
+        await hook.result.current.play();
+      });
+
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+      expect(hook.result.current.needsTap).toBe(true);
+
+      act(() => hook.result.current.handleSoundCloudPlayState(true));
+      expect(hook.result.current.needsTap).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('stops SoundCloud when the dancer switches to a YouTube song', () => {
+    const { hook, sc } = setupSoundCloud();
+
+    act(() => hook.result.current.loadYouTube('4_KN-gA6uXY'));
+
+    expect(sc.pause).toHaveBeenCalled();
+    expect(hook.result.current.activeSource).toBe('youtube');
+  });
+});

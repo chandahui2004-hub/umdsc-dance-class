@@ -5,6 +5,7 @@ import type { Marker } from '../dancecue/types/marker';
 export type SourceDescriptor =
   | { type: 'drive'; fileId: string }
   | { type: 'yt'; videoId: string }
+  | { type: 'sc'; url: string }
   | { type: 'file'; name: string; size: number }
   | string;
 
@@ -17,6 +18,9 @@ export function sourceKey(src: SourceDescriptor): string {
   }
   if (src.type === 'yt') {
     return `yt:${src.videoId}`;
+  }
+  if (src.type === 'sc') {
+    return `sc:${src.url}`;
   }
   return `file:${src.name}:${src.size}`;
 }

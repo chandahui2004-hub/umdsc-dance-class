@@ -41,6 +41,9 @@ describe('useMarkers & sourceKey', () => {
     expect(sourceKey({ type: 'drive', fileId: 'file-123' })).toBe('drive:file-123');
     expect(sourceKey({ type: 'yt', videoId: 'yt-abc' })).toBe('yt:yt-abc');
     expect(sourceKey({ type: 'file', name: 'song.mp3', size: 1024 })).toBe('file:song.mp3:1024');
+    expect(sourceKey({ type: 'sc', url: 'https://soundcloud.com/forss/flickermood' })).toBe(
+      'sc:https://soundcloud.com/forss/flickermood'
+    );
   });
 
   it('loads class sections as read-only markers mapped to DanceCue Marker interface', () => {
