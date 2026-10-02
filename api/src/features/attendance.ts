@@ -75,30 +75,62 @@ export function getAttendanceRoutes(): Record<string, Route> {
 
         const grid: AttendanceGrid = { eventId, styleId, version: curVer, sessions, members: [], present: {} };
 
-        const rec = ctx.db.attendanceSheets.find(
+        let rec = ctx.db.attendanceSheets.find(
           s => s.eventId === eventId && s.styleId === styleId && s.active
         )[0];
-        if (!rec) return grid;
-        grid.spreadsheetId = rec.spreadsheetId;
 
-        const sheet = ctx.drive.openSpreadsheet(rec.spreadsheetId).sheet('Attendance');
-        const data = sheet ? sheet.getDisplayValues() : [];
-        if (data.length < 2) return grid;
+        if (!rec) {
+          try {
+            ensureEventSheets(ctx, getEvent(ctx, eventId));
+            rec = ctx.db.attendanceSheets.find(
+              s => s.eventId === eventId && s.styleId === styleId && s.active
+            )[0];
+          } catch {
+            // Master folder not set or Drive mock, continue to member fallback
+          }
+        }
 
-        const keyRow = data[0];
-        const memberIdColIdx = keyRow.indexOf('memberId');
-        const fullNameColIdx = keyRow.indexOf('fullName');
-        const matricColIdx = keyRow.indexOf('matric');
-        const sessionCols = sessions
-          .map(s => ({ id: s.id, colIdx: keyRow.indexOf(s.id) }))
-          .filter(x => x.colIdx !== -1);
+        if (rec) {
+          grid.spreadsheetId = rec.spreadsheetId;
+          const sheet = ctx.drive.openSpreadsheet(rec.spreadsheetId).sheet('Attendance');
+          const data = sheet ? sheet.getDisplayValues() : [];
+          if (data.length >= 2) {
+            const keyRow = data[0];
+            const memberIdColIdx = keyRow.indexOf('memberId');
+            const fullNameColIdx = keyRow.indexOf('fullName');
+            const matricColIdx = keyRow.indexOf('matric');
+            const sessionCols = sessions
+              .map(s => ({ id: s.id, colIdx: keyRow.indexOf(s.id) }))
+              .filter(x => x.colIdx !== -1);
 
-        for (let r = 2; r < data.length; r++) {
-          const row = data[r];
-          const mId = row[memberIdColIdx];
-          if (!mId) continue;
-          grid.members.push({ memberId: mId, fullName: row[fullNameColIdx] || '', matric: row[matricColIdx] || '' });
-          grid.present[mId] = sessionCols.filter(sc => row[sc.colIdx] === '/').map(sc => sc.id);
+            for (let r = 2; r < data.length; r++) {
+              const row = data[r];
+              const mId = row[memberIdColIdx];
+              if (!mId) continue;
+              grid.members.push({ memberId: mId, fullName: row[fullNameColIdx] || '', matric: row[matricColIdx] || '' });
+              grid.present[mId] = sessionCols.filter(sc => row[sc.colIdx] === '/').map(sc => sc.id);
+            }
+          }
+        }
+
+        // Fallback: If sheet has no members or couldn't be loaded, read enrolled event members
+        if (grid.members.length === 0) {
+          try {
+            const ev = getEvent(ctx, eventId);
+            const enrolled = readEventMembers(ctx, ev).filter(m => m.styleIds.includes(styleId));
+            for (const m of enrolled) {
+              grid.members.push({
+                memberId: m.memberId,
+                fullName: m.fullName,
+                matric: m.matricRaw || m.matricKey
+              });
+              if (!grid.present[m.memberId]) {
+                grid.present[m.memberId] = [];
+              }
+            }
+          } catch {
+            // Ignore fallback errors
+          }
         }
 
         safeCachePut(ctx.cache, gridKey(eventId, styleId, curVer), JSON.stringify(grid), 60);

@@ -12,6 +12,7 @@ import {
   EventItem
 } from '@umdsc/shared';
 import { dancerStylesInEvent } from './eventMembers';
+import { ensureEventSheets } from './eventSheets';
 import { safeCachePut } from '../logic/cache';
 import { createTimer, logTimings, type Timer } from '../logic/timing';
 
@@ -99,9 +100,10 @@ function resolveDancerEventStyles(
     const styleSet = new Set<string>();
     // Styles stored at sync time need no sheet read; dancers indexed before that fall back to the Members sheet.
     const stored = dancer.eventStyles?.[event.id];
-    if (Array.isArray(stored)) {
+    if (Array.isArray(stored) && stored.length > 0) {
       for (const sId of stored) styleSet.add(sId);
-    } else {
+    }
+    if (styleSet.size === 0) {
       try {
         for (const sId of dancerStylesInEvent(ctx, event, matricKey)) styleSet.add(sId);
       } catch {
@@ -140,9 +142,22 @@ export function getDancerAttendance(
 
   for (const [eventId, styleSet] of eventStylesMap.entries()) {
     for (const styleId of styleSet) {
-      const attRec = ctx.db.attendanceSheets.find(
+      let attRec = ctx.db.attendanceSheets.find(
         a => a.eventId === eventId && a.styleId === styleId && a.active
       )[0];
+      if (!attRec) {
+        try {
+          const ev = ctx.db.events.get(eventId);
+          if (ev) {
+            ensureEventSheets(ctx, ev);
+            attRec = ctx.db.attendanceSheets.find(
+              a => a.eventId === eventId && a.styleId === styleId && a.active
+            )[0];
+          }
+        } catch {
+          // ignore
+        }
+      }
       if (!attRec) continue;
 
       const curAttVer = Number(ctx.cache.get(`attv:${eventId}:${styleId}`) || 1);

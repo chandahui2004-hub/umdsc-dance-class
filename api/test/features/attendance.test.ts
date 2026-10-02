@@ -165,4 +165,35 @@ describe('Feature: Attendance (features/attendance)', () => {
       base64: 'fake-base64-xlsx-content'
     });
   });
+
+  it('attendance.get auto-heals missing attendance sheet and returns enrolled members', () => {
+    // Add hiphop style to event without creating attendance sheet
+    ctx.db.styles.insert(
+      { id: 'st_hiphop', name: 'Hip Hop', aliases: ['hiphop'], colorKey: 'orange', defaultWeekday: null, defaultStart: '20:00',
+        defaultEnd: '22:00', defaultInstructorId: '', defaultVenue: '', attendanceFolderId: '', videoFolderId: '' } as any,
+      'system',
+      ctx.now()
+    );
+    const event2 = seedEvent(ctx, {
+      name: 'NOV MONTHLY CLASS',
+      styleIds: ['st_hiphop'],
+      members: [{ matricKey: '22003333', fullName: 'Hiphop Dancer', styleIds: ['st_hiphop'] }]
+    });
+    ctx.db.sessions.insert(
+      { eventId: event2.id, styleId: 'st_hiphop', seq: 1, date: '2026-11-03', start: '20:00', end: '22:00', instructorId: '', venue: '', status: 'scheduled', note: '' },
+      'admin1',
+      ctx.now()
+    );
+
+    // Call attendance.get when no attendanceSheets row exists
+    const res = call('attendance.get', { eventId: event2.id, styleId: 'st_hiphop' });
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      const grid = res.data as any;
+      expect(grid.sessions.length).toBe(1);
+      expect(grid.members.length).toBe(1);
+      expect(grid.members[0].fullName).toBe('Hiphop Dancer');
+    }
+  });
 });
+
