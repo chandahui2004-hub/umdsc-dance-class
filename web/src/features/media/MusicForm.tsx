@@ -91,6 +91,10 @@ export const MusicForm: React.FC<MusicFormProps> = ({
             />
           </Field>
 
+          <p className="font-body text-xs text-[var(--c-darkgrey)]">
+            Tip: upload an MP3 for the most reliable practice playback (works offline, on every phone).
+          </p>
+
           <Field label="Link to Session">
             <select
               value={sessionId}
