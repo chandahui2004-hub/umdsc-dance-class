@@ -71,19 +71,19 @@ export const EventWizard: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-display text-xl text-[var(--text-1)]">{isEdit ? `Edit ${event?.name || 'event'}` : 'New event'}</h1>
+      <h1 className="font-display text-[24px] text-[var(--text-1)]">{isEdit ? `Edit ${event?.name || 'event'}` : 'New event'}</h1>
 
       <ol className="flex flex-wrap gap-2" aria-label="Steps">
         {STEPS.map((label, i) => (
           <li
             key={label}
             aria-current={i === step ? 'step' : undefined}
-            className={`px-2 py-1 border-2 border-[var(--c-ink)] font-display text-[10px] ${
+            className={`px-3 py-1 border-2 border-[var(--outline)] font-display text-[12px] ${
               i === step
-                ? 'bg-[var(--c-orange)] text-[var(--on-neon)]'
+                ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--outline)]'
                 : i < step
-                ? 'bg-[var(--c-green)] text-[var(--on-neon)]'
-                : 'bg-[var(--c-panel)] text-[var(--text-1)]'
+                ? 'bg-[var(--neon-green)] text-[var(--on-neon)] font-bold'
+                : 'bg-[var(--night-2)] text-[var(--text-2)]'
             }`}
           >
             {i + 1} {label}
@@ -92,9 +92,9 @@ export const EventWizard: React.FC = () => {
       </ol>
 
       {!loaded ? (
-        <p className="font-display text-xs text-[var(--text-1)]">LOADING EVENT…</p>
+        <p className="font-display text-[12px] text-[var(--text-1)] px-blink">LOADING EVENT…</p>
       ) : (
-        <Panel title={`STEP ${step + 1}: ${STEPS[step]}`} className="px-corners">
+        <Panel title={`STEP ${step + 1}: ${STEPS[step]}`}>
           {step === 0 && <FormLinkStep {...props} />}
           {step === 1 && <EventDetailsStep {...props} />}
           {step === 2 && <StylesStep {...props} />}

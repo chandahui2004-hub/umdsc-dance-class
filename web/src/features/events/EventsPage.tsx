@@ -7,6 +7,7 @@ import { PixelButton } from '../../components/ui/PixelButton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { useEvents } from './useCurrentEvent';
 import { EventCard } from './EventCard';
+import { AttendanceFolderHeader } from './FolderLinksHeader';
 
 export const EventsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -24,26 +25,29 @@ export const EventsPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-xl md:text-2xl text-[var(--text-1)]">Events</h1>
-          <p className="font-body text-sm text-[var(--text-2)]">
+          <h1 className="font-display text-[24px] text-[var(--text-1)]">Events</h1>
+          <p className="font-body text-[14px] text-[var(--text-2)]">
             Monthly classes, trial classes and workshops — one registration form each.
           </p>
         </div>
-        <PixelButton size="md" onClick={() => navigate('/admin/events/new')}>
+        <PixelButton size="md" variant="primary" onClick={() => navigate('/admin/events/new')}>
           + NEW EVENT
         </PixelButton>
       </div>
 
+      <AttendanceFolderHeader />
+
       <section data-testid="active-events" className="space-y-3">
-        <h2 className="font-display text-sm text-[var(--text-1)]">ACTIVE EVENTS</h2>
+        <h2 className="font-display text-[12px] text-[var(--text-1)]">ACTIVE EVENTS</h2>
         {isLoading ? (
-          <p className="font-display text-xs text-[var(--text-1)]">LOADING…</p>
+          <p className="font-display text-[12px] text-[var(--text-1)] px-blink">LOADING…</p>
         ) : active.length === 0 ? (
           <EmptyState
+            scene="shutter"
             title="NO ACTIVE EVENTS"
             description="Create an event from its Google Form response sheet."
             action={
-              <PixelButton size="md" onClick={() => navigate('/admin/events/new')}>
+              <PixelButton size="md" variant="primary" onClick={() => navigate('/admin/events/new')}>
                 + NEW EVENT
               </PixelButton>
             }

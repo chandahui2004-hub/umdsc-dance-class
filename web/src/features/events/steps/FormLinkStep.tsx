@@ -38,46 +38,46 @@ export const FormLinkStep: React.FC<StepProps> = ({ draft, onChange, onNext, isE
   return (
     <div className="space-y-4">
       <label className="block space-y-1">
-        <span className="font-display text-xs text-[var(--text-1)]">GOOGLE FORM RESPONSE SHEET LINK</span>
+        <span className="font-display text-[12px] text-[var(--text-1)]">GOOGLE FORM RESPONSE SHEET LINK</span>
         <input
           aria-label="Google Sheet Link"
           value={draft.sheetUrl}
           onChange={e => onChange({ sheetUrl: e.target.value, preview: null })}
           placeholder="https://docs.google.com/spreadsheets/d/…"
-          className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] font-mono text-xs"
+          className="w-full min-h-[48px] px-3 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-mono text-[16px] text-[var(--text-1)] placeholder:text-[var(--text-3)]"
         />
-        <span className="font-body text-xs text-[var(--text-2)]">
+        <span className="font-body text-[14px] text-[var(--text-2)]">
           Share the sheet with umdancesportc@gmail.com as Editor first.
         </span>
       </label>
 
-      <PixelButton size="md" disabled={!draft.sheetUrl.trim() || preview.isPending} onClick={() => preview.mutate()}>
+      <PixelButton size="md" variant="secondary" disabled={!draft.sheetUrl.trim() || preview.isPending} onClick={() => preview.mutate()}>
         {preview.isPending ? 'READING SHEET…' : 'READ SHEET'}
       </PixelButton>
 
       {error && (
-        <p role="alert" className="p-3 border-4 border-[var(--c-red)] bg-[var(--c-peach)] font-body font-bold text-sm text-[var(--c-red)]">
+        <p role="alert" className="p-3 border-2 border-[var(--neon-red)] bg-[var(--night-1)] font-body font-bold text-[14px] text-[var(--neon-red)]">
           {error}
         </p>
       )}
 
       {p && (
         <div className="space-y-4">
-          <p className="font-body text-base text-[var(--text-1)]">
+          <p className="font-body text-[16px] text-[var(--text-1)]">
             Found <strong>{p.rowCount}</strong> registrations in tab “{p.sourceTab}”
             {p.sampleNames.length > 0 && <> — e.g. {p.sampleNames.join(', ')}</>}.
           </p>
 
-          <table className="w-full text-left border-collapse font-body text-sm">
+          <table className="w-full text-left border-collapse font-body text-[14px]">
             <thead>
-              <tr className="border-b-4 border-[var(--c-ink)] font-display text-[10px] text-[var(--text-1)]">
+              <tr className="border-b-2 border-[var(--neon-cyan)] bg-[var(--night-2)] font-display text-[12px] text-[var(--text-1)]">
                 <th className="p-2">FIELD</th>
                 <th className="p-2">COLUMN IN THE FORM</th>
               </tr>
             </thead>
-            <tbody className="divide-y-2 divide-[var(--c-ink)]">
+            <tbody className="divide-y-2 divide-[var(--outline)]">
               {Object.entries(FIELD_LABELS).map(([key, label]) => (
-                <tr key={key}>
+                <tr key={key} className="min-h-[48px] odd:bg-[var(--night-2)] even:bg-[var(--violet-1)]">
                   <td className="p-2 font-bold">{label}</td>
                   <td className="p-2">
                     <select
@@ -86,7 +86,7 @@ export const FormLinkStep: React.FC<StepProps> = ({ draft, onChange, onNext, isE
                       onChange={e =>
                         onChange({ columnMap: { ...draft.columnMap, [key]: e.target.value === '' ? null : Number(e.target.value) } })
                       }
-                      className="w-full min-h-[44px] px-2 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] font-mono text-xs"
+                      className="w-full min-h-[48px] px-2 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-mono text-[16px] text-[var(--text-1)]"
                     >
                       <option value="">— not in form —</option>
                       {p.headers.map((h, i) => (
@@ -98,14 +98,14 @@ export const FormLinkStep: React.FC<StepProps> = ({ draft, onChange, onNext, isE
                   </td>
                 </tr>
               ))}
-              <tr>
+              <tr className="min-h-[48px] odd:bg-[var(--night-2)] even:bg-[var(--violet-1)]">
                 <td className="p-2 font-bold">Class choice</td>
                 <td className="p-2">
                   <select
                     aria-label="Class choice column"
                     value={draft.classIndex}
                     onChange={e => onChange({ classIndex: Number(e.target.value) })}
-                    className="w-full min-h-[44px] px-2 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] font-mono text-xs"
+                    className="w-full min-h-[48px] px-2 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-mono text-[16px] text-[var(--text-1)]"
                   >
                     <option value={-1}>— no class question (single-style event) —</option>
                     {p.headers.map((h, i) => (
@@ -120,9 +120,9 @@ export const FormLinkStep: React.FC<StepProps> = ({ draft, onChange, onNext, isE
           </table>
 
           {p.warnings.length > 0 && (
-            <details className="border-2 border-[var(--c-ink)] bg-[var(--c-peach)] p-3">
-              <summary className="font-display text-[10px] cursor-pointer">{p.warnings.length} NOTES ABOUT THE FORM</summary>
-              <ul className="mt-2 space-y-1 font-mono text-xs max-h-40 overflow-y-auto">
+            <details className="border-2 border-[var(--neon-gold)] bg-[var(--night-1)] px-panel p-3">
+              <summary className="font-display text-[12px] text-[var(--neon-gold)] cursor-pointer">{p.warnings.length} NOTES ABOUT THE FORM</summary>
+              <ul className="mt-2 space-y-1 font-mono text-[12px] text-[var(--text-2)] max-h-40 overflow-y-auto pixel-scrollbar">
                 {p.warnings.map((w, i) => (
                   <li key={i}>
                     Row {w.row}: {w.detail}
@@ -134,8 +134,8 @@ export const FormLinkStep: React.FC<StepProps> = ({ draft, onChange, onNext, isE
         </div>
       )}
 
-      <div className="flex justify-end pt-3 border-t-2 border-[var(--c-ink)]">
-        <PixelButton size="md" disabled={!canContinue} onClick={onNext}>
+      <div className="flex justify-end pt-3 border-t-2 border-[var(--outline)]">
+        <PixelButton size="md" variant="primary" disabled={!canContinue} onClick={onNext}>
           NEXT
         </PixelButton>
       </div>

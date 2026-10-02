@@ -99,20 +99,20 @@ export const ReviewStep: React.FC<StepProps> = ({ draft, onBack, isEdit, event, 
 
   return (
     <div className="space-y-4">
-      <dl className="grid grid-cols-1 sm:grid-cols-[max-content_1fr] gap-x-4 gap-y-2 font-body text-base text-[var(--text-1)]">
-        <dt className="font-display text-[10px] pt-1">NAME</dt>
+      <dl className="grid grid-cols-1 sm:grid-cols-[max-content_1fr] gap-x-4 gap-y-2 font-body text-[16px] text-[var(--text-1)]">
+        <dt className="font-display text-[12px] pt-1 text-[var(--text-2)]">NAME</dt>
         <dd className="font-bold">{fields.name}</dd>
-        <dt className="font-display text-[10px] pt-1">TYPE</dt>
+        <dt className="font-display text-[12px] pt-1 text-[var(--text-2)]">TYPE</dt>
         <dd>{TYPE_LABEL[fields.type]}</dd>
-        <dt className="font-display text-[10px] pt-1">DATES</dt>
+        <dt className="font-display text-[12px] pt-1 text-[var(--text-2)]">DATES</dt>
         <dd>
           {fields.startDate} → {fields.endDate}
         </dd>
-        <dt className="font-display text-[10px] pt-1">DANCERS</dt>
+        <dt className="font-display text-[12px] pt-1 text-[var(--text-2)]">DANCERS</dt>
         <dd>{dancerCount}</dd>
-        <dt className="font-display text-[10px] pt-1">FORM</dt>
-        <dd className="break-all font-mono text-xs">{draft.sheetUrl}</dd>
-        <dt className="font-display text-[10px] pt-1">STYLES</dt>
+        <dt className="font-display text-[12px] pt-1 text-[var(--text-2)]">FORM</dt>
+        <dd className="break-all font-mono text-[14px] text-[var(--neon-cyan)]">{draft.sheetUrl}</dd>
+        <dt className="font-display text-[12px] pt-1 text-[var(--text-2)]">STYLES</dt>
         <dd>
           <ul className="space-y-1">
             {draft.styleIds.map(id => (
@@ -125,29 +125,29 @@ export const ReviewStep: React.FC<StepProps> = ({ draft, onBack, isEdit, event, 
       </dl>
 
       {!isEdit && noMaster && (
-        <p role="alert" className="p-3 border-4 border-[var(--c-red)] bg-[var(--c-peach)] font-body font-bold text-sm text-[var(--c-red)]">
+        <p role="alert" className="p-3 border-2 border-[var(--neon-red)] bg-[var(--night-1)] font-body font-bold text-[14px] text-[var(--neon-red)]">
           Set the attendance master folder on the Events page first.{' '}
-          <Link to="/admin/events" className="underline">
+          <Link to="/admin/events" className="underline text-[var(--neon-cyan)]">
             Go to Events
           </Link>
         </p>
       )}
       {error && (
-        <p role="alert" className="p-3 border-4 border-[var(--c-red)] bg-[var(--c-peach)] font-body font-bold text-sm text-[var(--c-red)]">
+        <p role="alert" className="p-3 border-2 border-[var(--neon-red)] bg-[var(--night-1)] font-body font-bold text-[14px] text-[var(--neon-red)]">
           {error}
         </p>
       )}
 
-      <div className="flex justify-between pt-3 border-t-2 border-[var(--c-ink)]">
+      <div className="flex justify-between pt-3 border-t-2 border-[var(--outline)]">
         <PixelButton size="md" variant="secondary" disabled={busy} onClick={onBack}>
           BACK
         </PixelButton>
         {isEdit ? (
-          <PixelButton size="md" disabled={busy} onClick={() => save.mutate()}>
+          <PixelButton size="md" variant="primary" disabled={busy} onClick={() => save.mutate()}>
             {save.isPending ? 'SAVING…' : 'SAVE CHANGES'}
           </PixelButton>
         ) : (
-          <PixelButton size="md" disabled={busy || noMaster || settingsLoading} onClick={() => create.mutate()}>
+          <PixelButton size="md" variant="primary" disabled={busy || noMaster || settingsLoading} onClick={() => create.mutate()}>
             {create.isPending ? 'CREATING…' : 'CREATE EVENT'}
           </PixelButton>
         )}

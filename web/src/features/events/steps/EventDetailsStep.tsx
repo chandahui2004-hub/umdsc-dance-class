@@ -32,17 +32,17 @@ const RangeCalendar: React.FC<{
   };
 
   return (
-    <div className="border-4 border-[var(--c-ink)] bg-[var(--c-bg)] p-3 space-y-2">
+    <div className="border-2 border-[var(--outline)] bg-[var(--night-1)] px-panel p-3 space-y-2">
       <div className="flex items-center justify-between gap-2">
         <PixelButton size="md" variant="secondary" aria-label="Previous month" onClick={() => setViewMonth(m => addMonths(m, -1))}>
           &lt;
         </PixelButton>
-        <span className="font-display text-xs text-[var(--text-1)]">{viewMonth}</span>
+        <span className="font-display text-[12px] text-[var(--text-1)]">{viewMonth}</span>
         <PixelButton size="md" variant="secondary" aria-label="Next month" onClick={() => setViewMonth(m => addMonths(m, 1))}>
           &gt;
         </PixelButton>
       </div>
-      <div className="grid grid-cols-7 gap-1 text-center font-display text-[10px] text-[var(--text-2)]">
+      <div className="grid grid-cols-7 gap-1 text-center font-display text-[12px] text-[var(--text-2)]">
         {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map(d => (
           <span key={d}>{d}</span>
         ))}
@@ -60,15 +60,15 @@ const RangeCalendar: React.FC<{
                 aria-label={formatDayLabel(d)}
                 aria-pressed={edge || inside}
                 onClick={() => clickDay(d)}
-                className={`min-h-[44px] border-2 border-[var(--c-ink)] font-mono text-xs ${
+                className={`min-h-[44px] border-2 border-[var(--outline)] font-mono text-[12px] select-none transition-none cursor-pointer ${
                   edge
-                    ? 'bg-[var(--c-orange)] font-bold'
+                    ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--outline)]'
                     : inside
-                    ? 'bg-[var(--c-yellow)]'
+                    ? 'bg-[var(--violet-2)] text-[var(--text-1)]'
                     : outsideMonth
-                    ? 'bg-[var(--c-bg)] text-[var(--text-2)]'
-                    : 'bg-[var(--c-panel)]'
-                } text-[var(--text-1)]`}
+                    ? 'bg-[var(--night-1)] text-[var(--text-3)]'
+                    : 'bg-[var(--night-2)] text-[var(--text-1)] hover:bg-[var(--violet-1)]'
+                }`}
               >
                 {Number(d.slice(8))}
               </button>
@@ -76,7 +76,7 @@ const RangeCalendar: React.FC<{
           })}
         </div>
       ))}
-      <p className="font-body text-xs text-[var(--text-2)]">
+      <p className="font-body text-[14px] text-[var(--text-2)]">
         {picking === 'start' ? 'Click the first day of the event.' : 'Now click the last day.'}
       </p>
     </div>
@@ -90,28 +90,28 @@ export const EventDetailsStep: React.FC<StepProps> = ({ draft, onChange, onNext,
   return (
     <div className="space-y-4">
       <label className="block space-y-1">
-        <span className="font-display text-xs text-[var(--text-1)]">EVENT NAME</span>
+        <span className="font-display text-[12px] text-[var(--text-1)]">EVENT NAME</span>
         <input
           aria-label="Event name"
           value={draft.name}
           onChange={e => onChange({ name: e.target.value })}
           placeholder="e.g. OCT MONTHLY CLASS"
-          className="w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] font-body text-base"
+          className="w-full min-h-[48px] px-3 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-body text-[16px] text-[var(--text-1)] placeholder:text-[var(--text-3)]"
         />
       </label>
       {clash && (
-        <p role="alert" className="font-body font-bold text-sm text-[var(--c-red)]">
+        <p role="alert" className="font-body font-bold text-[14px] text-[var(--neon-red)]">
           An event called "{draft.name.trim()}" already exists.
         </p>
       )}
 
       <label className="block space-y-1">
-        <span className="font-display text-xs text-[var(--text-1)]">TYPE</span>
+        <span className="font-display text-[12px] text-[var(--text-1)]">TYPE</span>
         <select
           aria-label="Event type"
           value={draft.type}
           onChange={e => onChange({ type: e.target.value as EventType })}
-          className="w-full min-h-[44px] px-2 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] font-body text-base"
+          className="w-full min-h-[48px] px-2 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-body text-[16px] text-[var(--text-1)]"
         >
           {TYPES.map(t => (
             <option key={t.value} value={t.value}>
@@ -122,7 +122,7 @@ export const EventDetailsStep: React.FC<StepProps> = ({ draft, onChange, onNext,
       </label>
 
       <div className="space-y-2">
-        <span className="font-display text-xs text-[var(--text-1)]">DATES</span>
+        <span className="font-display text-[12px] text-[var(--text-1)]">DATES</span>
         <RangeCalendar
           startDate={draft.startDate}
           endDate={draft.endDate}
@@ -130,38 +130,38 @@ export const EventDetailsStep: React.FC<StepProps> = ({ draft, onChange, onNext,
         />
         <div className="grid grid-cols-2 gap-2">
           <label className="space-y-1">
-            <span className="font-display text-[10px]">START DAY</span>
+            <span className="font-display text-[12px]">START DAY</span>
             <input
               type="date"
               aria-label="Start day"
               value={draft.startDate}
               onChange={e => e.target.value && onChange({ startDate: e.target.value })}
-              className="w-full min-h-[44px] px-2 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] font-mono text-xs"
+              className="w-full min-h-[48px] px-2 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-mono text-[16px] text-[var(--text-1)]"
             />
           </label>
           <label className="space-y-1">
-            <span className="font-display text-[10px]">END DAY</span>
+            <span className="font-display text-[12px]">END DAY</span>
             <input
               type="date"
               aria-label="End day"
               value={draft.endDate}
               onChange={e => e.target.value && onChange({ endDate: e.target.value })}
-              className="w-full min-h-[44px] px-2 border-2 border-[var(--c-ink)] bg-[var(--c-bg)] font-mono text-xs"
+              className="w-full min-h-[48px] px-2 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-mono text-[16px] text-[var(--text-1)]"
             />
           </label>
         </div>
         {draft.endDate < draft.startDate && (
-          <p role="alert" className="font-body font-bold text-sm text-[var(--c-red)]">
+          <p role="alert" className="font-body font-bold text-[14px] text-[var(--neon-red)]">
             The end day must be on or after the start day.
           </p>
         )}
       </div>
 
-      <div className="flex justify-between pt-3 border-t-2 border-[var(--c-ink)]">
+      <div className="flex justify-between pt-3 border-t-2 border-[var(--outline)]">
         <PixelButton size="md" variant="secondary" onClick={onBack}>
           BACK
         </PixelButton>
-        <PixelButton size="md" disabled={!canContinue} onClick={onNext}>
+        <PixelButton size="md" variant="primary" disabled={!canContinue} onClick={onNext}>
           NEXT
         </PixelButton>
       </div>

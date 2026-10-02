@@ -7,7 +7,7 @@ import { PixelButton } from '../../components/ui/PixelButton';
 import { Sheet } from '../../components/ui/Sheet';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { STYLE_COLOR } from '../../theme/colors';
+import { getStyleColor } from '../../theme/colors';
 import { exportToCsv } from '../../lib/csv';
 import type { Member } from '@umdsc/shared';
 import { useCurrentEvent } from '../events/useCurrentEvent';
@@ -127,13 +127,6 @@ export const MembersPage: React.FC = () => {
     });
   }, [members, selectedStyleId, searchQuery]);
 
-  // Style badge color helper
-  const getStyleColor = (styleName: string): string => {
-    const styleObj = bootstrap?.styles?.find((s) => s.name.toLowerCase() === styleName.toLowerCase());
-    const key = styleObj?.colorKey || 'orange';
-    return STYLE_COLOR[key] || `var(--c-${key})`;
-  };
-
   // CSV Export handler
   const handleExportCsv = () => {
     if (!filteredMembers.length) return;
@@ -170,9 +163,9 @@ export const MembersPage: React.FC = () => {
   const renderRosterList = () => (
     <div className="space-y-2">
       {/* Desktop Table */}
-      <div className="hidden md:block overflow-x-auto bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] max-h-[600px] overflow-y-auto pixel-scrollbar">
+      <div className="hidden md:block overflow-x-auto bg-[var(--night-2)] border-2 border-[var(--outline)] shadow-[4px_4px_0_var(--outline)] max-h-[600px] overflow-y-auto pixel-scrollbar">
         <table className="w-full text-left border-collapse">
-          <thead className="sticky top-0 z-10 bg-[var(--c-navy)] text-[var(--text-1)] font-display text-[10px] border-b-4 border-[var(--c-ink)]">
+          <thead className="sticky top-0 z-10 bg-[var(--night-2)] text-[var(--text-1)] font-display text-[12px] border-b-2 border-[var(--neon-cyan)] shadow-[0_2px_0_var(--outline)]">
             <tr>
               <th className="p-3">FULL NAME</th>
               <th className="p-3">MATRIC NO.</th>
@@ -184,21 +177,21 @@ export const MembersPage: React.FC = () => {
               <th className="p-3 text-right">ACTION</th>
             </tr>
           </thead>
-          <tbody className="divide-y-2 divide-[var(--c-grey)] font-body text-sm">
+          <tbody className="divide-y-2 divide-[var(--outline)] font-body text-[14px]">
             {filteredMembers.map((m) => (
               <tr
                 key={m.memberId + (m.matricKey || '')}
-                className="hover:bg-[var(--c-bg)] transition-none"
+                className="min-h-[48px] h-12 odd:bg-[var(--night-2)] even:bg-[var(--violet-1)] hover:bg-[var(--violet-2)] transition-none"
               >
                 <td className="p-3 font-bold text-[var(--text-1)]">
                   {m.fullName}
                   {m.flags && m.flags.length > 0 && (
-                    <span className="ml-2 inline-block px-1.5 py-0.5 bg-[var(--c-yellow)] text-[var(--on-neon)] text-[10px] font-display border border-[var(--c-ink)]">
+                    <span className="ml-2 inline-block px-1.5 py-0.5 bg-[var(--neon-gold)] text-[var(--on-neon)] text-[12px] font-display border border-[var(--outline)] font-bold">
                       FLAGGED
                     </span>
                   )}
                 </td>
-                <td className="p-3 font-mono text-[var(--text-1)] font-bold">
+                <td className="p-3 font-mono text-[var(--text-1)] font-bold text-[12px]">
                   {m.matricRaw}
                 </td>
                 <td className="p-3">
@@ -206,21 +199,21 @@ export const MembersPage: React.FC = () => {
                     href={formatWhatsAppUrl(m.contact)}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-[var(--c-blue)] hover:underline inline-flex items-center gap-1 font-mono font-bold"
+                    className="text-[var(--neon-green)] hover:underline inline-flex items-center gap-1 font-mono font-bold text-[12px]"
                   >
                     {m.contact}
                   </a>
                 </td>
-                <td className="p-3 font-body text-xs text-[var(--text-2)] truncate max-w-[200px]">
+                <td className="p-3 font-body text-[14px] text-[var(--text-2)] truncate max-w-[200px]">
                   <a
                     href={`mailto:${m.email}`}
-                    className="hover:underline hover:text-[var(--text-1)]"
+                    className="hover:underline hover:text-[var(--neon-cyan)]"
                   >
                     {m.email}
                   </a>
                 </td>
-                <td className="p-3 font-display text-xs">
-                  <span className="inline-block px-1.5 py-0.5 bg-[var(--c-bg)] border border-[var(--c-ink)] text-[var(--text-1)]">
+                <td className="p-3 font-display text-[12px]">
+                  <span className="inline-block px-1.5 py-0.5 bg-[var(--night-1)] border border-[var(--outline)] text-[var(--text-1)]">
                     {m.gender || '-'}
                   </span>
                 </td>
@@ -230,7 +223,7 @@ export const MembersPage: React.FC = () => {
                       {m.eventNames?.map((ev) => (
                         <span
                           key={ev}
-                          className="px-1.5 py-0.5 text-[9px] font-display bg-[var(--c-bg)] text-[var(--text-1)] border border-[var(--c-ink)]"
+                          className="px-1.5 py-0.5 text-[12px] font-display bg-[var(--night-1)] text-[var(--text-1)] border border-[var(--outline)]"
                         >
                           {ev}
                         </span>
@@ -240,15 +233,19 @@ export const MembersPage: React.FC = () => {
                 )}
                 <td className="p-3">
                   <div className="flex flex-wrap gap-1">
-                    {m.styleNames?.map((sName) => (
-                      <span
-                        key={sName}
-                        style={{ backgroundColor: getStyleColor(sName) }}
-                        className="px-2 py-0.5 text-[10px] font-display text-[var(--text-1)] border border-[var(--c-ink)]"
-                      >
-                        {sName}
-                      </span>
-                    ))}
+                    {m.styleNames?.map((sName) => {
+                      const styleObj = bootstrap?.styles?.find((s) => s.name.toLowerCase() === sName.toLowerCase());
+                      const c = getStyleColor(styleObj?.colorKey);
+                      return (
+                        <span
+                          key={sName}
+                          style={{ backgroundColor: c }}
+                          className="px-2 py-0.5 text-[12px] font-display text-[var(--on-neon)] font-bold border border-[var(--outline)]"
+                        >
+                          {sName}
+                        </span>
+                      );
+                    })}
                   </div>
                 </td>
                 <td className="p-3 text-right">
@@ -272,18 +269,18 @@ export const MembersPage: React.FC = () => {
         {filteredMembers.map((m) => (
           <div
             key={m.memberId + (m.matricKey || '')}
-            className="bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)] p-3 space-y-2"
+            className="px-panel p-3 border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] space-y-2 bg-[var(--night-2)]"
           >
             <div className="flex justify-between items-start gap-2">
               <div>
-                <h3 className="font-body font-bold text-base text-[var(--text-1)]">
+                <h3 className="font-body font-bold text-[16px] text-[var(--text-1)]">
                   {m.fullName}
                 </h3>
-                <p className="font-mono font-bold text-xs text-[var(--text-2)]">
+                <p className="font-mono font-bold text-[12px] text-[var(--text-2)]">
                   {m.matricRaw} · {m.gender || 'N/A'}
                 </p>
                 {isAll && m.eventNames && m.eventNames.length > 0 && (
-                  <p className="font-display text-[9px] text-[var(--c-blue)] mt-0.5">
+                  <p className="font-display text-[12px] text-[var(--neon-cyan)] mt-0.5">
                     {m.eventNames.join(' · ')}
                   </p>
                 )}
@@ -292,7 +289,7 @@ export const MembersPage: React.FC = () => {
                 variant="secondary"
                 size="md"
                 onClick={() => setSelectedMember(m)}
-                className="min-h-[36px] px-2 text-xs"
+                className="min-h-[36px] px-2 text-[12px]"
               >
                 INFO
               </PixelButton>
@@ -300,23 +297,27 @@ export const MembersPage: React.FC = () => {
 
             {/* Style Badges */}
             <div className="flex flex-wrap gap-1">
-              {m.styleNames?.map((sName) => (
-                <span
-                  key={sName}
-                  style={{ backgroundColor: getStyleColor(sName) }}
-                  className="px-2 py-0.5 text-[9px] font-display text-[var(--text-1)] border border-[var(--c-ink)]"
-                >
-                  {sName}
-                </span>
-              ))}
+              {m.styleNames?.map((sName) => {
+                const styleObj = bootstrap?.styles?.find((s) => s.name.toLowerCase() === sName.toLowerCase());
+                const c = getStyleColor(styleObj?.colorKey);
+                return (
+                  <span
+                    key={sName}
+                    style={{ backgroundColor: c }}
+                    className="px-2 py-0.5 text-[12px] font-display text-[var(--on-neon)] font-bold border border-[var(--outline)]"
+                  >
+                    {sName}
+                  </span>
+                );
+              })}
             </div>
 
-            <div className="flex justify-between items-center pt-1 border-t border-[var(--c-grey)] text-xs">
+            <div className="flex justify-between items-center pt-1 border-t border-[var(--outline)] text-[12px]">
               <a
                 href={formatWhatsAppUrl(m.contact)}
                 target="_blank"
                 rel="noreferrer"
-                className="text-[var(--c-blue)] font-mono font-bold underline"
+                className="text-[var(--neon-green)] font-mono font-bold underline"
               >
                 WA: {m.contact}
               </a>
@@ -332,13 +333,13 @@ export const MembersPage: React.FC = () => {
 
   if (isFullscreen) {
     return (
-      <div className="fixed inset-0 z-50 bg-[var(--c-bg)] p-3 md:p-6 flex flex-col gap-3">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[var(--c-panel)] border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] p-3">
+      <div className="fixed inset-0 z-50 bg-[var(--night-1)] p-3 md:p-6 flex flex-col gap-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 px-panel border-2 border-[var(--outline)] shadow-[4px_4px_0_var(--outline)] p-3 bg-[var(--night-2)]">
           <div className="flex items-center gap-3">
-            <h2 className="font-display text-sm md:text-base text-[var(--text-1)]">
+            <h2 className="font-display text-[16px] text-[var(--text-1)]">
               {isAll ? 'ALL REGISTERED DANCERS (COMBINED)' : `ROSTER: ${event?.name || 'EVENT'}`}
             </h2>
-            <span className="font-display text-[10px] md:text-xs bg-[var(--c-ink)] text-[var(--c-yellow)] px-2 py-1">
+            <span className="font-display text-[12px] bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold px-2 py-1 border border-[var(--outline)]">
               {filteredMembers.length} DANCERS
             </span>
           </div>
@@ -349,10 +350,10 @@ export const MembersPage: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search dancer..."
-              className="min-h-[36px] px-3 bg-[var(--c-bg)] border-2 border-[var(--c-ink)] font-body text-sm text-[var(--text-1)] focus:outline-none"
+              className="min-h-[44px] px-3 bg-[var(--night-1)] border-2 border-[var(--outline)] font-body text-[16px] text-[var(--text-1)] px-well placeholder:text-[var(--text-3)]"
             />
             <PixelButton
-              variant="primary"
+              variant="secondary"
               size="md"
               onClick={handleExportCsv}
               disabled={filteredMembers.length === 0}
@@ -363,7 +364,6 @@ export const MembersPage: React.FC = () => {
               variant="secondary"
               size="md"
               onClick={() => setIsFullscreen(false)}
-              className="bg-[var(--c-peach)]"
             >
               ✕ EXIT FULLSCREEN
             </PixelButton>
@@ -381,18 +381,18 @@ export const MembersPage: React.FC = () => {
           title={selectedMember?.fullName || 'DANCER DETAILS'}
         >
           {selectedMember && (
-            <div className="space-y-4 font-body text-base">
-              <div className="grid grid-cols-2 gap-3 bg-[var(--c-bg)] p-3 border-2 border-[var(--c-ink)]">
+            <div className="space-y-4 font-body text-[16px]">
+              <div className="grid grid-cols-2 gap-3 bg-[var(--night-1)] p-3 border-2 border-[var(--outline)] px-panel">
                 <div>
-                  <span className="block font-display text-[10px] text-[var(--text-2)]">
+                  <span className="block font-display text-[12px] text-[var(--text-2)]">
                     MATRIC NUMBER
                   </span>
-                  <span className="font-mono font-bold text-lg text-[var(--text-1)]">
+                  <span className="font-mono font-bold text-[18px] text-[var(--text-1)]">
                     {selectedMember.matricRaw}
                   </span>
                 </div>
                 <div>
-                  <span className="block font-display text-[10px] text-[var(--text-2)]">
+                  <span className="block font-display text-[12px] text-[var(--text-2)]">
                     GENDER / NATIONALITY
                   </span>
                   <span className="font-body font-bold text-[var(--text-1)]">
@@ -403,14 +403,14 @@ export const MembersPage: React.FC = () => {
 
               {selectedMember.eventNames && selectedMember.eventNames.length > 0 && (
                 <div>
-                  <span className="block font-display text-xs text-[var(--text-1)] mb-2">
+                  <span className="block font-display text-[12px] text-[var(--text-1)] mb-2">
                     REGISTERED EVENTS
                   </span>
                   <div className="flex flex-wrap gap-2">
                     {selectedMember.eventNames.map((ev) => (
                       <span
                         key={ev}
-                        className="px-2 py-1 text-xs font-display bg-[var(--c-navy)] text-[var(--c-yellow)] border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)]"
+                        className="px-2 py-1 text-[12px] font-display bg-[var(--night-1)] text-[var(--neon-gold)] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)]"
                       >
                         {ev}
                       </span>
@@ -420,7 +420,7 @@ export const MembersPage: React.FC = () => {
               )}
 
               <div className="space-y-2">
-                <span className="block font-display text-xs text-[var(--text-1)]">
+                <span className="block font-display text-[12px] text-[var(--text-1)]">
                   COMMUNICATION
                 </span>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -428,13 +428,13 @@ export const MembersPage: React.FC = () => {
                     href={formatWhatsAppUrl(selectedMember.contact)}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center justify-center min-h-[44px] bg-[var(--c-green)] text-[var(--on-neon)] border-2 border-[var(--c-ink)] font-display text-xs shadow-[2px_2px_0_var(--c-ink)] hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5"
+                    className="flex items-center justify-center min-h-[48px] bg-[var(--neon-green)] text-[var(--on-neon)] border-2 border-[var(--outline)] font-display text-[12px] font-bold shadow-[2px_2px_0_var(--outline)]"
                   >
                     WHATSAPP ({selectedMember.contact})
                   </a>
                   <a
                     href={`mailto:${selectedMember.email}`}
-                    className="flex items-center justify-center min-h-[44px] bg-[var(--c-blue)] text-[var(--on-neon)] border-2 border-[var(--c-ink)] font-display text-xs shadow-[2px_2px_0_var(--c-ink)] hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5"
+                    className="flex items-center justify-center min-h-[48px] bg-[var(--neon-cyan)] text-[var(--on-neon)] border-2 border-[var(--outline)] font-display text-[12px] font-bold shadow-[2px_2px_0_var(--outline)]"
                   >
                     SEND EMAIL
                   </a>
@@ -442,21 +442,25 @@ export const MembersPage: React.FC = () => {
               </div>
 
               <div>
-                <span className="block font-display text-xs text-[var(--text-1)] mb-2">
+                <span className="block font-display text-[12px] text-[var(--text-1)] mb-2">
                   REGISTERED DANCE CLASSES
                 </span>
                 <div className="flex flex-wrap gap-2">
-                  {selectedMember.styleNames?.map((sName) => (
-                    <div
-                      key={sName}
-                      style={{ backgroundColor: getStyleColor(sName) }}
-                      className="p-2 border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)]"
-                    >
-                      <span className="font-display text-xs text-[var(--text-1)]">
-                        {sName}
-                      </span>
-                    </div>
-                  ))}
+                  {selectedMember.styleNames?.map((sName) => {
+                    const styleObj = bootstrap?.styles?.find((s) => s.name.toLowerCase() === sName.toLowerCase());
+                    const c = getStyleColor(styleObj?.colorKey);
+                    return (
+                      <div
+                        key={sName}
+                        style={{ backgroundColor: c }}
+                        className="p-2 border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)]"
+                      >
+                        <span className="font-display text-[12px] text-[var(--on-neon)] font-bold">
+                          {sName}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -482,10 +486,10 @@ export const MembersPage: React.FC = () => {
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-xl md:text-2xl text-[var(--text-1)]">
+          <h1 className="font-display text-[24px] text-[var(--text-1)]">
             {isAll ? 'All Registered Dancers' : 'Registered Dancers'}
           </h1>
-          <p className="font-body text-sm text-[var(--text-2)]">
+          <p className="font-body text-[14px] text-[var(--text-2)]">
             {isAll
               ? 'Combined roster across all events (duplicates merged)'
               : `Dancers registered for ${event?.name || 'the selected event'}`}
@@ -504,7 +508,7 @@ export const MembersPage: React.FC = () => {
           </PixelButton>
 
           <PixelButton
-            variant="primary"
+            variant="secondary"
             size="md"
             onClick={handleExportCsv}
             disabled={filteredMembers.length === 0}
@@ -525,12 +529,12 @@ export const MembersPage: React.FC = () => {
       </div>
 
       {/* Filter and Search Panel */}
-      <Panel title="FILTER & SEARCH" className="px-corners">
+      <Panel title="FILTER & SEARCH">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {/* Event (chosen in the picker above or ALL) */}
           <div>
-            <span className="block font-display text-[10px] text-[var(--text-1)] mb-1 uppercase">Event Scope</span>
-            <p className="min-h-[44px] px-3 flex items-center border-2 border-[var(--c-ink)] bg-[var(--c-bg)] font-body text-base text-[var(--text-1)]">
+            <span className="block font-display text-[12px] text-[var(--text-1)] mb-1 uppercase">Event Scope</span>
+            <p className="min-h-[48px] px-3 flex items-center border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-body text-[16px] text-[var(--text-1)]">
               {isAll ? `ALL EVENTS (${events.length} events)` : event ? `${event.name} (${event.memberCount} dancers)` : 'No event yet'}
             </p>
           </div>
@@ -539,7 +543,7 @@ export const MembersPage: React.FC = () => {
           <div>
             <label
               htmlFor="style-select"
-              className="block font-display text-[10px] text-[var(--text-1)] mb-1 uppercase"
+              className="block font-display text-[12px] text-[var(--text-1)] mb-1 uppercase"
             >
               Class Style
             </label>
@@ -547,7 +551,7 @@ export const MembersPage: React.FC = () => {
               id="style-select"
               value={selectedStyleId}
               onChange={(e) => setSelectedStyleId(e.target.value)}
-              className="w-full min-h-[44px] px-3 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] font-body text-base text-[var(--text-1)] focus:outline-none focus:ring-2 focus:ring-[var(--c-yellow)]"
+              className="w-full min-h-[48px] px-3 bg-[var(--night-1)] border-2 border-[var(--outline)] px-well font-body text-[16px] text-[var(--text-1)]"
             >
               <option value="all">ALL CLASSES ({members.length})</option>
               {bootstrap?.styles?.map((s) => (
@@ -562,7 +566,7 @@ export const MembersPage: React.FC = () => {
           <div>
             <label
               htmlFor="dancer-search"
-              className="block font-display text-[10px] text-[var(--text-1)] mb-1 uppercase"
+              className="block font-display text-[12px] text-[var(--text-1)] mb-1 uppercase"
             >
               Search Dancer
             </label>
@@ -572,39 +576,39 @@ export const MembersPage: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search name, matric, phone..."
-              className="w-full min-h-[44px] px-3 bg-[var(--c-panel)] border-2 border-[var(--c-ink)] font-body text-base text-[var(--text-1)] focus:outline-none focus:ring-2 focus:ring-[var(--c-yellow)]"
+              className="w-full min-h-[48px] px-3 bg-[var(--night-1)] border-2 border-[var(--outline)] px-well font-body text-[16px] text-[var(--text-1)] placeholder:text-[var(--text-3)]"
             />
           </div>
         </div>
 
         {/* Quick Style Chips */}
         {bootstrap?.styles && bootstrap.styles.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-[var(--c-grey)] items-center">
-            <span className="font-display text-[10px] text-[var(--text-2)] mr-1">
+          <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-[var(--outline)] items-center">
+            <span className="font-display text-[12px] text-[var(--text-2)] mr-1">
               STYLES:
             </span>
             <button
               type="button"
               onClick={() => setSelectedStyleId('all')}
-              className={`px-2 py-1 text-[10px] font-display border-2 border-[var(--c-ink)] cursor-pointer min-h-[32px] ${
+              className={`px-3 py-1 text-[12px] font-display border-2 border-[var(--outline)] cursor-pointer min-h-[36px] ${
                 selectedStyleId === 'all'
-                  ? 'bg-[var(--c-ink)] text-[var(--text-1)]'
-                  : 'bg-[var(--c-panel)] text-[var(--text-1)] hover:bg-[var(--c-bg)]'
+                  ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--outline)]'
+                  : 'bg-[var(--night-1)] text-[var(--text-1)] hover:bg-[var(--violet-1)]'
               }`}
             >
               ALL
             </button>
             {bootstrap.styles.map((s) => {
-              const colorVar = STYLE_COLOR[s.colorKey] || `var(--c-${s.colorKey})`;
+              const c = getStyleColor(s.colorKey);
               const isSelected = selectedStyleId === s.id;
               return (
                 <button
                   key={s.id}
                   type="button"
                   onClick={() => setSelectedStyleId(s.id)}
-                  style={{ backgroundColor: colorVar }}
-                  className={`px-2 py-1 text-[10px] font-display text-[var(--text-1)] border-2 border-[var(--c-ink)] cursor-pointer min-h-[32px] ${
-                    isSelected ? 'ring-2 ring-[var(--c-ink)] ring-offset-2 font-bold' : 'opacity-85 hover:opacity-100'
+                  style={{ backgroundColor: c }}
+                  className={`px-3 py-1 text-[12px] font-display text-[var(--on-neon)] font-bold border-2 border-[var(--outline)] cursor-pointer min-h-[36px] ${
+                    isSelected ? 'ring-2 ring-[var(--neon-cyan)] shadow-[2px_2px_0_var(--outline)]' : 'opacity-85 hover:opacity-100'
                   }`}
                 >
                   {s.name}
@@ -616,15 +620,15 @@ export const MembersPage: React.FC = () => {
       </Panel>
 
       {/* Roster Summary Bar */}
-      <div className="flex items-center justify-between px-3 py-2 bg-[var(--c-navy)] text-[var(--text-1)] border-4 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)]">
-        <span className="font-display text-xs text-[var(--c-yellow)]">
+      <div className="flex items-center justify-between px-3 py-2 bg-[var(--night-2)] text-[var(--text-1)] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)]">
+        <span className="font-display text-[12px] text-[var(--neon-gold)] font-bold">
           ROSTER COUNT: {filteredMembers.length} OF {members.length} DANCERS
         </span>
         {searchQuery && (
           <button
             type="button"
             onClick={() => setSearchQuery('')}
-            className="font-display text-[10px] text-[var(--c-pink)] underline cursor-pointer"
+            className="font-display text-[12px] text-[var(--neon-pink)] underline cursor-pointer"
           >
             CLEAR SEARCH
           </button>
@@ -633,21 +637,22 @@ export const MembersPage: React.FC = () => {
 
       {/* Loading & Error States */}
       {isLoading ? (
-        <div className="p-8 text-center bg-[var(--c-panel)] border-4 border-[var(--c-ink)]">
+        <div className="p-8 text-center bg-[var(--night-2)] border-2 border-[var(--outline)]">
           <Spinner size="lg" />
-          <p className="font-display text-xs text-[var(--text-1)] mt-3">
+          <p className="font-display text-[12px] text-[var(--text-1)] mt-3">
             LOADING DANCER DIRECTORY...
           </p>
         </div>
       ) : error ? (
         <div
           role="alert"
-          className="bg-[var(--c-peach)] border-4 border-[var(--c-red)] p-4 text-[var(--c-red)] font-body font-bold text-sm"
+          className="bg-[var(--night-1)] border-2 border-[var(--neon-red)] p-4 text-[var(--neon-red)] font-body font-bold text-[14px]"
         >
           {errorMessage(error)}
         </div>
       ) : filteredMembers.length === 0 ? (
         <EmptyState
+          scene="shutter"
           title="NO DANCERS FOUND"
           description={
             members.length === 0
@@ -666,18 +671,18 @@ export const MembersPage: React.FC = () => {
         title={selectedMember?.fullName || 'DANCER DETAILS'}
       >
         {selectedMember && (
-          <div className="space-y-4 font-body text-base">
-            <div className="grid grid-cols-2 gap-3 bg-[var(--c-bg)] p-3 border-2 border-[var(--c-ink)]">
+          <div className="space-y-4 font-body text-[16px]">
+            <div className="grid grid-cols-2 gap-3 bg-[var(--night-1)] p-3 border-2 border-[var(--outline)] px-panel">
               <div>
-                <span className="block font-display text-[10px] text-[var(--text-2)]">
+                <span className="block font-display text-[12px] text-[var(--text-2)]">
                   MATRIC NUMBER
                 </span>
-                <span className="font-mono font-bold text-lg text-[var(--text-1)]">
+                <span className="font-mono font-bold text-[18px] text-[var(--text-1)]">
                   {selectedMember.matricRaw}
                 </span>
               </div>
               <div>
-                <span className="block font-display text-[10px] text-[var(--text-2)]">
+                <span className="block font-display text-[12px] text-[var(--text-2)]">
                   GENDER / NATIONALITY
                 </span>
                 <span className="font-body font-bold text-[var(--text-1)]">
@@ -689,14 +694,14 @@ export const MembersPage: React.FC = () => {
             {/* Events Enrolled */}
             {selectedMember.eventNames && selectedMember.eventNames.length > 0 && (
               <div>
-                <span className="block font-display text-xs text-[var(--text-1)] mb-2">
+                <span className="block font-display text-[12px] text-[var(--text-1)] mb-2">
                   REGISTERED EVENTS
                 </span>
                 <div className="flex flex-wrap gap-2">
                   {selectedMember.eventNames.map((ev) => (
                     <span
                       key={ev}
-                      className="px-2 py-1 text-xs font-display bg-[var(--c-navy)] text-[var(--c-yellow)] border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)]"
+                      className="px-2 py-1 text-[12px] font-display bg-[var(--night-1)] text-[var(--neon-gold)] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)]"
                     >
                       {ev}
                     </span>
@@ -707,7 +712,7 @@ export const MembersPage: React.FC = () => {
 
             {/* Contact Actions */}
             <div className="space-y-2">
-              <span className="block font-display text-xs text-[var(--text-1)]">
+              <span className="block font-display text-[12px] text-[var(--text-1)]">
                 COMMUNICATION
               </span>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -715,13 +720,13 @@ export const MembersPage: React.FC = () => {
                   href={formatWhatsAppUrl(selectedMember.contact)}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center justify-center min-h-[44px] bg-[var(--c-green)] text-[var(--on-neon)] border-2 border-[var(--c-ink)] font-display text-xs shadow-[2px_2px_0_var(--c-ink)] hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5"
+                  className="flex items-center justify-center min-h-[48px] bg-[var(--neon-green)] text-[var(--on-neon)] border-2 border-[var(--outline)] font-display text-[12px] font-bold shadow-[2px_2px_0_var(--outline)]"
                 >
                   WHATSAPP ({selectedMember.contact})
                 </a>
                 <a
                   href={`mailto:${selectedMember.email}`}
-                  className="flex items-center justify-center min-h-[44px] bg-[var(--c-blue)] text-[var(--on-neon)] border-2 border-[var(--c-ink)] font-display text-xs shadow-[2px_2px_0_var(--c-ink)] hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5"
+                  className="flex items-center justify-center min-h-[48px] bg-[var(--neon-cyan)] text-[var(--on-neon)] border-2 border-[var(--outline)] font-display text-[12px] font-bold shadow-[2px_2px_0_var(--outline)]"
                 >
                   SEND EMAIL
                 </a>
@@ -730,31 +735,35 @@ export const MembersPage: React.FC = () => {
 
             {/* Registered Classes */}
             <div>
-              <span className="block font-display text-xs text-[var(--text-1)] mb-2">
+              <span className="block font-display text-[12px] text-[var(--text-1)] mb-2">
                 REGISTERED DANCE CLASSES
               </span>
               <div className="flex flex-wrap gap-2">
-                {selectedMember.styleNames?.map((sName) => (
-                  <div
-                    key={sName}
-                    style={{ backgroundColor: getStyleColor(sName) }}
-                    className="p-2 border-2 border-[var(--c-ink)] shadow-[2px_2px_0_var(--c-ink)]"
-                  >
-                    <span className="font-display text-xs text-[var(--text-1)]">
-                      {sName}
-                    </span>
-                  </div>
-                ))}
+                {selectedMember.styleNames?.map((sName) => {
+                  const styleObj = bootstrap?.styles?.find((s) => s.name.toLowerCase() === sName.toLowerCase());
+                  const c = getStyleColor(styleObj?.colorKey);
+                  return (
+                    <div
+                      key={sName}
+                      style={{ backgroundColor: c }}
+                      className="p-2 border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)]"
+                    >
+                      <span className="font-display text-[12px] text-[var(--on-neon)] font-bold">
+                        {sName}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             {/* Extra Registration Metadata */}
-            <div className="bg-[var(--c-panel)] p-3 border-2 border-[var(--c-ink)] text-xs text-[var(--text-2)] space-y-1">
+            <div className="bg-[var(--night-1)] p-3 border-2 border-[var(--outline)] text-[12px] text-[var(--text-2)] space-y-1">
               <div>
                 <strong>Registration Timestamp:</strong> {selectedMember.sourceTimestamp || 'N/A'}
               </div>
               {selectedMember.flags && selectedMember.flags.length > 0 && (
-                <div className="text-[var(--c-red)] font-bold">
+                <div className="text-[var(--neon-red)] font-bold">
                   <strong>System Flags:</strong> {selectedMember.flags.join(', ')}
                 </div>
               )}

@@ -72,7 +72,7 @@ export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onB
     <div className="space-y-4">
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="lg:w-48 space-y-2">
-          <span className="font-display text-[10px] text-[var(--text-2)]">DANCE STYLES</span>
+          <span className="font-display text-[12px] text-[var(--text-2)]">DANCE STYLES</span>
           {draft.styleIds.map(id => {
             const s = styles.find(x => x.id === id);
             return (
@@ -81,12 +81,12 @@ export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onB
                 type="button"
                 onClick={() => setActiveId(id)}
                 aria-pressed={id === activeId}
-                className={`w-full min-h-[44px] px-3 border-2 border-[var(--c-ink)] flex items-center justify-between font-display text-xs ${
-                  id === activeId ? 'bg-[var(--c-orange)] text-[var(--on-neon)] shadow-[2px_2px_0_var(--c-ink)]' : 'bg-[var(--c-panel)] text-[var(--text-1)]'
+                className={`w-full min-h-[44px] px-3 border-2 border-[var(--outline)] flex items-center justify-between font-display text-[12px] cursor-pointer select-none transition-none ${
+                  id === activeId ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--outline)]' : 'bg-[var(--night-2)] text-[var(--text-1)] hover:bg-[var(--violet-1)]'
                 }`}
               >
                 <span className="flex items-center gap-2">
-                  <span className="w-3 h-3 border-2 border-[var(--c-ink)]" style={{ backgroundColor: getStyleColor(s?.colorKey) }} />
+                  <span className="w-3 h-3 border-2 border-[var(--outline)]" style={{ backgroundColor: getStyleColor(s?.colorKey) }} />
                   {s?.name || id}
                 </span>
                 <span className="font-mono">{(draft.schedule[id] || []).length}</span>
@@ -103,10 +103,10 @@ export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onB
 
         <div className="flex-1 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="font-display text-xs text-[var(--neon-cyan)]">{style?.name?.toUpperCase()} — CLICK DAYS TO ADD OR REMOVE</span>
-            <span className="font-mono text-xs text-[var(--text-2)]">{classes.length} classes selected</span>
+            <span className="font-display text-[12px] text-[var(--neon-cyan)]">{style?.name?.toUpperCase()} — CLICK DAYS TO ADD OR REMOVE</span>
+            <span className="font-mono text-[12px] text-[var(--text-2)]">{classes.length} classes selected</span>
           </div>
-          <div className="grid grid-cols-7 gap-1 text-center font-display text-[10px] text-[var(--text-2)]">
+          <div className="grid grid-cols-7 gap-1 text-center font-display text-[12px] text-[var(--text-2)]">
             {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map(d => (
               <span key={d}>{d}</span>
             ))}
@@ -118,7 +118,7 @@ export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onB
                 const cls = classes.find(c => c.date === d);
                 if (!inRange) {
                   return (
-                    <div key={d} aria-hidden className="min-h-[44px] border border-[var(--c-ink)]/30 opacity-30 font-mono text-[10px] p-1">
+                    <div key={d} aria-hidden className="min-h-[44px] border border-[var(--outline)]/30 opacity-20 font-mono text-[12px] p-1">
                       {Number(d.slice(8))}
                     </div>
                   );
@@ -130,23 +130,23 @@ export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onB
                     aria-label={formatDayLabel(d)}
                     aria-pressed={Boolean(cls)}
                     onClick={() => toggleDay(d)}
-                    className={`min-h-[44px] p-1 border-2 border-[var(--c-ink)] text-left font-mono text-xs ${
-                      cls ? 'bg-[var(--c-orange)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--c-ink)]' : 'bg-[var(--c-panel)] text-[var(--text-1)]'
+                    className={`min-h-[44px] p-1 border-2 border-[var(--outline)] text-left font-mono text-[12px] cursor-pointer select-none transition-none ${
+                      cls ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--outline)]' : 'bg-[var(--night-2)] text-[var(--text-1)] hover:bg-[var(--violet-1)]'
                     }`}
                   >
                     <div>{Number(d.slice(8))}</div>
-                    <div className="text-[9px]">{cls ? `#${cls.seq} ${cls.start}` : formatDayLabel(d).slice(0, 3)}</div>
+                    <div className="text-[12px]">{cls ? `#${cls.seq} ${cls.start}` : formatDayLabel(d).slice(0, 3)}</div>
                   </button>
                 );
               })}
             </div>
           ))}
 
-          <div className="border-2 border-[var(--c-ink)] bg-[var(--c-bg)] p-3 flex flex-wrap items-end gap-2">
-            <span className="w-full font-display text-[10px] text-[var(--text-1)]">AUTO-FILL</span>
+          <div className="border-2 border-[var(--outline)] bg-[var(--night-1)] px-panel p-3 flex flex-wrap items-end gap-2">
+            <span className="w-full font-display text-[12px] text-[var(--text-1)]">AUTO-FILL</span>
             <label className="space-y-1">
-              <span className="block font-display text-[9px]">DAY</span>
-              <select aria-label="Auto-fill day" value={fillDay} onChange={e => setFillDay(Number(e.target.value))} className="min-h-[44px] px-2 border-2 border-[var(--c-ink)] font-body text-sm">
+              <span className="block font-display text-[12px] text-[var(--text-2)]">DAY</span>
+              <select aria-label="Auto-fill day" value={fillDay} onChange={e => setFillDay(Number(e.target.value))} className="min-h-[48px] px-2 border-2 border-[var(--outline)] bg-[var(--night-2)] px-well font-body text-[16px] text-[var(--text-1)]">
                 {WEEKDAYS.map((w, i) => (
                   <option key={w} value={i + 1}>
                     {w}
@@ -155,18 +155,18 @@ export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onB
               </select>
             </label>
             <label className="space-y-1">
-              <span className="block font-display text-[9px]">START</span>
-              <input type="time" aria-label="Auto-fill start" value={fillStart} onChange={e => setFillStart(e.target.value)} className="min-h-[44px] px-2 border-2 border-[var(--c-ink)] font-mono text-xs" />
+              <span className="block font-display text-[12px] text-[var(--text-2)]">START</span>
+              <input type="time" aria-label="Auto-fill start" value={fillStart} onChange={e => setFillStart(e.target.value)} className="min-h-[48px] px-2 border-2 border-[var(--outline)] bg-[var(--night-2)] px-well font-mono text-[16px] text-[var(--text-1)]" />
             </label>
             <label className="space-y-1">
-              <span className="block font-display text-[9px]">END</span>
-              <input type="time" aria-label="Auto-fill end" value={fillEnd} onChange={e => setFillEnd(e.target.value)} className="min-h-[44px] px-2 border-2 border-[var(--c-ink)] font-mono text-xs" />
+              <span className="block font-display text-[12px] text-[var(--text-2)]">END</span>
+              <input type="time" aria-label="Auto-fill end" value={fillEnd} onChange={e => setFillEnd(e.target.value)} className="min-h-[48px] px-2 border-2 border-[var(--outline)] bg-[var(--night-2)] px-well font-mono text-[16px] text-[var(--text-1)]" />
             </label>
             <label className="space-y-1">
-              <span className="block font-display text-[9px]">CLASSES</span>
-              <input type="number" min={1} max={31} aria-label="Auto-fill count" value={fillCount} onChange={e => setFillCount(Math.max(1, Number(e.target.value) || 1))} className="w-20 min-h-[44px] px-2 border-2 border-[var(--c-ink)] font-mono text-xs" />
+              <span className="block font-display text-[12px] text-[var(--text-2)]">CLASSES</span>
+              <input type="number" min={1} max={31} aria-label="Auto-fill count" value={fillCount} onChange={e => setFillCount(Math.max(1, Number(e.target.value) || 1))} className="w-24 min-h-[48px] px-2 border-2 border-[var(--outline)] bg-[var(--night-2)] px-well font-mono text-[16px] text-[var(--text-1)]" />
             </label>
-            <PixelButton size="md" onClick={autoFill}>
+            <PixelButton size="md" variant="secondary" onClick={autoFill}>
               FILL {fillCount} CLASSES
             </PixelButton>
           </div>
@@ -176,33 +176,33 @@ export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onB
       {classes.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {classes.map(c => (
-            <div key={c.date} className="border-2 border-[var(--c-ink)] bg-[var(--c-panel)] p-2 space-y-2">
-              <div className="flex items-center justify-between font-mono text-xs">
-                <span className="font-display text-[10px] bg-[var(--c-yellow)] px-1 border border-[var(--c-ink)]">#{c.seq}</span>
+            <div key={c.date} className="border-2 border-[var(--outline)] bg-[var(--night-2)] px-panel p-2 space-y-2">
+              <div className="flex items-center justify-between font-mono text-[12px]">
+                <span className="font-display text-[12px] bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold px-1.5 py-0.5 border border-[var(--outline)]">#{c.seq}</span>
                 <span className="font-bold text-[var(--neon-cyan)]">{formatDayLabel(c.date)}</span>
                 <button
                   type="button"
                   aria-label={`Remove class on ${formatDayLabel(c.date)}`}
                   onClick={() => toggleDay(c.date)}
-                  className="min-w-[32px] min-h-[32px] border border-[var(--c-ink)] bg-[var(--c-peach)] text-[var(--c-red)] font-bold"
+                  className="min-w-[32px] min-h-[32px] border border-[var(--outline)] bg-[var(--night-1)] text-[var(--neon-red)] font-bold cursor-pointer"
                 >
                   ×
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-1">
-                <input type="time" aria-label={`Start ${c.date}`} value={c.start} onChange={e => updateClass(c.date, { start: e.target.value })} className="min-h-[36px] px-1 border-2 border-[var(--c-ink)] font-mono text-xs" />
-                <input type="time" aria-label={`End ${c.date}`} value={c.end} onChange={e => updateClass(c.date, { end: e.target.value })} className="min-h-[36px] px-1 border-2 border-[var(--c-ink)] font-mono text-xs" />
+                <input type="time" aria-label={`Start ${c.date}`} value={c.start} onChange={e => updateClass(c.date, { start: e.target.value })} className="min-h-[40px] px-1 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-mono text-[16px] text-[var(--text-1)]" />
+                <input type="time" aria-label={`End ${c.date}`} value={c.end} onChange={e => updateClass(c.date, { end: e.target.value })} className="min-h-[40px] px-1 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-mono text-[16px] text-[var(--text-1)]" />
               </div>
             </div>
           ))}
         </div>
       )}
 
-      <div className="flex justify-between pt-3 border-t-2 border-[var(--c-ink)]">
+      <div className="flex justify-between pt-3 border-t-2 border-[var(--outline)]">
         <PixelButton size="md" variant="secondary" onClick={onBack}>
           BACK
         </PixelButton>
-        <PixelButton size="md" onClick={onNext}>
+        <PixelButton size="md" variant="primary" onClick={onNext}>
           NEXT
         </PixelButton>
       </div>

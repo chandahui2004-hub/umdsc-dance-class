@@ -68,18 +68,18 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
   return (
     <div
       data-testid={`event-card-${event.id}`}
-      className={`border-4 border-[var(--c-ink)] shadow-[4px_4px_0_var(--c-ink)] p-4 space-y-3 ${
-        archived ? 'bg-[var(--c-bg)]' : 'bg-[var(--c-panel)]'
+      className={`px-panel p-4 space-y-3 border-2 border-[var(--outline)] ${
+        archived ? 'bg-[var(--night-1)] opacity-75' : 'bg-[var(--night-2)]'
       }`}
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h3 className="font-display text-sm text-[var(--text-1)]">{event.name}</h3>
-          <p className="font-body text-sm text-[var(--text-2)]">
+          <h3 className="font-display text-[16px] text-[var(--text-1)]">{event.name}</h3>
+          <p className="font-body text-[14px] text-[var(--text-2)]">
             {TYPE_LABEL[event.type] || event.type} · {event.startDate} → {event.endDate}
           </p>
         </div>
-        <span className="px-2 py-1 border-2 border-[var(--c-ink)] bg-[var(--c-yellow)] font-display text-[10px] text-[var(--on-neon)]">
+        <span className="px-2 py-1 border-2 border-[var(--outline)] bg-[var(--neon-gold)] font-display text-[12px] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--outline)]">
           {event.memberCount} DANCERS
         </span>
       </div>
@@ -91,7 +91,7 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
             <span
               key={id}
               style={{ backgroundColor: getStyleColor(style?.colorKey) }}
-              className="px-2 py-0.5 border-2 border-[var(--c-ink)] font-display text-[10px] text-[var(--text-1)]"
+              className="px-2 py-0.5 border-2 border-[var(--outline)] font-display text-[12px] text-[var(--on-neon)] font-bold shadow-[1px_1px_0_var(--outline)]"
             >
               {style?.name || id}
             </span>
@@ -99,7 +99,7 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
         })}
       </div>
 
-      <div className="font-body text-sm text-[var(--text-1)] space-y-1">
+      <div className="font-body text-[14px] text-[var(--text-1)] space-y-1">
         <p>
           Form:{' '}
           <a
@@ -113,12 +113,12 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
         </p>
         <p>Last sync: {formatKL(event.lastSyncAt)}</p>
         {event.lastSyncError && (
-          <p role="alert" className="font-bold text-[var(--c-red)]">
+          <p role="alert" className="font-bold text-[var(--neon-red)]">
             ⚠ {event.lastSyncError}
           </p>
         )}
         {event.folderMissing && (
-          <p className="font-bold text-[var(--c-red)] flex flex-wrap items-center gap-2">
+          <p className="font-bold text-[var(--neon-red)] flex flex-wrap items-center gap-2">
             ⚠ Folder missing in Drive.
             <PixelButton size="md" variant="danger" disabled={recreate.isPending} onClick={() => recreate.mutate()}>
               {recreate.isPending ? 'RECREATING…' : 'RECREATE'}
@@ -128,9 +128,10 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
         {note && <p className="font-bold text-[var(--neon-green)]">{note}</p>}
       </div>
 
-      <div className="flex flex-wrap gap-2 pt-2 border-t-2 border-[var(--c-ink)]">
+      <div className="flex flex-wrap gap-2 pt-2 border-t-2 border-[var(--outline)]">
         <PixelButton
           size="md"
+          variant="secondary"
           onClick={() => {
             setCurrentId(event.id);
             navigate('/admin/attendance');
