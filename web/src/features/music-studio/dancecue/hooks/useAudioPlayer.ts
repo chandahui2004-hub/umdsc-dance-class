@@ -15,6 +15,7 @@ const youtubeStates = {
   ended: 0,
   playing: 1,
   paused: 2,
+  cued: 5,
 };
 
 export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
@@ -30,6 +31,9 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
   const markerPlaybackEndRef = useRef<number | null>(null);
   const objectUrlRef = useRef<string | null>(null);
   const pendingYouTubeVideoIdRef = useRef<string | null>(null);
+  // YouTube drops a playVideo() that arrives before the cued track has loaded, so a Play pressed
+  // too early is remembered and re-sent when the player reports the track as cued.
+  const youtubePlayRequestedRef = useRef(false);
   const youtubePlayerRef = useRef<YouTubePlayerHandle | null>(null);
   const loopRestartListenersRef = useRef<Set<(loopStart: number) => void>>(new Set());
 
@@ -135,6 +139,7 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
       }
 
       pendingYouTubeVideoIdRef.current = videoId;
+      youtubePlayRequestedRef.current = false;
       setActiveSource("youtube");
       setCurrentTime(0);
       setDuration(0);
@@ -164,6 +169,16 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
   const handleYouTubeStateChange = useCallback((state: number) => {
     setIsPlaying(state === youtubeStates.playing);
 
+    if (state === youtubeStates.cued && youtubePlayRequestedRef.current) {
+      youtubePlayerRef.current?.playVideo();
+    } else if (
+      state === youtubeStates.playing ||
+      state === youtubeStates.paused ||
+      state === youtubeStates.ended
+    ) {
+      youtubePlayRequestedRef.current = false;
+    }
+
     if (state === youtubeStates.ended) {
       setIsPlaying(false);
     }
@@ -171,6 +186,7 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
 
   const startPlayback = useCallback(async () => {
     if (activeSource === "youtube") {
+      youtubePlayRequestedRef.current = true;
       youtubePlayerRef.current?.playVideo();
       return;
     }
@@ -192,6 +208,7 @@ export function useAudioPlayer({ audioRef, markers }: UseAudioPlayerOptions) {
 
   const pause = useCallback(() => {
     if (activeSource === "youtube") {
+      youtubePlayRequestedRef.current = false;
       youtubePlayerRef.current?.pauseVideo();
       return;
     }

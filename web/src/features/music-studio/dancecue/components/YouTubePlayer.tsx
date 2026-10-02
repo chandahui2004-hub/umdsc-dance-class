@@ -103,7 +103,9 @@ export function YouTubePlayer({
 }: YouTubePlayerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const latestVideoIdRef = useRef(videoId);
+  // playerRef is set only once YouTube reports onReady, so nothing calls a half-built player.
   const playerRef = useRef<YouTubePlayerHandle | null>(null);
+  const createdRef = useRef(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isApiLoading, setIsApiLoading] = useState(false);
 
@@ -122,14 +124,19 @@ export function YouTubePlayer({
     setErrorMessage("");
 
     void loadYouTubeApi().then(() => {
-      if (!isMounted || !containerRef.current || playerRef.current || !window.YT?.Player) {
+      if (!isMounted || !containerRef.current || createdRef.current || !window.YT?.Player) {
         return;
       }
+      createdRef.current = true;
 
-      playerRef.current = new window.YT.Player(containerRef.current, {
+      // The YouTube API throws "Invalid video id" for { videoId: undefined }, so the key is
+      // left out until a track is chosen (it is cued from onReady via latestVideoIdRef).
+      const initialVideoId = latestVideoIdRef.current;
+
+      new window.YT.Player(containerRef.current, {
         height: "200",
         width: "200",
-        videoId: videoId ?? undefined,
+        ...(initialVideoId ? { videoId: initialVideoId } : {}),
         playerVars: {
           controls: 0,
           disablekb: 1,
@@ -141,6 +148,7 @@ export function YouTubePlayer({
         },
         events: {
           onReady: (event) => {
+            playerRef.current = event.target;
             setIsApiLoading(false);
             setErrorMessage("");
             try {

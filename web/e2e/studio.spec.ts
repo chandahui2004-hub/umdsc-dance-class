@@ -174,3 +174,53 @@ test.describe('Music Studio (DanceCue & Sources)', () => {
     await expect(page.locator('text=Hip Hop Routine Song')).toBeVisible();
   });
 });
+
+test.describe('Music Studio YouTube class music (real YouTube, needs internet)', () => {
+  test('class music picked after opening studio plays YouTube', async ({ page }) => {
+    await loginAsDancer(page);
+    const boot = {
+      ...BOOTSTRAP_DATA,
+      music: [
+        {
+          ...BOOTSTRAP_DATA.music[0],
+          id: 'm-yt',
+          title: 'YT Practice Track',
+          sourceType: 'youtube',
+          driveFileId: '',
+          youtubeId: '4_KN-gA6uXY'
+        }
+      ],
+      sections: []
+    };
+    await mockApi(page, { 'dancer.bootstrap': () => boot });
+
+    // Regression: opening /studio with no track used to build a YouTube player with an
+    // empty videoId, which the YouTube API rejects, so a track picked afterwards never loaded.
+    await page.goto('/studio');
+    // A real user looks at the page for a moment before picking a song. By then YouTube's script
+    // has loaded and the (hidden) player has been built with no track; clicking instantly would
+    // dodge the bug.
+    await page.waitForFunction(() => !!(window as any).YT?.Player);
+    await page.waitForTimeout(1500);
+    await page.getByText('YT Practice Track').first().click();
+    await expect(page.getByText('YouTube audio ready')).toBeVisible({ timeout: 20000 });
+
+    await page.getByRole('button', { name: /^play$/i }).first().click();
+
+    await expect
+      .poll(
+        async () => {
+          const frame = page.frames().find(f => f.url().includes('youtube.com/embed'));
+          if (!frame) return -1;
+          return frame
+            .evaluate(() => {
+              const v = document.querySelector('video');
+              return v && !v.paused ? v.currentTime : -1;
+            })
+            .catch(() => -1);
+        },
+        { timeout: 20000 }
+      )
+      .toBeGreaterThan(0);
+  });
+});
