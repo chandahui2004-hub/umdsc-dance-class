@@ -2,6 +2,7 @@
 
 ## Current work — START HERE
 
+0. Neon UI redesign: spec docs/superpowers/specs/2026-10-02-neon-pixel-ui-redesign-design.md, plan docs/superpowers/plans/2026-10-02-neon-pixel-ui-redesign.md (branch feat/neon-pixel-ui).
 1. Read the spec: `docs/superpowers/specs/2026-09-28-umdsc-dance-class-system-design.md`
 2. Run the plan with the `executing-plans` skill: `docs/superpowers/plans/2026-09-28-umdsc-dance-class-system.md`
 3. Setup values (Google IDs, links): `docs/SETUP-VALUES.md`. DanceCue source: `reference/DanceCue/`.
