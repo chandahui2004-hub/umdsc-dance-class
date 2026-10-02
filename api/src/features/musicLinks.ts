@@ -1,4 +1,4 @@
-import { parseMusicLink } from '@umdsc/shared';
+import { parseMusicLink, type MusicItem } from '@umdsc/shared';
 import { Ctx } from '../ports';
 import { AppError } from '../errors';
 import { safeCachePut } from '../logic/cache';
@@ -205,4 +205,73 @@ export function resolveMusicLink(ctx: Ctx, url: string): ResolvedLink {
     case 'spotify':
       return resolveSpotify(ctx, parsed.trackId);
   }
+}
+
+export interface DerivedSource {
+  sourceType: MusicItem['sourceType'];
+  youtubeId: string;
+  driveFileId: string;
+  soundcloudUrl: string;
+  spotifyUrl: string;
+}
+
+export interface MusicLinkInput {
+  url: string;
+  /** For a Spotify link: the YouTube version the admin picked from the matches. */
+  chosenYoutubeId?: string;
+  /** For a Spotify link: a YouTube, SoundCloud or Drive link the admin pasted as the practice version. */
+  practiceUrl?: string;
+  /** For a Spotify link: keep it listen-only (no practice version). */
+  listenOnly?: boolean;
+}
+
+const NO_SOURCE = { youtubeId: '', driveFileId: '', soundcloudUrl: '', spotifyUrl: '' };
+
+function derivePracticeSource(ctx: Ctx, url: string): Omit<DerivedSource, 'spotifyUrl'> {
+  const parsed = parseMusicLink(url);
+  switch (parsed.kind) {
+    case 'rejected':
+      throw new AppError('VALIDATION', parsed.reason);
+    case 'spotify':
+      throw new AppError('VALIDATION', 'A Spotify link cannot be the practice version. Use a YouTube, SoundCloud or MP3 link.');
+    case 'youtube':
+      return { ...NO_SOURCE, sourceType: 'youtube', youtubeId: parsed.id };
+    case 'soundcloud':
+      return { ...NO_SOURCE, sourceType: 'soundcloud', soundcloudUrl: parsed.url };
+    case 'soundcloud-short': {
+      const resolved = resolveSoundCloudShort(ctx, parsed.url);
+      return { ...NO_SOURCE, sourceType: 'soundcloud', soundcloudUrl: (resolved as { soundcloudUrl: string }).soundcloudUrl };
+    }
+    case 'drive': {
+      const resolved = resolveDrive(ctx, parsed.fileId); // checks it exists and is audio
+      return { ...NO_SOURCE, sourceType: 'mp3', driveFileId: (resolved as { driveFileId: string }).driveFileId };
+    }
+  }
+}
+
+/**
+ * The fields to store for a pasted link. Everything is worked out here from the link itself, never
+ * from ids the browser sends, so a client cannot store a different video than the link names.
+ */
+export function deriveMusicSource(ctx: Ctx, input: MusicLinkInput): DerivedSource {
+  const parsed = parseMusicLink(input.url);
+  if (parsed.kind !== 'spotify') {
+    return { ...derivePracticeSource(ctx, input.url), spotifyUrl: '' };
+  }
+
+  const spotifyUrl = `https://open.spotify.com/track/${parsed.trackId}`;
+  if (input.listenOnly) {
+    return { ...NO_SOURCE, sourceType: 'spotify', spotifyUrl };
+  }
+  if (input.chosenYoutubeId) {
+    const chosen = parseMusicLink(input.chosenYoutubeId);
+    if (chosen.kind !== 'youtube') {
+      throw new AppError('VALIDATION', 'The chosen YouTube version is not a valid video.');
+    }
+    return { ...NO_SOURCE, sourceType: 'youtube', youtubeId: chosen.id, spotifyUrl };
+  }
+  if (input.practiceUrl) {
+    return { ...derivePracticeSource(ctx, input.practiceUrl), spotifyUrl };
+  }
+  throw new AppError('VALIDATION', 'Pick a practice version or choose listen-only for this Spotify song.');
 }

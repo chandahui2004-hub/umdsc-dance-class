@@ -3,7 +3,7 @@ import { AppError } from '../errors';
 import { getYouTubeVideoId } from '@umdsc/shared';
 import { logAudit } from '../logic/audit';
 import { getEvent } from './eventMembers';
-import { resolveMusicLink } from './musicLinks';
+import { resolveMusicLink, deriveMusicSource } from './musicLinks';
 
 export function getMusicRoutes(): Record<string, Route> {
   return {
@@ -60,8 +60,29 @@ export function getMusicRoutes(): Record<string, Route> {
           title,
           sourceType,
           driveFileId = '',
-          youtubeUrl = ''
+          youtubeUrl = '',
+          url = ''
         } = payload || {};
+
+        if (String(url).trim()) {
+          // A pasted link: every stored field is derived from the link, not from client-sent ids.
+          if (!styleId || !eventId || !title) {
+            throw new AppError('VALIDATION', 'styleId, eventId and title are required');
+          }
+          getEvent(ctx, eventId);
+          const derived = deriveMusicSource(ctx, {
+            url: String(url),
+            chosenYoutubeId: payload.chosenYoutubeId,
+            practiceUrl: payload.practiceUrl,
+            listenOnly: payload.listenOnly === true
+          });
+          if (derived.sourceType === 'mp3') ctx.drive.setAnyoneReader(derived.driveFileId);
+
+          const actor = auth?.claims.sub || 'system';
+          const inserted = ctx.db.music.insert({ styleId, eventId, sessionId, title, ...derived }, actor, ctx.now());
+          logAudit(ctx, actor, 'music.create', inserted.id, title);
+          return inserted;
+        }
 
         if (!styleId || !eventId || !title || !sourceType) {
           throw new AppError('VALIDATION', 'styleId, eventId, title, and sourceType are required');
@@ -128,6 +149,23 @@ export function getMusicRoutes(): Record<string, Route> {
         const patch: any = {};
         if (title !== undefined) patch.title = title;
         if (sessionId !== undefined) patch.sessionId = sessionId;
+
+        if (String(payload.url ?? '').trim()) {
+          // A new pasted link replaces the whole source, so no stale id from the old one is kept.
+          const derived = deriveMusicSource(ctx, {
+            url: String(payload.url),
+            chosenYoutubeId: payload.chosenYoutubeId,
+            practiceUrl: payload.practiceUrl,
+            listenOnly: payload.listenOnly === true
+          });
+          if (derived.sourceType === 'mp3') ctx.drive.setAnyoneReader(derived.driveFileId);
+          Object.assign(patch, derived);
+          const actor = auth?.claims.sub || 'system';
+          const updated = ctx.db.music.update(id, version, patch, actor, ctx.now());
+          logAudit(ctx, actor, 'music.update', id, `Updated music ${id}`);
+          return updated;
+        }
+
         if (sourceType !== undefined) patch.sourceType = sourceType;
 
         const effectiveType = sourceType || existing.sourceType;
