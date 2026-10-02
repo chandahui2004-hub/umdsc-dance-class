@@ -37,6 +37,8 @@ export interface DriveItemInfo {
   kind: 'folder' | 'spreadsheet' | 'file';
   name: string;
   canEdit: boolean;
+  /** The Drive mime type (for example audio/mpeg); absent for items that do not exist. */
+  mimeType?: string;
 }
 
 export interface DriveFileInfo {
@@ -84,6 +86,33 @@ export interface PropsPort {
   set(key: string, value: string): void;
 }
 
+/** Outbound HTTP. Never throws on an HTTP error status, only when the network call itself fails. */
+export interface HttpPort {
+  fetch(
+    url: string,
+    opts?: { followRedirects?: boolean }
+  ): { status: number; headers: Record<string, string>; body: string };
+}
+
+export interface YouTubeSearchResult {
+  youtubeId: string;
+  title: string;
+  channel: string;
+  thumbnailUrl: string;
+}
+
+export interface YouTubeVideoInfo {
+  youtubeId: string;
+  durationSec: number;
+  embeddable: boolean;
+}
+
+/** The YouTube Data API. Both calls throw AppError('QUOTA') when the daily allowance is used up. */
+export interface YouTubePort {
+  search(q: string, max: number): YouTubeSearchResult[];
+  videos(ids: string[]): YouTubeVideoInfo[];
+}
+
 export interface Ctx {
   now(): Date;
   drive: DrivePort;
@@ -92,4 +121,6 @@ export interface Ctx {
   props: PropsPort;
   db: Db;
   clubEmail: string;
+  http: HttpPort;
+  youtube: YouTubePort;
 }

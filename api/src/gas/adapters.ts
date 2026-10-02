@@ -7,8 +7,14 @@ import {
   CachePort,
   LockPort,
   PropsPort,
-  Cell
+  Cell,
+  HttpPort,
+  YouTubePort,
+  YouTubeSearchResult,
+  YouTubeVideoInfo
 } from '../ports';
+import { parseIsoDurationSeconds } from '../logic/isoDuration';
+import { AppError } from '../errors';
 
 export class GasSheetAdapter implements SheetPort {
   constructor(private sheet: GoogleAppsScript.Spreadsheet.Sheet) {}
@@ -153,7 +159,8 @@ export class GasDriveAdapter implements DrivePort {
         exists: true,
         kind,
         name: file.name || '',
-        canEdit: Boolean(file.capabilities?.canEdit)
+        canEdit: Boolean(file.capabilities?.canEdit),
+        mimeType: mime
       };
     } catch {
       return { exists: false, kind: 'file', name: '', canEdit: false };
@@ -308,5 +315,65 @@ export class GasPropsAdapter implements PropsPort {
 
   set(key: string, value: string): void {
     this.props.setProperty(key, value);
+  }
+}
+
+export class GasHttpAdapter implements HttpPort {
+  fetch(url: string, opts?: { followRedirects?: boolean }) {
+    const res = UrlFetchApp.fetch(url, {
+      muteHttpExceptions: true,
+      followRedirects: opts?.followRedirects !== false
+    });
+    const headers: Record<string, string> = {};
+    const raw = res.getAllHeaders() as Record<string, string | string[]>;
+    for (const name of Object.keys(raw)) {
+      const value = raw[name];
+      headers[name.toLowerCase()] = Array.isArray(value) ? value.join(', ') : String(value);
+    }
+    return { status: res.getResponseCode(), headers, body: res.getContentText() };
+  }
+}
+
+function youTubeError(err: unknown): Error {
+  const message = err instanceof Error ? err.message : String(err);
+  return /quota/i.test(message)
+    ? new AppError('QUOTA', 'YouTube search limit reached for today.')
+    : new AppError('INTERNAL', 'YouTube lookup failed: ' + message);
+}
+
+export class GasYouTubeAdapter implements YouTubePort {
+  search(q: string, max: number): YouTubeSearchResult[] {
+    try {
+      const res = (YouTube as any).Search.list('snippet', {
+        q,
+        type: 'video',
+        videoEmbeddable: 'true',
+        maxResults: max
+      });
+      return (res.items || [])
+        .filter((item: any) => item.id && item.id.videoId)
+        .map((item: any) => ({
+          youtubeId: item.id.videoId,
+          title: item.snippet?.title || '',
+          channel: item.snippet?.channelTitle || '',
+          thumbnailUrl: item.snippet?.thumbnails?.medium?.url || item.snippet?.thumbnails?.default?.url || ''
+        }));
+    } catch (err) {
+      throw youTubeError(err);
+    }
+  }
+
+  videos(ids: string[]): YouTubeVideoInfo[] {
+    if (ids.length === 0) return [];
+    try {
+      const res = (YouTube as any).Videos.list('contentDetails,status', { id: ids.join(',') });
+      return (res.items || []).map((item: any) => ({
+        youtubeId: item.id,
+        durationSec: parseIsoDurationSeconds(item.contentDetails?.duration || ''),
+        embeddable: item.status?.embeddable !== false
+      }));
+    } catch (err) {
+      throw youTubeError(err);
+    }
   }
 }

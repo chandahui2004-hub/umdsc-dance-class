@@ -4,7 +4,9 @@ import {
   GasDriveAdapter,
   GasCacheAdapter,
   GasLockAdapter,
-  GasPropsAdapter
+  GasPropsAdapter,
+  GasHttpAdapter,
+  GasYouTubeAdapter
 } from './gas/adapters';
 import { openDb } from './db/db';
 import { Ctx } from './ports';
@@ -54,7 +56,9 @@ function buildCtx(): { ctx: Ctx; props: GasPropsAdapter } {
     lock,
     props,
     db,
-    clubEmail
+    clubEmail,
+    http: new GasHttpAdapter(),
+    youtube: new GasYouTubeAdapter()
   };
   return { ctx, props };
 }

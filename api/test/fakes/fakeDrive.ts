@@ -33,8 +33,16 @@ export class FakeDrive implements DrivePort {
       exists: true,
       kind: item.kind,
       name: item.name,
-      canEdit: item.canEdit
+      canEdit: item.canEdit,
+      mimeType: this.mimeTypes.get(id)
     };
+  }
+
+  private mimeTypes = new Map<string, string>();
+
+  /** Test helper: what Drive should report as this item's mime type. */
+  setMimeType(id: string, mimeType: string): void {
+    this.mimeTypes.set(id, mimeType);
   }
 
   openSpreadsheet(id: string): SpreadsheetPort {
