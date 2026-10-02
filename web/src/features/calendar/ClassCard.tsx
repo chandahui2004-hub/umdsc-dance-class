@@ -11,6 +11,8 @@ export interface ClassCardProps {
   style?: DanceStyle;
   instructor?: Instructor;
   attendancePresent?: boolean;
+  /** True while attendance is still being fetched: a past class is then not yet "absent". */
+  attendanceLoading?: boolean;
   videos: VideoItem[];
   music: MusicItem[];
   eventName?: string;
@@ -21,6 +23,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
   style,
   instructor,
   attendancePresent,
+  attendanceLoading = false,
   videos,
   music,
   eventName
@@ -75,6 +78,10 @@ export const ClassCard: React.FC<ClassCardProps> = ({
           {attendancePresent === true ? (
             <span className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--c-green)] text-[var(--c-ink)] border-2 border-[var(--c-ink)] font-display text-[10px] font-bold">
               ✓ ATTENDED
+            </span>
+          ) : isPast && attendanceLoading ? (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--c-bg)] text-[var(--c-darkgrey)] border-2 border-[var(--c-ink)] font-display text-[10px] font-bold animate-pulse">
+              CHECKING…
             </span>
           ) : isPast ? (
             <span className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--c-darkgrey)] text-[var(--c-panel)] border-2 border-[var(--c-ink)] font-display text-[10px] font-bold">

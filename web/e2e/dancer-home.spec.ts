@@ -188,7 +188,9 @@ test.describe('Dancer Portal: Home, DaySheet & Me Page', () => {
   test.beforeEach(async ({ page }) => {
     await loginAsDancer(page);
     await mockApi(page, {
-      'dancer.bootstrap': () => DANCER_BOOTSTRAP_DATA
+      'dancer.bootstrap': () => DANCER_BOOTSTRAP_DATA,
+      // Attendance now loads separately, after the calendar.
+      'dancer.attendance': () => DANCER_BOOTSTRAP_DATA.attendance
     });
   });
 
@@ -279,12 +281,13 @@ test.describe('Dancer Portal: Home, DaySheet & Me Page', () => {
     const expandVideoBtn = page.getByRole('button', { name: /EXPAND/i }).first();
     await expect(expandVideoBtn).toBeVisible();
 
-    // Video tag is hidden while collapsed
-    await expect(page.locator('video')).not.toBeVisible();
+    // The recap plays in Google Drive's own player (an iframe); it is hidden while collapsed
+    const drivePlayer = page.locator('iframe[src*="drive.google.com/file/d/"]');
+    await expect(drivePlayer).not.toBeVisible();
 
     // Click expand
     await expandVideoBtn.click();
-    await expect(page.locator('video')).toBeVisible();
+    await expect(drivePlayer).toBeVisible();
   });
 
   test('Me page displays dancer profile, registered events, HeartsBar and handles log out', async ({ page }) => {

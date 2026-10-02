@@ -71,6 +71,7 @@ export async function mockApi(
 ): Promise<{ action: string; payload: any }[]> {
   const calls: { action: string; payload: any }[] = [];
   const defaults: Record<string, Handler> = {
+    'dancer.attendance': () => [],
     'admin.bootstrap': () => adminBootstrap,
     'styles.list': () => adminBootstrap.styles,
     'events.list': () => [makeEvent()],

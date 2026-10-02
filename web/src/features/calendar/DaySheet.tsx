@@ -14,6 +14,7 @@ export interface DaySheetProps {
   videos: VideoItem[];
   music: MusicItem[];
   attendance: { sessionId: string; present: boolean }[];
+  attendanceLoading?: boolean;
   events?: (EventSummary | { id: string; name: string })[];
 }
 
@@ -27,6 +28,7 @@ export const DaySheet: React.FC<DaySheetProps> = ({
   videos,
   music,
   attendance,
+  attendanceLoading = false,
   events = []
 }) => {
   if (!date) return null;
@@ -65,6 +67,7 @@ export const DaySheet: React.FC<DaySheetProps> = ({
                 style={style}
                 instructor={instructor}
                 attendancePresent={att?.present}
+                attendanceLoading={attendanceLoading}
                 videos={classVideos}
                 music={classMusic}
                 eventName={ev?.name}

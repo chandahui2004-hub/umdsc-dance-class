@@ -8,10 +8,11 @@ import {
   ClassSession,
   VideoItem,
   MusicItem,
-  Section
+  Section,
+  EventItem
 } from '@umdsc/shared';
 import { dancerStylesInEvent } from './eventMembers';
-import type { Timer } from '../logic/timing';
+import { createTimer, logTimings, type Timer } from '../logic/timing';
 
 export function getAdminBootstrap(
   ctx: Ctx,
@@ -59,52 +60,38 @@ export function getAdminBootstrap(
   };
 }
 
-export function getDancerBootstrap(
-  ctx: Ctx,
-  matricKey: string,
-  perms: PermMap,
-  sinceVersion?: number,
-  timer?: Timer
-): DancerBootstrap | { notModified: true } {
-  const dataVersion = Number(ctx.props.get('DATA_VERSION') || 1);
-  if (sinceVersion !== undefined && Number(sinceVersion) === dataVersion) {
-    return { notModified: true };
-  }
-
-  const dancerBootKey = `boot:dancer:${matricKey}:${dataVersion}`;
-  const cachedDancerBoot = ctx.cache.get(dancerBootKey);
-  if (cachedDancerBoot) {
-    try {
-      return JSON.parse(cachedDancerBoot);
-    } catch {
-      // ignore
-    }
-  }
-
+/** The dancer's MemberIndex row, from the 10-minute cache when present. */
+function loadDancerIndex(ctx: Ctx, matricKey: string): any {
   const miKey = 'mi:' + matricKey;
-  let dancer: any = null;
   const miCached = ctx.cache.get(miKey);
   if (miCached) {
     try {
-      dancer = JSON.parse(miCached);
+      return JSON.parse(miCached);
     } catch {
-      // ignore
+      // fall through to the sheet
     }
   }
 
+  const dancer = ctx.db.memberIndex.find(m => m.matricKey === matricKey && m.active)[0];
   if (!dancer) {
-    dancer = ctx.db.memberIndex.find(m => m.matricKey === matricKey && m.active)[0];
-    if (!dancer) {
-      throw new AppError('NOT_FOUND', 'Dancer record not found');
-    }
-    ctx.cache.put(miKey, JSON.stringify(dancer), 600);
+    throw new AppError('NOT_FOUND', 'Dancer record not found');
   }
+  ctx.cache.put(miKey, JSON.stringify(dancer), 600);
+  return dancer;
+}
 
+/** The dancer's events, and which styles they take in each (limited by calendar.view). */
+function resolveDancerEventStyles(
+  ctx: Ctx,
+  dancer: any,
+  matricKey: string,
+  perms: PermMap,
+  timer?: Timer
+): { dancerEvents: EventItem[]; eventStylesMap: Map<string, Set<string>> } {
   const dancerEventIds: string[] = dancer.eventIds || [];
   const dancerEvents = ctx.db.events.find(e => e.active && dancerEventIds.includes(e.id));
-  timer?.mark('bootstrap.events');
+  timer?.mark('events');
 
-  // The dancer's styles per event come from that event's Members sheet
   const eventStylesMap = new Map<string, Set<string>>();
   const calPerm = perms['calendar.view'];
   for (const event of dancerEvents) {
@@ -132,52 +119,21 @@ export function getDancerBootstrap(
     }
     eventStylesMap.set(event.id, styleSet);
   }
+  timer?.mark('styles');
 
-  timer?.mark('bootstrap.styles');
+  return { dancerEvents, eventStylesMap };
+}
 
-  const sessionsMap = new Map<string, ClassSession>();
-  const videosMap = new Map<string, VideoItem>();
-  const musicMap = new Map<string, MusicItem>();
-  const sectionsMap = new Map<string, Section>();
-  const allDancerStyleIds = new Set<string>();
+/** The signed-in dancer's own attendance per class. Loaded after the calendar so login never waits on it. */
+export function getDancerAttendance(
+  ctx: Ctx,
+  matricKey: string,
+  perms: PermMap,
+  timer?: Timer
+): { sessionId: string; present: boolean }[] {
+  const dancer = loadDancerIndex(ctx, matricKey);
+  const { eventStylesMap } = resolveDancerEventStyles(ctx, dancer, matricKey, perms, timer);
 
-  for (const [eventId, styleSet] of eventStylesMap.entries()) {
-    for (const styleId of styleSet) {
-      allDancerStyleIds.add(styleId);
-
-      const chunkKey = `boot:chunk:${eventId}:${styleId}:${dataVersion}`;
-      let chunkData: any = null;
-      const cachedChunk = ctx.cache.get(chunkKey);
-      if (cachedChunk) {
-        try {
-          chunkData = JSON.parse(cachedChunk);
-        } catch {
-          // ignore
-        }
-      }
-
-      if (!chunkData) {
-        const chunkMusic = ctx.db.music.find(mus => mus.eventId === eventId && mus.styleId === styleId && mus.active);
-        const musicIds = new Set(chunkMusic.map(mus => mus.id));
-        chunkData = {
-          sessions: ctx.db.sessions.find(s => s.eventId === eventId && s.styleId === styleId && s.active),
-          videos: ctx.db.videos.find(v => v.eventId === eventId && v.styleId === styleId && v.active),
-          music: chunkMusic,
-          sections: ctx.db.sections.find(sec => musicIds.has(sec.musicId) && sec.active)
-        };
-        ctx.cache.put(chunkKey, JSON.stringify(chunkData), 600);
-      }
-
-      for (const s of chunkData.sessions) sessionsMap.set(s.id, s);
-      for (const v of chunkData.videos) videosMap.set(v.id, v);
-      for (const mus of chunkData.music) musicMap.set(mus.id, mus);
-      for (const sec of chunkData.sections) sectionsMap.set(sec.id, sec);
-    }
-  }
-
-  timer?.mark('bootstrap.chunks');
-
-  // Attendance
   const attendance: { sessionId: string; present: boolean }[] = [];
   const memberId = 'M-' + matricKey;
 
@@ -240,7 +196,77 @@ export function getDancerBootstrap(
     }
   }
 
-  timer?.mark('bootstrap.attendance');
+  timer?.mark('attendance');
+  return attendance;
+}
+
+export function getDancerBootstrap(
+  ctx: Ctx,
+  matricKey: string,
+  perms: PermMap,
+  sinceVersion?: number,
+  timer?: Timer
+): DancerBootstrap | { notModified: true } {
+  const dataVersion = Number(ctx.props.get('DATA_VERSION') || 1);
+  if (sinceVersion !== undefined && Number(sinceVersion) === dataVersion) {
+    return { notModified: true };
+  }
+
+  const dancerBootKey = `boot:dancer:${matricKey}:${dataVersion}`;
+  const cachedDancerBoot = ctx.cache.get(dancerBootKey);
+  if (cachedDancerBoot) {
+    try {
+      return JSON.parse(cachedDancerBoot);
+    } catch {
+      // ignore
+    }
+  }
+
+  const dancer = loadDancerIndex(ctx, matricKey);
+  const dancerEventIds: string[] = dancer.eventIds || [];
+  const { dancerEvents, eventStylesMap } = resolveDancerEventStyles(ctx, dancer, matricKey, perms, timer);
+
+  const sessionsMap = new Map<string, ClassSession>();
+  const videosMap = new Map<string, VideoItem>();
+  const musicMap = new Map<string, MusicItem>();
+  const sectionsMap = new Map<string, Section>();
+  const allDancerStyleIds = new Set<string>();
+
+  for (const [eventId, styleSet] of eventStylesMap.entries()) {
+    for (const styleId of styleSet) {
+      allDancerStyleIds.add(styleId);
+
+      const chunkKey = `boot:chunk:${eventId}:${styleId}:${dataVersion}`;
+      let chunkData: any = null;
+      const cachedChunk = ctx.cache.get(chunkKey);
+      if (cachedChunk) {
+        try {
+          chunkData = JSON.parse(cachedChunk);
+        } catch {
+          // ignore
+        }
+      }
+
+      if (!chunkData) {
+        const chunkMusic = ctx.db.music.find(mus => mus.eventId === eventId && mus.styleId === styleId && mus.active);
+        const musicIds = new Set(chunkMusic.map(mus => mus.id));
+        chunkData = {
+          sessions: ctx.db.sessions.find(s => s.eventId === eventId && s.styleId === styleId && s.active),
+          videos: ctx.db.videos.find(v => v.eventId === eventId && v.styleId === styleId && v.active),
+          music: chunkMusic,
+          sections: ctx.db.sections.find(sec => musicIds.has(sec.musicId) && sec.active)
+        };
+        ctx.cache.put(chunkKey, JSON.stringify(chunkData), 600);
+      }
+
+      for (const s of chunkData.sessions) sessionsMap.set(s.id, s);
+      for (const v of chunkData.videos) videosMap.set(v.id, v);
+      for (const mus of chunkData.music) musicMap.set(mus.id, mus);
+      for (const sec of chunkData.sections) sectionsMap.set(sec.id, sec);
+    }
+  }
+
+  timer?.mark('chunks');
 
   const styles = ctx.db.styles.find(s => allDancerStyleIds.has(s.id) && s.active);
   const instructorIds = new Set(Array.from(sessionsMap.values()).map(s => s.instructorId).filter(Boolean));
@@ -259,7 +285,7 @@ export function getDancerBootstrap(
     styles,
     instructors,
     sessions: Array.from(sessionsMap.values()).sort((a, b) => a.date.localeCompare(b.date)),
-    attendance,
+    attendance: [],
     videos: Array.from(videosMap.values()),
     music: Array.from(musicMap.values()),
     sections: Array.from(sectionsMap.values())
@@ -296,12 +322,30 @@ export function getBootstrapRoutes(): Record<string, Route> {
         if (!auth || auth.claims.role !== 'dancer') {
           throw new AppError('FORBIDDEN', 'Dancer access required');
         }
-        return getDancerBootstrap(
+        const timer = createTimer();
+        const result = getDancerBootstrap(
           ctx,
           auth.claims.sub.replace(/^M-/, ''),
           auth.claims.perms,
-          payload?.sinceVersion
+          payload?.sinceVersion,
+          timer
         );
+        logTimings('dancer.bootstrap', timer.result());
+        return result;
+      }
+    },
+
+    'dancer.attendance': {
+      perm: 'signedIn',
+      write: false,
+      handler: (ctx, auth) => {
+        if (!auth || auth.claims.role !== 'dancer') {
+          throw new AppError('FORBIDDEN', 'Dancer access required');
+        }
+        const timer = createTimer();
+        const result = getDancerAttendance(ctx, auth.claims.sub.replace(/^M-/, ''), auth.claims.perms, timer);
+        logTimings('dancer.attendance', timer.result());
+        return result;
       }
     }
   };

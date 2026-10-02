@@ -179,6 +179,8 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
     if (res.ok) {
       const data = res.data as any;
       expect(data.token).toBeTruthy();
+      // Token only: the calendar and attendance load afterwards, so login is not slowed by sheet reads.
+      expect(data.bootstrap).toBeUndefined();
       const claims = verifyToken(data.token, secrets.tokenSecret, nodeHmac, Math.floor(ctx.now().getTime() / 1000));
       expect(claims.role).toBe('dancer');
       expect(claims.sub).toBe('M-22004591');

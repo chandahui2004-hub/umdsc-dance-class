@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBootstrap } from '../auth/useBootstrap';
+import { useDancerAttendance } from '../auth/useDancerAttendance';
 import { session } from '../../lib/session';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { HeartsBar } from '../../components/ui/HeartsBar';
@@ -14,7 +15,7 @@ export const MePage: React.FC = () => {
   const events = bootstrap?.events || [];
   const styles = bootstrap?.styles || [];
   const sessions = bootstrap?.sessions || [];
-  const attendance = bootstrap?.attendance || [];
+  const { attendance, isLoading: attendanceLoading } = useDancerAttendance();
 
   const handleLogout = () => {
     session.clear();
@@ -87,7 +88,7 @@ export const MePage: React.FC = () => {
           <div>
             <span className="font-display text-[10px] text-[var(--c-darkgrey)] block">TOTAL ATTENDANCE:</span>
             <span className="font-bold text-[var(--c-darkgreen)]">
-              {totalAttended} / {totalClasses} classes
+              {attendanceLoading ? '…' : totalAttended} / {totalClasses} classes
             </span>
           </div>
 
@@ -159,7 +160,7 @@ export const MePage: React.FC = () => {
                               {style.name.toUpperCase()}
                             </span>
                             <span className="font-mono text-[11px] text-[var(--c-darkgrey)]">
-                              {attendedCount} of {totalStyleClasses} classes attended
+                              {attendanceLoading ? '…' : attendedCount} of {totalStyleClasses} classes attended
                             </span>
                           </div>
                         </div>

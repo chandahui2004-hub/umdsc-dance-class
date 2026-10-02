@@ -66,7 +66,7 @@ export interface AdminBootstrap { profile: { username: string; displayName: stri
 export interface AttendanceGrid { eventId: string; styleId: string; version: number; sessions: ClassSession[];
   members: { memberId: string; fullName: string; matric: string }[]; present: Record<string, string[]>;
   spreadsheetId?: string; folderId?: string; masterFolderId?: string } // memberId -> sessionIds
-export interface LoginResult<B> { token: string; claims: TokenClaims; bootstrap: B }
+export interface LoginResult<B> { token: string; claims: TokenClaims; bootstrap?: B }
 
 export type EventType = 'monthly' | 'trial' | 'workshop' | 'other';
 export type EventStatus = 'active' | 'archived';

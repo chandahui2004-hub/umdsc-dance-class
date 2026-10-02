@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef } from 'react';
 import type { Month, ISODate } from '@umdsc/shared';
 import { useBootstrap } from '../auth/useBootstrap';
+import { useDancerAttendance } from '../auth/useDancerAttendance';
 import { MonthCalendar, type CalendarMark } from '../../components/ui/MonthCalendar';
 import { DaySheet } from './DaySheet';
 import { todayKL } from '../../lib/time';
@@ -18,7 +19,7 @@ export const DancerHome: React.FC = () => {
   const sessions = bootstrap?.sessions || [];
   const videos = bootstrap?.videos || [];
   const music = bootstrap?.music || [];
-  const attendance = bootstrap?.attendance || [];
+  const { attendance, isLoading: attendanceLoading } = useDancerAttendance();
 
   // Fallback if cached bootstrap has months instead of events
   const events = useMemo(() => {
@@ -100,7 +101,7 @@ export const DancerHome: React.FC = () => {
       let kind: 'present' | 'absent' | 'upcoming' = 'upcoming';
       if (isAttended === true) {
         kind = 'present';
-      } else if (isPast) {
+      } else if (isPast && !attendanceLoading) {
         kind = 'absent';
       }
 
@@ -115,7 +116,7 @@ export const DancerHome: React.FC = () => {
     }
 
     return marks;
-  }, [filteredSessions, styles, attendance, today]);
+  }, [filteredSessions, styles, attendance, attendanceLoading, today]);
 
   if (isLoading && !bootstrap) {
     return (
@@ -300,6 +301,7 @@ export const DancerHome: React.FC = () => {
         videos={videos}
         music={music}
         attendance={attendance}
+        attendanceLoading={attendanceLoading}
         events={events}
       />
     </div>

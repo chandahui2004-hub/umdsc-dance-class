@@ -121,15 +121,29 @@ describe('Feature: Bootstrap with Caching (features/bootstrap)', () => {
     }
   });
 
-  it('dancer never receives other dancers attendance or any contact/email fields', () => {
+  it('dancer.attendance returns only the signed-in dancer own attendance', () => {
+    const res = handleRequest({ action: 'dancer.attendance', token: dancerToken }, ctx, secrets);
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.data).toEqual([{ sessionId: popSess.id, present: true }]);
+    }
+  });
+
+  it('dancer.bootstrap no longer carries attendance (it loads separately, after the calendar)', () => {
     const res = handleRequest({ action: 'dancer.bootstrap', token: dancerToken }, ctx, secrets);
 
     expect(res.ok).toBe(true);
     if (res.ok) {
-      const b = res.data as any;
-      expect(b.attendance.length).toBe(1);
-      expect(b.attendance[0]).toEqual({ sessionId: popSess.id, present: true });
+      expect((res.data as any).attendance).toEqual([]);
     }
+  });
+
+  it('dancer.attendance is for dancers only', () => {
+    const res = handleRequest({ action: 'dancer.attendance', token: adminToken }, ctx, secrets);
+
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error.code).toBe('FORBIDDEN');
   });
 
   it('dancer sees archived events they registered for', () => {
@@ -165,13 +179,19 @@ describe('Feature: Bootstrap with Caching (features/bootstrap)', () => {
     if (res.ok) expect(res.data).toEqual({ notModified: true });
   });
 
-  it('dancerLogin returns bootstrap in the same call', () => {
+  it('dancerLogin returns only a token; the calendar then loads through dancer.bootstrap', () => {
     const res = handleRequest({ action: 'auth.dancerLogin', payload: { matric: '22001111', fullName: 'Popper Ali' } }, ctx, secrets);
     expect(res.ok).toBe(true);
-    if (res.ok) {
-      const data = res.data as any;
-      expect(data.bootstrap.profile.matricKey).toBe('22001111');
-      expect(data.bootstrap.videos.length).toBe(1);
+    if (!res.ok) return;
+    const login = res.data as any;
+    expect(login.bootstrap).toBeUndefined();
+
+    const next = handleRequest({ action: 'dancer.bootstrap', token: login.token }, ctx, secrets);
+    expect(next.ok).toBe(true);
+    if (next.ok) {
+      const data = next.data as any;
+      expect(data.profile.matricKey).toBe('22001111');
+      expect(data.videos.length).toBe(1);
     }
   });
 
@@ -182,8 +202,8 @@ describe('Feature: Bootstrap with Caching (features/bootstrap)', () => {
     expect(JSON.parse(cachedMembers!).length).toBe(2);
   });
 
-  it('caches attendance grid across bootstrap calls', () => {
-    handleRequest({ action: 'dancer.bootstrap', token: dancerToken }, ctx, secrets);
+  it('caches attendance grid across attendance calls', () => {
+    handleRequest({ action: 'dancer.attendance', token: dancerToken }, ctx, secrets);
     const cachedAtt = ctx.cache.get(`att:${event.id}:st_popping:1`);
     expect(cachedAtt).toBeTruthy();
     const parsed = JSON.parse(cachedAtt!);

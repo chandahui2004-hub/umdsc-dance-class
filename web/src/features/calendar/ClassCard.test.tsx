@@ -51,3 +51,29 @@ describe('ClassCard recap videos', () => {
     ).not.toBeNull();
   });
 });
+
+describe('ClassCard attendance badge while attendance loads', () => {
+  const pastSession = { ...session, date: '2020-01-01' };
+  const renderPast = (props: { attendanceLoading?: boolean; attendancePresent?: boolean }) =>
+    render(
+      <MemoryRouter>
+        <ClassCard session={pastSession} videos={[]} music={[]} {...props} />
+      </MemoryRouter>
+    );
+
+  it('shows checking, not ABSENT, for a past class while attendance is still loading', () => {
+    renderPast({ attendanceLoading: true });
+    expect(screen.getByText(/CHECKING/)).toBeInTheDocument();
+    expect(screen.queryByText(/ABSENT/)).toBeNull();
+  });
+
+  it('shows ABSENT for a past class once attendance has loaded', () => {
+    renderPast({ attendanceLoading: false });
+    expect(screen.getByText(/ABSENT/)).toBeInTheDocument();
+  });
+
+  it('shows ATTENDED even while loading if it is already known', () => {
+    renderPast({ attendanceLoading: true, attendancePresent: true });
+    expect(screen.getByText(/ATTENDED/)).toBeInTheDocument();
+  });
+});
