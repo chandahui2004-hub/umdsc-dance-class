@@ -14,12 +14,14 @@ import { session } from '../../lib/session';
 import { streamUrl } from '../../lib/google/driveUrls';
 import { api } from '../../lib/api';
 import { VideoPanel } from './sync/VideoPanel';
+import { FullscreenStudio } from './FullscreenStudio';
 import { canPractise, type MusicItem, type Section, type VideoItem } from '@umdsc/shared';
 import './dancecue/dancecue.css';
 
 export const Studio: React.FC = () => {
   const [searchParams] = useSearchParams();
   const musicParam = searchParams.get('music');
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const currentSession = session.get();
   const claims = currentSession?.claims;
@@ -143,10 +145,75 @@ export const Studio: React.FC = () => {
     }
   };
 
+  const activeMusic = useMemo(
+    () => musicList.find((m: MusicItem) => m.id === selectedMusicId) || null,
+    [musicList, selectedMusicId]
+  );
+
+  const activeDanceVideo = useMemo(() => {
+    if (player.loopMarker?.videoId) {
+      const match = videosList.find(v => v.id === player.loopMarker?.videoId);
+      if (match) return match;
+    }
+    if (activeMusic) {
+      const match = videosList.find(v => {
+        if (activeMusic.sessionId && v.sessionId === activeMusic.sessionId) return true;
+        if (activeMusic.styleId && v.styleId === activeMusic.styleId) return true;
+        if (activeMusic.eventId && v.eventId === activeMusic.eventId) return true;
+        return false;
+      });
+      if (match) return match;
+    }
+    return videosList[0] || null;
+  }, [videosList, player.loopMarker, activeMusic]);
+
+  const activeDanceVideoUrl = activeDanceVideo ? streamUrl(activeDanceVideo.driveFileId) : null;
+
+  if (isFullscreen) {
+    return (
+      <FullscreenStudio
+        activeMusicTitle={activeMusicTitle}
+        currentTime={player.currentTime}
+        duration={player.duration}
+        isPlaying={player.isPlaying}
+        isLooping={player.isLooping}
+        markerDraftRange={markerDraftRange}
+        playbackRate={player.playbackRate}
+        speedDisabled={player.speedDisabled}
+        activeSource={player.activeSource}
+        youtubeVideoId={youtubeVideoId}
+        danceVideoUrl={activeDanceVideoUrl}
+        videoCurrentTime={player.currentTime}
+        videoDuration={player.duration}
+        videoStart={player.loopMarker?.videoStart ?? 0}
+        onPlay={() => void player.play()}
+        onPause={player.pause}
+        onToggleLoop={player.toggleLoop}
+        onSeek={player.seekTo}
+        onSpeedChange={player.setSpeed}
+        onSetInPoint={() =>
+          setMarkerDraftRange(prev => ({
+            start: player.currentTime,
+            end: prev ? Math.max(player.currentTime + 1, prev.end) : Math.min(player.duration, player.currentTime + 5)
+          }))
+        }
+        onSetOutPoint={() =>
+          setMarkerDraftRange(prev => ({
+            start: prev ? Math.min(prev.start, player.currentTime - 1) : Math.max(0, player.currentTime - 5),
+            end: player.currentTime
+          }))
+        }
+        onExitFullscreen={() => setIsFullscreen(false)}
+        speechTranscript={speech.lastTranscript}
+        speechListening={speech.isListening}
+      />
+    );
+  }
+
   return (
     <div className="dancecue-root w-full">
       <main className="min-h-screen bg-[#101114] px-3 py-4 font-sans text-zinc-100 sm:px-6">
-        <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-[560px] lg:max-w-[760px] flex-col border-4 border-black bg-[#17181c] shadow-[8px_8px_0_#000]">
+        <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-6xl flex-col border-4 border-black bg-[#17181c] shadow-[8px_8px_0_#000]">
           {/* Header */}
           <section className="border-b-4 border-black bg-[#1D2B53] px-4 pb-4 pt-5 text-white shadow-inner">
             <div className="flex items-center justify-between">
@@ -156,9 +223,18 @@ export const Studio: React.FC = () => {
                   DanceCue Studio
                 </p>
               </div>
-              <div className="flex items-center gap-1.5 font-mono text-[9px] min-text-5px text-[#00E436]">
-                <span className="w-2 h-2 bg-[#00E436] inline-block rounded-none border border-black" />
-                <span>READY</span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsFullscreen(true)}
+                  className="px-2.5 py-1 bg-[#FFEC27] text-black font-['Press_Start_2P'] text-[9px] min-text-5px border-2 border-black shadow-[2px_2px_0_#000] hover:bg-[#FFF1E8] active:translate-x-0.5 active:translate-y-0.5 flex items-center gap-1.5 cursor-pointer"
+                >
+                  ⛶ FULLSCREEN
+                </button>
+                <div className="flex items-center gap-1.5 font-mono text-[9px] min-text-5px text-[#00E436]">
+                  <span className="w-2 h-2 bg-[#00E436] inline-block rounded-none border border-black" />
+                  <span>READY</span>
+                </div>
               </div>
             </div>
             <h1 className="mt-2 text-xl font-['Press_Start_2P'] leading-tight tracking-normal text-white">
