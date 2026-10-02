@@ -462,4 +462,14 @@
 
 ## Measurements
 
-_(Fill in during Tasks 6, 10 and 18.)_
+_(Tasks 10 and 18 add their rows below.)_
+
+**Task 6 — live login of the owner's account, deployment v11 (2026-10-02, 9:33 pm MYT), ms per step:**
+
+| Run | Total | throttle | memberIndex | roles | memberRoles | rolePermissions | sign | bootstrap.events | bootstrap.styles | bootstrap.chunks | bootstrap.attendance |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 (cold bootstrap) | 10.85 s | 29 | 821 | 196 | 180 | 175 | 61 | 326 | **1277** | **1360** | **2643** |
+| 2 (bootstrap cached) | 3.16 s | 6 | 521 | 253 | 262 | 268 | 11 | – | – | – | – |
+| 3 (bootstrap cached) | 4.40 s | 57 | 443 | 1252 | 181 | 208 | 44 | – | – | – | – |
+
+Reading: a cache hit costs 3–4.4 s (about 2 s is Apps Script's fixed overhead, and each table read is 180–500 ms). A miss adds about 7 s, and the cache lives only 5 minutes and is wiped by any admin edit. The three large steps are exactly what Tasks 7 (styles) and 8 (chunks, attendance leave the login path) remove.
