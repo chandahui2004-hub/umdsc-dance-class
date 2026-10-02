@@ -1,31 +1,7 @@
-import { parseMusicLink, type MusicItem } from '@umdsc/shared';
+import { parseMusicLink, type MusicItem, type ResolvedLink, type SpotifyCandidate } from '@umdsc/shared';
 import { Ctx } from '../ports';
 import { AppError } from '../errors';
 import { safeCachePut } from '../logic/cache';
-
-export interface SpotifyCandidate {
-  youtubeId: string;
-  title: string;
-  channel: string;
-  durationSec: number;
-  thumbnailUrl: string;
-  /** Within 3 s of the Spotify song's length. */
-  lengthMatch: boolean;
-}
-
-export type ResolvedLink =
-  | { kind: 'youtube'; youtubeId: string; title: string; embeddable: boolean }
-  | { kind: 'soundcloud'; soundcloudUrl: string; title: string }
-  | { kind: 'drive'; driveFileId: string; title: string }
-  | {
-      kind: 'spotify';
-      spotifyUrl: string;
-      title: string;
-      artist: string;
-      durationSec: number;
-      candidates: SpotifyCandidate[];
-      notice?: 'SEARCH_QUOTA';
-    };
 
 const SPOTIFY_UNREADABLE = "Couldn't read this Spotify song. Paste the YouTube version instead.";
 const SOUNDCLOUD_BLOCKED = "This SoundCloud track can't be played on other websites.";
@@ -206,6 +182,8 @@ export function resolveMusicLink(ctx: Ctx, url: string): ResolvedLink {
       return resolveSpotify(ctx, parsed.trackId);
   }
 }
+
+export type { ResolvedLink, SpotifyCandidate };
 
 export interface DerivedSource {
   sourceType: MusicItem['sourceType'];

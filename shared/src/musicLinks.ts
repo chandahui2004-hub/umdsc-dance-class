@@ -87,3 +87,28 @@ export function musicAppLinks(m: MusicItem): MusicAppLink[] {
 export function canPractise(m: MusicItem): boolean {
   return m.sourceType !== 'spotify';
 }
+
+/** What `music.resolveLink` returns: what an admin needs to see before saving a pasted link. */
+export interface SpotifyCandidate {
+  youtubeId: string;
+  title: string;
+  channel: string;
+  durationSec: number;
+  thumbnailUrl: string;
+  /** Within 3 s of the Spotify song's length. */
+  lengthMatch: boolean;
+}
+
+export type ResolvedLink =
+  | { kind: 'youtube'; youtubeId: string; title: string; embeddable: boolean }
+  | { kind: 'soundcloud'; soundcloudUrl: string; title: string }
+  | { kind: 'drive'; driveFileId: string; title: string }
+  | {
+      kind: 'spotify';
+      spotifyUrl: string;
+      title: string;
+      artist: string;
+      durationSec: number;
+      candidates: SpotifyCandidate[];
+      notice?: 'SEARCH_QUOTA';
+    };

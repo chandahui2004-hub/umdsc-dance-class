@@ -69,6 +69,40 @@ test.describe('Admin Media Page', () => {
     await expect.poll(() => calls.find(c => c.action === 'sessions.list')?.payload).toEqual({ eventId: 'evt-oct', styleId: 'style-hiphop' });
   });
 
+  test('admin pastes a Spotify link, confirms a YouTube version, and saves it', async ({ page }) => {
+    const SPOTIFY = 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT';
+    const calls = await mockApi(page, {
+      ...BASE,
+      'music.resolveLink': () => ({
+        kind: 'spotify',
+        spotifyUrl: SPOTIFY,
+        title: 'Never Gonna Give You Up',
+        artist: 'Rick Astley',
+        durationSec: 214,
+        candidates: [
+          { youtubeId: 'aaaaaaaaaaa', title: 'Never Gonna Give You Up', channel: 'Rick Astley - Topic', durationSec: 214, thumbnailUrl: '', lengthMatch: true },
+          { youtubeId: 'bbbbbbbbbbb', title: 'Never Gonna Give You Up (Extended)', channel: 'Some Label', durationSec: 252, thumbnailUrl: '', lengthMatch: false }
+        ]
+      }),
+      'music.create': () => ({ id: 'mus-1' })
+    });
+    await page.goto('/admin/media');
+    await page.getByRole('button', { name: /MUSIC LINK/i }).first().click();
+
+    await page.getByPlaceholder('Paste a YouTube, Spotify, SoundCloud or Drive MP3 link').fill(SPOTIFY);
+    await expect(page.getByText('Never Gonna Give You Up · Rick Astley · 3:34')).toBeVisible();
+    await expect(page.getByText('✓ same length')).toBeVisible();
+    await expect(page.getByText('✗ different length — check the version')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'ADD MUSIC', exact: true })).toBeDisabled();
+
+    await page.getByRole('button', { name: 'USE THIS' }).first().click();
+    await page.getByRole('button', { name: 'ADD MUSIC', exact: true }).click();
+
+    await expect
+      .poll(() => calls.find(c => c.action === 'music.create')?.payload)
+      .toMatchObject({ url: SPOTIFY, chosenYoutubeId: 'aaaaaaaaaaa', styleId: 'style-hiphop', eventId: 'evt-oct' });
+  });
+
   test('.mov video file selection shows format warning', async ({ page }) => {
     await mockApi(page, BASE);
     await page.goto('/admin/media');

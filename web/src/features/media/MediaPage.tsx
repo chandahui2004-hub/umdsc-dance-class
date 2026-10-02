@@ -213,7 +213,7 @@ export const MediaPage: React.FC = () => {
             onClick={() => setShowAddMusic(true)}
             disabled={!activeStyle}
           >
-            + YOUTUBE MUSIC
+            + MUSIC LINK
           </PixelButton>
           <PixelButton
             size="md"
@@ -562,7 +562,7 @@ export const MediaPage: React.FC = () => {
                 onClick={() => setShowAddMusic(true)}
                 disabled={!activeStyle}
               >
-                + YOUTUBE
+                + MUSIC LINK
               </PixelButton>
               <PixelButton
                 size="md"
@@ -590,7 +590,7 @@ export const MediaPage: React.FC = () => {
                   onClick={() => setShowAddMusic(true)}
                   disabled={!activeStyle}
                 >
-                  ADD YOUTUBE MUSIC
+                  ADD MUSIC LINK
                 </PixelButton>
                 <PixelButton
                   size="md"
