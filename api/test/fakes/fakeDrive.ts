@@ -164,4 +164,15 @@ export class FakeDrive implements DrivePort {
   exportXlsxBase64(spreadsheetId: string): string {
     return 'fake-base64-xlsx-content';
   }
+
+  getParentFolderId(fileId: string): string | null {
+    return this.items.get(fileId)?.parentId || 'root';
+  }
+
+  createFileFromBase64(folderId: string, name: string, mimeType: string, _base64Data: string): { id: string; url: string } {
+    const id = '1' + newId('file') + newId('drive');
+    this.items.set(id, { id, kind: 'file', name, mimeType, parentId: folderId, canEdit: true });
+    return { id, url: `https://lh3.googleusercontent.com/d/${id}` };
+  }
 }
+

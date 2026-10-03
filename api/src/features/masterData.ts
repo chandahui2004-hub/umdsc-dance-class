@@ -11,15 +11,23 @@ export function crudRoutes<T extends { id: string; version: number; active: bool
   perm: PermissionCode;
   listPerm?: PermissionCode | 'signedIn' | 'public';
   processPayload?: (ctx: any, payload: any, isUpdate: boolean, existing?: any) => any;
+  onList?: (ctx: any) => void;
   getTargetName?: (row: any) => string;
 }): Record<string, Route> {
-  const { prefix, getTable, perm, listPerm = perm, processPayload, getTargetName = (r) => r.name || r.id } = opts;
+  const { prefix, getTable, perm, listPerm = perm, processPayload, onList, getTargetName = (r) => r.name || r.id } = opts;
 
   return {
     [`${prefix}.list`]: {
       perm: listPerm,
       write: false,
       handler: (ctx) => {
+        if (onList) {
+          try {
+            onList(ctx);
+          } catch {
+            // ignore
+          }
+        }
         return getTable(ctx).find(r => r.active);
       }
     },
@@ -202,24 +210,90 @@ export function getMasterDataRoutes(): Record<string, Route> {
     getTable: (ctx) => ctx.db.instructors,
     perm: 'instructors.edit',
     listPerm: 'signedIn',
-    processPayload: (_ctx, payload) => {
-      if (payload.photoUrl && typeof payload.photoUrl === 'string') {
-        if (payload.photoUrl.length > 48000) {
-          payload.photoUrl = payload.photoUrl.slice(0, 48000);
+    onList: (ctx) => {
+      try {
+        const sysId = ctx.props.get('SYSTEM_SPREADSHEET_ID');
+        const dbFolderId = sysId ? ctx.drive.getParentFolderId(sysId) || 'root' : 'root';
+        if (!ctx.drive.findChildFolder(dbFolderId, 'Instructor Photos')) {
+          const fld = ctx.drive.createFolder(dbFolderId, 'Instructor Photos');
+          try { ctx.drive.setAnyoneReader(fld); } catch {}
         }
-      }
-      if (payload.photosJson && typeof payload.photosJson === 'string') {
-        if (payload.photosJson.length > 48000) {
-          try {
-            const list = JSON.parse(payload.photosJson);
-            if (Array.isArray(list)) {
-              payload.photosJson = JSON.stringify(list.slice(0, 1));
+      } catch {}
+    },
+    processPayload: (ctx, payload) => {
+      const getInstructorPhotosFolder = (): string | null => {
+        try {
+          const sysId = ctx.props.get('SYSTEM_SPREADSHEET_ID');
+          const dbFolderId = sysId ? ctx.drive.getParentFolderId(sysId) || 'root' : 'root';
+          let folderId = ctx.drive.findChildFolder(dbFolderId, 'Instructor Photos');
+          if (!folderId) {
+            folderId = ctx.drive.createFolder(dbFolderId, 'Instructor Photos');
+            try {
+              ctx.drive.setAnyoneReader(folderId);
+            } catch {
+              // ignore
             }
-          } catch {
-            payload.photosJson = '[]';
           }
+          return folderId;
+        } catch (e) {
+          console.error('getInstructorPhotosFolder error:', e);
+          return null;
+        }
+      };
+
+      // If photoUrl is base64, save to Google Drive Instructor Photos folder
+      if (payload.photoUrl && typeof payload.photoUrl === 'string' && payload.photoUrl.startsWith('data:image/')) {
+        const folderId = getInstructorPhotosFolder();
+        if (folderId) {
+          const match = payload.photoUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/);
+          const mime = match ? match[1] : 'image/jpeg';
+          const ext = mime.includes('webp') ? 'webp' : mime.includes('png') ? 'png' : 'jpg';
+          const cleanName = (payload.name || 'instructor').replace(/[^a-zA-Z0-9_-]/g, '_');
+          const fileName = `${cleanName}_${Date.now()}.${ext}`;
+          const uploaded = ctx.drive.createFileFromBase64(folderId, fileName, mime, payload.photoUrl);
+          payload.photoUrl = uploaded.url;
         }
       }
+
+      // Also process photosJson if photos have base64 data URLs
+      if (payload.photosJson && typeof payload.photosJson === 'string') {
+        try {
+          const list = JSON.parse(payload.photosJson);
+          if (Array.isArray(list)) {
+            let folderId: string | null = null;
+            let modified = false;
+            for (const p of list) {
+              if (p && typeof p.url === 'string' && p.url.startsWith('data:image/')) {
+                if (!folderId) folderId = getInstructorPhotosFolder();
+                if (folderId) {
+                  const match = p.url.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/);
+                  const mime = match ? match[1] : 'image/jpeg';
+                  const ext = mime.includes('webp') ? 'webp' : mime.includes('png') ? 'png' : 'jpg';
+                  const cleanName = (payload.name || 'instructor').replace(/[^a-zA-Z0-9_-]/g, '_');
+                  const fileName = `${cleanName}_${Date.now()}.${ext}`;
+                  const uploaded = ctx.drive.createFileFromBase64(folderId, fileName, mime, p.url);
+                  p.url = uploaded.url;
+                  modified = true;
+                }
+              }
+            }
+            if (modified) {
+              payload.photosJson = JSON.stringify(list);
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      // Ensure length never exceeds safe limits
+      if (payload.photoUrl && typeof payload.photoUrl === 'string' && payload.photoUrl.length > 48000) {
+        payload.photoUrl = payload.photoUrl.slice(0, 48000);
+      }
+      if (payload.photosJson && typeof payload.photosJson === 'string' && payload.photosJson.length > 48000) {
+        payload.photosJson = '[]';
+      }
+
       return payload;
     }
   });

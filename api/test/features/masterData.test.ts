@@ -345,4 +345,38 @@ describe('Feature: Master Data (Styles & Instructors)', () => {
       expect((listRes.data as any[]).length).toBe(0);
     }
   });
+
+  it('instructors.create saves base64 photo to Google Drive Instructor Photos folder', () => {
+    const fakeBase64 = 'data:image/webp;base64,UklGRkAAAABXRUJQVlA4IDQAAADwAQCdASoFAAUAPxF8s1CvqaSjAABQCWUAAP74b/8AA/7+gAA/v4AAP7/AAA==';
+    const res = handleRequest(
+      {
+        action: 'instructors.create',
+        token: adminToken,
+        payload: {
+          name: 'Elf',
+          contact: '0165857601',
+          color: 'pink',
+          photoUrl: fakeBase64,
+          photosJson: JSON.stringify([{ id: 'p1', url: fakeBase64, active: true }])
+        }
+      },
+      ctx,
+      secrets
+    );
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      const inst = res.data as any;
+      expect(inst.name).toBe('Elf');
+      expect(inst.color).toBe('pink');
+      // Must be converted to Google Drive URL
+      expect(inst.photoUrl).toMatch(/^https:\/\/lh3\.googleusercontent\.com\/d\//);
+      const parsedPhotos = JSON.parse(inst.photosJson);
+      expect(parsedPhotos[0].url).toMatch(/^https:\/\/lh3\.googleusercontent\.com\/d\//);
+
+      // Verify that Instructor Photos folder exists in Drive
+      const folderId = ctx.drive.findChildFolder('root', 'Instructor Photos');
+      expect(folderId).toBeTruthy();
+    }
+  });
 });

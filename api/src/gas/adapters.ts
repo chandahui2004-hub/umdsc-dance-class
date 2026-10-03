@@ -277,6 +277,36 @@ export class GasDriveAdapter implements DrivePort {
     });
     return Utilities.base64Encode(res.getBlob().getBytes());
   }
+
+  getParentFolderId(fileId: string): string | null {
+    try {
+      const file = DriveApp.getFileById(fileId);
+      const parents = file.getParents();
+      if (parents.hasNext()) {
+        return parents.next().getId();
+      }
+      return null;
+    } catch (e: any) {
+      Logger.log('getParentFolderId error: ' + e.message);
+      return null;
+    }
+  }
+
+  createFileFromBase64(folderId: string, name: string, mimeType: string, base64Data: string): { id: string; url: string } {
+    const folder = DriveApp.getFolderById(folderId);
+    const cleanBase64 = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
+    const bytes = Utilities.base64Decode(cleanBase64);
+    const blob = Utilities.newBlob(bytes, mimeType, name);
+    const file = folder.createFile(blob);
+    try {
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (e: any) {
+      Logger.log('createFileFromBase64 setSharing error: ' + e.message);
+    }
+    const id = file.getId();
+    const url = `https://lh3.googleusercontent.com/d/${id}`;
+    return { id, url };
+  }
 }
 
 export class GasCacheAdapter implements CachePort {
