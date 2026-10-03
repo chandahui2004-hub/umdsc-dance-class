@@ -359,6 +359,7 @@ export const Studio: React.FC = () => {
               onReady={player.attachYouTubePlayer}
               onStateChange={player.handleYouTubeStateChange}
               needsTap={player.needsTap}
+              isFullscreen={isFullscreen && !activeDanceVideoUrl && player.activeSource === 'youtube'}
             />
 
             {/* SoundCloud Player */}

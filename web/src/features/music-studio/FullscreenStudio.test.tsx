@@ -2,6 +2,10 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { FullscreenStudio } from './FullscreenStudio';
 
+if (typeof window !== 'undefined') {
+  window.PointerEvent = window.MouseEvent as any;
+}
+
 describe('FullscreenStudio Component', () => {
   const defaultProps = {
     activeMusicTitle: 'Test Song',
@@ -196,6 +200,92 @@ describe('FullscreenStudio Component', () => {
     fireEvent.click(submitBtn);
 
     expect(onAddLoopMarker).toHaveBeenCalledWith('Loop 1', 61.2, 87.2);
+  });
+
+  it('renders interactive loop handles and center span on timeline in fullscreen mode', () => {
+    render(
+      <FullscreenStudio
+        {...defaultProps}
+        markerDraftRange={{ start: 10, end: 25 }}
+      />
+    );
+
+    expect(screen.getByTestId('loop-handle-start')).toBeInTheDocument();
+    expect(screen.getByTestId('loop-handle-end')).toBeInTheDocument();
+    expect(screen.getByTestId('loop-span')).toBeInTheDocument();
+  });
+
+  it('moves entire loop range when dragging center span in fullscreen mode', () => {
+    const onMarkerDraftChange = vi.fn();
+    render(
+      <FullscreenStudio
+        {...defaultProps}
+        duration={100}
+        markerDraftRange={{ start: 10, end: 14 }}
+        onMarkerDraftChange={onMarkerDraftChange}
+      />
+    );
+
+    const track = screen.getByRole('slider', { name: /seek through music/i });
+    track.getBoundingClientRect = () => ({
+      left: 0,
+      top: 0,
+      width: 1000,
+      height: 28,
+      right: 1000,
+      bottom: 28,
+      x: 0,
+      y: 0,
+      toJSON: () => {}
+    });
+
+    const span = screen.getByTestId('loop-span');
+    // Start drag at x = 120 (12s)
+    fireEvent.pointerDown(span, { clientX: 120 });
+    // Move to x = 220 (+100px = +10s)
+    fireEvent.pointerMove(window, { clientX: 220 });
+    fireEvent.pointerUp(window, { clientX: 220 });
+
+    expect(onMarkerDraftChange).toHaveBeenCalledWith({ start: 20, end: 24 });
+  });
+
+  it('resizes start and end loop handles independently in fullscreen mode', () => {
+    const onMarkerDraftChange = vi.fn();
+    render(
+      <FullscreenStudio
+        {...defaultProps}
+        duration={100}
+        markerDraftRange={{ start: 10, end: 30 }}
+        onMarkerDraftChange={onMarkerDraftChange}
+      />
+    );
+
+    const track = screen.getByRole('slider', { name: /seek through music/i });
+    track.getBoundingClientRect = () => ({
+      left: 0,
+      top: 0,
+      width: 1000,
+      height: 28,
+      right: 1000,
+      bottom: 28,
+      x: 0,
+      y: 0,
+      toJSON: () => {}
+    });
+
+    // Drag start handle from 10s to 15s (x = 150)
+    const startHandle = screen.getByTestId('loop-handle-start');
+    fireEvent.pointerDown(startHandle, { clientX: 100 });
+    fireEvent.pointerMove(window, { clientX: 150 });
+    fireEvent.pointerUp(window, { clientX: 150 });
+    expect(onMarkerDraftChange).toHaveBeenCalledWith({ start: 15, end: 30 });
+
+    // Drag end handle from 30s to 35s (x = 350)
+    const endHandle = screen.getByTestId('loop-handle-end');
+    fireEvent.pointerDown(endHandle, { clientX: 300 });
+    fireEvent.pointerMove(window, { clientX: 350 });
+    fireEvent.pointerUp(window, { clientX: 350 });
+    expect(onMarkerDraftChange).toHaveBeenCalledWith({ start: 10, end: 35 });
   });
 });
 

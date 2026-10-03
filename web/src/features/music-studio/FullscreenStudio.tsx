@@ -97,6 +97,10 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
   const [hudPos, setHudPos] = useState({ x: 20, y: 20 });
   const isDraggingHudRef = useRef(false);
   const musicBarRef = useRef<HTMLDivElement>(null);
+  const [tooltip, setTooltip] = useState<{ text: string; leftPercent: number } | null>(null);
+  const [isPulsing, setIsPulsing] = useState(false);
+  const dragAnchorRef = useRef<number | null>(null);
+  const didDragRef = useRef(false);
 
   // Loops management panel state
   const [showLoopsPanel, setShowLoopsPanel] = useState(false);
@@ -269,30 +273,196 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
     window.addEventListener('pointerup', onPointerUp);
   };
 
+  // Loop Range calculations
+  const currentRange = useMemo(() => {
+    if (markerDraftRange && markerDraftRange.end > markerDraftRange.start) {
+      return markerDraftRange;
+    }
+    if (loopMarker && loopMarker.endTime > loopMarker.time) {
+      return { start: loopMarker.time, end: loopMarker.endTime };
+    }
+    return null;
+  }, [markerDraftRange, loopMarker]);
+
+  const hasDraftRange =
+    effectiveDuration > 0 && currentRange && currentRange.end > currentRange.start;
+  const draftStart = hasDraftRange && currentRange ? (currentRange.start / effectiveDuration) * 100 : 0;
+  const draftWidth =
+    hasDraftRange && currentRange
+      ? Math.max(0, ((currentRange.end - currentRange.start) / effectiveDuration) * 100)
+      : 0;
+
   // Progress calculations
   const progressPercent = effectiveDuration > 0 ? Math.min((effectiveCurrentTime / effectiveDuration) * 100, 100) : 0;
-  const loopStart = effectiveDuration > 0 && markerDraftRange ? (markerDraftRange.start / effectiveDuration) * 100 : 0;
-  const loopWidth =
-    effectiveDuration > 0 && markerDraftRange
-      ? Math.max(0, ((markerDraftRange.end - markerDraftRange.start) / effectiveDuration) * 100)
-      : 0;
 
   // Video progress calculation for dual view
   const safeVideoDuration = videoDuration > 0 ? videoDuration : 1;
   const videoProgress = Math.min((videoCurrentTime / safeVideoDuration) * 100, 100);
   const videoStartPercent = Math.min((videoStart / safeVideoDuration) * 100, 100);
 
-  const loopDurationText = markerDraftRange
-    ? `${(markerDraftRange.end - markerDraftRange.start).toFixed(1)}s`
-    : loopMarker
-      ? `${(loopMarker.endTime - loopMarker.time).toFixed(1)}s`
-      : '0.0s';
+  const loopDurationText = currentRange
+    ? `${(currentRange.end - currentRange.start).toFixed(1)}s`
+    : '0.0s';
 
-  const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!musicBarRef.current || effectiveDuration <= 0) return;
-    const rect = musicBarRef.current.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min((e.clientX - rect.left) / rect.width, 1));
-    handleSeek(ratio * effectiveDuration);
+  const getTimeFromClientX = (clientX: number | undefined): number => {
+    if (!musicBarRef.current || !effectiveDuration || typeof clientX !== 'number' || Number.isNaN(clientX)) {
+      return 0;
+    }
+    const bounds = musicBarRef.current.getBoundingClientRect();
+    const width = bounds.width || 1;
+    const position = (clientX - (bounds.left || 0)) / width;
+    const bounded = Math.min(Math.max(position, 0), 1);
+    return bounded * effectiveDuration;
+  };
+
+  // Drag Left Handle (Resize Start)
+  const handleStartHandlePointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    if (!currentRange || !effectiveDuration) return;
+    const endFixed = currentRange.end;
+
+    const onPointerMove = (moveEv: PointerEvent) => {
+      const time = getTimeFromClientX(moveEv.clientX);
+      const newStart = Math.round(Math.max(0, Math.min(time, endFixed - 0.2)) * 10) / 10;
+      onMarkerDraftChange?.({ start: newStart, end: endFixed });
+      setTooltip({
+        text: `Start: ${formatTime(newStart)} (${(endFixed - newStart).toFixed(1)}s)`,
+        leftPercent: (newStart / effectiveDuration) * 100
+      });
+    };
+
+    const onPointerUp = () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      setTooltip(null);
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  };
+
+  // Drag Right Handle (Resize End)
+  const handleEndHandlePointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    if (!currentRange || !effectiveDuration) return;
+    const startFixed = currentRange.start;
+
+    const onPointerMove = (moveEv: PointerEvent) => {
+      const time = getTimeFromClientX(moveEv.clientX);
+      const newEnd = Math.round(Math.min(effectiveDuration, Math.max(time, startFixed + 0.2)) * 10) / 10;
+      onMarkerDraftChange?.({ start: startFixed, end: newEnd });
+      setTooltip({
+        text: `End: ${formatTime(newEnd)} (${(newEnd - startFixed).toFixed(1)}s)`,
+        leftPercent: (newEnd / effectiveDuration) * 100
+      });
+    };
+
+    const onPointerUp = () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      setTooltip(null);
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  };
+
+  // Drag Center Span (moves whole range)
+  const handleSpanPointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    if (!currentRange || !effectiveDuration) return;
+    const initialPointerTime = getTimeFromClientX(e.clientX);
+    const initialStart = currentRange.start;
+    const initialEnd = currentRange.end;
+    const rangeLength = initialEnd - initialStart;
+
+    const onPointerMove = (moveEv: PointerEvent) => {
+      const currentPointerTime = getTimeFromClientX(moveEv.clientX);
+      const delta = currentPointerTime - initialPointerTime;
+      const rawStart = Math.min(Math.max(initialStart + delta, 0), Math.max(effectiveDuration - rangeLength, 0));
+      const rawEnd = Math.min(rawStart + rangeLength, effectiveDuration);
+      const newStart = Math.round(rawStart * 10) / 10;
+      const newEnd = Math.round(rawEnd * 10) / 10;
+
+      onMarkerDraftChange?.({ start: newStart, end: newEnd });
+      setTooltip({
+        text: `Loop: ${formatTime(newStart)} - ${formatTime(newEnd)} (${rangeLength.toFixed(1)}s)`,
+        leftPercent: ((newStart + newEnd) / 2 / effectiveDuration) * 100
+      });
+    };
+
+    const onPointerUp = () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      setTooltip(null);
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  };
+
+  // Track Pointer Events (Seek, Double-Click, Drag-select)
+  const handleTrackPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!effectiveDuration) return;
+    const pointerTime = getTimeFromClientX(event.clientX);
+
+    // Double-click seek
+    if (event.detail === 2) {
+      handleSeek(pointerTime);
+      return;
+    }
+
+    // Single-click nearest loop point adjustment when loop is active
+    if (currentRange && currentRange.end > currentRange.start) {
+      const distStart = Math.abs(pointerTime - currentRange.start);
+      const distEnd = Math.abs(pointerTime - currentRange.end);
+      const threshold = Math.max(2, effectiveDuration * 0.04);
+
+      if (distStart < threshold || distEnd < threshold) {
+        if (distStart <= distEnd) {
+          const newStart = Math.round(Math.min(pointerTime, currentRange.end - 0.2) * 10) / 10;
+          onMarkerDraftChange?.({ start: newStart, end: currentRange.end });
+        } else {
+          const newEnd = Math.round(Math.max(pointerTime, currentRange.start + 0.2) * 10) / 10;
+          onMarkerDraftChange?.({ start: currentRange.start, end: newEnd });
+        }
+        setIsPulsing(true);
+        setTimeout(() => setIsPulsing(false), 500);
+        return;
+      }
+    }
+
+    dragAnchorRef.current = pointerTime;
+    didDragRef.current = false;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleTrackPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const anchorTime = dragAnchorRef.current;
+    if (anchorTime === null || !effectiveDuration) return;
+    const pointerTime = getTimeFromClientX(event.clientX);
+    if (Math.abs(pointerTime - anchorTime) >= 0.1) {
+      didDragRef.current = true;
+      const start = Math.round(Math.min(anchorTime, pointerTime) * 10) / 10;
+      const end = Math.round(Math.max(anchorTime, pointerTime) * 10) / 10;
+      onMarkerDraftChange?.({ start, end });
+      setTooltip({
+        text: `Loop: ${formatTime(start)} - ${formatTime(end)} (${(end - start).toFixed(1)}s)`,
+        leftPercent: ((start + end) / 2 / effectiveDuration) * 100
+      });
+    }
+  };
+
+  const handleTrackPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    const anchorTime = dragAnchorRef.current;
+    dragAnchorRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    setTooltip(null);
+    if (!didDragRef.current && anchorTime !== null) {
+      handleSeek(anchorTime);
+    }
   };
 
   const dummyMaster = useMemo<Master>(() => ({
@@ -394,15 +564,8 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
         ) : hasYouTubeVideo ? (
           <div
             data-testid="fullscreen-youtube-player"
-            className="w-full h-full flex items-center justify-center"
-          >
-            <iframe
-              src={`https://www.youtube-nocookie.com/embed/${youtubeVideoId}?autoplay=1&enablejsapi=1&controls=0&modestbranding=1`}
-              title="YouTube practice video"
-              className="w-full h-full border-0 pointer-events-none"
-              allow="autoplay; encrypted-media"
-            />
-          </div>
+            className="w-full h-full flex items-center justify-center bg-transparent pointer-events-none"
+          />
         ) : (
           <div
             data-testid="fullscreen-audio-visualizer"
@@ -424,7 +587,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
         <div
           data-testid="fullscreen-hud"
           style={{ transform: `translate3d(${hudPos.x}px, ${hudPos.y}px, 0)` }}
-          className="absolute top-0 left-0 z-50 flex items-center flex-wrap gap-2 bg-[var(--night-1)]/95 border-4 border-[var(--outline)] px-3 py-2 shadow-[6px_6px_0_var(--outline)] max-w-[95vw]"
+          className="absolute top-0 left-0 z-[70] flex items-center flex-wrap gap-2 bg-[var(--night-1)]/95 border-4 border-[var(--outline)] px-3 py-2 shadow-[6px_6px_0_var(--outline)] max-w-[95vw]"
         >
           {/* Drag Handle */}
           <div
@@ -572,7 +735,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
         {showLoopsPanel && (
           <div
             data-testid="fullscreen-loops-drawer"
-            className="absolute top-16 right-4 z-50 w-96 max-w-[92vw] max-h-[80vh] flex flex-col bg-[var(--night-1)]/95 border-4 border-[var(--outline)] shadow-[8px_8px_0_var(--outline)] text-[var(--text-1)] font-mono"
+            className="absolute top-16 right-4 z-[80] w-96 max-w-[92vw] max-h-[80vh] flex flex-col bg-[var(--night-1)]/95 border-4 border-[var(--outline)] shadow-[8px_8px_0_var(--outline)] text-[var(--text-1)] font-mono"
           >
             {/* Panel Header */}
             <div className="flex items-center justify-between bg-[var(--night-2)] px-3 py-2 border-b-4 border-[var(--outline)]">
@@ -785,7 +948,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
       </div>
 
       {/* Bottom Area: Stacked Music & Video Progress Bars */}
-      <div className="bg-[var(--night-1)] border-t-4 border-[var(--outline)] p-3 space-y-2">
+      <div className="bg-[var(--night-1)] border-t-4 border-[var(--outline)] p-3 space-y-2 relative z-[60]">
         {/* Primary Timeline Progress */}
         <div className="space-y-1">
           <div className="flex justify-between items-center text-[10px] font-mono text-[var(--neon-green)]">
@@ -798,24 +961,82 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
           </div>
           <div
             ref={musicBarRef}
-            onClick={handleTimelineClick}
-            className="relative h-5 bg-[var(--night-2)] border-2 border-[var(--outline)] cursor-pointer overflow-hidden shadow-[2px_2px_0_var(--shadow-hard)]"
+            role="slider"
+            aria-label="Seek through music"
+            tabIndex={0}
+            onPointerDown={handleTrackPointerDown}
+            onPointerMove={handleTrackPointerMove}
+            onPointerUp={handleTrackPointerUp}
+            className="relative h-7 bg-[var(--night-2)] border-2 border-[var(--outline)] cursor-pointer overflow-visible shadow-[2px_2px_0_var(--shadow-hard)] select-none"
           >
-            {/* Playhead */}
+            {/* Tooltip */}
+            {tooltip && (
+              <div
+                style={{ left: `${Math.max(10, Math.min(tooltip.leftPercent, 90))}%` }}
+                className="absolute -top-7 -translate-x-1/2 z-40 bg-[var(--night-1)] text-[var(--neon-gold)] text-[10px] font-mono px-2 py-0.5 border border-[var(--neon-pink)] shadow-[2px_2px_0_var(--shadow-hard)] pointer-events-none whitespace-nowrap"
+              >
+                {tooltip.text}
+              </div>
+            )}
+
+            {/* Playhead Progress Fill */}
             <div
-              className="absolute inset-y-0 left-0 bg-[var(--neon-cyan)]/40 border-r-2 border-[var(--neon-cyan)]"
+              className="absolute inset-y-0 left-0 bg-[var(--neon-cyan)]/30 border-r-2 border-[var(--neon-cyan)] pointer-events-none"
               style={{ width: `${progressPercent}%` }}
             />
-            {/* Loop Span Indicator */}
-            {markerDraftRange && loopWidth > 0 && (
+
+            {/* Loop Draft Range */}
+            {hasDraftRange && currentRange ? (
               <div
-                className="absolute inset-y-0 bg-[color-mix(in_srgb,var(--neon-pink)_30%,transparent)] border-x-2 border-[var(--neon-pink)]"
-                style={{ left: `${loopStart}%`, width: `${loopWidth}%` }}
-              />
-            )}
+                className="absolute inset-y-0 z-20"
+                style={{ left: `${draftStart}%`, width: `${draftWidth}%` }}
+              >
+                {/* Center Span (Drag to move entire loop range) */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Loop range span"
+                  data-testid="loop-span"
+                  onPointerDown={handleSpanPointerDown}
+                  className={`absolute inset-0 cursor-grab active:cursor-grabbing bg-[color-mix(in_srgb,var(--neon-pink)_35%,transparent)] border-y-2 border-[var(--neon-pink)] shadow-[0_0_10px_rgba(255,46,147,0.3)] transition-colors ${
+                    isPulsing ? 'animate-pulse ring-2 ring-[var(--neon-pink)] bg-[var(--neon-pink)]/50' : ''
+                  }`}
+                  title={`Loop: ${formatTime(currentRange.start)} - ${formatTime(currentRange.end)} (${(currentRange.end - currentRange.start).toFixed(1)}s)`}
+                />
+
+                {/* Left Handle (Resize Start) */}
+                <div
+                  role="slider"
+                  tabIndex={0}
+                  aria-label="Loop start handle"
+                  data-testid="loop-handle-start"
+                  onPointerDown={handleStartHandlePointerDown}
+                  className="absolute inset-y-0 -left-2 w-4 cursor-ew-resize bg-[var(--neon-pink)] border-2 border-black z-30 hover:scale-110 active:scale-125 transition-transform flex items-center justify-center shadow-[1px_1px_0_var(--shadow-hard)]"
+                  title={`Loop start: ${formatTime(currentRange.start)}`}
+                >
+                  <span className="w-0.5 h-3 bg-black pointer-events-none" />
+                </div>
+
+                {/* Right Handle (Resize End) */}
+                <div
+                  role="slider"
+                  tabIndex={0}
+                  aria-label="Loop end handle"
+                  data-testid="loop-handle-end"
+                  onPointerDown={handleEndHandlePointerDown}
+                  className="absolute inset-y-0 -right-2 w-4 cursor-ew-resize bg-[var(--neon-pink)] border-2 border-black z-30 hover:scale-110 active:scale-125 transition-transform flex items-center justify-center shadow-[1px_1px_0_var(--shadow-hard)]"
+                  title={`Loop end: ${formatTime(currentRange.end)}`}
+                >
+                  <span className="w-0.5 h-3 bg-black pointer-events-none" />
+                </div>
+              </div>
+            ) : null}
+
+            {/* Playhead Needle */}
             <div
-              className="absolute inset-y-0 w-[2px] -ml-[1px] bg-[var(--neon-cyan)] shadow-[0_0_6px_var(--neon-cyan)]"
+              className="absolute inset-y-0 w-[2px] -ml-[1px] bg-[var(--neon-cyan)] shadow-[0_0_8px_var(--neon-cyan)] z-10 pointer-events-none"
               style={{ left: `${progressPercent}%` }}
+              aria-hidden="true"
             />
           </div>
         </div>

@@ -46,6 +46,7 @@ type YouTubePlayerProps = {
   videoId: string | null;
   /** Phones can block play on an untouched iframe: ask for one tap on the visible player. */
   needsTap?: boolean;
+  isFullscreen?: boolean;
 };
 
 const youtubePlayerStates = {
@@ -103,6 +104,7 @@ export function YouTubePlayer({
   onStateChange,
   videoId,
   needsTap = false,
+  isFullscreen = false,
 }: YouTubePlayerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const latestVideoIdRef = useRef(videoId);
@@ -255,14 +257,16 @@ export function YouTubePlayer({
         data-testid="youtube-player-box"
         className={
           isVisible
-            ? "mx-auto h-[200px] w-[200px] overflow-hidden border-2 border-[var(--outline)] bg-black shadow-[4px_4px_0_var(--shadow-hard)] [&_iframe]:h-full [&_iframe]:w-full"
+            ? isFullscreen
+              ? "fixed inset-0 bottom-20 z-[55] w-full flex items-center justify-center bg-black overflow-hidden [&_iframe]:w-full [&_iframe]:h-full"
+              : "mx-auto h-[200px] w-[200px] overflow-hidden border-2 border-[var(--outline)] bg-black shadow-[4px_4px_0_var(--shadow-hard)] [&_iframe]:h-full [&_iframe]:w-full"
             : "pointer-events-none fixed left-0 top-0 h-[200px] w-[200px] overflow-hidden opacity-0"
         }
         aria-hidden={isVisible ? undefined : "true"}
       >
-        <div ref={containerRef} className="h-[200px] w-[200px]" />
+        <div ref={containerRef} className={isFullscreen ? "w-full h-full" : "h-[200px] w-[200px]"} />
       </div>
-      {isVisible ? (
+      {isVisible && !isFullscreen ? (
         <section
           className="border-2 border-[var(--outline)] bg-[var(--night-2)] px-4 py-3 shadow-[4px_4px_0_var(--shadow-hard)]"
           aria-label="YouTube audio status"
