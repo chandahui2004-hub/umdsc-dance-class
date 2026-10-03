@@ -241,38 +241,40 @@ export function getMasterDataRoutes(): Record<string, Route> {
         }
       };
 
-      // If photoUrl is base64, save to Google Drive Instructor Photos folder
-      if (payload.photoUrl && typeof payload.photoUrl === 'string' && payload.photoUrl.startsWith('data:image/')) {
-        const folderId = getInstructorPhotosFolder();
-        if (folderId) {
-          const match = payload.photoUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/);
-          const mime = match ? match[1] : 'image/jpeg';
-          const ext = mime.includes('webp') ? 'webp' : mime.includes('png') ? 'png' : 'jpg';
-          const cleanName = (payload.name || 'instructor').replace(/[^a-zA-Z0-9_-]/g, '_');
-          const fileName = `${cleanName}_${Date.now()}.${ext}`;
-          const uploaded = ctx.drive.createFileFromBase64(folderId, fileName, mime, payload.photoUrl);
-          payload.photoUrl = uploaded.url;
-        }
-      }
+      // Deduplicate base64 uploads to Google Drive
+      const uploadedBase64Map = new Map<string, string>();
 
-      // Also process photosJson if photos have base64 data URLs
+      const uploadBase64ToDrive = (base64Data: string, prefixName: string): string | null => {
+        if (!base64Data || typeof base64Data !== 'string' || !base64Data.startsWith('data:image/')) {
+          return null;
+        }
+        if (uploadedBase64Map.has(base64Data)) {
+          return uploadedBase64Map.get(base64Data)!;
+        }
+        const folderId = getInstructorPhotosFolder();
+        if (!folderId) return null;
+
+        const match = base64Data.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/);
+        const mime = match ? match[1] : 'image/jpeg';
+        const ext = mime.includes('webp') ? 'webp' : mime.includes('png') ? 'png' : 'jpg';
+        const cleanName = prefixName.replace(/[^a-zA-Z0-9_-]/g, '_');
+        const fileName = `${cleanName}_${Date.now()}.${ext}`;
+        const uploaded = ctx.drive.createFileFromBase64(folderId, fileName, mime, base64Data);
+        uploadedBase64Map.set(base64Data, uploaded.url);
+        return uploaded.url;
+      };
+
+      // 1. Process photosJson (gallery array)
       if (payload.photosJson && typeof payload.photosJson === 'string') {
         try {
           const list = JSON.parse(payload.photosJson);
           if (Array.isArray(list)) {
-            let folderId: string | null = null;
             let modified = false;
             for (const p of list) {
               if (p && typeof p.url === 'string' && p.url.startsWith('data:image/')) {
-                if (!folderId) folderId = getInstructorPhotosFolder();
-                if (folderId) {
-                  const match = p.url.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/);
-                  const mime = match ? match[1] : 'image/jpeg';
-                  const ext = mime.includes('webp') ? 'webp' : mime.includes('png') ? 'png' : 'jpg';
-                  const cleanName = (payload.name || 'instructor').replace(/[^a-zA-Z0-9_-]/g, '_');
-                  const fileName = `${cleanName}_${Date.now()}.${ext}`;
-                  const uploaded = ctx.drive.createFileFromBase64(folderId, fileName, mime, p.url);
-                  p.url = uploaded.url;
+                const uploadedUrl = uploadBase64ToDrive(p.url, payload.name || 'instructor');
+                if (uploadedUrl) {
+                  p.url = uploadedUrl;
                   modified = true;
                 }
               }
@@ -283,6 +285,14 @@ export function getMasterDataRoutes(): Record<string, Route> {
           }
         } catch {
           // ignore
+        }
+      }
+
+      // 2. Process photoUrl (single URL) - reuses uploaded URL from map if identical base64
+      if (payload.photoUrl && typeof payload.photoUrl === 'string' && payload.photoUrl.startsWith('data:image/')) {
+        const uploadedUrl = uploadBase64ToDrive(payload.photoUrl, payload.name || 'instructor');
+        if (uploadedUrl) {
+          payload.photoUrl = uploadedUrl;
         }
       }
 

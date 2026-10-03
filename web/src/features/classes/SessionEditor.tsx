@@ -4,7 +4,7 @@ import { Sheet } from '../../components/ui/Sheet';
 import { Field } from '../../components/ui/Field';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { TimePicker } from '../../components/ui/TimePicker';
-import { getInstructorPhotoUrl } from '../../lib/instructorPhotos';
+import { getInstructorPhotoUrl, getDriveThumbnailUrl } from '../../lib/instructorPhotos';
 import type { ClassSession, Instructor, DanceStyle } from '@umdsc/shared';
 
 export interface SessionEditorProps {
@@ -227,8 +227,15 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
                 <img
                   src={photoUrl}
                   alt={selectedInst?.name || 'Instructor'}
-                  className="w-11 h-[55px] object-cover border-2 border-[var(--outline)] flex-shrink-0"
+                  referrerPolicy="no-referrer"
+                  className="w-11 h-[55px] object-cover object-top border-2 border-[var(--outline)] flex-shrink-0"
                   loading="lazy"
+                  onError={(e) => {
+                    const thumb = getDriveThumbnailUrl(photoUrl, 200);
+                    if (thumb && thumb !== photoUrl && e.currentTarget.src !== thumb) {
+                      e.currentTarget.src = thumb;
+                    }
+                  }}
                 />
               ) : (
                 <span className="w-11 h-[55px] flex items-center justify-center bg-[var(--night-1)] border-2 border-[var(--outline)] font-display text-[12px] text-[var(--text-2)] flex-shrink-0">👤</span>

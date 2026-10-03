@@ -1,4 +1,6 @@
+import React, { useState, useEffect } from 'react';
 import type { ReactElement } from 'react';
+import { getDriveThumbnailUrl } from '../../lib/instructorPhotos';
 
 export interface PixelPortraitFrameProps {
   src: string;
@@ -17,10 +19,29 @@ export function PixelPortraitFrame({
   size = 'sm',
   className = '',
 }: PixelPortraitFrameProps): ReactElement {
+  const [currentSrc, setCurrentSrc] = useState(src);
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setCurrentSrc(src);
+    setHasError(false);
+  }, [src]);
+
+  const handleImageError = () => {
+    if (currentSrc && currentSrc.includes('googleusercontent.com') && !currentSrc.includes('thumbnail')) {
+      const fallback = getDriveThumbnailUrl(currentSrc);
+      if (fallback !== currentSrc) {
+        setCurrentSrc(fallback);
+        return;
+      }
+    }
+    setHasError(true);
+  };
+
   const dimensions =
     size === 'lg'
       ? 'w-[216px] max-[360px]:w-full h-[270px]'
-      : 'w-[96px] h-[120px]';
+      : 'w-[120px] h-[150px]';
 
   return (
     <div
@@ -42,11 +63,13 @@ export function PixelPortraitFrame({
         <div className="absolute inset-0 px-starfield pointer-events-none" />
 
         {/* Photo */}
-        {src ? (
+        {currentSrc && !hasError ? (
           <img
-            src={src}
+            src={currentSrc}
             alt={alt}
-            className="absolute inset-0 w-full h-full object-cover"
+            referrerPolicy="no-referrer"
+            onError={handleImageError}
+            className="absolute inset-0 w-full h-full object-cover object-top"
             style={{ imageRendering: 'auto' }}
             draggable={false}
           />

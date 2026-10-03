@@ -373,6 +373,8 @@ describe('Feature: Master Data (Styles & Instructors)', () => {
       expect(inst.photoUrl).toMatch(/^https:\/\/lh3\.googleusercontent\.com\/d\//);
       const parsedPhotos = JSON.parse(inst.photosJson);
       expect(parsedPhotos[0].url).toMatch(/^https:\/\/lh3\.googleusercontent\.com\/d\//);
+      // Deduplication: photoUrl and parsedPhotos[0].url should point to the exact same uploaded file
+      expect(inst.photoUrl).toBe(parsedPhotos[0].url);
 
       // Verify that Instructor Photos folder exists in Drive
       const folderId = ctx.drive.findChildFolder('root', 'Instructor Photos');

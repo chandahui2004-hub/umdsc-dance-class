@@ -53,9 +53,25 @@ export const STANDARD_PHOTO_HINT = 'Recommended size: 1080 × 1350 px (4:5 aspec
 export function convertDriveImageUrl(url: string): string {
   const trimmed = url.trim();
   if (!trimmed) return '';
-  const match = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  const match = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/) || trimmed.match(/\/d\/([a-zA-Z0-9_-]+)/);
   if (match && match[1]) {
     return `https://lh3.googleusercontent.com/d/${match[1]}`;
+  }
+  return trimmed;
+}
+
+/**
+ * Converts a Google Drive link or ID into the reliable Google Drive thumbnail URL.
+ */
+export function getDriveThumbnailUrl(url: string, size = 1000): string {
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+  const match =
+    trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
+    trimmed.match(/\/d\/([a-zA-Z0-9_-]+)/) ||
+    trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (match && match[1]) {
+    return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w${size}`;
   }
   return trimmed;
 }

@@ -12,7 +12,9 @@ import {
   getInstructorPhotoUrl,
   STANDARD_PHOTO_HINT,
   optimizeInstructorPhoto,
-  convertDriveImageUrl
+  convertDriveImageUrl,
+  getDriveThumbnailUrl,
+  DEFAULT_INSTRUCTOR_PHOTOS
 } from '../../lib/instructorPhotos';
 import type { Instructor, InstructorPhoto } from '@umdsc/shared';
 
@@ -258,6 +260,58 @@ export const InstructorsPage: React.FC = () => {
     }
   });
 
+  const [isSyncingPhotos, setIsSyncingPhotos] = useState(false);
+
+  const hasLocalPhotos = instructors.some(
+    (i) => i.photoUrl?.startsWith('/instructors/') || (!i.photoUrl && DEFAULT_INSTRUCTOR_PHOTOS[i.name])
+  );
+
+  const syncDefaultPhotosToDrive = async () => {
+    setIsSyncingPhotos(true);
+    setFormError(null);
+    try {
+      for (const inst of instructors) {
+        const localPath = inst.photoUrl?.startsWith('/instructors/')
+          ? inst.photoUrl
+          : DEFAULT_INSTRUCTOR_PHOTOS[inst.name];
+
+        if (localPath && (!inst.photoUrl || inst.photoUrl.startsWith('/instructors/'))) {
+          const resp = await fetch(localPath);
+          const blob = await resp.blob();
+          const file = new File([blob], `${inst.name}.png`, { type: 'image/png' });
+          const optimizedDataUrl = await optimizeInstructorPhoto(file);
+
+          const newPhoto: InstructorPhoto = {
+            id: 'photo_' + Date.now(),
+            url: optimizedDataUrl,
+            active: true,
+            uploadedAt: new Date().toISOString()
+          };
+
+          await api.post(
+            'instructors.update',
+            {
+              id: inst.id,
+              version: inst.version,
+              name: inst.name,
+              contact: inst.contact || '',
+              color: inst.color || 'orange',
+              photoUrl: optimizedDataUrl,
+              photosJson: JSON.stringify([newPhoto])
+            },
+            { opId: newOpId() }
+          );
+        }
+      }
+      await queryClient.invalidateQueries({ queryKey: ['instructors'] });
+      await queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] });
+    } catch (err: any) {
+      setFormError('Failed to sync pictures to Google Drive: ' + (err?.message || 'unknown error'));
+    } finally {
+      setIsSyncingPhotos(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -269,10 +323,29 @@ export const InstructorsPage: React.FC = () => {
             Manage club instructors, signature colors, and standardized portraits.
           </p>
         </div>
-        <PixelButton size="md" variant="primary" onClick={openCreate}>
-          + NEW INSTRUCTOR
-        </PixelButton>
+        <div className="flex flex-wrap items-center gap-2">
+          {hasLocalPhotos && (
+            <PixelButton
+              size="md"
+              variant="secondary"
+              disabled={isSyncingPhotos}
+              onClick={syncDefaultPhotosToDrive}
+              title="Upload default instructor photos (Carmen, Lam, Kelvin) to your Google Drive folder"
+            >
+              {isSyncingPhotos ? 'SYNCING TO DRIVE...' : '☁ SYNC DEFAULT PICTURES TO DRIVE'}
+            </PixelButton>
+          )}
+          <PixelButton size="md" variant="primary" onClick={openCreate}>
+            + NEW INSTRUCTOR
+          </PixelButton>
+        </div>
       </div>
+
+      {formError && !isCreating && !editingInstructor && (
+        <div role="alert" className="p-3 bg-[var(--night-1)] border-2 border-[var(--neon-red)] text-[var(--neon-red)] font-body text-sm font-bold">
+          {formError}
+        </div>
+      )}
 
       {isLoading ? (
         <div className="flex justify-center p-8">
@@ -306,8 +379,8 @@ export const InstructorsPage: React.FC = () => {
                   <PixelPortraitFrame
                     src={photoUrl || ''}
                     alt={inst.name}
-                    name="INSTRUCTOR"
-                    glow="var(--neon-cyan)"
+                    name={inst.name}
+                    glow={instColor}
                     size="sm"
                   />
                   {/* Instructor Color Banner below picture */}
@@ -508,7 +581,14 @@ export const InstructorsPage: React.FC = () => {
                             <img
                               src={p.url}
                               alt="Instructor thumbnail"
-                              className="w-full h-full object-cover absolute inset-0"
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full object-cover object-top absolute inset-0"
+                              onError={(e) => {
+                                const thumb = getDriveThumbnailUrl(p.url, 400);
+                                if (thumb && thumb !== p.url && e.currentTarget.src !== thumb) {
+                                  e.currentTarget.src = thumb;
+                                }
+                              }}
                             />
 
                             {/* Badge */}

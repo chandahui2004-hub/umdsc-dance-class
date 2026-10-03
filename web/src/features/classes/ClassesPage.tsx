@@ -11,7 +11,7 @@ import { SessionEditor } from './SessionEditor';
 import { todayKL } from '../../lib/time';
 import { getStyleColor } from '../../theme/colors';
 import { useCurrentEvent } from '../events/useCurrentEvent';
-import { resolveInstructor, getInstructorPhotoUrl } from '../../lib/instructorPhotos';
+import { resolveInstructor, getInstructorPhotoUrl, getDriveThumbnailUrl } from '../../lib/instructorPhotos';
 import type { ClassSession, DanceStyle, Instructor, ISODate, Month } from '@umdsc/shared';
 
 export const ClassesPage: React.FC = () => {
@@ -275,8 +275,15 @@ export const ClassesPage: React.FC = () => {
                                 <img
                                   src={photoUrl}
                                   alt={instructor?.name || 'Instructor'}
-                                  className="w-8 h-10 object-cover border-2 border-[var(--outline)] flex-shrink-0"
+                                  referrerPolicy="no-referrer"
+                                  className="w-8 h-10 object-cover object-top border-2 border-[var(--outline)] flex-shrink-0"
                                   loading="lazy"
+                                  onError={(e) => {
+                                    const thumb = getDriveThumbnailUrl(photoUrl, 200);
+                                    if (thumb && thumb !== photoUrl && e.currentTarget.src !== thumb) {
+                                      e.currentTarget.src = thumb;
+                                    }
+                                  }}
                                 />
                               ) : (
                                 <span className="w-8 h-10 flex items-center justify-center bg-[var(--night-1)] border-2 border-[var(--outline)] font-display text-[8px] text-[var(--text-2)] flex-shrink-0">👤</span>
@@ -508,8 +515,15 @@ export const ClassesPage: React.FC = () => {
                       <img
                         src={photoUrl}
                         alt={instructor?.name || 'Instructor'}
-                        className="w-10 h-[50px] object-cover border-2 border-[var(--outline)] flex-shrink-0"
+                        referrerPolicy="no-referrer"
+                        className="w-10 h-[50px] object-cover object-top border-2 border-[var(--outline)] flex-shrink-0"
                         loading="lazy"
+                        onError={(e) => {
+                          const thumb = getDriveThumbnailUrl(photoUrl, 200);
+                          if (thumb && thumb !== photoUrl && e.currentTarget.src !== thumb) {
+                            e.currentTarget.src = thumb;
+                          }
+                        }}
                       />
                     ) : (
                       <span className="w-10 h-[50px] flex items-center justify-center bg-[var(--night-1)] border-2 border-[var(--outline)] font-display text-[9px] text-[var(--text-2)] flex-shrink-0">👤</span>
