@@ -258,7 +258,7 @@ export function YouTubePlayer({
         className={
           isVisible
             ? isFullscreen
-              ? "fixed inset-0 bottom-20 z-[55] w-full flex items-center justify-center bg-black overflow-hidden [&_iframe]:w-full [&_iframe]:h-full"
+              ? "fixed inset-0 bottom-20 z-40 w-full flex items-center justify-center bg-black overflow-hidden [&_iframe]:w-full [&_iframe]:h-full"
               : "mx-auto h-[200px] w-[200px] overflow-hidden border-2 border-[var(--outline)] bg-black shadow-[4px_4px_0_var(--shadow-hard)] [&_iframe]:h-full [&_iframe]:w-full"
             : "pointer-events-none fixed left-0 top-0 h-[200px] w-[200px] overflow-hidden opacity-0"
         }

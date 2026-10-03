@@ -79,7 +79,8 @@ export interface DancerBootstrap { profile: { matricKey: string; fullName: strin
   events: EventSummary[]; styles: DanceStyle[]; instructors: Instructor[]; sessions: ClassSession[]; attendance: { sessionId: string; present: boolean }[];
   videos: VideoItem[]; music: MusicItem[]; sections: Section[] }
 export interface AdminBootstrap { profile: { username: string; displayName: string; perms: PermMap }; styles: DanceStyle[];
-  instructors: Instructor[]; sessions: ClassSession[]; roles: Role[]; events: EventItem[]; settings: Record<string,string> }
+  instructors: Instructor[]; sessions: ClassSession[]; roles: Role[]; events: EventItem[]; settings: Record<string,string>;
+  videos?: VideoItem[]; music?: MusicItem[]; sections?: Section[] }
 export interface AttendanceGrid { eventId: string; styleId: string; version: number; sessions: ClassSession[];
   members: { memberId: string; fullName: string; matric: string }[]; present: Record<string, string[]>;
   spreadsheetId?: string; folderId?: string; masterFolderId?: string } // memberId -> sessionIds

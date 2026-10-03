@@ -284,8 +284,27 @@ export function getMasterDataRoutes(): Record<string, Route> {
         const match = base64Data.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/);
         const mime = match ? match[1] : 'image/jpeg';
         const ext = mime.includes('webp') ? 'webp' : mime.includes('png') ? 'png' : 'jpg';
-        const cleanName = prefixName.replace(/[^a-zA-Z0-9_-]/g, '_');
-        const fileName = `${cleanName}_${Date.now()}.${ext}`;
+        const cleanName = prefixName.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
+        let hash = 0;
+        for (let i = 0; i < base64Data.length; i++) {
+          hash = (hash << 5) - hash + base64Data.charCodeAt(i);
+          hash |= 0;
+        }
+        const contentHash = Math.abs(hash).toString(36);
+        const fileName = `${cleanName}_${contentHash}.${ext}`;
+
+        // Check if an identical file already exists in the Google Drive folder to prevent duplicates
+        try {
+          const existing = ctx.drive.listFilesRecursive(folderId).find(f => f.name === fileName);
+          if (existing) {
+            const existingUrl = `https://lh3.googleusercontent.com/d/${existing.id}`;
+            uploadedBase64Map.set(base64Data, existingUrl);
+            return existingUrl;
+          }
+        } catch {
+          // Proceed with upload if file listing fails
+        }
+
         const uploaded = ctx.drive.createFileFromBase64(folderId, fileName, mime, base64Data);
         uploadedBase64Map.set(base64Data, uploaded.url);
         return uploaded.url;

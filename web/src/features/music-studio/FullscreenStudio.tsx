@@ -549,9 +549,9 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[var(--night-1)] flex flex-col overflow-hidden select-none">
+    <div className={`fixed inset-0 z-50 flex flex-col overflow-hidden select-none ${hasYouTubeVideo ? 'bg-transparent pointer-events-none' : 'bg-[var(--night-1)]'}`}>
       {/* Top Video / Media Viewport (Takes majority of screen) */}
-      <div className="flex-1 relative min-h-0 w-full flex items-center justify-center bg-black overflow-hidden">
+      <div className={`flex-1 relative min-h-0 w-full flex items-center justify-center overflow-hidden ${hasYouTubeVideo ? 'bg-transparent pointer-events-none' : 'bg-black'}`}>
         {hasDanceVideo ? (
           <video
             ref={activeVideoRef}
@@ -587,7 +587,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
         <div
           data-testid="fullscreen-hud"
           style={{ transform: `translate3d(${hudPos.x}px, ${hudPos.y}px, 0)` }}
-          className="absolute top-0 left-0 z-[70] flex items-center flex-wrap gap-2 bg-[var(--night-1)]/95 border-4 border-[var(--outline)] px-3 py-2 shadow-[6px_6px_0_var(--outline)] max-w-[95vw]"
+          className="absolute top-0 left-0 z-[70] pointer-events-auto flex items-center flex-wrap gap-2 bg-[var(--night-1)]/95 border-4 border-[var(--outline)] px-3 py-2 shadow-[6px_6px_0_var(--outline)] max-w-[95vw]"
         >
           {/* Drag Handle */}
           <div
@@ -735,7 +735,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
         {showLoopsPanel && (
           <div
             data-testid="fullscreen-loops-drawer"
-            className="absolute top-16 right-4 z-[80] w-96 max-w-[92vw] max-h-[80vh] flex flex-col bg-[var(--night-1)]/95 border-4 border-[var(--outline)] shadow-[8px_8px_0_var(--outline)] text-[var(--text-1)] font-mono"
+            className="absolute top-16 right-4 z-[80] pointer-events-auto w-96 max-w-[92vw] max-h-[80vh] flex flex-col bg-[var(--night-1)]/95 border-4 border-[var(--outline)] shadow-[8px_8px_0_var(--outline)] text-[var(--text-1)] font-mono"
           >
             {/* Panel Header */}
             <div className="flex items-center justify-between bg-[var(--night-2)] px-3 py-2 border-b-4 border-[var(--outline)]">
@@ -948,7 +948,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
       </div>
 
       {/* Bottom Area: Stacked Music & Video Progress Bars */}
-      <div className="bg-[var(--night-1)] border-t-4 border-[var(--outline)] p-3 space-y-2 relative z-[60]">
+      <div className="bg-[var(--night-1)] border-t-4 border-[var(--outline)] p-3 space-y-2 relative z-[60] pointer-events-auto">
         {/* Primary Timeline Progress */}
         <div className="space-y-1">
           <div className="flex justify-between items-center text-[10px] font-mono text-[var(--neon-green)]">

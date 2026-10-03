@@ -4,7 +4,7 @@ import type { Master } from './types';
 import type { Marker } from '../dancecue/types/marker';
 import { useSyncedVideo } from './useSyncedVideo';
 import { VideoTimeline } from './VideoTimeline';
-import { streamUrl } from '../../../lib/google/driveUrls';
+import { streamUrl, openInDriveUrl } from '../../../lib/google/driveUrls';
 
 export interface VideoPanelProps {
   master: Master;
@@ -84,6 +84,7 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   // True when the file loaded (sound works) but the browser cannot decode its picture, e.g. H.265.
   const [noPicture, setNoPicture] = useState<boolean>(false);
+  const [streamError, setStreamError] = useState<boolean>(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -136,6 +137,7 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
 
   useEffect(() => {
     setNoPicture(false);
+    setStreamError(false);
   }, [selectedVideoId, currentVideoSrc]);
 
   const { muted, setMuted, status } = useSyncedVideo({
@@ -310,6 +312,13 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
                 (No class videos match filters)
               </option>
             )}
+            {selectedVideo && !filteredVideos.some(v => v.id === selectedVideo.id) && (
+              <optgroup label="Selected Video">
+                <option value={selectedVideo.id}>
+                  {selectedVideo.title || `Video ${selectedVideo.id.slice(0, 8)}`}
+                </option>
+              </optgroup>
+            )}
           </select>
         </div>
       </div>
@@ -345,8 +354,36 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
                 const el = e.currentTarget;
                 setNoPicture(el.videoWidth === 0 && el.videoHeight === 0);
               }}
+              onError={() => {
+                if (!isLocalVideo && Boolean(currentVideoSrc)) {
+                  setStreamError(true);
+                }
+              }}
               className="w-full h-full object-contain"
             />
+            {streamError && (
+              <div
+                role="alert"
+                className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--night-1)]/95 p-4 text-center z-20 space-y-2"
+              >
+                <p className="font-display text-[12px] text-[var(--neon-pink)]">
+                  UNABLE TO STREAM GOOGLE DRIVE VIDEO
+                </p>
+                <p className="font-mono text-[11px] text-[var(--text-2)] max-w-sm">
+                  Direct Google Drive streaming requires public permissions or API key access.
+                </p>
+                {selectedVideo && (
+                  <a
+                    href={openInDriveUrl(selectedVideo.driveFileId)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1 bg-[var(--neon-cyan)] text-[var(--on-neon)] font-display text-[10px] hover:brightness-110 border border-[var(--outline)]"
+                  >
+                    OPEN IN GOOGLE DRIVE ↗
+                  </a>
+                )}
+              </div>
+            )}
             {noPicture && (
               <div
                 role="alert"

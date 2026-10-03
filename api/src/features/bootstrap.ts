@@ -50,9 +50,11 @@ export function getAdminBootstrap(
     for (const s of ctx.db.settings.find(s => s.active)) {
       settings[s.key] = s.value;
     }
-    settings.clubEmail = ctx.clubEmail;
+    const videos = ctx.db.videos.find(v => v.active);
+    const music = ctx.db.music.find(m => m.active);
+    const sections = ctx.db.sections.find(s => s.active);
 
-    sharedData = { styles, instructors, sessions, roles: roles as any, events, settings };
+    sharedData = { styles, instructors, sessions, roles: roles as any, events, settings, videos, music, sections };
     safeCachePut(ctx.cache, cacheKey, JSON.stringify(sharedData), 600);
   }
 

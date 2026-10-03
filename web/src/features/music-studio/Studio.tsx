@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { AudioPlayer } from './dancecue/components/AudioPlayer';
 import { YouTubePlayer } from './dancecue/components/YouTubePlayer';
 import { SoundCloudPlayer } from './dancecue/components/SoundCloudPlayer';
@@ -33,11 +34,37 @@ export const Studio: React.FC = () => {
   const adminBoot = useBootstrap('admin');
 
   const bootstrapData = isAdmin ? adminBoot.data : dancerBoot.data;
-  const musicList = (bootstrapData as any)?.music || [];
+
+  // Live queries ensure Admin and Dancer always see all added videos, music, and sections in real-time
+  const { data: liveVideos } = useQuery<VideoItem[]>({
+    queryKey: ['videos'],
+    queryFn: async () => {
+      const res = await api.post<VideoItem[]>('videos.list', {});
+      return res.data;
+    }
+  });
+
+  const { data: liveMusic } = useQuery<MusicItem[]>({
+    queryKey: ['music'],
+    queryFn: async () => {
+      const res = await api.post<MusicItem[]>('music.list', {});
+      return res.data;
+    }
+  });
+
+  const { data: liveSections } = useQuery<Section[]>({
+    queryKey: ['sections'],
+    queryFn: async () => {
+      const res = await api.post<Section[]>('sections.list', {});
+      return res.data;
+    }
+  });
+
+  const musicList: MusicItem[] = liveMusic || (bootstrapData as any)?.music || [];
   const stylesList = bootstrapData?.styles || [];
   const eventsList = (bootstrapData as any)?.events || [];
-  const sectionsList: Section[] = (bootstrapData as any)?.sections || [];
-  const videosList: VideoItem[] = (bootstrapData as any)?.videos || [];
+  const sectionsList: Section[] = liveSections || (bootstrapData as any)?.sections || [];
+  const videosList: VideoItem[] = liveVideos || (bootstrapData as any)?.videos || [];
 
   const [selectedMusicId, setSelectedMusicId] = useState<string | null>(musicParam);
   const [activeMusicTitle, setActiveMusicTitle] = useState<string | null>(null);
