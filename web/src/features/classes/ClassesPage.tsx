@@ -59,6 +59,10 @@ export const ClassesPage: React.FC = () => {
     queryFn: async () => (await call<ClassSession[]>('sessions.list', { eventId })).data || []
   });
 
+  const [filterEventId, setFilterEventId] = useState<string>('all');
+  const [filterStyleId, setFilterStyleId] = useState<string>('all');
+  const [filterInstructor, setFilterInstructor] = useState<string>('all');
+
   const activeSessions = useMemo(
     () => sessions.filter(s => s.active).sort((a, b) => a.date.localeCompare(b.date) || a.seq - b.seq),
     [sessions]
@@ -66,9 +70,61 @@ export const ClassesPage: React.FC = () => {
   const getStyle = (styleId: string) => allStyles.find(s => s.id === styleId);
   const getEvent = (id: string) => events.find(e => e.id === id);
 
+  const availableStyles = useMemo(() => {
+    const styleIdSet = new Set(activeSessions.map(s => s.styleId));
+    const list = allStyles.filter(st => styleIdSet.has(st.id) || st.active !== false);
+    return list.sort((a, b) => a.name.localeCompare(b.name));
+  }, [allStyles, activeSessions]);
+
+  const availableInstructors = useMemo(() => {
+    const map = new Map<string, { id: string; name: string }>();
+    for (const inst of instructors) {
+      if (inst.name?.trim()) {
+        map.set(inst.name.trim().toLowerCase(), { id: inst.id || inst.name.trim(), name: inst.name.trim() });
+      }
+    }
+    for (const s of activeSessions) {
+      const style = getStyle(s.styleId);
+      const inst = resolveInstructor(s, style, instructors);
+      if (inst?.name?.trim()) {
+        const key = inst.name.trim().toLowerCase();
+        if (!map.has(key)) {
+          map.set(key, { id: inst.id || inst.name.trim(), name: inst.name.trim() });
+        }
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [instructors, activeSessions, allStyles]);
+
+  const matchesFilter = (s: ClassSession) => {
+    if (isAll && filterEventId !== 'all' && s.eventId !== filterEventId) {
+      return false;
+    }
+    if (filterStyleId !== 'all' && s.styleId !== filterStyleId) {
+      return false;
+    }
+    if (filterInstructor !== 'all') {
+      const style = getStyle(s.styleId);
+      const inst = resolveInstructor(s, style, instructors);
+      if (!inst) return false;
+      const target = filterInstructor.trim().toLowerCase();
+      const nameMatch = inst.name?.trim().toLowerCase() === target;
+      const idMatch = inst.id === filterInstructor;
+      if (!nameMatch && !idMatch) return false;
+    }
+    return true;
+  };
+
+  const isFiltered = (isAll && filterEventId !== 'all') || filterStyleId !== 'all' || filterInstructor !== 'all';
+
+  const filteredSessions = useMemo(
+    () => activeSessions.filter(matchesFilter),
+    [activeSessions, isAll, filterEventId, filterStyleId, filterInstructor, instructors, allStyles]
+  );
+
   const calendarMarks = useMemo(() => {
     const marks: Record<ISODate, CalendarMark[]> = {};
-    for (const s of activeSessions) {
+    for (const s of filteredSessions) {
       const style = getStyle(s.styleId);
       const ev = getEvent(s.eventId);
       const evTag = isAll && ev ? ` · ${ev.name}` : '';
@@ -79,7 +135,7 @@ export const ClassesPage: React.FC = () => {
       });
     }
     return marks;
-  }, [activeSessions, allStyles, isAll, events]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filteredSessions, allStyles, isAll, events]);
 
   const insideEvent = Boolean(targetEvent && selectedDate >= targetEvent.startDate && selectedDate <= targetEvent.endDate);
   const addStyleId = newStyleId || styles[0]?.id || '';
@@ -184,53 +240,78 @@ export const ClassesPage: React.FC = () => {
               <div role="alert" className="p-3 bg-[var(--night-1)] border-2 border-[var(--neon-red)] text-[var(--neon-red)] text-[12px] font-body font-bold">{errorMessage(error)}</div>
             ) : (
               <div className="space-y-2">
-                {activeSessions
-                  .filter(s => s.date === selectedDate)
-                  .map(s => {
-                    const style = getStyle(s.styleId);
-                    const instructor = resolveInstructor(s, style, instructors);
-                    const photoUrl = getInstructorPhotoUrl(instructor);
-                    return (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => setEditingSession(s)}
-                        className="w-full text-left p-3 bg-[var(--night-2)] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] hover:bg-[var(--violet-2)] space-y-2 transition-none cursor-pointer"
-                      >
-                        <div className="flex flex-wrap justify-between items-center gap-1">
-                          <span style={{ backgroundColor: colorOf(s.styleId) }} className="px-2 py-0.5 text-[12px] font-display text-[var(--on-neon)] font-bold border border-[var(--outline)]">
-                            {style?.name || 'Style'} Class {s.seq}
-                          </span>
-                          {isAll && (
-                            <span className="font-display text-[12px] px-1 bg-[var(--night-1)] text-[var(--neon-cyan)] border border-[var(--outline)]">
-                              {getEvent(s.eventId)?.name || 'Event'}
-                            </span>
-                          )}
-                          <span className="font-mono text-[12px] font-bold text-[var(--text-1)]">
-                            {s.start} - {s.end}
-                          </span>
+                {(() => {
+                  const dateSessions = activeSessions.filter(s => s.date === selectedDate);
+                  const visibleDateSessions = isFiltered ? dateSessions.filter(matchesFilter) : dateSessions;
+
+                  return (
+                    <>
+                      {visibleDateSessions.map(s => {
+                        const style = getStyle(s.styleId);
+                        const instructor = resolveInstructor(s, style, instructors);
+                        const photoUrl = getInstructorPhotoUrl(instructor);
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => setEditingSession(s)}
+                            className="w-full text-left p-3 bg-[var(--night-2)] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] hover:bg-[var(--violet-2)] space-y-2 transition-none cursor-pointer"
+                          >
+                            <div className="flex flex-wrap justify-between items-center gap-1">
+                              <span style={{ backgroundColor: colorOf(s.styleId) }} className="px-2 py-0.5 text-[12px] font-display text-[var(--on-neon)] font-bold border border-[var(--outline)]">
+                                {style?.name || 'Style'} Class {s.seq}
+                              </span>
+                              {isAll && (
+                                <span className="font-display text-[12px] px-1 bg-[var(--night-1)] text-[var(--neon-cyan)] border border-[var(--outline)]">
+                                  {getEvent(s.eventId)?.name || 'Event'}
+                                </span>
+                              )}
+                              <span className="font-mono text-[12px] font-bold text-[var(--text-1)]">
+                                {s.start} - {s.end}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {photoUrl ? (
+                                <img
+                                  src={photoUrl}
+                                  alt={instructor?.name || 'Instructor'}
+                                  className="w-8 h-10 object-cover border-2 border-[var(--outline)] flex-shrink-0"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <span className="w-8 h-10 flex items-center justify-center bg-[var(--night-1)] border-2 border-[var(--outline)] font-display text-[8px] text-[var(--text-2)] flex-shrink-0">👤</span>
+                              )}
+                              <div className="font-body text-[14px] text-[var(--text-2)]">
+                                <span className="font-bold text-[var(--text-1)]">{instructor?.name || 'TBA'}</span> · {s.venue || 'TBA'}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                      {isFiltered && visibleDateSessions.length === 0 && dateSessions.length > 0 && (
+                        <div className="p-3 bg-[var(--night-1)] border border-[var(--outline)] text-center space-y-1">
+                          <p className="font-body text-[13px] text-[var(--text-2)]">
+                            No classes match filter on this date ({dateSessions.length} other class{dateSessions.length > 1 ? 'es' : ''} scheduled).
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFilterStyleId('all');
+                              setFilterInstructor('all');
+                              setFilterEventId('all');
+                            }}
+                            className="font-display text-[10px] text-[var(--neon-gold)] underline cursor-pointer"
+                          >
+                            RESET FILTERS
+                          </button>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {photoUrl ? (
-                            <img
-                              src={photoUrl}
-                              alt={instructor?.name || 'Instructor'}
-                              className="w-8 h-10 object-cover border-2 border-[var(--outline)] flex-shrink-0"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <span className="w-8 h-10 flex items-center justify-center bg-[var(--night-1)] border-2 border-[var(--outline)] font-display text-[8px] text-[var(--text-2)] flex-shrink-0">👤</span>
-                          )}
-                          <div className="font-body text-[14px] text-[var(--text-2)]">
-                            <span className="font-bold text-[var(--text-1)]">{instructor?.name || 'TBA'}</span> · {s.venue || 'TBA'}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                {activeSessions.filter(s => s.date === selectedDate).length === 0 && (
-                  <p className="font-body text-[14px] text-[var(--text-2)] py-2 text-center">No classes on this date.</p>
-                )}
+                      )}
+                      {dateSessions.length === 0 && (
+                        <p className="font-body text-[14px] text-[var(--text-2)] py-2 text-center">No classes on this date.</p>
+                      )}
+                    </>
+                  );
+                })()}
 
                 {/* Add class section */}
                 <div className="pt-2 border-t-2 border-[var(--outline)] space-y-2">
@@ -285,11 +366,122 @@ export const ClassesPage: React.FC = () => {
       </div>
 
       <Panel title={isAll ? 'ALL CLASSES ACROSS ALL EVENTS' : `ALL CLASSES IN ${event?.name || ''}`}>
+        {/* Filter Controls Bar */}
+        <div className="mb-4 p-3 bg-[var(--night-1)] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)]">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Event Filter (when isAll is true) */}
+              {isAll && events.length > 1 && (
+                <label className="flex items-center gap-2">
+                  <span className="font-display text-[10px] text-[var(--neon-cyan)] tracking-wider">
+                    EVENT:
+                  </span>
+                  <select
+                    aria-label="Filter classes by event"
+                    value={filterEventId}
+                    onChange={e => setFilterEventId(e.target.value)}
+                    className="min-h-[36px] bg-[var(--night-2)] text-[var(--text-1)] border-2 border-[var(--outline)] px-2 py-1 text-[13px] font-mono focus:border-[var(--neon-cyan)] outline-none"
+                  >
+                    <option value="all">ALL EVENTS ({events.length})</option>
+                    {events.map(ev => (
+                      <option key={ev.id} value={ev.id}>
+                        {ev.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+
+              {/* Style Filter */}
+              <label className="flex items-center gap-2">
+                <span className="font-display text-[10px] text-[var(--neon-pink)] tracking-wider">
+                  STYLE:
+                </span>
+                <select
+                  aria-label="Filter classes by dance style"
+                  value={filterStyleId}
+                  onChange={e => setFilterStyleId(e.target.value)}
+                  className="min-h-[36px] bg-[var(--night-2)] text-[var(--text-1)] border-2 border-[var(--outline)] px-2 py-1 text-[13px] font-mono focus:border-[var(--neon-pink)] outline-none"
+                >
+                  <option value="all">ALL STYLES ({availableStyles.length})</option>
+                  {availableStyles.map(st => (
+                    <option key={st.id} value={st.id}>
+                      {st.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {/* Instructor Filter */}
+              <label className="flex items-center gap-2">
+                <span className="font-display text-[10px] text-[var(--neon-green)] tracking-wider">
+                  INSTRUCTOR:
+                </span>
+                <select
+                  aria-label="Filter classes by instructor"
+                  value={filterInstructor}
+                  onChange={e => setFilterInstructor(e.target.value)}
+                  className="min-h-[36px] bg-[var(--night-2)] text-[var(--text-1)] border-2 border-[var(--outline)] px-2 py-1 text-[13px] font-mono focus:border-[var(--neon-green)] outline-none"
+                >
+                  <option value="all">ALL INSTRUCTORS ({availableInstructors.length})</option>
+                  {availableInstructors.map(inst => (
+                    <option key={inst.id} value={inst.name}>
+                      {inst.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {/* Reset button if any filter is active */}
+              {isFiltered && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterStyleId('all');
+                    setFilterInstructor('all');
+                    setFilterEventId('all');
+                  }}
+                  className="px-2.5 py-1.5 bg-[var(--night-2)] text-[var(--neon-gold)] hover:bg-[var(--violet-2)] border-2 border-[var(--outline)] shadow-[1px_1px_0_var(--outline)] font-display text-[10px] cursor-pointer active:translate-x-[1px] active:translate-y-[1px]"
+                >
+                  ✕ RESET
+                </button>
+              )}
+            </div>
+
+            {/* Filtered Count indicator */}
+            <div data-testid="classes-count-badge" className="font-display text-[10px] text-[var(--text-2)] whitespace-nowrap">
+              SHOWING <span className="text-[var(--neon-gold)] font-bold">{filteredSessions.length}</span> OF {activeSessions.length} CLASSES
+            </div>
+          </div>
+        </div>
+
         {activeSessions.length === 0 ? (
           <EmptyState scene="shutter" title="NO CLASSES YET" description="Pick a day in the calendar and add a class, or use Events › Edit." />
+        ) : filteredSessions.length === 0 ? (
+          <div className="p-8 text-center bg-[var(--night-1)] border-2 border-[var(--outline)] space-y-3">
+            <div className="font-display text-[14px] text-[var(--neon-pink)]">
+              NO CLASSES MATCH FILTERS
+            </div>
+            <p className="font-body text-[14px] text-[var(--text-2)]">
+              No classes match the selected {filterStyleId !== 'all' ? 'dance style' : ''}
+              {filterStyleId !== 'all' && filterInstructor !== 'all' ? ' and ' : ''}
+              {filterInstructor !== 'all' ? 'instructor' : ''}.
+            </p>
+            <PixelButton
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setFilterStyleId('all');
+                setFilterInstructor('all');
+                setFilterEventId('all');
+              }}
+            >
+              RESET FILTERS
+            </PixelButton>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {activeSessions.map(s => {
+            {filteredSessions.map(s => {
               const style = getStyle(s.styleId);
               const instructor = resolveInstructor(s, style, instructors);
               const photoUrl = getInstructorPhotoUrl(instructor);
