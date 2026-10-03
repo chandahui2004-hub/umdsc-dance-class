@@ -314,6 +314,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
   });
 
   const classMarkerIds = useMemo(() => new Set(classMarkers.map(m => m.id)), [classMarkers]);
+  const roundLoopTime = (t: number): number => Math.round(t * 10) / 10;
 
   // Save / Update loop form submission
   const handleSaveLoopForm = (e: React.FormEvent) => {
@@ -322,7 +323,9 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
       setLoopFormError('Please enter a loop name.');
       return;
     }
-    if (loopFormEnd <= loopFormStart) {
+    const finalStart = roundLoopTime(loopFormStart);
+    const finalEnd = roundLoopTime(loopFormEnd);
+    if (finalEnd <= finalStart) {
       setLoopFormError('End time must be greater than start time.');
       return;
     }
@@ -333,12 +336,12 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
         onUpdateLoopMarker({
           ...existing,
           name: loopFormName.trim(),
-          time: loopFormStart,
-          endTime: loopFormEnd
+          time: finalStart,
+          endTime: finalEnd
         });
       }
     } else if (onAddLoopMarker) {
-      onAddLoopMarker(loopFormName.trim(), loopFormStart, loopFormEnd);
+      onAddLoopMarker(loopFormName.trim(), finalStart, finalEnd);
     }
 
     setIsEditingLoop(false);
@@ -350,10 +353,15 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
     setShowLoopsPanel(true);
     setIsEditingLoop(true);
     setEditingLoopId(null);
-    const start = markerDraftRange ? markerDraftRange.start : Math.max(0, Math.round(effectiveCurrentTime * 10) / 10);
-    const end = markerDraftRange
+    const rawStart = markerDraftRange ? markerDraftRange.start : effectiveCurrentTime;
+    const rawEnd = markerDraftRange
       ? markerDraftRange.end
-      : Math.min(effectiveDuration || 30, Math.round((effectiveCurrentTime + 8) * 10) / 10);
+      : effectiveCurrentTime + 8;
+    const start = Math.max(0, roundLoopTime(rawStart));
+    const end = Math.min(
+      effectiveDuration || 30,
+      Math.max(start + 0.1, roundLoopTime(rawEnd))
+    );
     setLoopFormName(`Loop ${(myLoops?.length || 0) + 1}`);
     setLoopFormStart(start);
     setLoopFormEnd(end);
@@ -365,8 +373,8 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
     setIsEditingLoop(true);
     setEditingLoopId(marker.id);
     setLoopFormName(marker.name);
-    setLoopFormStart(marker.time);
-    setLoopFormEnd(marker.endTime);
+    setLoopFormStart(roundLoopTime(marker.time));
+    setLoopFormEnd(roundLoopTime(marker.endTime));
     setLoopFormError('');
   };
 
@@ -600,11 +608,12 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
                     type="button"
                     onClick={() => {
                       if (markerDraftRange) {
-                        setLoopFormStart(Math.round(markerDraftRange.start * 10) / 10);
-                        setLoopFormEnd(Math.round(markerDraftRange.end * 10) / 10);
+                        setLoopFormStart(roundLoopTime(markerDraftRange.start));
+                        setLoopFormEnd(roundLoopTime(markerDraftRange.end));
                       } else {
-                        setLoopFormStart(Math.max(0, Math.round(effectiveCurrentTime * 10) / 10));
-                        setLoopFormEnd(Math.min(effectiveDuration, Math.round((effectiveCurrentTime + 8) * 10) / 10));
+                        const s = Math.max(0, roundLoopTime(effectiveCurrentTime));
+                        setLoopFormStart(s);
+                        setLoopFormEnd(Math.min(effectiveDuration, Math.max(s + 0.1, roundLoopTime(effectiveCurrentTime + 8))));
                       }
                     }}
                     className="text-[9px] text-[var(--neon-gold)] underline hover:text-[var(--text-1)]"
@@ -630,7 +639,8 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
                       step="0.1"
                       min="0"
                       value={loopFormStart}
-                      onChange={e => setLoopFormStart(Number(e.target.value))}
+                      onChange={e => setLoopFormStart(e.target.value === '' ? 0 : Number(e.target.value))}
+                      onBlur={() => setLoopFormStart(prev => roundLoopTime(prev))}
                       className="bg-[var(--night-2)] border border-[var(--outline)] text-[var(--neon-green)] px-1.5 py-1 text-xs outline-none"
                     />
                   </label>
@@ -641,7 +651,8 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
                       step="0.1"
                       min="0.1"
                       value={loopFormEnd}
-                      onChange={e => setLoopFormEnd(Number(e.target.value))}
+                      onChange={e => setLoopFormEnd(e.target.value === '' ? 0 : Number(e.target.value))}
+                      onBlur={() => setLoopFormEnd(prev => roundLoopTime(prev))}
                       className="bg-[var(--night-2)] border border-[var(--outline)] text-[var(--neon-green)] px-1.5 py-1 text-xs outline-none"
                     />
                   </label>

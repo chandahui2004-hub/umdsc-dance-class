@@ -246,16 +246,24 @@ export const Studio: React.FC = () => {
           onSeek={player.seekTo}
           onSpeedChange={player.setSpeed}
           onSetInPoint={() =>
-            setMarkerDraftRange(prev => ({
-              start: player.currentTime,
-              end: prev ? Math.max(player.currentTime + 1, prev.end) : Math.min(player.duration, player.currentTime + 5)
-            }))
+            setMarkerDraftRange(prev => {
+              const cur = Math.round(player.currentTime * 10) / 10;
+              const safeEnd = prev ? Math.max(cur + 0.1, Math.round(prev.end * 10) / 10) : Math.min(Math.round(player.duration * 10) / 10, cur + 5);
+              return {
+                start: cur,
+                end: safeEnd
+              };
+            })
           }
           onSetOutPoint={() =>
-            setMarkerDraftRange(prev => ({
-              start: prev ? Math.min(prev.start, player.currentTime - 1) : Math.max(0, player.currentTime - 5),
-              end: player.currentTime
-            }))
+            setMarkerDraftRange(prev => {
+              const cur = Math.round(player.currentTime * 10) / 10;
+              const safeStart = prev ? Math.min(Math.round(prev.start * 10) / 10, Math.max(0, cur - 0.1)) : Math.max(0, cur - 5);
+              return {
+                start: safeStart,
+                end: cur
+              };
+            })
           }
           onStartLoopMarker={player.startLoop}
           onStopLoopMarker={player.stopLoop}

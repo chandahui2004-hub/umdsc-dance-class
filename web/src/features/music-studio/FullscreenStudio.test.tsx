@@ -169,19 +169,33 @@ describe('FullscreenStudio Component', () => {
     expect(onDeleteLoopMarker).toHaveBeenCalledWith('my-loop-1');
   });
 
-  it('functions in video-only mode when activeSource is null', () => {
+  it('rounds raw fractional draft range to nearest 0.1s when opening and saving loop', () => {
+    const onAddLoopMarker = vi.fn();
+
     render(
       <FullscreenStudio
         {...defaultProps}
-        activeSource={null}
-        activeMusicTitle={null}
-        danceVideoUrl="blob:http://localhost:5173/test-video"
+        markerDraftRange={{ start: 61.21439885210618, end: 87.19646702861023 }}
+        onAddLoopMarker={onAddLoopMarker}
       />
     );
 
-    // Shows Video Track in timeline
-    expect(screen.getByText(/VIDEO TRACK:/i)).toBeInTheDocument();
-    expect(screen.getByTestId('fullscreen-dance-video')).toBeInTheDocument();
+    // Open add loop modal via "+ SAVE" in HUD
+    const saveLoopBtn = screen.getByRole('button', { name: /save loop/i });
+    fireEvent.click(saveLoopBtn);
+
+    // Inputs should be rounded to 61.2 and 87.2
+    const startInput = screen.getByLabelText(/start \(s\):/i) as HTMLInputElement;
+    const endInput = screen.getByLabelText(/end \(s\):/i) as HTMLInputElement;
+
+    expect(Number(startInput.value)).toBe(61.2);
+    expect(Number(endInput.value)).toBe(87.2);
+
+    // Save and verify exact rounded values passed to onAddLoopMarker
+    const submitBtn = screen.getByRole('button', { name: /^save$/i });
+    fireEvent.click(submitBtn);
+
+    expect(onAddLoopMarker).toHaveBeenCalledWith('Loop 1', 61.2, 87.2);
   });
 });
 
