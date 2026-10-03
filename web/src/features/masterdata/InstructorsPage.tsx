@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, errorMessage } from '../../lib/api';
+import { api, errorMessage, newOpId } from '../../lib/api';
 import { Panel } from '../../components/ui/Panel';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { Field } from '../../components/ui/Field';
@@ -231,11 +231,11 @@ export const InstructorsPage: React.FC = () => {
       };
 
       if (isCreating) {
-        return await api.post('instructors.create', payload);
+        return await api.post('instructors.create', payload, { opId: newOpId() });
       } else if (editingInstructor) {
         payload.id = editingInstructor.id;
         payload.version = editingInstructor.version;
-        return await api.post('instructors.update', payload);
+        return await api.post('instructors.update', payload, { opId: newOpId() });
       }
     },
     onSuccess: () => {
@@ -250,7 +250,7 @@ export const InstructorsPage: React.FC = () => {
 
   const deactivateMutation = useMutation({
     mutationFn: async (inst: Instructor) => {
-      return await api.post('instructors.deactivate', { id: inst.id, version: inst.version });
+      return await api.post('instructors.deactivate', { id: inst.id, version: inst.version }, { opId: newOpId() });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['instructors'] });
@@ -342,13 +342,16 @@ export const InstructorsPage: React.FC = () => {
                   <PixelButton
                     size="sm"
                     variant="danger"
+                    disabled={deactivateMutation.isPending}
                     onClick={() => {
                       if (confirm(`Deactivate instructor "${inst.name}"?`)) {
                         deactivateMutation.mutate(inst);
                       }
                     }}
                   >
-                    DEACTIVATE
+                    {deactivateMutation.isPending && (deactivateMutation.variables as any)?.id === inst.id
+                      ? 'DEACTIVATING...'
+                      : 'DEACTIVATE'}
                   </PixelButton>
                 </div>
               </div>
