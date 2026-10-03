@@ -209,15 +209,18 @@ export function getInstructorPhotoUrl(instructor?: Partial<Instructor> | null): 
   if (!instructor) return null;
 
   if (instructor.photoUrl && instructor.photoUrl.trim()) {
-    return instructor.photoUrl.trim();
+    const trimmed = instructor.photoUrl.trim();
+    if (!trimmed.startsWith('/instructors/')) {
+      return trimmed;
+    }
   }
 
   if (instructor.photosJson) {
     try {
       const photos: InstructorPhoto[] = JSON.parse(instructor.photosJson);
       const active = photos.find((p) => p.active);
-      if (active?.url) return active.url;
-      if (photos[0]?.url) return photos[0].url;
+      if (active?.url && !active.url.startsWith('/instructors/')) return active.url;
+      if (photos[0]?.url && !photos[0].url.startsWith('/instructors/')) return photos[0].url;
     } catch {
       // ignore
     }
@@ -225,22 +228,11 @@ export function getInstructorPhotoUrl(instructor?: Partial<Instructor> | null): 
 
   if (Array.isArray(instructor.photos) && instructor.photos.length > 0) {
     const active = instructor.photos.find((p) => p.active);
-    if (active?.url) return active.url;
-    if (instructor.photos[0]?.url) return instructor.photos[0].url;
+    if (active?.url && !active.url.startsWith('/instructors/')) return active.url;
+    if (instructor.photos[0]?.url && !instructor.photos[0].url.startsWith('/instructors/')) return instructor.photos[0].url;
   }
 
-  const name = instructor.name?.trim();
-  if (name) {
-    if (DEFAULT_INSTRUCTOR_PHOTOS[name]) {
-      return DEFAULT_INSTRUCTOR_PHOTOS[name];
-    }
-    const lower = name.toLowerCase();
-    for (const [key, path] of Object.entries(DEFAULT_INSTRUCTOR_PHOTOS)) {
-      if (lower.includes(key.toLowerCase()) || key.toLowerCase().includes(lower)) {
-        return path;
-      }
-    }
-  }
-
+  // Per user requirement: Only display images uploaded in Google Drive folder.
+  // If the instructor has no uploaded photo in the Drive folder, return null so no image is displayed.
   return null;
 }

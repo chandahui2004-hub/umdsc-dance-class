@@ -174,5 +174,16 @@ export class FakeDrive implements DrivePort {
     this.items.set(id, { id, kind: 'file', name, mimeType, parentId: folderId, canEdit: true });
     return { id, url: `https://lh3.googleusercontent.com/d/${id}` };
   }
+
+  renameFile(fileId: string, name: string): void {
+    const item = this.items.get(fileId);
+    if (item) {
+      item.name = name;
+    }
+  }
+
+  deleteFile(fileId: string): void {
+    this.items.delete(fileId);
+  }
 }
 

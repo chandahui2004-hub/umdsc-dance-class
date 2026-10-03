@@ -307,6 +307,24 @@ export class GasDriveAdapter implements DrivePort {
     const url = `https://lh3.googleusercontent.com/d/${id}`;
     return { id, url };
   }
+
+  renameFile(fileId: string, name: string): void {
+    try {
+      const file = DriveApp.getFileById(fileId);
+      file.setName(name);
+    } catch (e: any) {
+      Logger.log('renameFile error: ' + e.message);
+    }
+  }
+
+  deleteFile(fileId: string): void {
+    try {
+      const file = DriveApp.getFileById(fileId);
+      file.setTrashed(true);
+    } catch (e: any) {
+      Logger.log('deleteFile error: ' + e.message);
+    }
+  }
 }
 
 export class GasCacheAdapter implements CachePort {

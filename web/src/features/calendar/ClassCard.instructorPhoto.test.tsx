@@ -6,10 +6,11 @@ import { getInstructorPhotoUrl } from '../../lib/instructorPhotos';
 import type { ClassSession, DanceStyle, Instructor } from '@umdsc/shared';
 
 describe('Instructor Photos and ClassCard Focus Layout', () => {
-  it('resolves correct photo URLs for named instructors', () => {
-    expect(getInstructorPhotoUrl({ name: 'Carmen Loh' })).toBe('/instructors/carmen-loh.png');
-    expect(getInstructorPhotoUrl({ name: 'Lam Hong Woh' })).toBe('/instructors/lam-hong-woh.png');
-    expect(getInstructorPhotoUrl({ name: 'Newstyle Kelvin' })).toBe('/instructors/newstyle-kelvin.png');
+  it('resolves correct photo URLs for instructors with uploaded photos and null when not uploaded', () => {
+    expect(getInstructorPhotoUrl({ name: 'Carmen Loh' })).toBeNull();
+    expect(getInstructorPhotoUrl({ name: 'Lam Hong Woh' })).toBeNull();
+    expect(getInstructorPhotoUrl({ name: 'Newstyle Kelvin' })).toBeNull();
+    expect(getInstructorPhotoUrl({ name: 'Elf', photoUrl: 'https://lh3.googleusercontent.com/d/elf-123' })).toBe('https://lh3.googleusercontent.com/d/elf-123');
     expect(getInstructorPhotoUrl({ name: 'Custom Coach', photoUrl: 'https://example.com/custom.png' })).toBe('https://example.com/custom.png');
   });
 
@@ -54,7 +55,7 @@ describe('Instructor Photos and ClassCard Focus Layout', () => {
       id: 'inst-lam',
       name: 'Lam Hong Woh',
       contact: '+60123456789',
-      photoUrl: '/instructors/lam-hong-woh.png',
+      photoUrl: 'https://lh3.googleusercontent.com/d/drive-lam-123',
       version: 1,
       updatedBy: 'admin',
       updatedAt: '2026-10-01',
@@ -77,7 +78,7 @@ describe('Instructor Photos and ClassCard Focus Layout', () => {
     // Verify instructor portrait exists with correct alt and source
     const portraitImg = screen.getByAltText('Lam Hong Woh');
     expect(portraitImg).toBeInTheDocument();
-    expect(portraitImg).toHaveAttribute('src', '/instructors/lam-hong-woh.png');
+    expect(portraitImg).toHaveAttribute('src', 'https://lh3.googleusercontent.com/d/drive-lam-123');
 
     // Verify information on the right
     expect(screen.getByText('Lam Hong Woh')).toBeInTheDocument();

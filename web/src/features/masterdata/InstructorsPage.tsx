@@ -44,77 +44,7 @@ export const InstructorsPage: React.FC = () => {
     }
   });
 
-  // Auto-sync legacy/past instructors with local static photos into Google Drive
-  useEffect(() => {
-    if (!instructors || instructors.length === 0) return;
 
-    const legacyInstructors = instructors.filter(inst => {
-      const url = inst.photoUrl || '';
-      return url.startsWith('/instructors/') || (!url && DEFAULT_INSTRUCTOR_PHOTOS[inst.name]);
-    });
-
-    if (legacyInstructors.length === 0) return;
-
-    let isCancelled = false;
-
-    async function syncLegacyPhotos() {
-      for (const inst of legacyInstructors) {
-        if (isCancelled) break;
-        const localPath = inst.photoUrl?.startsWith('/instructors/')
-          ? inst.photoUrl
-          : DEFAULT_INSTRUCTOR_PHOTOS[inst.name];
-
-        if (!localPath) continue;
-
-        try {
-          const res = await fetch(localPath);
-          if (!res.ok) continue;
-          const blob = await res.blob();
-          const reader = new FileReader();
-          const base64: string = await new Promise((resolve, reject) => {
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-
-          if (isCancelled || !base64) continue;
-
-          let existingPhotos: InstructorPhoto[] = [];
-          try {
-            existingPhotos = JSON.parse(inst.photosJson || '[]');
-          } catch {}
-
-          const photoObj: InstructorPhoto = {
-            id: 'photo_init_' + inst.id,
-            url: base64,
-            active: true,
-            uploadedAt: new Date().toISOString()
-          };
-
-          await api.post('instructors.update', {
-            id: inst.id,
-            version: inst.version,
-            name: inst.name,
-            contact: inst.contact,
-            color: inst.color,
-            photoUrl: base64,
-            photosJson: JSON.stringify([photoObj, ...existingPhotos.filter(p => !p.url.startsWith('/instructors/'))])
-          });
-
-          queryClient.invalidateQueries({ queryKey: ['instructors'] });
-          queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] });
-        } catch (e) {
-          console.warn(`Failed to auto-sync photo for ${inst.name}:`, e);
-        }
-      }
-    }
-
-    syncLegacyPhotos();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [instructors, queryClient]);
 
   const parseInstructorPhotos = (instructor: Instructor): InstructorPhoto[] => {
     let list: InstructorPhoto[] = [];
@@ -271,7 +201,8 @@ export const InstructorsPage: React.FC = () => {
     setActivePhotoUrl(target.url);
   };
 
-  const handleDeletePhoto = (photoId: string) => {
+  const handleDeletePhoto = async (photoId: string) => {
+    const target = photos.find((p) => p.id === photoId);
     const remaining = photos.filter((p) => p.id !== photoId);
     setPhotos(remaining);
 
@@ -283,6 +214,20 @@ export const InstructorsPage: React.FC = () => {
       setActivePhotoUrl(nextActive.url);
     } else {
       setActivePhotoUrl('');
+    }
+
+    // Direct deletion in Google Drive if photo was already stored on Drive
+    if (target?.url && editingInstructor && !target.url.startsWith('data:image/')) {
+      try {
+        await api.post('instructors.deletePhoto', {
+          instructorId: editingInstructor.id,
+          photoUrl: target.url
+        });
+        queryClient.invalidateQueries({ queryKey: ['instructors'] });
+        queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] });
+      } catch (e) {
+        console.error('Failed to delete photo directly from Drive:', e);
+      }
     }
   };
 

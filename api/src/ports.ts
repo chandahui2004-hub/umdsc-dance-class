@@ -70,6 +70,8 @@ export interface DrivePort {
   exportXlsxBase64(spreadsheetId: string): string;
   getParentFolderId(fileId: string): string | null;
   createFileFromBase64(folderId: string, name: string, mimeType: string, base64Data: string): { id: string; url: string };
+  renameFile(fileId: string, name: string): void;
+  deleteFile(fileId: string): void;
 }
 
 export interface CachePort {

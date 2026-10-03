@@ -379,6 +379,25 @@ describe('Feature: Master Data (Styles & Instructors)', () => {
       // Verify that Instructor Photos folder exists in Drive
       const folderId = ctx.drive.findChildFolder('root', 'Instructor Photos');
       expect(folderId).toBeTruthy();
+
+      // Test instructors.deletePhoto: deletes file from Drive and removes from gallery
+      const deleteRes = handleRequest(
+        {
+          action: 'instructors.deletePhoto',
+          token: adminToken,
+          payload: {
+            instructorId: inst.id,
+            photoUrl: inst.photoUrl
+          }
+        },
+        ctx,
+        secrets
+      );
+
+      expect(deleteRes.ok).toBe(true);
+      const updatedInst = deleteRes.data as any;
+      expect(updatedInst.photoUrl).toBe('');
+      expect(JSON.parse(updatedInst.photosJson)).toHaveLength(0);
     }
   });
 });

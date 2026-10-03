@@ -6,10 +6,10 @@ import {
 } from './instructorPhotos';
 
 describe('instructorPhotos library', () => {
-  it('resolves pre-seeded photo paths for default instructors', () => {
-    expect(getInstructorPhotoUrl({ name: 'Lam Hong Woh' })).toBe(DEFAULT_INSTRUCTOR_PHOTOS['Lam Hong Woh']);
-    expect(getInstructorPhotoUrl({ name: 'Carmen Loh' })).toBe(DEFAULT_INSTRUCTOR_PHOTOS['Carmen Loh']);
-    expect(getInstructorPhotoUrl({ name: 'Newstyle Kelvin' })).toBe(DEFAULT_INSTRUCTOR_PHOTOS['Newstyle Kelvin']);
+  it('returns null for instructors without uploaded Drive photos', () => {
+    expect(getInstructorPhotoUrl({ name: 'Lam Hong Woh' })).toBeNull();
+    expect(getInstructorPhotoUrl({ name: 'Carmen Loh' })).toBeNull();
+    expect(getInstructorPhotoUrl({ name: 'Newstyle Kelvin' })).toBeNull();
   });
 
   it('prefers explicit photoUrl over seed photo', () => {

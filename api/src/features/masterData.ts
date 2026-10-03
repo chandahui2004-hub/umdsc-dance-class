@@ -3,7 +3,7 @@ import { AppError } from '../errors';
 import { Table } from '../db/table';
 import { logAudit } from '../logic/audit';
 import { validateLink } from '../logic/linkValidation';
-import { PermissionCode } from '@umdsc/shared';
+import { PermissionCode, extractDriveId } from '@umdsc/shared';
 
 export function crudRoutes<T extends { id: string; version: number; active: boolean }>(opts: {
   prefix: string;
@@ -232,6 +232,31 @@ export function getMasterDataRoutes(): Record<string, Route> {
     }
   });
 
+  const KNOWN_INSTRUCTOR_PHOTOS_FOLDER_ID = '1Hjy3k0LVRE1Vp9WwHde7_D6YbsQroFOP';
+
+  const getInstructorPhotosFolder = (ctx: any): string | null => {
+    try {
+      const propId = ctx.props?.get('INSTRUCTOR_PHOTOS_FOLDER_ID');
+      if (propId) return propId;
+      const sysId = ctx.props?.get('SYSTEM_SPREADSHEET_ID');
+      const dbFolderId = sysId ? ctx.drive.getParentFolderId(sysId) || 'root' : 'root';
+      let folderId = ctx.drive.findChildFolder(dbFolderId, 'Instructor Photos');
+      if (folderId) return folderId;
+      if (KNOWN_INSTRUCTOR_PHOTOS_FOLDER_ID) {
+        try {
+          const info = ctx.drive.info(KNOWN_INSTRUCTOR_PHOTOS_FOLDER_ID);
+          if (info && info.id) return KNOWN_INSTRUCTOR_PHOTOS_FOLDER_ID;
+        } catch {}
+      }
+      folderId = ctx.drive.createFolder(dbFolderId, 'Instructor Photos');
+      try { ctx.drive.setAnyoneReader(folderId); } catch {}
+      return folderId;
+    } catch (e) {
+      console.error('getInstructorPhotosFolder error:', e);
+      return KNOWN_INSTRUCTOR_PHOTOS_FOLDER_ID;
+    }
+  };
+
   const instructorsRoutes = crudRoutes({
     prefix: 'instructors',
     getTable: (ctx) => ctx.db.instructors,
@@ -239,74 +264,143 @@ export function getMasterDataRoutes(): Record<string, Route> {
     listPerm: 'signedIn',
     onList: (ctx) => {
       try {
-        const sysId = ctx.props.get('SYSTEM_SPREADSHEET_ID');
-        const dbFolderId = sysId ? ctx.drive.getParentFolderId(sysId) || 'root' : 'root';
-        if (!ctx.drive.findChildFolder(dbFolderId, 'Instructor Photos')) {
-          const fld = ctx.drive.createFolder(dbFolderId, 'Instructor Photos');
-          try { ctx.drive.setAnyoneReader(fld); } catch {}
-        }
-      } catch {}
-    },
-    processPayload: (ctx, payload) => {
-      const getInstructorPhotosFolder = (): string | null => {
-        try {
-          const sysId = ctx.props.get('SYSTEM_SPREADSHEET_ID');
-          const dbFolderId = sysId ? ctx.drive.getParentFolderId(sysId) || 'root' : 'root';
-          let folderId = ctx.drive.findChildFolder(dbFolderId, 'Instructor Photos');
-          if (!folderId) {
-            folderId = ctx.drive.createFolder(dbFolderId, 'Instructor Photos');
-            try {
-              ctx.drive.setAnyoneReader(folderId);
-            } catch {
-              // ignore
+        const folderId = getInstructorPhotosFolder(ctx);
+        if (!folderId) return;
+
+        const files = ctx.drive.listFilesRecursive(folderId);
+        if (!files) return;
+
+        const instructors = ctx.db.instructors.find(i => i.active);
+
+        // Group files by instructor and assign clean human-readable names:
+        // "[Instructor Name] - Photo 1.png", "[Instructor Name] - Photo 2.png"
+        for (const inst of instructors) {
+          const instClean = inst.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const matchingFiles = files.filter(f => {
+            const fClean = f.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+            return fClean.includes(instClean);
+          });
+
+          if (matchingFiles.length > 0) {
+            let seq = 1;
+            const updatedPhotos: any[] = [];
+            for (const file of matchingFiles) {
+              const ext = file.name.split('.').pop() || 'png';
+              const properName = `${inst.name} - Photo ${seq}.${ext}`;
+              if (file.name !== properName) {
+                try {
+                  ctx.drive.renameFile(file.id, properName);
+                  file.name = properName;
+                } catch {}
+              }
+              const photoUrl = `https://lh3.googleusercontent.com/d/${file.id}`;
+              updatedPhotos.push({
+                id: file.id,
+                url: photoUrl,
+                active: seq === 1,
+                uploadedAt: file.createdTime || new Date().toISOString()
+              });
+              seq++;
+            }
+
+            // Sync with instructor record
+            let currentPhotos: any[] = [];
+            try { currentPhotos = JSON.parse(inst.photosJson || '[]'); } catch {}
+
+            const driveUrls = new Set(updatedPhotos.map(p => p.url));
+            // Keep previously active photo active if still in drive
+            const prevActive = currentPhotos.find(p => p.active && driveUrls.has(p.url));
+            if (prevActive) {
+              updatedPhotos.forEach(p => { p.active = p.url === prevActive.url; });
+            }
+
+            const activeOne = updatedPhotos.find(p => p.active) || updatedPhotos[0];
+            const needsUpdate = inst.photoUrl !== activeOne.url ||
+              updatedPhotos.length !== currentPhotos.length ||
+              inst.photosJson !== JSON.stringify(updatedPhotos);
+
+            if (needsUpdate) {
+              ctx.db.instructors.update(
+                inst.id,
+                inst.version,
+                {
+                  photoUrl: activeOne.url,
+                  photosJson: JSON.stringify(updatedPhotos)
+                },
+                'system_drive_sync',
+                ctx.now()
+              );
+            }
+          } else {
+            // Instructor has no files in Google Drive folder:
+            // Ensure website displays no photo for them per user requirement
+            if (inst.photoUrl && (inst.photoUrl.startsWith('/instructors/') || inst.photoUrl.startsWith('data:'))) {
+              ctx.db.instructors.update(
+                inst.id,
+                inst.version,
+                {
+                  photoUrl: '',
+                  photosJson: '[]'
+                },
+                'system_drive_sync',
+                ctx.now()
+              );
             }
           }
-          return folderId;
-        } catch (e) {
-          console.error('getInstructorPhotosFolder error:', e);
-          return null;
         }
-      };
+      } catch (e) {
+        console.error('onList instructors error:', e);
+      }
+    },
+    processPayload: (ctx, payload, isUpdate, existing) => {
+      const folderId = getInstructorPhotosFolder(ctx);
 
-      // Deduplicate base64 uploads to Google Drive
-      const uploadedBase64Map = new Map<string, string>();
+      // Handle removed photos in update: Delete removed files from Google Drive
+      if (isUpdate && existing && existing.photosJson && payload.photosJson) {
+        try {
+          const oldList: any[] = JSON.parse(existing.photosJson);
+          const newList: any[] = JSON.parse(payload.photosJson);
+          const newUrls = new Set(newList.map(p => p.url));
+          for (const oldP of oldList) {
+            if (oldP && oldP.url && !newUrls.has(oldP.url)) {
+              const res = extractDriveId(oldP.url);
+              if (res && res.id) {
+                try {
+                  ctx.drive.deleteFile(res.id);
+                } catch (err) {
+                  console.error('Failed to delete removed photo from Drive:', err);
+                }
+              }
+            }
+          }
+        } catch {}
+      }
 
+      // Map to upload base64 images into Drive with clean human names
       const uploadBase64ToDrive = (base64Data: string, prefixName: string): string | null => {
         if (!base64Data || typeof base64Data !== 'string' || !base64Data.startsWith('data:image/')) {
           return null;
         }
-        if (uploadedBase64Map.has(base64Data)) {
-          return uploadedBase64Map.get(base64Data)!;
-        }
-        const folderId = getInstructorPhotosFolder();
         if (!folderId) return null;
 
         const match = base64Data.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/);
         const mime = match ? match[1] : 'image/jpeg';
         const ext = mime.includes('webp') ? 'webp' : mime.includes('png') ? 'png' : 'jpg';
-        const cleanName = prefixName.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
-        let hash = 0;
-        for (let i = 0; i < base64Data.length; i++) {
-          hash = (hash << 5) - hash + base64Data.charCodeAt(i);
-          hash |= 0;
-        }
-        const contentHash = Math.abs(hash).toString(36);
-        const fileName = `${cleanName}_${contentHash}.${ext}`;
+        const cleanName = (prefixName || 'Instructor').trim();
 
-        // Check if an identical file already exists in the Google Drive folder to prevent duplicates
+        // Sequence number based on existing files in folder
+        let seq = 1;
         try {
-          const existing = ctx.drive.listFilesRecursive(folderId).find(f => f.name === fileName);
-          if (existing) {
-            const existingUrl = `https://lh3.googleusercontent.com/d/${existing.id}`;
-            uploadedBase64Map.set(base64Data, existingUrl);
-            return existingUrl;
-          }
-        } catch {
-          // Proceed with upload if file listing fails
-        }
+          const existingFiles = ctx.drive.listFilesRecursive(folderId);
+          const matching = existingFiles.filter(f =>
+            f.name.toLowerCase().replace(/[^a-z0-9]/g, '').includes(cleanName.toLowerCase().replace(/[^a-z0-9]/g, ''))
+          );
+          seq = matching.length + 1;
+        } catch {}
 
+        const fileName = `${cleanName} - Photo ${seq}.${ext}`;
         const uploaded = ctx.drive.createFileFromBase64(folderId, fileName, mime, base64Data);
-        uploadedBase64Map.set(base64Data, uploaded.url);
+        try { ctx.drive.setAnyoneReader(uploaded.id); } catch {}
         return uploaded.url;
       };
 
@@ -318,7 +412,7 @@ export function getMasterDataRoutes(): Record<string, Route> {
             let modified = false;
             for (const p of list) {
               if (p && typeof p.url === 'string' && p.url.startsWith('data:image/')) {
-                const uploadedUrl = uploadBase64ToDrive(p.url, payload.name || 'instructor');
+                const uploadedUrl = uploadBase64ToDrive(p.url, payload.name || 'Instructor');
                 if (uploadedUrl) {
                   p.url = uploadedUrl;
                   modified = true;
@@ -334,11 +428,23 @@ export function getMasterDataRoutes(): Record<string, Route> {
         }
       }
 
-      // 2. Process photoUrl (single URL) - reuses uploaded URL from map if identical base64
+      // 2. Process photoUrl (single URL)
       if (payload.photoUrl && typeof payload.photoUrl === 'string' && payload.photoUrl.startsWith('data:image/')) {
-        const uploadedUrl = uploadBase64ToDrive(payload.photoUrl, payload.name || 'instructor');
-        if (uploadedUrl) {
-          payload.photoUrl = uploadedUrl;
+        let matched = false;
+        try {
+          const list = JSON.parse(payload.photosJson || '[]');
+          const activePhoto = list.find((p: any) => p.active) || list[0];
+          if (activePhoto && activePhoto.url && !activePhoto.url.startsWith('data:image/')) {
+            payload.photoUrl = activePhoto.url;
+            matched = true;
+          }
+        } catch {}
+
+        if (!matched) {
+          const uploadedUrl = uploadBase64ToDrive(payload.photoUrl, payload.name || 'Instructor');
+          if (uploadedUrl) {
+            payload.photoUrl = uploadedUrl;
+          }
         }
       }
 
@@ -354,8 +460,74 @@ export function getMasterDataRoutes(): Record<string, Route> {
     }
   });
 
+  const photoRoutes: Record<string, Route> = {
+    'instructors.deletePhoto': {
+      perm: 'instructors.edit',
+      write: true,
+      bumpsData: true,
+      handler: (ctx, auth, payload: any) => {
+        const { instructorId, photoUrl, fileId: directFileId } = payload || {};
+        if (!instructorId || (!photoUrl && !directFileId)) {
+          throw new AppError('VALIDATION', 'instructorId and photoUrl (or fileId) are required');
+        }
+
+        const driveResult = photoUrl ? extractDriveId(photoUrl) : null;
+        const fileId = directFileId || driveResult?.id;
+        if (fileId) {
+          try {
+            ctx.drive.deleteFile(fileId);
+          } catch (e) {
+            console.error('deleteFile error in Drive:', e);
+          }
+        }
+
+        const inst = ctx.db.instructors.find(i => i.id === instructorId && i.active)[0];
+        if (inst) {
+          let photos: any[] = [];
+          try {
+            photos = JSON.parse(inst.photosJson || '[]');
+          } catch {}
+
+          const remaining = photos.filter(p => {
+            if (p.url === photoUrl) return false;
+            if (fileId && p.url.includes(fileId)) return false;
+            return true;
+          });
+
+          let nextActiveUrl = inst.photoUrl;
+          if (inst.photoUrl === photoUrl || (fileId && inst.photoUrl.includes(fileId))) {
+            const first = remaining[0];
+            if (first) {
+              first.active = true;
+              nextActiveUrl = first.url;
+            } else {
+              nextActiveUrl = '';
+            }
+          }
+
+          const actor = auth?.claims.sub || 'system';
+          const updated = ctx.db.instructors.update(
+            inst.id,
+            inst.version,
+            {
+              photoUrl: nextActiveUrl,
+              photosJson: JSON.stringify(remaining)
+            },
+            actor,
+            ctx.now()
+          );
+          logAudit(ctx, actor, 'instructors.deletePhoto', inst.name, `Deleted photo ${fileId || photoUrl}`);
+          return updated;
+        }
+
+        return { success: true };
+      }
+    }
+  };
+
   return {
     ...stylesRoutes,
-    ...instructorsRoutes
+    ...instructorsRoutes,
+    ...photoRoutes
   };
 }
