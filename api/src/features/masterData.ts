@@ -261,7 +261,7 @@ export function getMasterDataRoutes(): Record<string, Route> {
     prefix: 'instructors',
     getTable: (ctx) => ctx.db.instructors,
     perm: 'instructors.edit',
-    listPerm: 'signedIn',
+    listPerm: 'public',
     onList: (ctx) => {
       try {
         const folderId = getInstructorPhotosFolder(ctx);
@@ -521,6 +521,23 @@ export function getMasterDataRoutes(): Record<string, Route> {
         }
 
         return { success: true };
+      }
+    },
+    'instructors.drivePhotos': {
+      perm: 'public',
+      write: false,
+      handler: (ctx) => {
+        const folderId = getInstructorPhotosFolder(ctx);
+        if (!folderId) return { files: [] };
+        const files = ctx.drive.listFilesRecursive(folderId) || [];
+        return {
+          files: files.map((f) => ({
+            id: f.id,
+            name: f.name,
+            url: `https://lh3.googleusercontent.com/d/${f.id}`,
+            createdTime: f.createdTime || ctx.now().toISOString()
+          }))
+        };
       }
     }
   };

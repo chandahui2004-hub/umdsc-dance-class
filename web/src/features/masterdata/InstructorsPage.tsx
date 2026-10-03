@@ -14,7 +14,9 @@ import {
   optimizeInstructorPhoto,
   convertDriveImageUrl,
   getDriveThumbnailUrl,
-  DEFAULT_INSTRUCTOR_PHOTOS
+  fetchGoogleDrivePhotos,
+  getInstructorPhotosWithDrive,
+  type DrivePhotoFile
 } from '../../lib/instructorPhotos';
 import type { Instructor, InstructorPhoto } from '@umdsc/shared';
 
@@ -44,36 +46,41 @@ export const InstructorsPage: React.FC = () => {
     }
   });
 
-
-
-  const parseInstructorPhotos = (instructor: Instructor): InstructorPhoto[] => {
-    let list: InstructorPhoto[] = [];
-    if (instructor.photosJson) {
+  // Query Google Drive folder directly for all uploaded instructor photos
+  const { data: driveFiles = [] } = useQuery<DrivePhotoFile[]>({
+    queryKey: ['drive-instructor-photos'],
+    queryFn: async () => {
+      const direct = await fetchGoogleDrivePhotos();
+      if (direct && direct.length > 0) return direct;
       try {
-        const parsed = JSON.parse(instructor.photosJson);
-        if (Array.isArray(parsed)) list = parsed;
-      } catch {
-        // fallback
-      }
-    }
-    if (list.length === 0 && instructor.photos && Array.isArray(instructor.photos)) {
-      list = instructor.photos;
-    }
+        const res = await api.post<{ files: DrivePhotoFile[] }>('instructors.drivePhotos', {});
+        if (res.data?.files) return res.data.files;
+      } catch {}
+      return [];
+    },
+    refetchInterval: 10000
+  });
 
-    // If no custom photos yet, check default pre-seeded photo
-    const defaultUrl = getInstructorPhotoUrl(instructor);
-    if (list.length === 0 && defaultUrl) {
-      list = [
-        {
-          id: 'seed-photo',
-          url: defaultUrl,
-          active: true,
-          uploadedAt: new Date().toISOString()
+  // Keep modal photos gallery in sync with Google Drive folder photos
+  useEffect(() => {
+    if (editingInstructor && driveFiles.length > 0) {
+      setPhotos((prev) => {
+        const newLocal = prev.filter((p) => p.url.startsWith('data:image/'));
+        const drivePhotos = getInstructorPhotosWithDrive(editingInstructor, driveFiles);
+        if (drivePhotos.length === 0) return prev;
+
+        const currentActive = activePhotoUrl || editingInstructor.photoUrl;
+        const mapped = drivePhotos.map((p) => ({
+          ...p,
+          active: currentActive ? currentActive.includes(p.id) || currentActive === p.url : p.active
+        }));
+        if (!mapped.some((p) => p.active) && mapped.length > 0 && newLocal.length === 0) {
+          mapped[0].active = true;
         }
-      ];
+        return [...newLocal, ...mapped];
+      });
     }
-    return list;
-  };
+  }, [driveFiles, editingInstructor?.name, editingInstructor?.id]);
 
   const openCreate = () => {
     setIsCreating(true);
@@ -96,10 +103,11 @@ export const InstructorsPage: React.FC = () => {
     setContact(instructor.contact || '');
     setColor(instructor.color || 'orange');
 
-    const existingPhotos = parseInstructorPhotos(instructor);
+    // Retrieve all photos including all duplicates in Google Drive
+    const existingPhotos = getInstructorPhotosWithDrive(instructor, driveFiles);
     setPhotos(existingPhotos);
     const activeOne = existingPhotos.find((p) => p.active);
-    setActivePhotoUrl(activeOne?.url || instructor.photoUrl || getInstructorPhotoUrl(instructor) || '');
+    setActivePhotoUrl(activeOne?.url || instructor.photoUrl || getInstructorPhotoUrl(instructor, driveFiles) || '');
     setPhotoUrlInput('');
     setShowUrlInput(false);
     setIsProcessingPhoto(false);
@@ -145,11 +153,11 @@ export const InstructorsPage: React.FC = () => {
         uploadedAt: new Date().toISOString()
       };
 
-      // Set all other photos to inactive, keeping at most 3 in the gallery
+      // Set all other photos to inactive, allow up to 10 in the gallery
       const updatedPhotos = [
         newPhoto,
         ...photos.map((p) => ({ ...p, active: false }))
-      ].slice(0, 3);
+      ].slice(0, 10);
 
       setPhotos(updatedPhotos);
       setActivePhotoUrl(optimizedDataUrl);
@@ -180,7 +188,7 @@ export const InstructorsPage: React.FC = () => {
     const updatedPhotos = [
       newPhoto,
       ...photos.map((p) => ({ ...p, active: false }))
-    ].slice(0, 3);
+    ].slice(0, 10);
 
     setPhotos(updatedPhotos);
     setActivePhotoUrl(directUrl);
@@ -221,10 +229,12 @@ export const InstructorsPage: React.FC = () => {
       try {
         await api.post('instructors.deletePhoto', {
           instructorId: editingInstructor.id,
-          photoUrl: target.url
+          photoUrl: target.url,
+          fileId: target.id
         });
         queryClient.invalidateQueries({ queryKey: ['instructors'] });
         queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] });
+        queryClient.invalidateQueries({ queryKey: ['drive-instructor-photos'] });
       } catch (e) {
         console.error('Failed to delete photo directly from Drive:', e);
       }
@@ -313,7 +323,7 @@ export const InstructorsPage: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {instructors.map((inst) => {
-            const photoUrl = getInstructorPhotoUrl(inst);
+            const photoUrl = getInstructorPhotoUrl(inst, driveFiles);
             const instColor = inst.color?.startsWith('#')
               ? inst.color
               : `var(--c-${inst.color || 'orange'})`;

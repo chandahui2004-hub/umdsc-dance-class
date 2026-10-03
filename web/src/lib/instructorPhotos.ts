@@ -7,6 +7,106 @@ export const DEFAULT_INSTRUCTOR_PHOTOS: Record<string, string> = {
 };
 
 
+export const INSTRUCTOR_PHOTOS_FOLDER_ID = '1Hjy3k0LVRE1Vp9WwHde7_D6YbsQroFOP';
+
+export interface DrivePhotoFile {
+  id: string;
+  name: string;
+  url: string;
+  thumbnailLink?: string;
+  createdTime?: string;
+}
+
+/**
+ * Normalizes an instructor name for loose matching against file names.
+ * Strips non-alphanumeric characters and converts to lowercase.
+ */
+export function normalizeInstructorName(name: string): string {
+  return (name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+/**
+ * Matches files from Google Drive against an instructor's name.
+ * Even if there are duplicate or identical files in Drive, ALL matching files are returned.
+ */
+export function matchDrivePhotosForInstructor(
+  instructorName: string,
+  files: DrivePhotoFile[]
+): DrivePhotoFile[] {
+  if (!instructorName || !files || files.length === 0) return [];
+  const cleanInst = normalizeInstructorName(instructorName);
+  if (!cleanInst) return [];
+
+  return files.filter((f) => {
+    const cleanFileName = normalizeInstructorName(f.name);
+    return cleanFileName.includes(cleanInst);
+  });
+}
+
+/**
+ * Directly queries Google Drive API for the Instructor Photos folder files.
+ * Works client-side in the browser using the public API key.
+ */
+export async function fetchGoogleDrivePhotos(): Promise<DrivePhotoFile[]> {
+  try {
+    const apiKey = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GOOGLE_API_KEY) || '';
+    if (!apiKey) return [];
+
+    const url = `https://www.googleapis.com/drive/v3/files?q='${INSTRUCTOR_PHOTOS_FOLDER_ID}'+in+parents+and+trashed=false&fields=files(id,name,thumbnailLink,createdTime)&pageSize=100&key=${apiKey}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      return [];
+    }
+    const data = await res.json();
+    if (!data || !Array.isArray(data.files)) return [];
+    return data.files.map((f: any) => ({
+      id: f.id,
+      name: f.name,
+      url: `https://lh3.googleusercontent.com/d/${f.id}`,
+      thumbnailLink: f.thumbnailLink,
+      createdTime: f.createdTime
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Assembles the full list of instructor photos, ensuring all uploaded files
+ * in Google Drive for this instructor (even duplicates) are included in the gallery.
+ */
+export function getInstructorPhotosWithDrive(
+  instructor: Instructor,
+  driveFiles: DrivePhotoFile[] = []
+): InstructorPhoto[] {
+  const matchingDrive = matchDrivePhotosForInstructor(instructor.name, driveFiles);
+
+  let dbPhotos: InstructorPhoto[] = [];
+  if (instructor.photosJson) {
+    try {
+      const parsed = JSON.parse(instructor.photosJson);
+      if (Array.isArray(parsed)) dbPhotos = parsed;
+    } catch {}
+  }
+  if (dbPhotos.length === 0 && instructor.photos && Array.isArray(instructor.photos)) {
+    dbPhotos = instructor.photos;
+  }
+
+  if (matchingDrive.length > 0) {
+    const activeUrl = instructor.photoUrl || dbPhotos.find((p) => p.active)?.url || matchingDrive[0].url;
+
+    return matchingDrive.map((df, idx) => ({
+      id: df.id,
+      url: df.url,
+      active: activeUrl ? activeUrl.includes(df.id) || activeUrl === df.url : idx === 0,
+      uploadedAt: df.createdTime || new Date().toISOString()
+    }));
+  }
+
+  // If no files in Drive for this instructor, do not show synthetic /instructors/ fallback
+  return dbPhotos.filter((p) => !p.url.startsWith('/instructors/'));
+}
+
 export const STANDARD_PHOTO_WIDTH = 1080;
 export const STANDARD_PHOTO_HEIGHT = 1350;
 export const STANDARD_PHOTO_ASPECT = '4/5';
@@ -205,7 +305,10 @@ export function resolveInstructor(
  * 2. Active photo in photos array / photosJson
  * 3. Pre-seeded fallback photo for known instructors (Carmen, Lam, Newstyle Kelvin)
  */
-export function getInstructorPhotoUrl(instructor?: Partial<Instructor> | null): string | null {
+export function getInstructorPhotoUrl(
+  instructor?: Partial<Instructor> | null,
+  driveFiles?: DrivePhotoFile[]
+): string | null {
   if (!instructor) return null;
 
   if (instructor.photoUrl && instructor.photoUrl.trim()) {
@@ -230,6 +333,14 @@ export function getInstructorPhotoUrl(instructor?: Partial<Instructor> | null): 
     const active = instructor.photos.find((p) => p.active);
     if (active?.url && !active.url.startsWith('/instructors/')) return active.url;
     if (instructor.photos[0]?.url && !instructor.photos[0].url.startsWith('/instructors/')) return instructor.photos[0].url;
+  }
+
+  // Fallback to drive files matching instructor name
+  if (driveFiles && driveFiles.length > 0 && instructor.name) {
+    const matching = matchDrivePhotosForInstructor(instructor.name, driveFiles);
+    if (matching.length > 0) {
+      return matching[0].url;
+    }
   }
 
   // Per user requirement: Only display images uploaded in Google Drive folder.

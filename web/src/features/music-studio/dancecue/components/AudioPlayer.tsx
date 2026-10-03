@@ -1,6 +1,6 @@
 // Ported from DanceCue by JzeAnson (https://github.com/JzeAnson/DanceCue), used with permission.
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 
 type AudioPlayerProps = {
   audioRef: React.RefObject<HTMLAudioElement | null>;
@@ -70,7 +70,14 @@ export function AudioPlayer({
   const dragAnchorRef = useRef<number | null>(null);
   const didDragRef = useRef(false);
   const [isPulsing, setIsPulsing] = useState(false);
+  const pulseTimerRef = useRef<any>(null);
   const [tooltip, setTooltip] = useState<{ text: string; leftPercent: number } | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
+    };
+  }, []);
 
   const progress = duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0;
   const hasDraftRange =
@@ -202,7 +209,8 @@ export function AudioPlayer({
       }
 
       setIsPulsing(true);
-      setTimeout(() => setIsPulsing(false), 600);
+      if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
+      pulseTimerRef.current = setTimeout(() => setIsPulsing(false), 600);
       return;
     }
 

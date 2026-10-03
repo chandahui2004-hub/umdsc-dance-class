@@ -42,4 +42,33 @@ describe('instructorPhotos library', () => {
     const regularUrl = 'https://images.unsplash.com/photo-123.jpg';
     expect(convertDriveImageUrl(regularUrl)).toBe(regularUrl);
   });
+
+  it('matches all Drive photos for an instructor including duplicates', async () => {
+    const { matchDrivePhotosForInstructor, getInstructorPhotosWithDrive } = await import('./instructorPhotos');
+    const driveFiles = [
+      { id: 'file_1', name: 'Newstyle Kelvin - Photo 1.webp', url: 'https://lh3.googleusercontent.com/d/file_1' },
+      { id: 'file_2', name: 'Newstyle Kelvin - Photo 2.webp', url: 'https://lh3.googleusercontent.com/d/file_2' },
+      { id: 'file_3', name: 'Elf - Photo 1.webp', url: 'https://lh3.googleusercontent.com/d/file_3' }
+    ];
+
+    const kelvinFiles = matchDrivePhotosForInstructor('Newstyle Kelvin', driveFiles);
+    expect(kelvinFiles).toHaveLength(2);
+    expect(kelvinFiles.map((f) => f.id)).toEqual(['file_1', 'file_2']);
+
+    const kelvinPhotos = getInstructorPhotosWithDrive(
+      {
+        id: 'inst_kelvin',
+        version: 1,
+        active: true,
+        name: 'Newstyle Kelvin',
+        photoUrl: 'https://lh3.googleusercontent.com/d/file_1',
+        photosJson: '[]'
+      } as any,
+      driveFiles
+    );
+
+    expect(kelvinPhotos).toHaveLength(2);
+    expect(kelvinPhotos[0].active).toBe(true);
+    expect(kelvinPhotos[1].active).toBe(false);
+  });
 });
