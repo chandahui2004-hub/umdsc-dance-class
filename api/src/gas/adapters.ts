@@ -40,14 +40,27 @@ export class GasSheetAdapter implements SheetPort {
 
   setValues(row1: number, col1: number, values: Cell[][]): void {
     if (values.length === 0 || values[0].length === 0) return;
-    this.sheet.getRange(row1, col1, values.length, values[0].length).setValues(values as any);
+    const safeValues = this.sanitizeCells(values);
+    this.sheet.getRange(row1, col1, safeValues.length, safeValues[0].length).setValues(safeValues as any);
   }
 
   appendRows(values: Cell[][]): void {
     if (values.length === 0) return;
+    const safeValues = this.sanitizeCells(values);
     const lastRow = this.sheet.getLastRow();
-    const cols = values[0].length;
-    this.sheet.getRange(lastRow + 1, 1, values.length, cols).setValues(values as any);
+    const cols = safeValues[0].length;
+    this.sheet.getRange(lastRow + 1, 1, safeValues.length, cols).setValues(safeValues as any);
+  }
+
+  private sanitizeCells(values: Cell[][]): Cell[][] {
+    return values.map(row =>
+      row.map(cell => {
+        if (typeof cell === 'string' && cell.length > 49000) {
+          return cell.slice(0, 48900) + '...[truncated]';
+        }
+        return cell;
+      })
+    );
   }
 
   setPlainTextColumns(col1s: number[]): void {

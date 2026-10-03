@@ -8,7 +8,12 @@ import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ColorSwatchPicker } from '../../components/ui/ColorSwatchPicker';
 import { PixelPortraitFrame } from '../../components/ui/PixelPortraitFrame';
-import { getInstructorPhotoUrl, STANDARD_PHOTO_HINT } from '../../lib/instructorPhotos';
+import {
+  getInstructorPhotoUrl,
+  STANDARD_PHOTO_HINT,
+  optimizeInstructorPhoto,
+  convertDriveImageUrl
+} from '../../lib/instructorPhotos';
 import type { Instructor, InstructorPhoto } from '@umdsc/shared';
 
 export const InstructorsPage: React.FC = () => {
@@ -25,6 +30,9 @@ export const InstructorsPage: React.FC = () => {
   const [color, setColor] = useState('orange');
   const [photos, setPhotos] = useState<InstructorPhoto[]>([]);
   const [activePhotoUrl, setActivePhotoUrl] = useState<string>('');
+  const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
+  const [photoUrlInput, setPhotoUrlInput] = useState('');
+  const [showUrlInput, setShowUrlInput] = useState(false);
 
   const { data: instructors = [], isLoading } = useQuery<Instructor[]>({
     queryKey: ['instructors'],
@@ -71,6 +79,9 @@ export const InstructorsPage: React.FC = () => {
     setColor('orange');
     setPhotos([]);
     setActivePhotoUrl('');
+    setPhotoUrlInput('');
+    setShowUrlInput(false);
+    setIsProcessingPhoto(false);
     setFormError(null);
   };
 
@@ -85,6 +96,9 @@ export const InstructorsPage: React.FC = () => {
     setPhotos(existingPhotos);
     const activeOne = existingPhotos.find((p) => p.active);
     setActivePhotoUrl(activeOne?.url || instructor.photoUrl || getInstructorPhotoUrl(instructor) || '');
+    setPhotoUrlInput('');
+    setShowUrlInput(false);
+    setIsProcessingPhoto(false);
     setFormError(null);
   };
 
@@ -92,13 +106,16 @@ export const InstructorsPage: React.FC = () => {
     setIsCreating(false);
     setEditingInstructor(null);
     setFormError(null);
+    setPhotoUrlInput('');
+    setShowUrlInput(false);
+    setIsProcessingPhoto(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  // Handle uploading and standardizing photo
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle uploading and standardizing photo using canvas optimization
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -107,30 +124,65 @@ export const InstructorsPage: React.FC = () => {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      if (!dataUrl) return;
+    setIsProcessingPhoto(true);
+    setFormError(null);
+
+    try {
+      const optimizedDataUrl = await optimizeInstructorPhoto(file);
+      if (!optimizedDataUrl) {
+        throw new Error('Could not optimize image');
+      }
 
       const newPhotoId = 'photo_' + Date.now();
       const newPhoto: InstructorPhoto = {
         id: newPhotoId,
-        url: dataUrl,
+        url: optimizedDataUrl,
         active: true,
         uploadedAt: new Date().toISOString()
       };
 
-      // Set all other photos to inactive
+      // Set all other photos to inactive, keeping at most 3 in the gallery
       const updatedPhotos = [
         newPhoto,
         ...photos.map((p) => ({ ...p, active: false }))
-      ];
+      ].slice(0, 3);
 
       setPhotos(updatedPhotos);
-      setActivePhotoUrl(dataUrl);
+      setActivePhotoUrl(optimizedDataUrl);
       setFormError(null);
+    } catch (err: any) {
+      setFormError('Failed to process image: ' + (err?.message || 'unknown error'));
+    } finally {
+      setIsProcessingPhoto(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  // Add photo via direct URL or Google Drive link
+  const handleAddPhotoFromUrl = () => {
+    const directUrl = convertDriveImageUrl(photoUrlInput.trim());
+    if (!directUrl) return;
+
+    const newPhotoId = 'photo_' + Date.now();
+    const newPhoto: InstructorPhoto = {
+      id: newPhotoId,
+      url: directUrl,
+      active: true,
+      uploadedAt: new Date().toISOString()
     };
-    reader.readAsDataURL(file);
+
+    const updatedPhotos = [
+      newPhoto,
+      ...photos.map((p) => ({ ...p, active: false }))
+    ].slice(0, 3);
+
+    setPhotos(updatedPhotos);
+    setActivePhotoUrl(directUrl);
+    setPhotoUrlInput('');
+    setShowUrlInput(false);
+    setFormError(null);
   };
 
   const handleSetActivePhoto = (photoId: string) => {
@@ -162,12 +214,20 @@ export const InstructorsPage: React.FC = () => {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      // Safety cap: Ensure photosJson never exceeds Google Sheets 50,000 char cell limit
+      let safePhotos = photos;
+      let safePhotosJson = JSON.stringify(safePhotos);
+      while (safePhotosJson.length > 40000 && safePhotos.length > 1) {
+        safePhotos = safePhotos.slice(0, -1);
+        safePhotosJson = JSON.stringify(safePhotos);
+      }
+
       const payload: any = {
         name: name.trim(),
         contact: contact.trim(),
         color: color.trim(),
         photoUrl: activePhotoUrl || '',
-        photosJson: JSON.stringify(photos)
+        photosJson: safePhotosJson
       };
 
       if (isCreating) {
@@ -348,7 +408,7 @@ export const InstructorsPage: React.FC = () => {
 
               {/* Photo Management Section */}
               <div className="space-y-3 pt-3 border-t-2 border-[var(--outline)]">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
                     <h3 className="font-display text-[12px] text-[var(--text-1)] tracking-wider">
                       INSTRUCTOR PICTURE
@@ -357,14 +417,25 @@ export const InstructorsPage: React.FC = () => {
                       {STANDARD_PHOTO_HINT}
                     </p>
                   </div>
-                  <PixelButton
-                    size="sm"
-                    variant="secondary"
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    + UPLOAD PICTURE
-                  </PixelButton>
+                  <div className="flex gap-2">
+                    <PixelButton
+                      size="sm"
+                      variant="secondary"
+                      type="button"
+                      disabled={isProcessingPhoto}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {isProcessingPhoto ? 'OPTIMIZING...' : '+ UPLOAD PICTURE'}
+                    </PixelButton>
+                    <PixelButton
+                      size="sm"
+                      variant="secondary"
+                      type="button"
+                      onClick={() => setShowUrlInput(!showUrlInput)}
+                    >
+                      {showUrlInput ? 'CANCEL LINK' : '+ LINK URL'}
+                    </PixelButton>
+                  </div>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -373,6 +444,36 @@ export const InstructorsPage: React.FC = () => {
                     className="hidden"
                   />
                 </div>
+
+                {showUrlInput && (
+                  <div className="flex flex-col sm:flex-row gap-2 p-3 bg-[var(--night-2)] border border-[var(--outline)]">
+                    <input
+                      type="url"
+                      placeholder="Paste image URL or Google Drive link..."
+                      value={photoUrlInput}
+                      onChange={(e) => setPhotoUrlInput(e.target.value)}
+                      className="px-well flex-1 min-h-[38px] px-2 font-mono text-[13px]"
+                    />
+                    <PixelButton
+                      size="sm"
+                      variant="primary"
+                      type="button"
+                      disabled={!photoUrlInput.trim()}
+                      onClick={handleAddPhotoFromUrl}
+                    >
+                      APPLY LINK
+                    </PixelButton>
+                  </div>
+                )}
+
+                {isProcessingPhoto && (
+                  <div className="p-3 bg-[var(--night-2)] border border-[var(--neon-cyan)] flex items-center justify-center gap-2">
+                    <Spinner />
+                    <span className="font-display text-[10px] text-[var(--neon-cyan)]">
+                      OPTIMIZING PORTRAIT IMAGE FOR CLOUD SYNC...
+                    </span>
+                  </div>
+                )}
 
                 {/* Active Photo Preview & Gallery */}
                 {photos.length === 0 && !activePhotoUrl ? (

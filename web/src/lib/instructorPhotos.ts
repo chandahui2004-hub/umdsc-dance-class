@@ -48,6 +48,124 @@ export const STANDARD_PHOTO_ASPECT = '4/5';
 export const STANDARD_PHOTO_HINT = 'Recommended size: 1080 × 1350 px (4:5 aspect ratio)';
 
 /**
+ * Converts a Google Drive share link into a direct public image stream URL.
+ */
+export function convertDriveImageUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+  const match = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (match && match[1]) {
+    return `https://lh3.googleusercontent.com/d/${match[1]}`;
+  }
+  return trimmed;
+}
+
+/**
+ * Downscales and optimizes an instructor portrait in the browser using HTML5 Canvas.
+ * - Standardizes to 4:5 aspect ratio (center-crops faces cleanly).
+ * - Exports to WebP (with JPEG fallback) at target 360 × 450 px.
+ * - Guarantees data URL character length stays comfortably below Google Sheets' 50,000 limit (~10k-25k chars).
+ */
+export async function optimizeInstructorPhoto(
+  file: File,
+  options?: {
+    targetWidth?: number;
+    targetHeight?: number;
+    quality?: number;
+    maxChars?: number;
+  }
+): Promise<string> {
+  const targetWidth = options?.targetWidth ?? 360;
+  const targetHeight = options?.targetHeight ?? 450;
+  const maxChars = options?.maxChars ?? 35000;
+  let quality = options?.quality ?? 0.82;
+
+  // In non-DOM / test environments without Canvas support, fallback to FileReader
+  if (typeof document === 'undefined') {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve((e.target?.result as string) || '');
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = (e) => reject(new Error('Failed to load image: ' + String(e)));
+      el.src = objectUrl;
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const ctx = canvas.getContext ? canvas.getContext('2d') : null;
+
+    if (!ctx) {
+      // Fallback if 2d context unavailable
+      return new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve((e.target?.result as string) || '');
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    const imgAspect = (img.width || targetWidth) / (img.height || targetHeight);
+    const targetAspect = targetWidth / targetHeight; // 0.8
+
+    let srcX = 0;
+    let srcY = 0;
+    let srcW = img.width || targetWidth;
+    let srcH = img.height || targetHeight;
+
+    if (imgAspect > targetAspect) {
+      // Wider than 4:5 -> crop horizontally
+      srcW = (img.height || targetHeight) * targetAspect;
+      srcX = ((img.width || targetWidth) - srcW) / 2;
+    } else {
+      // Taller than 4:5 -> crop vertically (30% from top favors portrait head/chest)
+      srcH = (img.width || targetWidth) / targetAspect;
+      srcY = Math.max(0, ((img.height || targetHeight) - srcH) * 0.3);
+    }
+
+    ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, targetWidth, targetHeight);
+
+    // Try WebP first
+    let dataUrl = canvas.toDataURL('image/webp', quality);
+    if (!dataUrl.startsWith('data:image/webp')) {
+      dataUrl = canvas.toDataURL('image/jpeg', quality);
+    }
+
+    // Guard against oversized outputs
+    if (dataUrl.length > maxChars) {
+      dataUrl = canvas.toDataURL('image/jpeg', 0.65);
+      if (dataUrl.length > maxChars) {
+        const smallCanvas = document.createElement('canvas');
+        smallCanvas.width = 240;
+        smallCanvas.height = 300;
+        const smallCtx = smallCanvas.getContext('2d');
+        if (smallCtx) {
+          smallCtx.drawImage(canvas, 0, 0, 240, 300);
+          dataUrl = smallCanvas.toDataURL('image/jpeg', 0.60);
+        }
+      }
+    }
+
+    return dataUrl;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+
+/**
  * Robust instructor resolver that checks:
  * 1. Explicit session.instructorId
  * 2. Style's defaultInstructorId

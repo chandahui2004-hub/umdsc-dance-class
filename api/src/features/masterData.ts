@@ -201,7 +201,27 @@ export function getMasterDataRoutes(): Record<string, Route> {
     prefix: 'instructors',
     getTable: (ctx) => ctx.db.instructors,
     perm: 'instructors.edit',
-    listPerm: 'signedIn'
+    listPerm: 'signedIn',
+    processPayload: (_ctx, payload) => {
+      if (payload.photoUrl && typeof payload.photoUrl === 'string') {
+        if (payload.photoUrl.length > 48000) {
+          payload.photoUrl = payload.photoUrl.slice(0, 48000);
+        }
+      }
+      if (payload.photosJson && typeof payload.photosJson === 'string') {
+        if (payload.photosJson.length > 48000) {
+          try {
+            const list = JSON.parse(payload.photosJson);
+            if (Array.isArray(list)) {
+              payload.photosJson = JSON.stringify(list.slice(0, 1));
+            }
+          } catch {
+            payload.photosJson = '[]';
+          }
+        }
+      }
+      return payload;
+    }
   });
 
   return {
