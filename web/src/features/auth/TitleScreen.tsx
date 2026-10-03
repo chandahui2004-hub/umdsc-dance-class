@@ -76,33 +76,33 @@ export const TitleScreen: React.FC = () => {
   return (
     <div className="relative min-h-[100dvh] w-full overflow-x-hidden">
       <CityBackdrop />
-      <div className="relative z-[var(--z-content)] min-h-[100dvh] flex flex-col items-center justify-end p-4 mb-[calc(24px+env(safe-area-inset-bottom))]">
+      <div className="relative z-[var(--z-content)] min-h-[100dvh] flex flex-col items-center justify-center p-4 py-8 md:py-12">
         {/* 8-bit Title Header */}
-        <div className="text-center mb-6 flex flex-col items-center">
-          <div className="flex justify-center mb-3">
+        <div className="text-center mb-5 flex flex-col items-center">
+          <div className="flex justify-center mb-2.5">
             <div className="hidden sm:block">
-              <LogoBadge height={120} />
-            </div>
-            <div className="sm:hidden">
               <LogoBadge height={96} />
             </div>
+            <div className="sm:hidden">
+              <LogoBadge height={80} />
+            </div>
           </div>
-          <div className="inline-block bg-[var(--night-2)] text-[var(--neon-gold)] px-4 py-2 border-2 border-[var(--outline)] shadow-[4px_4px_0_var(--outline)] mb-3">
-            <span className="font-display text-[8px] md:text-[12px] tracking-widest">★ 8-BIT EDITION ★</span>
+          <div className="inline-block bg-[var(--night-2)] text-[var(--neon-gold)] px-3 py-1.5 border-2 border-[var(--outline)] shadow-[3px_3px_0_var(--outline)] mb-2.5">
+            <span className="font-display text-[8px] md:text-[10px] tracking-widest">★ 8-BIT EDITION ★</span>
           </div>
           <h1
-            className="font-display text-2xl md:text-4xl text-[var(--text-1)] tracking-wider mb-2 px-glow-text"
+            className="font-display text-2xl md:text-3xl text-[var(--text-1)] tracking-wider mb-1 px-glow-text"
             style={{ '--glow': 'var(--neon-gold)' } as React.CSSProperties}
           >
             UMDSC
           </h1>
-          <p className="font-display text-[8px] md:text-[12px] text-[var(--text-2)]">
+          <p className="font-display text-[8px] md:text-[10px] text-[var(--text-2)] tracking-wider">
             DANCE CLASS SYSTEM
           </p>
-          <div className="mt-4 flex items-center justify-center gap-3">
-            <Boombox size={64} />
+          <div className="mt-3 flex flex-col items-center gap-1.5">
+            <Boombox size={56} className="drop-shadow-[0_0_12px_rgba(62,230,255,0.7)]" />
             <span
-              className="font-display text-[12px] text-[var(--neon-gold)] px-glow-text px-blink tracking-widest"
+              className="font-display text-[10px] md:text-[12px] text-[var(--neon-gold)] px-glow-text px-blink tracking-widest min-h-[16px]"
               style={{ '--glow': 'var(--neon-gold)' } as React.CSSProperties}
             >
               ▼ PRESS START ▼

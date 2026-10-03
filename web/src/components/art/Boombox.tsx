@@ -12,7 +12,7 @@ export function Boombox({ size = 64, className = '' }: BoomboxProps): ReactEleme
       alt=""
       aria-hidden="true"
       draggable={false}
-      className={`px-art px-bounce inline-block select-none ${className}`}
+      className={`px-art px-bounce inline-block select-none drop-shadow-[0_0_8px_rgba(62,230,255,0.6)] ${className}`}
       style={{ width: `${size}px`, height: `${size}px` }}
     />
   );
