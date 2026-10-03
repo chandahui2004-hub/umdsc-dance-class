@@ -43,51 +43,51 @@ export function CityBackdrop(): ReactElement {
         </div>
       </div>
 
-      {/* Far layer - lowered to clean bottom skyline silhouette */}
-      <div data-layer="far" className="absolute bottom-[10%] md:bottom-[7%] left-0 w-full">
+      {/* Far layer - enlarged to fully cover cloud band */}
+      <div data-layer="far" className="absolute bottom-[26%] md:bottom-[24%] left-0 w-full">
         <img
           src="/art/a2-far.webp"
           alt=""
           draggable={false}
           loading="eager"
-          className="block lg:hidden w-[420px] max-w-none px-art px-drift-far"
+          className="block lg:hidden w-[640px] max-w-none px-art px-drift-far"
         />
         <div
-          className="hidden lg:block w-[calc(100%+384px)] h-[80px] px-art px-drift-far"
-          style={{ background: 'url(/art/a2-far.webp) repeat-x bottom left / 540px auto' }}
+          className="hidden lg:block w-[calc(100%+384px)] h-[220px] px-art px-drift-far"
+          style={{ background: 'url(/art/a2-far.webp) repeat-x bottom left / 920px auto' }}
         />
       </div>
 
-      {/* Mid layer - lowered to clean bottom skyline silhouette */}
-      <div data-layer="mid" className="absolute bottom-[4%] md:bottom-[2%] left-0 w-full">
+      {/* Mid layer - enlarged to cover cloud band */}
+      <div data-layer="mid" className="absolute bottom-[14%] md:bottom-[12%] left-0 w-full">
         <img
           src="/art/a3-mid.webp"
           alt=""
           draggable={false}
           loading="eager"
-          className="block lg:hidden w-[420px] max-w-none px-art px-drift-mid"
+          className="block lg:hidden w-[640px] max-w-none px-art px-drift-mid"
         />
         <div
-          className="hidden lg:block w-[calc(100%+384px)] h-[100px] px-art px-drift-mid"
-          style={{ background: 'url(/art/a3-mid.webp) repeat-x bottom left / 540px auto' }}
+          className="hidden lg:block w-[calc(100%+384px)] h-[260px] px-art px-drift-mid"
+          style={{ background: 'url(/art/a3-mid.webp) repeat-x bottom left / 920px auto' }}
         />
       </div>
 
-      {/* Near layer - anchored at bottom with compact scale */}
+      {/* Near layer - anchored at bottom */}
       <div data-layer="near" className="absolute bottom-0 left-1/2 -translate-x-1/2">
         <img
           src="/art/a4-near.webp"
           alt=""
           draggable={false}
           loading="eager"
-          className="block lg:hidden w-[260px] max-w-none px-art opacity-85"
+          className="block lg:hidden w-[320px] max-w-none px-art opacity-90"
         />
         <img
           src="/art/a4-near.webp"
           alt=""
           draggable={false}
           loading="eager"
-          className="hidden lg:block w-[360px] max-w-none px-art opacity-85"
+          className="hidden lg:block w-[460px] max-w-none px-art opacity-90"
         />
       </div>
     </div>
