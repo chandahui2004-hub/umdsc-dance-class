@@ -98,6 +98,33 @@ export function crudRoutes<T extends { id: string; version: number; active: bool
         logAudit(ctx, actor, `${prefix}.deactivate`, getTargetName(existing));
         return { success: true };
       }
+    },
+
+    [`${prefix}.delete`]: {
+      perm,
+      write: true,
+      bumpsData: true,
+      handler: (ctx, auth, rawPayload: any) => {
+        const { id, version } = rawPayload || {};
+        if (!id || version === undefined) {
+          throw new AppError('VALIDATION', 'id and version are required');
+        }
+
+        const table = getTable(ctx);
+        const existing = table.find(r => r.id === id && r.active)[0];
+        if (!existing) {
+          throw new AppError('NOT_FOUND', `${prefix} not found: ${id}`);
+        }
+
+        if (existing.version !== Number(version)) {
+          throw new AppError('VERSION_CONFLICT', `${prefix} has been modified by another user`, false, existing);
+        }
+
+        const actor = auth?.claims.sub || 'system';
+        table.deactivate(id, Number(version), actor, ctx.now());
+        logAudit(ctx, actor, `${prefix}.delete`, getTargetName(existing));
+        return { success: true };
+      }
     }
   };
 }

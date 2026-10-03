@@ -6,41 +6,6 @@ export const DEFAULT_INSTRUCTOR_PHOTOS: Record<string, string> = {
   'Newstyle Kelvin': '/instructors/newstyle-kelvin.png'
 };
 
-export const DEFAULT_INSTRUCTORS = {
-  latin: {
-    id: 'inst-lam',
-    name: 'Lam Hong Woh',
-    contact: '',
-    color: 'pink',
-    photoUrl: '/instructors/lam-hong-woh.png',
-    active: true,
-    version: 1,
-    updatedBy: '',
-    updatedAt: ''
-  },
-  popping: {
-    id: 'inst-carmen',
-    name: 'Carmen Loh',
-    contact: '',
-    color: 'blue',
-    photoUrl: '/instructors/carmen-loh.png',
-    active: true,
-    version: 1,
-    updatedBy: '',
-    updatedAt: ''
-  },
-  hiphop: {
-    id: 'inst-kelvin',
-    name: 'Newstyle Kelvin',
-    contact: '',
-    color: 'orange',
-    photoUrl: '/instructors/newstyle-kelvin.png',
-    active: true,
-    version: 1,
-    updatedBy: '',
-    updatedAt: ''
-  }
-} as const;
 
 export const STANDARD_PHOTO_WIDTH = 1080;
 export const STANDARD_PHOTO_HEIGHT = 1350;
@@ -204,7 +169,7 @@ export function resolveInstructor(
     if (byStyle) return byStyle;
   }
 
-  // 3. Fallback based on style name and known instructors
+  // 3. Fallback based on style name and active instructors in database
   const sName = (style?.name || '').toLowerCase();
   if (sName) {
     if (sName.includes('latin') || sName.includes('ballroom')) {
@@ -213,17 +178,14 @@ export function resolveInstructor(
         return n.includes('lam') || n.includes('hong woh');
       });
       if (match) return match;
-      return DEFAULT_INSTRUCTORS.latin;
     }
     if (sName.includes('popping')) {
       const match = instructors.find((i) => i.name.toLowerCase().includes('carmen'));
       if (match) return match;
-      return DEFAULT_INSTRUCTORS.popping;
     }
     if (sName.includes('locking') || sName.includes('hip hop') || sName.includes('hiphop')) {
       const match = instructors.find((i) => i.name.toLowerCase().includes('kelvin'));
       if (match) return match;
-      return DEFAULT_INSTRUCTORS.hiphop;
     }
   }
 

@@ -13,8 +13,7 @@ import {
   STANDARD_PHOTO_HINT,
   optimizeInstructorPhoto,
   convertDriveImageUrl,
-  getDriveThumbnailUrl,
-  DEFAULT_INSTRUCTOR_PHOTOS
+  getDriveThumbnailUrl
 } from '../../lib/instructorPhotos';
 import type { Instructor, InstructorPhoto } from '@umdsc/shared';
 
@@ -250,67 +249,18 @@ export const InstructorsPage: React.FC = () => {
     }
   });
 
-  const deactivateMutation = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: async (inst: Instructor) => {
-      return await api.post('instructors.deactivate', { id: inst.id, version: inst.version }, { opId: newOpId() });
+      return await api.post('instructors.delete', { id: inst.id, version: inst.version }, { opId: newOpId() });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['instructors'] });
       queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] });
+    },
+    onError: (err) => {
+      setFormError('Failed to delete instructor: ' + errorMessage(err));
     }
   });
-
-  const [isSyncingPhotos, setIsSyncingPhotos] = useState(false);
-
-  const hasLocalPhotos = instructors.some(
-    (i) => i.photoUrl?.startsWith('/instructors/') || (!i.photoUrl && DEFAULT_INSTRUCTOR_PHOTOS[i.name])
-  );
-
-  const syncDefaultPhotosToDrive = async () => {
-    setIsSyncingPhotos(true);
-    setFormError(null);
-    try {
-      for (const inst of instructors) {
-        const localPath = inst.photoUrl?.startsWith('/instructors/')
-          ? inst.photoUrl
-          : DEFAULT_INSTRUCTOR_PHOTOS[inst.name];
-
-        if (localPath && (!inst.photoUrl || inst.photoUrl.startsWith('/instructors/'))) {
-          const resp = await fetch(localPath);
-          const blob = await resp.blob();
-          const file = new File([blob], `${inst.name}.png`, { type: 'image/png' });
-          const optimizedDataUrl = await optimizeInstructorPhoto(file);
-
-          const newPhoto: InstructorPhoto = {
-            id: 'photo_' + Date.now(),
-            url: optimizedDataUrl,
-            active: true,
-            uploadedAt: new Date().toISOString()
-          };
-
-          await api.post(
-            'instructors.update',
-            {
-              id: inst.id,
-              version: inst.version,
-              name: inst.name,
-              contact: inst.contact || '',
-              color: inst.color || 'orange',
-              photoUrl: optimizedDataUrl,
-              photosJson: JSON.stringify([newPhoto])
-            },
-            { opId: newOpId() }
-          );
-        }
-      }
-      await queryClient.invalidateQueries({ queryKey: ['instructors'] });
-      await queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] });
-    } catch (err: any) {
-      setFormError('Failed to sync pictures to Google Drive: ' + (err?.message || 'unknown error'));
-    } finally {
-      setIsSyncingPhotos(false);
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -324,17 +274,6 @@ export const InstructorsPage: React.FC = () => {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {hasLocalPhotos && (
-            <PixelButton
-              size="md"
-              variant="secondary"
-              disabled={isSyncingPhotos}
-              onClick={syncDefaultPhotosToDrive}
-              title="Upload default instructor photos (Carmen, Lam, Kelvin) to your Google Drive folder"
-            >
-              {isSyncingPhotos ? 'SYNCING TO DRIVE...' : '☁ SYNC DEFAULT PICTURES TO DRIVE'}
-            </PixelButton>
-          )}
           <PixelButton size="md" variant="primary" onClick={openCreate}>
             + NEW INSTRUCTOR
           </PixelButton>
@@ -388,7 +327,7 @@ export const InstructorsPage: React.FC = () => {
                     className="w-full py-1 text-center border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] font-display text-[8px] font-bold text-[var(--on-neon)] uppercase tracking-wider"
                     style={{ backgroundColor: instColor }}
                   >
-                    INSTRUCTOR · {inst.color?.toUpperCase() || 'DEFAULT'}
+                    INSTRUCTOR{inst.color ? ` · ${inst.color.toUpperCase()}` : ''}
                   </div>
 
                   {/* Instructor Meta */}
@@ -415,16 +354,16 @@ export const InstructorsPage: React.FC = () => {
                   <PixelButton
                     size="sm"
                     variant="danger"
-                    disabled={deactivateMutation.isPending}
+                    disabled={deleteMutation.isPending}
                     onClick={() => {
-                      if (confirm(`Deactivate instructor "${inst.name}"?`)) {
-                        deactivateMutation.mutate(inst);
+                      if (confirm(`Delete instructor "${inst.name}"? This will remove them from the system.`)) {
+                        deleteMutation.mutate(inst);
                       }
                     }}
                   >
-                    {deactivateMutation.isPending && (deactivateMutation.variables as any)?.id === inst.id
-                      ? 'DEACTIVATING...'
-                      : 'DEACTIVATE'}
+                    {deleteMutation.isPending && (deleteMutation.variables as any)?.id === inst.id
+                      ? 'DELETING...'
+                      : 'DELETE'}
                   </PixelButton>
                 </div>
               </div>
@@ -628,7 +567,7 @@ export const InstructorsPage: React.FC = () => {
                 )}
               </div>
 
-              <div className="flex gap-3 pt-3 border-t-2 border-[var(--outline)]">
+              <div className="flex flex-wrap gap-3 pt-3 border-t-2 border-[var(--outline)]">
                 <PixelButton
                   size="md"
                   variant="primary"
@@ -638,6 +577,22 @@ export const InstructorsPage: React.FC = () => {
                 >
                   {saveMutation.isPending ? 'SAVING...' : 'SAVE INSTRUCTOR'}
                 </PixelButton>
+                {editingInstructor && (
+                  <PixelButton
+                    size="md"
+                    variant="danger"
+                    type="button"
+                    disabled={deleteMutation.isPending || saveMutation.isPending}
+                    onClick={() => {
+                      if (confirm(`Delete instructor "${editingInstructor.name}"? This will remove them from the system.`)) {
+                        deleteMutation.mutate(editingInstructor);
+                        closeForm();
+                      }
+                    }}
+                  >
+                    {deleteMutation.isPending ? 'DELETING...' : 'DELETE INSTRUCTOR'}
+                  </PixelButton>
+                )}
                 <PixelButton
                   size="md"
                   variant="secondary"
