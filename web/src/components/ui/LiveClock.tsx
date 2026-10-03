@@ -6,12 +6,14 @@ const TIMEZONE = 'Asia/Kuala_Lumpur';
 export interface LiveClockProps {
   compact?: boolean;
   showDate?: boolean;
+  showSeconds?: boolean;
   className?: string;
 }
 
 export const LiveClock: React.FC<LiveClockProps> = ({
   compact = false,
   showDate = true,
+  showSeconds = false,
   className = ''
 }) => {
   const [now, setNow] = useState(() => new Date());
@@ -24,7 +26,7 @@ export const LiveClock: React.FC<LiveClockProps> = ({
   }, []);
 
   const zoned = toZonedTime(now, TIMEZONE);
-  const timeStr = formatTz(zoned, 'HH:mm:ss', { timeZone: TIMEZONE });
+  const timeStr = formatTz(zoned, showSeconds ? 'HH:mm:ss' : 'HH:mm', { timeZone: TIMEZONE });
   const dateStr = formatTz(zoned, 'EEE, dd MMM yyyy', { timeZone: TIMEZONE });
 
   if (compact) {
@@ -32,10 +34,9 @@ export const LiveClock: React.FC<LiveClockProps> = ({
       <div
         data-testid="live-clock-compact"
         title={`Kuala Lumpur Time (UTC+8): ${dateStr} ${timeStr}`}
-        className={`inline-flex items-center gap-1.5 px-2 py-0.5 bg-[var(--night-2)] text-[var(--neon-gold)] font-mono text-[20px] tracking-wider border-2 border-[var(--outline)] select-none ${className}`}
+        className={`inline-flex items-center justify-center px-1.5 py-0.5 bg-[var(--night-2)] text-[var(--neon-gold)] font-mono text-[12px] font-bold tracking-wider border-2 border-[var(--outline)] select-none shadow-[2px_2px_0_var(--shadow-hard)] max-w-full ${className}`}
       >
-        <span className="text-[12px]" aria-hidden="true">⏰</span>
-        <span className="font-bold">{timeStr}</span>
+        <span>{timeStr}</span>
       </div>
     );
   }

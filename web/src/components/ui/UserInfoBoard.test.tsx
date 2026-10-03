@@ -93,7 +93,27 @@ describe('UserInfoBoard', () => {
     );
 
     expect(screen.getByTestId('user-info-board-compact')).toBeInTheDocument();
+    expect(screen.getByTestId('user-role-avatar-compact')).toHaveAttribute('aria-label', 'Dancer Profile');
     expect(screen.getByTestId('sign-out-btn-compact')).toBeInTheDocument();
     expect(screen.getByTestId('live-clock-compact')).toBeInTheDocument();
+  });
+
+  it('renders admin crown icon in compact mode for admin role', () => {
+    session.set('tok-admin', {
+      sub: 'admin_boss',
+      role: 'admin',
+      name: 'Super Admin',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      pv: 1,
+      perms: {}
+    });
+
+    render(
+      <MemoryRouter>
+        <UserInfoBoard compact />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId('user-role-avatar-compact')).toHaveAttribute('aria-label', 'Admin Profile');
   });
 });
