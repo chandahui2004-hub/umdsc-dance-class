@@ -52,7 +52,7 @@ export const AdminLogin: React.FC = () => {
         );
       }
 
-      navigate('/admin/today', { replace: true });
+      navigate('/admin/calendar', { replace: true });
     } catch (err) {
       setError(errorMessage(err));
     } finally {

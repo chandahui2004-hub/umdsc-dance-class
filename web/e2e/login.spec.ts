@@ -121,7 +121,7 @@ test.describe('Login, Title Screen, and Route Guards', () => {
     await expect(page.getByText(/register via the club form/i)).toBeVisible();
   });
 
-  test('admin login goes to /admin/today; dancer visiting /admin is redirected to /', async ({ page }) => {
+  test('admin login goes to /admin/calendar; dancer visiting /admin is redirected to /', async ({ page }) => {
     await page.route(API_URL_REGEX, async (route) => {
       const request = route.request();
       if (request.method() === 'POST') {
@@ -171,10 +171,10 @@ test.describe('Login, Title Screen, and Route Guards', () => {
     await page.getByLabel(/Password/i).fill('correctpassword');
     await page.getByRole('button', { name: /LOGIN|ENTER/i }).click();
 
-    await page.waitForURL('**/admin/today');
-    await expect(page.getByRole('heading', { name: /Today/i })).toBeVisible();
+    await page.waitForURL('**/admin/calendar');
+    await expect(page.getByRole('heading', { name: /Calendar|Classes/i })).toBeVisible();
 
-    // 2. Set dancer session and try accessing /admin/today
+    // 2. Set dancer session and try accessing /admin/calendar
     await page.evaluate(() => {
       localStorage.setItem('umdsc:session', JSON.stringify({
         token: 'dancer-tok',
@@ -189,7 +189,7 @@ test.describe('Login, Title Screen, and Route Guards', () => {
       }));
     });
 
-    await page.goto('/admin/today');
+    await page.goto('/admin/calendar');
     await page.waitForURL('**/');
     await expect(page.getByRole('heading', { name: /Calendar/i })).toBeVisible();
   });

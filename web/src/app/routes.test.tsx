@@ -14,6 +14,8 @@ describe('Admin Navigation Structure', () => {
     expect(tabIds).toContain('media');
     expect(tabIds).toContain('members');
     expect(tabIds).toContain('more');
+    expect(ADMIN_TABS[0].id).toBe('calendar');
+    expect(ADMIN_TABS[0].path).toBe('/admin/calendar');
   });
 
   it('contains exactly the 6 sub-items inside ADMIN_MORE_ITEMS', () => {
