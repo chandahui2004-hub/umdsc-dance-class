@@ -44,9 +44,7 @@ export function errorMessage(e: unknown): string {
       case 'NAME_MISMATCH':
         return "That name doesn't match this matric number.";
       case 'NOT_REGISTERED':
-        return 'Matric number is not registered for this month.';
-      case 'LOCKED_OUT':
-        return 'Too many failed attempts. Please try again later.';
+        return "Matric number and name don't match a registered dancer. Type your full name as on the registration form.";
       case 'SETUP_DONE':
         return 'System is already set up.';
       case 'SETUP_REQUIRED':

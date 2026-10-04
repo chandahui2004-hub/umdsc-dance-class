@@ -132,8 +132,8 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
     }
   });
 
-  it('wrong password 5x → 6th LOCKED_OUT', () => {
-    for (let i = 0; i < 5; i++) {
+  it('wrong password 10x → correct password still logs in', () => {
+    for (let i = 0; i < 10; i++) {
       const failRes = handleRequest(
         {
           action: 'auth.adminLogin',
@@ -148,7 +148,7 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
       }
     }
 
-    const lockedRes = handleRequest(
+    const successRes = handleRequest(
       {
         action: 'auth.adminLogin',
         payload: { username: 'clubadmin', password: 'SecretAdminPass' }
@@ -156,10 +156,7 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
       ctx,
       secrets
     );
-    expect(lockedRes.ok).toBe(false);
-    if (!lockedRes.ok) {
-      expect(lockedRes.error.code).toBe('LOCKED_OUT');
-    }
+    expect(successRes.ok).toBe(true);
   });
 
   it('dancerLogin: sheet matric "22004591/1", typed "22004591" + name without BIN → ok', () => {
@@ -231,7 +228,7 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
     }
   });
 
-  it('dancerLogin: right matric, different person name → NAME_MISMATCH', () => {
+  it('dancerLogin: right matric, different person name → NOT_REGISTERED with shared message', () => {
     const res = handleRequest(
       {
         action: 'auth.dancerLogin',
@@ -246,11 +243,12 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
 
     expect(res.ok).toBe(false);
     if (!res.ok) {
-      expect(res.error.code).toBe('NAME_MISMATCH');
+      expect(res.error.code).toBe('NOT_REGISTERED');
+      expect(res.error.message).toContain("Matric number and name don't match a registered dancer. Type your full name as on the registration form.");
     }
   });
 
-  it('dancerLogin: unknown matric → NOT_REGISTERED', () => {
+  it('dancerLogin: unknown matric → NOT_REGISTERED with shared message', () => {
     const res = handleRequest(
       {
         action: 'auth.dancerLogin',
@@ -266,7 +264,61 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
     expect(res.ok).toBe(false);
     if (!res.ok) {
       expect(res.error.code).toBe('NOT_REGISTERED');
+      expect(res.error.message).toContain("Matric number and name don't match a registered dancer. Type your full name as on the registration form.");
     }
+  });
+
+  it('dancerLogin: one word of the name is rejected', () => {
+    const res = handleRequest(
+      {
+        action: 'auth.dancerLogin',
+        payload: {
+          fullName: 'ahmad',
+          matric: '22004591'
+        }
+      },
+      ctx,
+      secrets
+    );
+
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error.code).toBe('NOT_REGISTERED');
+      expect(res.error.message).toContain("Matric number and name don't match a registered dancer. Type your full name as on the registration form.");
+    }
+  });
+
+  it('dancerLogin: 10 wrong names then the right one logs in', () => {
+    for (let i = 0; i < 10; i++) {
+      const failRes = handleRequest(
+        {
+          action: 'auth.dancerLogin',
+          payload: {
+            fullName: `Wrong Name ${i}`,
+            matric: '22004591'
+          }
+        },
+        ctx,
+        secrets
+      );
+      expect(failRes.ok).toBe(false);
+      if (!failRes.ok) {
+        expect(failRes.error.code).toBe('NOT_REGISTERED');
+      }
+    }
+
+    const okRes = handleRequest(
+      {
+        action: 'auth.dancerLogin',
+        payload: {
+          fullName: 'Ahmad Fiqri Mohd Zamri',
+          matric: '22004591'
+        }
+      },
+      ctx,
+      secrets
+    );
+    expect(okRes.ok).toBe(true);
   });
 
   it('dancerLogin claims.perms include MemberRoles extras scoped to styles', () => {
@@ -303,7 +355,7 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
       {
         action: 'auth.dancerLogin',
         payload: {
-          fullName: 'Ahmad Fiqri',
+          fullName: 'Ahmad Fiqri Mohd Zamri',
           matric: '22004591'
         }
       },

@@ -1,7 +1,6 @@
 import { Route } from '../router';
 import { AppError } from '../errors';
-import { normalizeMatric, nameSimilarity } from '../logic/normalize';
-import { checkThrottle, recordFailure, clearFailures } from '../security/throttle';
+import { normalizeMatric, fullNameMatches } from '../logic/normalize';
 import { verifyPassword } from '../security/passwords';
 import { signToken } from '../security/tokens';
 import { resolvePermissions } from '../logic/permissions';
@@ -22,18 +21,12 @@ export function getAuthRoutes(): Record<string, Route> {
           throw new AppError('VALIDATION', 'Username and password are required');
         }
 
-        const throttleKey = 'fail:admin:' + username;
-        checkThrottle(ctx.cache, throttleKey, 5, 600);
-
         const admin = ctx.db.admins.find(a => a.username === username && a.active)[0];
         const hmac = (ctx as any)._secrets?.hmac;
 
         if (!admin || !verifyPassword(password, admin, hmac)) {
-          recordFailure(ctx.cache, throttleKey, 600);
           throw new AppError('UNAUTHORIZED', 'Invalid username or password');
         }
-
-        clearFailures(ctx.cache, throttleKey);
 
         // Fetch role permissions
         const rolePermsList = ctx.db.rolePermissions
@@ -84,26 +77,22 @@ export function getAuthRoutes(): Record<string, Route> {
         }
 
         const matricKey = normalizeMatric(matric);
-        const throttleKey = 'fail:dancer:' + matricKey;
-        checkThrottle(ctx.cache, throttleKey, 5, 600);
-        timer.mark('throttle');
 
         const dancer = ctx.db.memberIndex.find(m => m.matricKey === matricKey && m.active)[0];
         if (!dancer) {
-          recordFailure(ctx.cache, throttleKey, 600);
-          throw new AppError('NOT_REGISTERED', 'Matric number is not registered');
-        }
-
-        const similarity = nameSimilarity(fullName, dancer.fullName);
-        if (similarity < 0.8) {
-          recordFailure(ctx.cache, throttleKey, 600);
           throw new AppError(
-            'NAME_MISMATCH',
-            `Name does not match records for matric ${matricKey}`
+            'NOT_REGISTERED',
+            "Matric number and name don't match a registered dancer. Type your full name as on the registration form."
           );
         }
 
-        clearFailures(ctx.cache, throttleKey);
+        if (!fullNameMatches(fullName, dancer.fullName)) {
+          throw new AppError(
+            'NOT_REGISTERED',
+            "Matric number and name don't match a registered dancer. Type your full name as on the registration form."
+          );
+        }
+
         timer.mark('memberIndex');
 
         // Fetch Dancer role + MemberRoles extras

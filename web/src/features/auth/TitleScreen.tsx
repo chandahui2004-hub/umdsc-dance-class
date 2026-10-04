@@ -57,17 +57,7 @@ export const TitleScreen: React.FC = () => {
       const target = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
       navigate(target, { replace: true });
     } catch (err) {
-      if (err instanceof ApiError) {
-        if (err.code === 'NAME_MISMATCH') {
-          setError("That name doesn't match this matric number");
-        } else if (err.code === 'NOT_REGISTERED') {
-          setError('Not registered for this month. Please register via the club form.');
-        } else {
-          setError(errorMessage(err));
-        }
-      } else {
-        setError(errorMessage(err));
-      }
+      setError(errorMessage(err));
     } finally {
       setLoading(false);
     }

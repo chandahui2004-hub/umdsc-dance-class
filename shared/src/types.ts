@@ -3,7 +3,7 @@ export type ISODate = string;    // 'YYYY-MM-DD'
 export type HHmm = string;       // 'HH:mm'
 export type ErrorCode = 'UNAUTHORIZED'|'FORBIDDEN'|'VALIDATION'|'NOT_FOUND'|'VERSION_CONFLICT'
   |'LINK_INVALID'|'LINK_NO_ACCESS'|'LINK_WRONG_KIND'|'LINK_READ_ONLY'|'NAME_MISMATCH'
-  |'NOT_REGISTERED'|'LOCKED_OUT'|'BUSY'|'QUOTA'|'INTERNAL'|'SETUP_DONE'|'SETUP_REQUIRED';
+  |'NOT_REGISTERED'|'BUSY'|'QUOTA'|'INTERNAL'|'SETUP_DONE'|'SETUP_REQUIRED';
 
 export type PermissionCode = 'calendar.view'|'attendance.view.own'|'attendance.view.all'|'attendance.edit'
   |'sessions.edit'|'styles.edit'|'instructors.edit'|'members.view'|'members.import'|'videos.view'

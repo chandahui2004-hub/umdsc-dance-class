@@ -59,7 +59,7 @@ test.describe('Login, Title Screen, and Route Guards', () => {
     await expect(page.getByRole('heading', { name: /Calendar/i })).toBeVisible();
   });
 
-  test('NAME_MISMATCH shows "That name doesn\'t match this matric number"', async ({ page }) => {
+  test('wrong name shows shared NOT_REGISTERED error message', async ({ page }) => {
     await page.route(API_URL_REGEX, async (route) => {
       const request = route.request();
       if (request.method() === 'POST') {
@@ -71,8 +71,8 @@ test.describe('Login, Title Screen, and Route Guards', () => {
             body: JSON.stringify({
               ok: false,
               error: {
-                code: 'NAME_MISMATCH',
-                message: "Name doesn't match",
+                code: 'NOT_REGISTERED',
+                message: "Matric number and name don't match a registered dancer. Type your full name as on the registration form.",
                 retryable: false
               }
             })
@@ -87,10 +87,10 @@ test.describe('Login, Title Screen, and Route Guards', () => {
     await page.getByLabel(/Matric Number/i).fill('17201234');
     await page.getByRole('button', { name: /ENTER|START|PLAY/i }).click();
 
-    await expect(page.getByText("That name doesn't match this matric number")).toBeVisible();
+    await expect(page.getByText("Matric number and name don't match a registered dancer. Type your full name as on the registration form.")).toBeVisible();
   });
 
-  test('NOT_REGISTERED shows a message telling them to register via the club form', async ({ page }) => {
+  test('unknown matric shows shared NOT_REGISTERED error message', async ({ page }) => {
     await page.route(API_URL_REGEX, async (route) => {
       const request = route.request();
       if (request.method() === 'POST') {
@@ -103,7 +103,7 @@ test.describe('Login, Title Screen, and Route Guards', () => {
               ok: false,
               error: {
                 code: 'NOT_REGISTERED',
-                message: 'Not registered for this month',
+                message: "Matric number and name don't match a registered dancer. Type your full name as on the registration form.",
                 retryable: false
               }
             })
@@ -118,7 +118,7 @@ test.describe('Login, Title Screen, and Route Guards', () => {
     await page.getByLabel(/Matric Number/i).fill('99999999');
     await page.getByRole('button', { name: /ENTER|START|PLAY/i }).click();
 
-    await expect(page.getByText(/register via the club form/i)).toBeVisible();
+    await expect(page.getByText("Matric number and name don't match a registered dancer. Type your full name as on the registration form.")).toBeVisible();
   });
 
   test('admin login goes to /admin/calendar; dancer visiting /admin is redirected to /', async ({ page }) => {

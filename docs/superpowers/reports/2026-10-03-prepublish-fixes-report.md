@@ -41,3 +41,24 @@
 - Differences from the plan, and why: none
 - Anything unsure or not done: none
 
+## Task 2 — fullNameMatches
+- Commit: 6061fa6 (`6061fa6 feat(api): fullNameMatches — every registered name word required`)
+- Files changed:
+  - `api/src/logic/normalize.ts`
+  - `api/test/logic/normalize.test.ts`
+- Commands run and results:
+  - `npm test -w api -- normalize` →
+    ```
+    ✓ test/logic/normalize.test.ts (24 tests) 12ms
+    Test Files  1 passed (1)
+    Tests  24 passed (24)
+    ```
+  - `npm test -w api` →
+    ```
+    Test Files  42 passed (42)
+    Tests  303 passed (303)
+    ```
+- Differences from the plan, and why: none
+- Anything unsure or not done: none
+
+
