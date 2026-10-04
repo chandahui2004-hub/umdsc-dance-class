@@ -176,7 +176,7 @@
 
 ## Task 6 — Deploy the API changes (Tasks 3–4)
 
-- Commit: `eb3c98a` (`eb3c98a chore: record API deployment version`)
+- Commit: `3dc4bdd` (`3dc4bdd chore: record API deployment version`)
 - Files changed:
   - `docs/SETUP-VALUES.md`
 - Commands run and results:
@@ -188,5 +188,5 @@
     ✓ built in 5.47s
     ```
 - Differences from the plan, and why: none
-- Anything unsure or not done: awaiting owner real-phone verification (Step 4)
+- Anything unsure or not done: none (owner tested on real phone: single word shows NOT_REGISTERED error, full name logs in)
 
