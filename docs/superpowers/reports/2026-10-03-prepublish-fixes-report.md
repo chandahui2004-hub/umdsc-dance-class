@@ -190,3 +190,34 @@
 - Differences from the plan, and why: none
 - Anything unsure or not done: none (owner tested on real phone: single word shows NOT_REGISTERED error, full name logs in)
 
+## Task 7 — Permanent phone-layout test (written first; it fails until Tasks 8–9)
+
+- Commit: `f73d8f4` (`f73d8f4 test(e2e): permanent phone-layout check (red until layout fixes)`)
+- Files changed:
+  - `web/e2e/phone-layout.spec.ts`
+  - `web/src/app/PhoneShell.tsx`
+- Commands run and results:
+  - `npx playwright test e2e/phone-layout.spec.ts --project=mobile` (RED - expected):
+    ```
+      4 failed
+        [mobile] › e2e/phone-layout.spec.ts:245:5 › phone-layout @ 360px › phone-layout check across all pages 
+        [mobile] › e2e/phone-layout.spec.ts:314:5 › phone-layout @ 360px › nav toggle hidden in overlays 
+        [mobile] › e2e/phone-layout.spec.ts:245:5 › phone-layout @ 390px › phone-layout check across all pages 
+        [mobile] › e2e/phone-layout.spec.ts:314:5 › phone-layout @ 390px › nav toggle hidden in overlays 
+
+      Failures captured:
+      [/] select "OCT MONTHLY CLASS" L=72 R=392 (past 0..360)
+      [/] select "OCT MONTHLY CLASS" L=72 R=392 (clipped by main)
+      [/ (day sheet)] select "OCT MONTHLY CLASS" L=72 R=392 (past 0..360)
+      [/ (day sheet)] select "OCT MONTHLY CLASS" L=72 R=392 (clipped by main)
+      [/studio?music=m-1] select "Select class video" L=116 R=391 (clipped by main)
+      [/studio (fullscreen)] select "Select class video" L=116 R=391 (clipped by main)
+      Nav toggle: expect(locator).toBeHidden() failed: locator resolved to visible
+    ```
+  - `npm run build`:
+    ```
+    ✓ built in 5.06s
+    ```
+- Differences from the plan, and why: none
+- Anything unsure or not done: none (test fails as expected until Tasks 8-9)
+

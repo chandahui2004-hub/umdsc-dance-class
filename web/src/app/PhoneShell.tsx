@@ -75,6 +75,7 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
                 onClick={() => setIsUserInfoOpen(!isUserInfoOpen)}
                 aria-label={isUserInfoOpen ? 'Close user info board' : 'Open user info board'}
                 data-testid="user-info-toggle-btn"
+                data-truncate-ok
                 className="px-2 py-1 px-panel text-[var(--text-1)] border-2 border-[var(--outline)] font-display text-[9px] active:translate-x-[1px] active:translate-y-[1px] cursor-pointer flex items-center gap-1"
               >
                 <span className="truncate max-w-[55px] font-bold">{username}</span>
