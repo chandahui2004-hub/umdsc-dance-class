@@ -153,6 +153,7 @@ async function setupPage(page: Page) {
 
 async function checkLayout(page: Page, pageName: string): Promise<string[]> {
   await page.waitForLoadState('networkidle');
+  await page.evaluate(() => document.fonts.ready);
   return page.evaluate(pageName => {
     const failures: string[] = [];
     const innerWidth = window.innerWidth;
