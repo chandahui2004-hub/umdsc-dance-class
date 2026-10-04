@@ -343,7 +343,7 @@ describe('Feature: Music & Sections (features/music)', () => {
     expect(res.ok).toBe(true);
     if (res.ok) {
       const list = res.data as any[];
-      expect(list.map(s => s.id)).toEqual([s1.id, s2.id].sort());
+      expect(list.map(s => s.id).sort()).toEqual([s1.id, s2.id].sort());
       expect(list.find(s => s.id === s3Inactive.id)).toBeUndefined();
     }
   });

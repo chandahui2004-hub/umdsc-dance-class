@@ -104,7 +104,7 @@ API unit tests must cover:
 
 - **New hook `web/src/app/useOverlayOpen.ts`.** `useOverlayOpen(active: boolean)` adds 1 to `document.body.dataset.overlays` while `active` is true and subtracts 1 when it becomes false or the component unmounts. The attribute is removed when the count reaches 0.
 - **Who calls it.** The day-sheet popup and `FullscreenStudio` call `useOverlayOpen(true)`.
-- **Hiding the button.** In `web/src/index.css`: `body[data-overlays] [data-testid="mobile-nav-toggle-btn"] { display: none; }`.
+- **Hiding the button.** In `web/src/theme/pixel.css`: `body[data-overlays] [data-testid="mobile-nav-toggle-btn"] { display: none; }`.
 - **Bottom padding.** In `PhoneShell.tsx`, `<main>` gets bottom padding equal to the dock height + 72px when the nav is shown, and 72px when it is hidden, so the last content can scroll above the button.
 
 ### Studio at 360–390px

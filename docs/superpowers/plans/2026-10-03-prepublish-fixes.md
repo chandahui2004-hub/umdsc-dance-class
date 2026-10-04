@@ -64,7 +64,7 @@ Real-world inputs that would hurt a dancer and that ordinary tests miss. Each ha
 | `web/src/lib/api.ts`, `web/src/features/auth/TitleScreen.tsx` | modify | new login error text |
 | `web/src/features/music-studio/Studio.tsx` | modify | `Array.isArray` guards |
 | `web/src/app/useOverlayOpen.ts` (+ test) | create | overlay counter on `<body>` |
-| `web/src/app/PhoneShell.tsx`, `web/src/index.css` | modify | bottom padding; hide nav toggle during overlays |
+| `web/src/app/PhoneShell.tsx`, `web/src/theme/pixel.css` | modify | bottom padding; hide nav toggle during overlays |
 | `web/src/features/calendar/DaySheet.tsx`, `FullscreenStudio.tsx` | modify | call `useOverlayOpen` |
 | `web/src/features/music-studio/dancecue/components/AudioPlayer.tsx`, `sources/SourcePicker.tsx`, `sync/VideoPanel.tsx`, `features/calendar/DancerHome.tsx` | modify | phone cut-off fixes |
 | `web/e2e/phone-layout.spec.ts` | create | permanent phone-layout test |
@@ -265,7 +265,7 @@ it.each([
 
 **Files:**
 - Create: `web/src/app/useOverlayOpen.ts`, `web/src/app/useOverlayOpen.test.tsx`
-- Modify: `web/src/app/PhoneShell.tsx:116,121-160`, `web/src/index.css`, `web/src/features/calendar/DaySheet.tsx`, `web/src/features/music-studio/FullscreenStudio.tsx`
+- Modify: `web/src/app/PhoneShell.tsx:116,121-160`, `web/src/theme/pixel.css`, `web/src/features/calendar/DaySheet.tsx`, `web/src/features/music-studio/FullscreenStudio.tsx`
 
 **Interfaces:**
 - Produces: `export function useOverlayOpen(active: boolean): void`.
@@ -278,7 +278,7 @@ it.each([
 - [ ] **Step 2:** Run `npm test -w web -- useOverlayOpen`. Expected: FAIL, module not found.
 - [ ] **Step 3:** Implement the hook with a module-level counter, using a `useEffect` keyed on `active` whose cleanup subtracts.
 - [ ] **Step 4:** Call `useOverlayOpen(isOpen)` in `DaySheet` and `useOverlayOpen(true)` in `FullscreenStudio`.
-- [ ] **Step 5:** Add the CSS rule to `index.css`:
+- [ ] **Step 5:** Add the CSS rule to `web/src/theme/pixel.css`:
 
   ```css
   body[data-overlays] [data-testid="mobile-nav-toggle-btn"] { display: none; }
