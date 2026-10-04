@@ -3,7 +3,8 @@ import {
   normalizeMatric,
   nameKey,
   normalizePhone,
-  nameSimilarity
+  nameSimilarity,
+  fullNameMatches
 } from '../../src/logic/normalize';
 
 describe('normalize', () => {
@@ -34,5 +35,24 @@ describe('normalize', () => {
     expect(nameSimilarity('Yee Jia Xuan', 'Yee Jia Xuen')).toBeGreaterThanOrEqual(0.8);
     expect(nameSimilarity('Wong Jin Wui', 'Tan Mei Ling')).toBeLessThan(0.5);
     expect(nameSimilarity('Kumar a/l Ravi', 'Kumar Ravi')).toBeGreaterThanOrEqual(0.8);
+  });
+
+  describe('fullNameMatches', () => {
+    const R = 'SARAH BINTI AHMAD';
+    it.each([
+      ['AHMAD', R, false], ['SARAH', R, false], ['SARAH BINTI', R, false],
+      ['sarah ahmad', R, true], ['Ahmad Sarah', R, true], ['SARAH BINTI AHMAD', R, true],
+      ['Sara Binti Ahmad', R, true], ['Sarah Ahmed', R, true], ['Sxrxh Ahmad', R, false],
+      ['sarah ahmad nickname', R, true], ['', R, false], ['sarah', '', false],
+      // Review Focus 1–3
+      ['Muhammad Ali Abu Bakar', 'MUHAMMAD ALI BIN ABU BAKAR', true],
+      ['raj kumar selvam', 'RAJ KUMAR A/L SELVAM', true],
+      ['nurain zaki', "NUR'AIN BINTI ZAKI", true],
+      ['nur aisyah', 'NUR NUR AISYAH', false],
+      ['nur nur aisyah', 'NUR NUR AISYAH', true],
+      ['tan ah kow', 'TAN AH KOW', true], ['tan ah', 'TAN AH KOW', false], ['tan ah kaw', 'TAN AH KOW', false],
+    ])('fullNameMatches(%j, %j) = %s', (typed, registered, expected) => {
+      expect(fullNameMatches(typed, registered)).toBe(expected);
+    });
   });
 });

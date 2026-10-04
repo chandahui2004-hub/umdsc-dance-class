@@ -42,7 +42,7 @@ export function normalizePhone(raw: string | number): { value: string; repaired:
   return { value: digits, repaired: false };
 }
 
-function levenshtein(a: string, b: string): number {
+export function levenshtein(a: string, b: string): number {
   const m = a.length;
   const n = b.length;
   const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
@@ -68,13 +68,64 @@ function levenshtein(a: string, b: string): number {
 }
 
 function extractTokens(raw: string): string[] {
-  const cleaned = raw
+  const deApostrophe = (raw || '').replace(/['’]/g, '');
+  const cleaned = deApostrophe
     .toLowerCase()
     .replace(/\b(bin|binti|bt|a\/l|a\/p|al|ap)\b/g, ' ');
 
   const normalized = nameKey(cleaned);
   const ignored = new Set(['bin', 'binti', 'bt', 'al', 'ap']);
   return normalized.split(' ').filter(t => t.length > 0 && !ignored.has(t));
+}
+
+export function fullNameMatches(typed: string, registered: string): boolean {
+  if (!typed || !registered) return false;
+  const typedTokens = extractTokens(typed);
+  const registeredTokens = extractTokens(registered);
+
+  if (typedTokens.length === 0 || registeredTokens.length === 0) return false;
+
+  const usedTypedIndices = new Set<number>();
+  const unmatchedRegisteredIndices: number[] = [];
+
+  // Pass 1: Try exact matches for all registered tokens first
+  for (let r = 0; r < registeredTokens.length; r++) {
+    const regWord = registeredTokens[r];
+    let matched = false;
+    for (let t = 0; t < typedTokens.length; t++) {
+      if (!usedTypedIndices.has(t) && typedTokens[t] === regWord) {
+        usedTypedIndices.add(t);
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) {
+      unmatchedRegisteredIndices.push(r);
+    }
+  }
+
+  // Pass 2: Try typo matches (Levenshtein distance <= 1 when regWord.length >= 5)
+  for (const r of unmatchedRegisteredIndices) {
+    const regWord = registeredTokens[r];
+    if (regWord.length < 5) {
+      return false; // Short words must match exactly
+    }
+    let matched = false;
+    for (let t = 0; t < typedTokens.length; t++) {
+      if (!usedTypedIndices.has(t)) {
+        if (levenshtein(typedTokens[t], regWord) <= 1) {
+          usedTypedIndices.add(t);
+          matched = true;
+          break;
+        }
+      }
+    }
+    if (!matched) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 export function nameSimilarity(a: string, b: string): number {

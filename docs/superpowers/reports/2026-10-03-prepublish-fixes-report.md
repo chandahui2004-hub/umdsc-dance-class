@@ -26,3 +26,18 @@
   - `npm test -w web` → `Test Files  42 passed (42)`, `Tests  223 passed (223)`
 - Differences from the plan, and why: In `MediaPage.tsx`, `streamUrl` was retained in the import list because it is used for audio preview on line 634; only the unused `const stream` on line 427 was removed.
 - Anything unsure or not done: none.
+
+## Task 1 — Build passes
+- Commit: f54d23d (`f54d23d fix(build): valid Boombox size and unused import`)
+- Files changed:
+  - `web/src/features/auth/TitleScreen.tsx`
+  - `web/src/lib/instructorPhotos.test.ts`
+- Commands run and results:
+  - `npm run build` →
+    ```
+    ✓ 512 modules transformed.
+    ✓ built in 5.14s
+    ```
+- Differences from the plan, and why: none
+- Anything unsure or not done: none
+
