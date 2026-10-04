@@ -173,3 +173,20 @@
     ```
 - Differences from the plan, and why: none
 - Anything unsure or not done: none
+
+## Task 6 — Deploy the API changes (Tasks 3–4)
+
+- Commit: `eb3c98a` (`eb3c98a chore: record API deployment version`)
+- Files changed:
+  - `docs/SETUP-VALUES.md`
+- Commands run and results:
+  - `npm run push` (in `api/`) → `Pushed 2 files (dist/appsscript.json, dist/Code.js)`
+  - `npx clasp update-deployment AKfycbz3zfWHdcl_3GuDsCf_ysLpH4XDNyklC87L9HuKpUVvhKrF-BU1M-QCf0PjPePAwwxIHA` (in `api/`) → `Redeployed AKfycbz3zfWHdcl_3GuDsCf_ysLpH4XDNyklC87L9HuKpUVvhKrF-BU1M-QCf0PjPePAwwxIHA @22`
+  - Health check endpoint → `{"ok":true,"data":{"version":"0.1.0"}}`
+  - `npm run build`:
+    ```
+    ✓ built in 5.47s
+    ```
+- Differences from the plan, and why: none
+- Anything unsure or not done: awaiting owner real-phone verification (Step 4)
+
