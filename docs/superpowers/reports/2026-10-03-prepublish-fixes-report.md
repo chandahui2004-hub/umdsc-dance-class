@@ -333,3 +333,24 @@
 - Differences from the plan, and why: Added `min-w-0` to `TabBar.tsx` tabs so that the 5-tab admin dock fits without horizontal clipping on 360–390px viewports.
 - Anything unsure or not done: none
 
+## Task 11 — Finish the Drive-player feature
+
+- Commit: `81a8930` (`81a8930 fix(studio): touch-safe accessible start flag and honest Drive player label`)
+- Files changed:
+  - `web/src/features/music-studio/FullscreenStudio.tsx`
+  - `web/src/features/music-studio/FullscreenStudio.test.tsx`
+- Commands run and results:
+  - `npm test -w web -- FullscreenStudio` (RED): 4 failed | 15 passed (19)
+  - `npm test -w web -- FullscreenStudio` (GREEN): 19 passed (19)
+  - `npm test -w web`:
+    ```
+    Test Files  44 passed (44)
+         Tests  231 passed (231)
+    ```
+  - `npm run build`:
+    ```
+    ✓ built in 4.36s
+    ```
+- Differences from the plan, and why: none
+- Anything unsure or not done: none
+
