@@ -100,7 +100,7 @@ export const TitleScreen: React.FC = () => {
             DANCE CLASS SYSTEM
           </p>
           <div className="mt-3 flex flex-col items-center gap-1.5">
-            <Boombox size={56} className="drop-shadow-[0_0_12px_rgba(62,230,255,0.7)]" />
+            <Boombox size={64} className="drop-shadow-[0_0_12px_rgba(62,230,255,0.7)]" />
             <span
               className="font-display text-[10px] md:text-[12px] text-[var(--neon-gold)] px-glow-text px-blink tracking-widest min-h-[16px]"
               style={{ '--glow': 'var(--neon-gold)' } as React.CSSProperties}

@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   getInstructorPhotoUrl,
-  convertDriveImageUrl,
-  DEFAULT_INSTRUCTOR_PHOTOS
+  convertDriveImageUrl
 } from './instructorPhotos';
 
 describe('instructorPhotos library', () => {
