@@ -354,3 +354,22 @@
 - Differences from the plan, and why: none
 - Anything unsure or not done: none
 
+## Task 11b — fixes from Claude review (NOTE 5)
+
+- Commit: (pending)
+- Files changed:
+  - `web/src/features/music-studio/FullscreenStudio.tsx`
+  - `web/src/features/music-studio/FullscreenStudio.test.tsx`
+- Commands run and results:
+  - `npm test -w web`:
+    ```
+    Test Files  44 passed (44)
+         Tests  232 passed (232)
+    ```
+  - `npm run build`:
+    ```
+    ✓ built in 4.50s
+    ```
+- Differences from the plan, and why: Added pseudo-element `before:content-[''] before:absolute before:-inset-x-4 before:-inset-y-4` to `video-start-flag` for 44x48px touch target area per NOTE 5.
+- Anything unsure or not done: none
+

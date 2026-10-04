@@ -498,6 +498,20 @@ describe('FullscreenStudio Component', () => {
       screen.getByRole('button', { name: /switch to direct sync/i })
     ).toHaveTextContent('🎬 DRIVE PLAYER (NO SYNC)');
   });
+
+  it('start flag has a touch area of at least 44px', () => {
+    render(
+      <FullscreenStudio
+        {...defaultProps}
+        videoDuration={100}
+        videoStart={10}
+      />
+    );
+
+    const flagHandle = screen.getByTestId('video-start-flag');
+    expect(flagHandle.className).toContain('before:-inset-x-4');
+    expect(flagHandle.className).toContain('before:-inset-y-4');
+  });
 });
 
 

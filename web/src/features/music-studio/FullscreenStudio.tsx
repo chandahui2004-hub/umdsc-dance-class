@@ -1329,7 +1329,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
                 }}
                 data-testid="video-start-flag"
                 onPointerDown={handleVideoStartFlagPointerDown}
-                className="absolute inset-y-0 -ml-1.5 w-3 bg-[var(--neon-gold)] z-20 cursor-ew-resize hover:scale-125 transition-transform flex items-center justify-center border border-black focus:outline-none focus:ring-2 focus:ring-[var(--neon-cyan)]"
+                className="absolute inset-y-0 -ml-1.5 w-3 bg-[var(--neon-gold)] z-20 cursor-ew-resize hover:scale-125 transition-transform flex items-center justify-center border border-black focus:outline-none focus:ring-2 focus:ring-[var(--neon-cyan)] before:content-[''] before:absolute before:-inset-x-4 before:-inset-y-4"
                 style={{ left: `${videoStartPercent}%`, touchAction: 'none' }}
                 title={`Video Start: ${formatTimeWithTenths(videoStart)} (Drag to adjust)`}
               >
