@@ -431,9 +431,9 @@
   ```
   (clean)
   ```
-- Step 5: 🧑 **OWNER ACTION** (Awaiting owner test on phone):
+- Step 5: 🧑 **OWNER ACTION** (Completed):
   - Dev server host: `http://192.168.100.56:5173/`
-  - Checklist:
+  - Checklist verified on phone:
     1. Dancer login with full name
     2. Calendar
     3. Open a class day
@@ -442,4 +442,9 @@
     6. Drag the video start flag with a finger
     7. Me
     8. Log out
+  - Owner confirmed: **"ALL nice"** — verified working on real device.
+- Differences from the plan, and why: none
+- Anything unsure or not done: none
+
+READY FOR CLAUDE REVIEW
 
