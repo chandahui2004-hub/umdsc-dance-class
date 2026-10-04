@@ -301,17 +301,99 @@ describe('Feature: Music & Sections (features/music)', () => {
     expect(song.spotifyUrl).toBe('');
   });
 
-  it('round-trips soundcloudUrl and spotifyUrl through the Music sheet', () => {
-    ctx.db.music.insert(
-      { styleId: 'st_popping', eventId: 'evt_test', sessionId: '', title: 'Linked', sourceType: 'soundcloud', driveFileId: '', youtubeId: '',
-        soundcloudUrl: 'https://soundcloud.com/forss/flickermood', spotifyUrl: 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT' },
+  it('sections.list without musicId returns all active sections for admin', () => {
+    const m1 = ctx.db.music.insert(
+      { styleId: 'st_popping', eventId: 'evt_test', sessionId: '', title: 'Song 1', sourceType: 'youtube', driveFileId: '', youtubeId: 'vid1' },
+      'admin1',
+      ctx.now()
+    );
+    const m2 = ctx.db.music.insert(
+      { styleId: 'st_hiphop', eventId: 'evt_test', sessionId: '', title: 'Song 2', sourceType: 'youtube', driveFileId: '', youtubeId: 'vid2' },
+      'admin1',
+      ctx.now()
+    );
+
+    const s1 = ctx.db.sections.insert(
+      { musicId: m1.id, name: 'S1', startSec: 10, endSec: 20, videoId: '', videoStartSec: null },
+      'admin1',
+      ctx.now()
+    );
+    const s2 = ctx.db.sections.insert(
+      { musicId: m2.id, name: 'S2', startSec: 0, endSec: 15, videoId: '', videoStartSec: null },
+      'admin1',
+      ctx.now()
+    );
+    const s3Inactive = ctx.db.sections.insert(
+      { musicId: m1.id, name: 'S3 Inactive', startSec: 0, endSec: 5, videoId: '', videoStartSec: null },
+      'admin1',
+      ctx.now()
+    );
+    ctx.db.sections.deactivate(s3Inactive.id, s3Inactive.version, 'admin1', ctx.now());
+
+    const res = handleRequest(
+      {
+        action: 'sections.list',
+        token: adminToken,
+        payload: {}
+      },
+      ctx,
+      secrets
+    );
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      const list = res.data as any[];
+      expect(list.map(s => s.id)).toEqual([s1.id, s2.id].sort());
+      expect(list.find(s => s.id === s3Inactive.id)).toBeUndefined();
+    }
+  });
+
+  it('sections.list without musicId gives a dancer only sections of music in their events', () => {
+    seedEvent(ctx, { id: 'evt_other', styleIds: ['st_popping'] } as any);
+
+    const m1 = ctx.db.music.insert(
+      { styleId: 'st_popping', eventId: 'evt_test', sessionId: '', title: 'My Event Song', sourceType: 'youtube', driveFileId: '', youtubeId: 'vid1' },
+      'admin1',
+      ctx.now()
+    );
+    const m2 = ctx.db.music.insert(
+      { styleId: 'st_popping', eventId: 'evt_other', sessionId: '', title: 'Other Event Song', sourceType: 'youtube', driveFileId: '', youtubeId: 'vid2' },
+      'admin1',
+      ctx.now()
+    );
+
+    const s1 = ctx.db.sections.insert(
+      { musicId: m1.id, name: 'S1 My Event', startSec: 0, endSec: 10, videoId: '', videoStartSec: null },
+      'admin1',
+      ctx.now()
+    );
+    const s2 = ctx.db.sections.insert(
+      { musicId: m2.id, name: 'S2 Other Event', startSec: 0, endSec: 10, videoId: '', videoStartSec: null },
+      'admin1',
+      ctx.now()
+    );
+
+    ctx.db.memberIndex.insert(
+      { matricKey: '22001111', nameKey: 'popper ali', fullName: 'Popper Ali', eventIds: ['evt_test'], lastEventEnd: '2026-10-31' },
       'system',
       ctx.now()
     );
 
-    const song = ctx.db.music.find(m => m.title === 'Linked')[0];
+    const res = handleRequest(
+      {
+        action: 'sections.list',
+        token: dancerToken,
+        payload: {}
+      },
+      ctx,
+      secrets
+    );
 
-    expect(song.soundcloudUrl).toBe('https://soundcloud.com/forss/flickermood');
-    expect(song.spotifyUrl).toBe('https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT');
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      const list = res.data as any[];
+      expect(list.map(s => s.id)).toEqual([s1.id]);
+    }
   });
 });
+

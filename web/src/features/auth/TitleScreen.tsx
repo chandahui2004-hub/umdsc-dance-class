@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { call, ApiError, errorMessage } from '../../lib/api';
+import { call, errorMessage } from '../../lib/api';
 import { session } from '../../lib/session';
 import { Panel } from '../../components/ui/Panel';
 import { PixelButton } from '../../components/ui/PixelButton';

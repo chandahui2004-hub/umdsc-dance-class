@@ -1,9 +1,45 @@
-import { Route } from '../router';
+import { Route, AuthInfo } from '../router';
+import { Ctx } from '../ports';
 import { AppError } from '../errors';
-import { getYouTubeVideoId } from '@umdsc/shared';
+import { Music, getYouTubeVideoId } from '@umdsc/shared';
 import { logAudit } from '../logic/audit';
 import { getEvent } from './eventMembers';
 import { resolveMusicLink, deriveMusicSource } from './musicLinks';
+
+export function visibleMusic(
+  ctx: Ctx,
+  auth: AuthInfo | null,
+  filters: { eventId?: string; styleId?: string; sessionId?: string } = {}
+): Music[] {
+  const { eventId, styleId, sessionId } = filters;
+
+  let musicList = ctx.db.music.find(m => m.active);
+
+  if (eventId) {
+    musicList = musicList.filter(m => m.eventId === eventId);
+  }
+  if (sessionId) {
+    musicList = musicList.filter(m => !m.sessionId || m.sessionId === sessionId);
+  }
+  if (styleId) {
+    musicList = musicList.filter(m => m.styleId === styleId);
+  }
+
+  // Dancer scoping
+  if (auth?.claims.role === 'dancer') {
+    const perm = auth.claims.perms['music.view'];
+    if (Array.isArray(perm)) {
+      musicList = musicList.filter(m => perm.includes(m.styleId));
+    }
+
+    const matricKey = auth.claims.sub.replace(/^M-/, '');
+    const mi = ctx.db.memberIndex.find(m => m.matricKey === matricKey && m.active)[0];
+    const myEvents = mi ? mi.eventIds : [];
+    musicList = musicList.filter(m => myEvents.includes(m.eventId));
+  }
+
+  return musicList;
+}
 
 export function getMusicRoutes(): Record<string, Route> {
   return {
@@ -11,34 +47,7 @@ export function getMusicRoutes(): Record<string, Route> {
       perm: 'music.view',
       write: false,
       handler: (ctx, auth, payload: any) => {
-        const { eventId, styleId, sessionId } = payload || {};
-
-        let musicList = ctx.db.music.find(m => m.active);
-
-        if (eventId) {
-          musicList = musicList.filter(m => m.eventId === eventId);
-        }
-        if (sessionId) {
-          musicList = musicList.filter(m => !m.sessionId || m.sessionId === sessionId);
-        }
-        if (styleId) {
-          musicList = musicList.filter(m => m.styleId === styleId);
-        }
-
-        // Dancer scoping
-        if (auth?.claims.role === 'dancer') {
-          const perm = auth.claims.perms['music.view'];
-          if (Array.isArray(perm)) {
-            musicList = musicList.filter(m => perm.includes(m.styleId));
-          }
-
-          const matricKey = auth.claims.sub.replace(/^M-/, '');
-          const mi = ctx.db.memberIndex.find(m => m.matricKey === matricKey && m.active)[0];
-          const myEvents = mi ? mi.eventIds : [];
-          musicList = musicList.filter(m => myEvents.includes(m.eventId));
-        }
-
-        return musicList;
+        return visibleMusic(ctx, auth, payload || {});
       }
     },
 
@@ -218,15 +227,21 @@ export function getMusicRoutes(): Record<string, Route> {
       write: false,
       handler: (ctx, auth, payload: any) => {
         const musicId = String(payload?.musicId || '').trim();
-        if (!musicId) {
-          throw new AppError('VALIDATION', 'musicId is required');
+        if (musicId) {
+          return ctx.db.sections
+            .find(s => s.musicId === musicId && s.active)
+            .sort((a, b) => a.startSec - b.startSec);
         }
 
-        const sections = ctx.db.sections
-          .find(s => s.musicId === musicId && s.active)
-          .sort((a, b) => a.startSec - b.startSec);
-
-        return sections;
+        const ids = new Set(visibleMusic(ctx, auth, {}).map(m => m.id));
+        return ctx.db.sections
+          .find(s => ids.has(s.musicId) && s.active)
+          .sort((a, b) => {
+            if (a.musicId !== b.musicId) {
+              return a.musicId.localeCompare(b.musicId);
+            }
+            return a.startSec - b.startSec;
+          });
       }
     },
 
