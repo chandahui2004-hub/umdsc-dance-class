@@ -274,9 +274,31 @@
 - Differences from the plan, and why: none
 - Anything unsure or not done: none
 
+## Task 9b — fixes from Claude review (NOTE 4)
+
+- Commit: `7d760a3` (`7d760a3 fix(phone): admin dock tabs shrink so MORE stays on screen`)
+- Files changed:
+  - `web/src/components/ui/TabBar.tsx`
+  - `web/e2e/phone-layout.spec.ts`
+- Commands run and results:
+  - `npx playwright test e2e/phone-layout.spec.ts` (run 1):
+    ```
+    8 passed (57.0s)
+    ```
+  - `npx playwright test e2e/phone-layout.spec.ts` (run 2):
+    ```
+    8 passed (56.3s)
+    ```
+  - `npm run build`:
+    ```
+    ✓ built in 4.99s
+    ```
+- Differences from the plan, and why: Added `min-w-0 basis-0` to `TabBar.tsx` tabs so that the 5-tab admin dock fits without horizontal clipping on 360–390px viewports; added `document.fonts.ready` before `checkLayout` evaluation in `phone-layout.spec.ts`.
+- Anything unsure or not done: none
+
 ## Task 10 — Readable text and big fullscreen buttons
 
-- Commit: `fcf6f48` (`fcf6f48 fix(phone): 10px text floor and 44px fullscreen buttons`)
+- Commit: `011a460` (`011a460 fix(phone): 10px text floor and 44px fullscreen buttons`)
 - Files changed:
   - `web/scripts/text-floor.mjs`
   - 28 `.tsx` files in `web/src` (108 occurrences of `text-[8px]` / `text-[9px]` replaced with `text-[10px]`)
