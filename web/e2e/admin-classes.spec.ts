@@ -98,7 +98,7 @@ test.describe('Admin Classes & Calendar', () => {
     });
 
     await page.goto('/admin/calendar');
-    await page.getByRole('combobox').selectOption('ALL');
+    await page.getByLabel('Current event').selectOption('ALL');
 
     await expect.poll(() => calls.filter(c => c.action === 'sessions.list').map(c => c.payload)).toContainEqual({ eventId: 'ALL' });
     await expect(page.getByText(/ALL CLASSES ACROSS ALL EVENTS/i)).toBeVisible();

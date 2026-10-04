@@ -172,7 +172,7 @@ test.describe('Login, Title Screen, and Route Guards', () => {
     await page.getByRole('button', { name: /LOGIN|ENTER/i }).click();
 
     await page.waitForURL('**/admin/calendar');
-    await expect(page.getByRole('heading', { name: /Calendar|Classes/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Calendar & Classes' })).toBeVisible();
 
     // 2. Set dancer session and try accessing /admin/calendar
     await page.evaluate(() => {

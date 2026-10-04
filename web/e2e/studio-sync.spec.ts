@@ -118,7 +118,10 @@ test.describe('Synced Class Video in Music Studio', () => {
   test.beforeEach(async ({ page }) => {
     await loginAsDancer(page);
     await mockApi(page, {
-      'dancer.bootstrap': () => BOOTSTRAP_DATA
+      'dancer.bootstrap': () => BOOTSTRAP_DATA,
+      'videos.list': () => BOOTSTRAP_DATA.videos,
+      'music.list': () => BOOTSTRAP_DATA.music,
+      'sections.list': () => BOOTSTRAP_DATA.sections
     });
   });
 

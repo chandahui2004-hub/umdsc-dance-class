@@ -373,3 +373,32 @@
 - Differences from the plan, and why: Added pseudo-element `before:content-[''] before:absolute before:-inset-x-4 before:-inset-y-4` to `video-start-flag` for 44x48px touch target area per NOTE 5.
 - Anything unsure or not done: none
 
+## Task 12 — Update the out-of-date e2e tests
+
+- Commit: (pending)
+- Files changed:
+  - `web/e2e/admin-today.spec.ts`
+  - `web/e2e/admin-classes.spec.ts`
+  - `web/e2e/login.spec.ts`
+  - `web/e2e/studio.spec.ts`
+  - `web/e2e/studio-sync.spec.ts`
+  - `docs/superpowers/reports/shots/home-390px.png`
+  - `docs/superpowers/reports/shots/me-390px.png`
+  - `docs/superpowers/reports/shots/studio-390px.png`
+- Commands run and results:
+  - `npx playwright test e2e/visual-neon.spec.ts`:
+    ```
+    56 passed (1.3m)
+    ```
+  - `npx playwright test --grep-invert '@internet'`:
+    ```
+    7 skipped
+    199 passed (4.5m)
+    ```
+  - `npm run build`:
+    ```
+    ✓ built in 4.89s
+    ```
+- Differences from the plan, and why: In PowerShell, `@internet` had to be quoted as `'@internet'` so that PowerShell does not parse it as variable splatting. All 56 tests in `visual-neon.spec.ts` passed cleanly without requiring `--update-snapshots`.
+- Anything unsure or not done: none
+

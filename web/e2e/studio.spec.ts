@@ -104,7 +104,10 @@ test.describe('Music Studio (DanceCue & Sources)', () => {
   test.beforeEach(async ({ page }) => {
     await loginAsDancer(page);
     await mockApi(page, {
-      'dancer.bootstrap': () => BOOTSTRAP_DATA
+      'dancer.bootstrap': () => BOOTSTRAP_DATA,
+      'videos.list': () => BOOTSTRAP_DATA.videos,
+      'music.list': () => BOOTSTRAP_DATA.music,
+      'sections.list': () => BOOTSTRAP_DATA.sections
     });
   });
 
@@ -176,7 +179,7 @@ test.describe('Music Studio (DanceCue & Sources)', () => {
 });
 
 test.describe('Music Studio YouTube class music (real YouTube, needs internet)', () => {
-  test('class music picked after opening studio plays YouTube', async ({ page }) => {
+  test('class music picked after opening studio plays YouTube @internet', async ({ page }) => {
     await loginAsDancer(page);
     const boot = {
       ...BOOTSTRAP_DATA,
@@ -192,7 +195,12 @@ test.describe('Music Studio YouTube class music (real YouTube, needs internet)',
       ],
       sections: []
     };
-    await mockApi(page, { 'dancer.bootstrap': () => boot });
+    await mockApi(page, {
+      'dancer.bootstrap': () => boot,
+      'videos.list': () => boot.videos,
+      'music.list': () => boot.music,
+      'sections.list': () => boot.sections
+    });
 
     // Regression: opening /studio with no track used to build a YouTube player with an
     // empty videoId, which the YouTube API rejects, so a track picked afterwards never loaded.
@@ -226,7 +234,7 @@ test.describe('Music Studio YouTube class music (real YouTube, needs internet)',
 });
 
 test.describe('Music Studio SoundCloud class music (real SoundCloud, needs internet)', () => {
-  test('a SoundCloud song plays through the widget and has no speed control', async ({ page }) => {
+  test('a SoundCloud song plays through the widget and has no speed control @internet', async ({ page }) => {
     await loginAsDancer(page);
     const boot = {
       ...BOOTSTRAP_DATA,
@@ -243,7 +251,12 @@ test.describe('Music Studio SoundCloud class music (real SoundCloud, needs inter
       ],
       sections: []
     };
-    await mockApi(page, { 'dancer.bootstrap': () => boot });
+    await mockApi(page, {
+      'dancer.bootstrap': () => boot,
+      'videos.list': () => boot.videos,
+      'music.list': () => boot.music,
+      'sections.list': () => boot.sections
+    });
 
     await page.goto('/studio?music=m-sc');
 
