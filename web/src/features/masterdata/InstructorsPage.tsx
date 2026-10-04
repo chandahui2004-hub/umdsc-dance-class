@@ -333,31 +333,43 @@ export const InstructorsPage: React.FC = () => {
                 key={inst.id}
                 className="px-panel p-4 flex flex-col justify-between gap-4"
               >
-                <div className="space-y-3 flex flex-col items-center sm:items-start">
-                  {/* Portrait photo frame */}
-                  <PixelPortraitFrame
-                    src={photoUrl || ''}
-                    alt={inst.name}
-                    name={inst.name}
-                    glow={instColor}
-                    size="sm"
-                  />
-                  {/* Instructor Color Banner below picture */}
-                  <div
-                    className="w-full py-1 text-center border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] font-display text-[8px] font-bold text-[var(--on-neon)] uppercase tracking-wider"
-                    style={{ backgroundColor: instColor }}
-                  >
-                    INSTRUCTOR{inst.color ? ` · ${inst.color.toUpperCase()}` : ''}
+                <div className="space-y-3 flex flex-col">
+                  {/* Panel 1: Dedicated Picture Frame Panel */}
+                  <div className="px-well p-3 w-full flex items-center justify-center bg-[var(--night-1)]">
+                    <PixelPortraitFrame
+                      src={photoUrl || ''}
+                      alt={inst.name}
+                      glow={instColor}
+                      size="md"
+                      showNamePlate={false}
+                    />
                   </div>
 
-                  {/* Instructor Meta */}
-                  <div className="w-full">
-                    <h3 className="font-display text-[12px] text-[var(--text-1)] font-bold truncate">
-                      {inst.name}
-                    </h3>
-                    <p className="font-mono text-[14px] text-[var(--text-2)] mt-1 truncate">
-                      📞 {inst.contact || 'No contact specified'}
-                    </p>
+                  {/* Panel 2: Dedicated Instructor Information Panel */}
+                  <div className="px-well p-3 w-full space-y-2.5">
+                    {/* Instructor Signature Color Banner */}
+                    <div
+                      className="w-full py-1 text-center border-2 border-[var(--outline)] shadow-[1px_1px_0_var(--outline)] font-display text-[8px] font-bold text-[var(--on-neon)] uppercase tracking-wider"
+                      style={{ backgroundColor: instColor }}
+                    >
+                      INSTRUCTOR{inst.color ? ` · ${inst.color.toUpperCase()}` : ''}
+                    </div>
+
+                    {/* Instructor Meta */}
+                    <div className="w-full space-y-1">
+                      <h3
+                        className="font-display text-[13px] md:text-[14px] text-[var(--text-1)] font-bold truncate tracking-wide"
+                        title={inst.name}
+                      >
+                        {inst.name}
+                      </h3>
+                      <p className="font-mono text-[13px] text-[var(--text-2)] flex items-center gap-1.5 truncate">
+                        <span>📞</span>
+                        <span className={inst.contact ? 'text-[var(--neon-cyan)]' : 'text-[var(--text-3)]'}>
+                          {inst.contact || 'No contact specified'}
+                        </span>
+                      </p>
+                    </div>
                   </div>
                 </div>
 

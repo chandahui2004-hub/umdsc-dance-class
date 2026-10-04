@@ -4,7 +4,7 @@ import type { Master } from './types';
 import type { Marker } from '../dancecue/types/marker';
 import { useSyncedVideo } from './useSyncedVideo';
 import { VideoTimeline } from './VideoTimeline';
-import { streamUrl, openInDriveUrl } from '../../../lib/google/driveUrls';
+import { streamUrl, openInDriveUrl, previewUrl } from '../../../lib/google/driveUrls';
 
 export interface VideoPanelProps {
   master: Master;
@@ -16,6 +16,8 @@ export interface VideoPanelProps {
   selectedVideoId?: string;
   localVideoFile?: { name: string; url: string; file: File } | null;
   videoStart?: number;
+  useDrivePreview?: boolean;
+  onToggleDrivePreview?: (usePreview: boolean) => void;
   onSelectVideoId?: (id: string) => void;
   onSelectLocalVideo?: (file: File) => void;
   onClearLocalVideo?: () => void;
@@ -33,6 +35,8 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
   selectedVideoId: propSelectedVideoId,
   localVideoFile,
   videoStart: propVideoStart,
+  useDrivePreview: propUseDrivePreview,
+  onToggleDrivePreview,
   onSelectVideoId,
   onSelectLocalVideo,
   onClearLocalVideo,
@@ -42,6 +46,7 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
   // Support both controlled and uncontrolled usage
   const [internalVideoId, setInternalVideoId] = useState<string>('');
   const [internalVideoStart, setInternalVideoStart] = useState<number>(0);
+  const [internalUseDrivePreview, setInternalUseDrivePreview] = useState<boolean>(false);
 
   const isControlledId = propSelectedVideoId !== undefined;
   const selectedVideoId = isControlledId ? propSelectedVideoId : internalVideoId;
@@ -86,6 +91,21 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
   const [noPicture, setNoPicture] = useState<boolean>(false);
   const [streamError, setStreamError] = useState<boolean>(false);
 
+  const isLocalVideo = selectedVideoId === 'local' && !!localVideoFile;
+  const isControlledPreview = propUseDrivePreview !== undefined;
+  const useDrivePreview = isControlledPreview
+    ? (isLocalVideo ? false : Boolean(propUseDrivePreview))
+    : (isLocalVideo ? false : internalUseDrivePreview);
+
+  const setUseDrivePreview = (val: boolean) => {
+    if (onToggleDrivePreview) {
+      onToggleDrivePreview(val);
+    }
+    if (!isControlledPreview) {
+      setInternalUseDrivePreview(val);
+    }
+  };
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -119,7 +139,6 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
     });
   }, [videos, eventFilter, styleFilter, styles]);
 
-  const isLocalVideo = selectedVideoId === 'local' && !!localVideoFile;
   const selectedVideo = useMemo(
     () => (!isLocalVideo && selectedVideoId ? videos.find(v => v.id === selectedVideoId) || null : null),
     [videos, selectedVideoId, isLocalVideo]
@@ -138,7 +157,10 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
   useEffect(() => {
     setNoPicture(false);
     setStreamError(false);
-  }, [selectedVideoId, currentVideoSrc]);
+    if (isLocalVideo) {
+      setUseDrivePreview(false);
+    }
+  }, [selectedVideoId, currentVideoSrc, isLocalVideo]);
 
   const { muted, setMuted, status } = useSyncedVideo({
     master,
@@ -222,8 +244,27 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
           )}
         </div>
 
-        {/* Local Video Upload Button */}
+        {/* Actions bar: Local Video Upload & Player Mode Toggle */}
         <div className="flex items-center gap-2">
+          {selectedVideo && !isLocalVideo && (
+            <button
+              type="button"
+              onClick={() => setUseDrivePreview(!useDrivePreview)}
+              className={`px-2.5 py-1 font-display text-[12px] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] active:translate-x-0.5 active:translate-y-0.5 flex items-center gap-1.5 cursor-pointer ${
+                useDrivePreview
+                  ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold'
+                  : 'bg-[var(--night-1)] text-[var(--text-2)] hover:text-[var(--text-1)]'
+              }`}
+              title={
+                useDrivePreview
+                  ? 'Google Drive Player active (compatible with HEVC & all devices). Click for Direct Sync.'
+                  : 'Direct Sync active. Click to switch to Google Drive Player.'
+              }
+            >
+              <span>{useDrivePreview ? '🎬 DRIVE PLAYER' : '⚡ DIRECT SYNC'}</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
@@ -343,7 +384,27 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
 
       {/* Screen Frame with scanlines only on the frame border area */}
       <div className="relative bg-[var(--night-1)] border-4 border-[var(--outline)] p-1 shadow-inner mb-3 px-scanlines">
-        {currentVideoSrc ? (
+        {useDrivePreview && selectedVideo ? (
+          <div className="relative aspect-video bg-black flex flex-col z-[1]">
+            <iframe
+              src={previewUrl(selectedVideo.driveFileId)}
+              title={selectedVideo.title}
+              className="w-full h-full border-0 flex-1"
+              allow="autoplay; encrypted-media; fullscreen"
+              allowFullScreen
+            />
+            <div className="flex items-center justify-between bg-[var(--night-2)] border-t border-[var(--outline)] px-2 py-1 text-[10px] font-mono text-[var(--text-2)]">
+              <span>Drive preview player active (no timeline sync)</span>
+              <button
+                type="button"
+                onClick={() => setUseDrivePreview(false)}
+                className="text-[var(--neon-cyan)] hover:underline ml-2 cursor-pointer font-bold"
+              >
+                Switch to Direct Video
+              </button>
+            </div>
+          </div>
+        ) : currentVideoSrc ? (
           <div className="relative aspect-video bg-[var(--night-1)] flex items-center justify-center overflow-hidden z-[1]">
             <video
               ref={videoRef}
@@ -373,23 +434,41 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
                   Direct Google Drive streaming requires public permissions or API key access.
                 </p>
                 {selectedVideo && (
-                  <a
-                    href={openInDriveUrl(selectedVideo.driveFileId)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1 bg-[var(--neon-cyan)] text-[var(--on-neon)] font-display text-[10px] hover:brightness-110 border border-[var(--outline)]"
-                  >
-                    OPEN IN GOOGLE DRIVE ↗
-                  </a>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setUseDrivePreview(true)}
+                      className="px-3 py-1 bg-[var(--neon-gold)] text-[var(--on-neon)] font-display text-[10px] hover:brightness-110 border border-[var(--outline)] cursor-pointer"
+                    >
+                      SWITCH TO DRIVE PLAYER
+                    </button>
+                    <a
+                      href={openInDriveUrl(selectedVideo.driveFileId)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1 bg-[var(--neon-cyan)] text-[var(--on-neon)] font-display text-[10px] hover:brightness-110 border border-[var(--outline)]"
+                    >
+                      OPEN IN GOOGLE DRIVE ↗
+                    </a>
+                  </div>
                 )}
               </div>
             )}
             {noPicture && (
               <div
                 role="alert"
-                className="absolute inset-0 flex items-center justify-center bg-[var(--night-1)]/90 p-4 text-center text-[12px] font-mono text-[var(--neon-gold)]"
+                className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--night-1)]/90 p-4 text-center text-[12px] font-mono text-[var(--neon-gold)] space-y-2 z-20"
               >
-                This device can't show this video's format (H.265). Ask an admin to re-upload it as H.264 MP4.
+                <p>This device can't show this video's format (H.265). Ask an admin to re-upload it as H.264 MP4.</p>
+                {selectedVideo && (
+                  <button
+                    type="button"
+                    onClick={() => setUseDrivePreview(true)}
+                    className="px-3 py-1 bg-[var(--neon-gold)] text-[var(--on-neon)] font-display text-[10px] hover:brightness-110 border border-[var(--outline)] cursor-pointer"
+                  >
+                    SWITCH TO DRIVE PLAYER
+                  </button>
+                )}
               </div>
             )}
             {muted && (

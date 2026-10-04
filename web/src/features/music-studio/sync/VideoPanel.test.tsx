@@ -117,4 +117,22 @@ describe('VideoPanel no-picture notice', () => {
 
     expect(onSelectLocalVideo).toHaveBeenCalledWith(localFile);
   });
+
+  it('allows switching to Drive preview player when direct stream encounters an error', () => {
+    const { container } = render(
+      <VideoPanel master={master} videos={[video]} activeMusic={null} activeLoopMarker={null} />
+    );
+    fireEvent.change(screen.getByLabelText('Select class video'), { target: { value: 'v1' } });
+    const videoEl = container.querySelector('video') as HTMLVideoElement;
+    fireEvent.error(videoEl);
+
+    expect(screen.getByText('UNABLE TO STREAM GOOGLE DRIVE VIDEO')).toBeInTheDocument();
+    const switchBtn = screen.getByRole('button', { name: 'SWITCH TO DRIVE PLAYER' });
+    expect(switchBtn).toBeInTheDocument();
+
+    fireEvent.click(switchBtn);
+    const iframe = container.querySelector('iframe');
+    expect(iframe).toBeInTheDocument();
+    expect(iframe?.src).toContain('drive-1/preview');
+  });
 });

@@ -287,5 +287,126 @@ describe('FullscreenStudio Component', () => {
     fireEvent.pointerUp(window, { clientX: 350 });
     expect(onMarkerDraftChange).toHaveBeenCalledWith({ start: 10, end: 35 });
   });
+
+  it('allows setting and nudging the video start point in fullscreen mode', () => {
+    const onSetVideoStart = vi.fn();
+    render(
+      <FullscreenStudio
+        {...defaultProps}
+        videoStart={4.5}
+        onSetVideoStart={onSetVideoStart}
+      />
+    );
+
+    // Verify start point display
+    expect(screen.getByText(/⚑ START: 0:04.5/i)).toBeInTheDocument();
+
+    // Click "⚑ SET START HERE"
+    const setStartBtn = screen.getByRole('button', { name: /set video start point/i });
+    expect(setStartBtn).toBeInTheDocument();
+    fireEvent.click(setStartBtn);
+    expect(onSetVideoStart).toHaveBeenCalled();
+
+    // Nudge backward -0.5s
+    const nudgeMinusBtn = screen.getByRole('button', { name: /nudge video start backward/i });
+    fireEvent.click(nudgeMinusBtn);
+    expect(onSetVideoStart).toHaveBeenCalledWith(4);
+
+    // Nudge forward +0.5s
+    const nudgePlusBtn = screen.getByRole('button', { name: /nudge video start forward/i });
+    fireEvent.click(nudgePlusBtn);
+    expect(onSetVideoStart).toHaveBeenCalledWith(5);
+
+    // Reset to 0s
+    const resetBtn = screen.getByRole('button', { name: /reset video start/i });
+    fireEvent.click(resetBtn);
+    expect(onSetVideoStart).toHaveBeenCalledWith(0);
+  });
+
+  it('allows dragging the video start flag on the video track in fullscreen mode', () => {
+    const onSetVideoStart = vi.fn();
+    render(
+      <FullscreenStudio
+        {...defaultProps}
+        videoDuration={100}
+        videoStart={10}
+        onSetVideoStart={onSetVideoStart}
+      />
+    );
+
+    const videoTrack = screen.getByRole('slider', { name: /video timeline/i });
+    videoTrack.getBoundingClientRect = () => ({
+      left: 0,
+      top: 0,
+      width: 1000,
+      height: 16,
+      right: 1000,
+      bottom: 16,
+      x: 0,
+      y: 0,
+      toJSON: () => {}
+    });
+
+    const flagHandle = screen.getByTestId('video-start-flag');
+    // Start drag at x = 100 (10s) and drag to x = 250 (25s)
+    fireEvent.pointerDown(flagHandle, { clientX: 100 });
+    fireEvent.pointerMove(window, { clientX: 250 });
+    fireEvent.pointerUp(window, { clientX: 250 });
+
+    expect(onSetVideoStart).toHaveBeenCalledWith(25);
+  });
+
+  it('renders Google Drive preview player iframe when useDrivePreview is true in fullscreen mode', () => {
+    const { container } = render(
+      <FullscreenStudio
+        {...defaultProps}
+        driveFileId="drive-file-abc"
+        useDrivePreview={true}
+      />
+    );
+
+    const iframe = container.querySelector('iframe');
+    expect(iframe).toBeInTheDocument();
+    expect(iframe?.src).toContain('drive-file-abc/preview');
+    expect(screen.queryByTestId('fullscreen-dance-video')).toBeNull();
+  });
+
+  it('allows toggling between Drive Player and Direct Sync in the fullscreen HUD', () => {
+    const onToggleDrivePreview = vi.fn();
+    render(
+      <FullscreenStudio
+        {...defaultProps}
+        driveFileId="drive-file-abc"
+        useDrivePreview={false}
+        onToggleDrivePreview={onToggleDrivePreview}
+      />
+    );
+
+    // Mode toggle button should be present in HUD
+    const toggleBtn = screen.getByRole('button', { name: /switch to drive player/i });
+    expect(toggleBtn).toBeInTheDocument();
+    fireEvent.click(toggleBtn);
+    expect(onToggleDrivePreview).toHaveBeenCalledWith(true);
+  });
+
+  it('automatically triggers onToggleDrivePreview when direct video fails to decode picture', () => {
+    const onToggleDrivePreview = vi.fn();
+    const { container } = render(
+      <FullscreenStudio
+        {...defaultProps}
+        driveFileId="drive-file-abc"
+        useDrivePreview={false}
+        onToggleDrivePreview={onToggleDrivePreview}
+      />
+    );
+
+    const videoEl = container.querySelector('video') as HTMLVideoElement;
+    Object.defineProperty(videoEl, 'videoWidth', { value: 0, configurable: true });
+    Object.defineProperty(videoEl, 'videoHeight', { value: 0, configurable: true });
+    fireEvent.loadedData(videoEl);
+
+    expect(onToggleDrivePreview).toHaveBeenCalledWith(true);
+  });
 });
+
 

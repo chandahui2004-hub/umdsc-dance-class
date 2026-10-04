@@ -27,5 +27,24 @@ describe('NeonSign & PixelPortraitFrame', () => {
     expect(screen.getByText('Carmen Loh')).toBeInTheDocument();
     const frame = screen.getByTestId('pixel-portrait-frame');
     expect(frame.style.getPropertyValue('--glow')).toBe('#3EE6FF');
+    expect(frame.className).toContain('w-[120px]');
+  });
+
+  it('PixelPortraitFrame with showNamePlate=false does not render name plate and locks frame width', () => {
+    render(
+      <PixelPortraitFrame
+        src="/photo.jpg"
+        alt="Newstyle Kelvin"
+        name="Newstyle Kelvin"
+        glow="#FF7A00"
+        size="md"
+        showNamePlate={false}
+      />
+    );
+    expect(screen.getByAltText('Newstyle Kelvin')).toBeInTheDocument();
+    expect(screen.queryByText('Newstyle Kelvin')).not.toBeInTheDocument();
+    const frame = screen.getByTestId('pixel-portrait-frame');
+    expect(frame.className).toContain('w-[160px]');
+    expect(frame.className).toContain('shrink-0');
   });
 });

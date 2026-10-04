@@ -182,6 +182,7 @@ export const Studio: React.FC = () => {
   const [selectedVideoId, setSelectedVideoId] = useState<string>('');
   const [localVideoFile, setLocalVideoFile] = useState<{ name: string; url: string; file: File } | null>(null);
   const [videoStart, setVideoStart] = useState<number>(0);
+  const [useDrivePreview, setUseDrivePreview] = useState<boolean>(false);
 
   const handleSelectLocalVideo = useCallback((file: File) => {
     setLocalVideoFile(prev => {
@@ -264,6 +265,12 @@ export const Studio: React.FC = () => {
           videoCurrentTime={player.currentTime}
           videoDuration={player.duration}
           videoStart={videoStart}
+          selectedVideoId={selectedVideoId}
+          driveFileId={activeDanceVideo?.driveFileId || null}
+          useDrivePreview={useDrivePreview}
+          onToggleDrivePreview={setUseDrivePreview}
+          onSetVideoStart={setVideoStart}
+          onSaveLoopWithVideo={markerEngine.saveLoopWithVideo}
           markers={markerEngine.markers}
           classMarkers={markerEngine.classMarkers}
           myLoops={markerEngine.myLoops}
@@ -431,6 +438,8 @@ export const Studio: React.FC = () => {
               selectedVideoId={selectedVideoId}
               localVideoFile={localVideoFile}
               videoStart={videoStart}
+              useDrivePreview={useDrivePreview}
+              onToggleDrivePreview={setUseDrivePreview}
               onSelectVideoId={setSelectedVideoId}
               onSelectLocalVideo={handleSelectLocalVideo}
               onClearLocalVideo={handleClearLocalVideo}

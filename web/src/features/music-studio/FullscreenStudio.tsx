@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import type { Master } from './sync/types';
 import { useSyncedVideo } from './sync/useSyncedVideo';
 import type { Marker } from './dancecue/types/marker';
+import { previewUrl } from '../../lib/google/driveUrls';
 
 export interface FullscreenStudioProps {
   master?: Master;
@@ -24,6 +25,10 @@ export interface FullscreenStudioProps {
   markers?: Marker[];
   classMarkers?: Marker[];
   myLoops?: Marker[];
+  selectedVideoId?: string;
+  driveFileId?: string | null;
+  useDrivePreview?: boolean;
+  onToggleDrivePreview?: (usePreview: boolean) => void;
   onPlay: () => void;
   onPause: () => void;
   onToggleLoop: () => void;
@@ -32,6 +37,8 @@ export interface FullscreenStudioProps {
   onSetInPoint: () => void;
   onSetOutPoint: () => void;
   onExitFullscreen: () => void;
+  onSetVideoStart?: (time: number) => void;
+  onSaveLoopWithVideo?: (markerId: string, videoId: string, videoStart: number) => void;
   onStartLoopMarker?: (marker: Marker) => void;
   onStopLoopMarker?: () => void;
   onAddLoopMarker?: (name: string, start: number, end: number) => void;
@@ -50,6 +57,16 @@ function formatTime(totalSeconds: number): string {
     .toString()
     .padStart(2, '0');
   return `${minutes}:${seconds}`;
+}
+
+function formatTimeWithTenths(totalSeconds: number): string {
+  if (!Number.isFinite(totalSeconds) || totalSeconds < 0) return '0:00.0';
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = Math.floor(totalSeconds % 60)
+    .toString()
+    .padStart(2, '0');
+  const tenths = Math.floor((totalSeconds % 1) * 10);
+  return `${minutes}:${seconds}.${tenths}`;
 }
 
 const speedOptions = [0.75, 0.8, 0.9, 1, 1.25];
@@ -75,6 +92,10 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
   markers = [],
   classMarkers = [],
   myLoops = [],
+  selectedVideoId,
+  driveFileId,
+  useDrivePreview: propUseDrivePreview,
+  onToggleDrivePreview,
   onPlay,
   onPause,
   onToggleLoop,
@@ -83,6 +104,8 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
   onSetInPoint,
   onSetOutPoint,
   onExitFullscreen,
+  onSetVideoStart,
+  onSaveLoopWithVideo,
   onStartLoopMarker,
   onStopLoopMarker,
   onAddLoopMarker,
@@ -111,6 +134,23 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
   const [loopFormEnd, setLoopFormEnd] = useState<number>(10);
   const [loopFormError, setLoopFormError] = useState('');
 
+  // Drive preview player state
+  const [internalUseDrivePreview, setInternalUseDrivePreview] = useState<boolean>(false);
+  const isControlledPreview = propUseDrivePreview !== undefined;
+  const isLocalVideo = selectedVideoId === 'local';
+  const useDrivePreview = isControlledPreview
+    ? (isLocalVideo ? false : Boolean(propUseDrivePreview))
+    : (isLocalVideo ? false : internalUseDrivePreview);
+
+  const setUseDrivePreview = (val: boolean) => {
+    if (onToggleDrivePreview) {
+      onToggleDrivePreview(val);
+    }
+    if (!isControlledPreview) {
+      setInternalUseDrivePreview(val);
+    }
+  };
+
   // Video element and video-only state
   const internalVideoRef = useRef<HTMLVideoElement>(null);
   const activeVideoRef = externalVideoRef || internalVideoRef;
@@ -123,8 +163,11 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
     duration: 0,
     isPlaying: false
   });
+  const [actualVideoDuration, setActualVideoDuration] = useState<number>(videoDuration || 0);
+  const [actualVideoTime, setActualVideoTime] = useState<number>(videoCurrentTime || 0);
+  const [saveLoopSuccess, setSaveLoopSuccess] = useState<boolean>(false);
 
-  // Track video element state when in video-only mode
+  // Track video element state
   useEffect(() => {
     const video = activeVideoRef.current;
     if (!video || !hasDanceVideo) return;
@@ -134,9 +177,15 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
     }
 
     const updateState = () => {
+      const cur = video.currentTime || 0;
+      const dur = Number.isFinite(video.duration) ? video.duration : 0;
+      setActualVideoTime(cur);
+      if (dur > 0) {
+        setActualVideoDuration(dur);
+      }
       setVideoPlaybackState({
-        currentTime: video.currentTime || 0,
-        duration: Number.isFinite(video.duration) ? video.duration : 0,
+        currentTime: cur,
+        duration: dur,
         isPlaying: !video.paused && !video.ended
       });
     };
@@ -146,6 +195,8 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
     video.addEventListener('play', updateState);
     video.addEventListener('pause', updateState);
     video.addEventListener('ended', updateState);
+
+    updateState();
 
     return () => {
       video.removeEventListener('timeupdate', updateState);
@@ -296,9 +347,80 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
   const progressPercent = effectiveDuration > 0 ? Math.min((effectiveCurrentTime / effectiveDuration) * 100, 100) : 0;
 
   // Video progress calculation for dual view
-  const safeVideoDuration = videoDuration > 0 ? videoDuration : 1;
-  const videoProgress = Math.min((videoCurrentTime / safeVideoDuration) * 100, 100);
+  const effectiveVideoDuration = actualVideoDuration > 0 ? actualVideoDuration : videoDuration > 0 ? videoDuration : 1;
+  const effectiveVideoCurrentTime = actualVideoTime > 0 ? actualVideoTime : videoCurrentTime;
+  const safeVideoDuration = effectiveVideoDuration > 0 ? effectiveVideoDuration : 1;
+  const videoProgress = Math.min((effectiveVideoCurrentTime / safeVideoDuration) * 100, 100);
   const videoStartPercent = Math.min((videoStart / safeVideoDuration) * 100, 100);
+
+  const videoBarRef = useRef<HTMLDivElement>(null);
+  const isDraggingVideoFlagRef = useRef(false);
+
+  const getVideoTimeFromClientX = (clientX: number | undefined): number => {
+    if (!videoBarRef.current || !safeVideoDuration || typeof clientX !== 'number' || Number.isNaN(clientX)) {
+      return 0;
+    }
+    const bounds = videoBarRef.current.getBoundingClientRect();
+    const width = bounds.width || 1;
+    const position = (clientX - (bounds.left || 0)) / width;
+    const bounded = Math.min(Math.max(position, 0), 1);
+    return Math.round(bounded * safeVideoDuration * 10) / 10;
+  };
+
+  const handleSetStartToCurrentVideo = () => {
+    if (!onSetVideoStart) return;
+    const cur = activeVideoRef.current
+      ? Math.round((activeVideoRef.current.currentTime || 0) * 10) / 10
+      : Math.round(effectiveVideoCurrentTime * 10) / 10;
+    onSetVideoStart(Math.max(0, cur));
+  };
+
+  const handleNudgeVideoStart = (delta: number) => {
+    if (!onSetVideoStart) return;
+    const next = Math.max(0, Math.min(safeVideoDuration, Math.round((videoStart + delta) * 10) / 10));
+    onSetVideoStart(next);
+  };
+
+  const handleSaveLoopAlignment = () => {
+    if (!loopMarker || !selectedVideoId || !onSaveLoopWithVideo) return;
+    onSaveLoopWithVideo(loopMarker.id, selectedVideoId, videoStart);
+    setSaveLoopSuccess(true);
+    setTimeout(() => setSaveLoopSuccess(false), 2500);
+  };
+
+  const handleVideoBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isDraggingVideoFlagRef.current) {
+      isDraggingVideoFlagRef.current = false;
+      return;
+    }
+    const targetTime = getVideoTimeFromClientX(e.clientX);
+    if (activeVideoRef.current) {
+      activeVideoRef.current.currentTime = targetTime;
+      setActualVideoTime(targetTime);
+    }
+  };
+
+  const handleVideoStartFlagPointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    if (!onSetVideoStart) return;
+    isDraggingVideoFlagRef.current = true;
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      const time = getVideoTimeFromClientX(moveEvent.clientX);
+      onSetVideoStart(time);
+    };
+
+    const handlePointerUp = () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      setTimeout(() => {
+        isDraggingVideoFlagRef.current = false;
+      }, 50);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+  };
 
   const loopDurationText = currentRange
     ? `${(currentRange.end - currentRange.start).toFixed(1)}s`
@@ -552,7 +674,17 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
     <div className={`fixed inset-0 z-50 flex flex-col overflow-hidden select-none ${hasYouTubeVideo ? 'bg-transparent pointer-events-none' : 'bg-[var(--night-1)]'}`}>
       {/* Top Video / Media Viewport (Takes majority of screen) */}
       <div className={`flex-1 relative min-h-0 w-full flex items-center justify-center overflow-hidden ${hasYouTubeVideo ? 'bg-transparent pointer-events-none' : 'bg-black'}`}>
-        {hasDanceVideo ? (
+        {hasDanceVideo && useDrivePreview && driveFileId ? (
+          <div className="w-full h-full relative bg-black flex items-center justify-center">
+            <iframe
+              src={previewUrl(driveFileId)}
+              title={activeMusicTitle || 'Class Routine Video'}
+              className="w-full h-full border-0"
+              allow="autoplay; encrypted-media; fullscreen"
+              allowFullScreen
+            />
+          </div>
+        ) : hasDanceVideo ? (
           <video
             ref={activeVideoRef}
             data-testid="fullscreen-dance-video"
@@ -560,6 +692,17 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
             className="w-full h-full object-contain cursor-pointer"
             playsInline
             onClick={effectiveIsPlaying ? handlePause : handlePlay}
+            onLoadedData={e => {
+              const el = e.currentTarget;
+              if (el.videoWidth === 0 && el.videoHeight === 0 && driveFileId) {
+                setUseDrivePreview(true);
+              }
+            }}
+            onError={() => {
+              if (driveFileId) {
+                setUseDrivePreview(true);
+              }
+            }}
           />
         ) : hasYouTubeVideo ? (
           <div
@@ -718,6 +861,27 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
             <span className="font-mono text-[9px] text-[var(--neon-green)] bg-[var(--night-1)] px-1.5 py-0.5 border border-[var(--neon-green)]">
               🎤 {speechTranscript || 'VOICE READY'}
             </span>
+          )}
+
+          {/* Player Mode Toggle (Drive Player vs Direct Sync) */}
+          {driveFileId && (
+            <button
+              type="button"
+              aria-label={useDrivePreview ? 'Switch to Direct Sync' : 'Switch to Drive Player'}
+              onClick={() => setUseDrivePreview(!useDrivePreview)}
+              className={`px-2.5 py-1.5 font-display text-[9px] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] transition active:translate-x-0.5 active:translate-y-0.5 cursor-pointer ${
+                useDrivePreview
+                  ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold'
+                  : 'bg-[var(--night-2)] text-[var(--text-2)] hover:text-[var(--text-1)]'
+              }`}
+              title={
+                useDrivePreview
+                  ? 'Google Drive Player active (plays all video formats). Click to switch to Direct Sync'
+                  : 'Direct Sync mode active. Click to switch to Google Drive Player'
+              }
+            >
+              {useDrivePreview ? '🎬 DRIVE PLAYER' : '⚡ DIRECT SYNC'}
+            </button>
           )}
 
           {/* Exit Fullscreen Button */}
@@ -1043,23 +1207,96 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
 
         {/* Video Track Progress (shown if both music & video are loaded in sync mode) */}
         {hasDanceVideo && !isVideoOnly && (
-          <div className="space-y-1">
-            <div className="flex justify-between items-center text-[10px] font-mono text-[var(--text-2)]">
-              <span>
-                SYNCED VIDEO: {formatTime(videoCurrentTime)} / {formatTime(videoDuration)}
-              </span>
-              <span className="text-[var(--neon-gold)]">⚑ START: {formatTime(videoStart)}</span>
+          <div className="space-y-1 pt-1 border-t border-[var(--outline)]">
+            <div className="flex flex-wrap justify-between items-center gap-2 text-[10px] font-mono">
+              <div className="flex items-center gap-2 text-[var(--text-2)]">
+                <span>
+                  SYNCED VIDEO: {formatTime(effectiveVideoCurrentTime)} / {formatTime(effectiveVideoDuration)}
+                </span>
+                <span className="text-[var(--neon-gold)] font-bold">
+                  ⚑ START: {formatTimeWithTenths(videoStart)}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {onSetVideoStart && (
+                  <>
+                    <button
+                      type="button"
+                      aria-label="Set video start point"
+                      onClick={handleSetStartToCurrentVideo}
+                      className="px-2 py-0.5 bg-[var(--neon-gold)] text-[var(--on-neon)] font-display text-[9px] border border-[var(--outline)] shadow-[1px_1px_0_var(--shadow-hard)] hover:brightness-110 active:translate-x-0.5 active:translate-y-0.5 cursor-pointer font-bold"
+                      title="Set video start alignment flag to the currently displayed video frame"
+                    >
+                      ⚑ SET START HERE
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Nudge video start backward"
+                      onClick={() => handleNudgeVideoStart(-0.5)}
+                      className="px-1.5 py-0.5 bg-[var(--night-2)] text-[var(--text-1)] font-mono text-[9px] border border-[var(--outline)] hover:bg-[var(--violet-1)] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+                      title="Nudge video start -0.5s"
+                    >
+                      -0.5s
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Nudge video start forward"
+                      onClick={() => handleNudgeVideoStart(0.5)}
+                      className="px-1.5 py-0.5 bg-[var(--night-2)] text-[var(--text-1)] font-mono text-[9px] border border-[var(--outline)] hover:bg-[var(--violet-1)] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+                      title="Nudge video start +0.5s"
+                    >
+                      +0.5s
+                    </button>
+                    {videoStart > 0 && (
+                      <button
+                        type="button"
+                        aria-label="Reset video start"
+                        onClick={() => onSetVideoStart(0)}
+                        className="px-1.5 py-0.5 text-[var(--neon-red)] hover:underline font-mono text-[9px] cursor-pointer"
+                        title="Reset video start to 0s"
+                      >
+                        Reset (0s)
+                      </button>
+                    )}
+                  </>
+                )}
+                {loopMarker && selectedVideoId && onSaveLoopWithVideo && (
+                  <button
+                    type="button"
+                    aria-label="Save loop video alignment"
+                    onClick={handleSaveLoopAlignment}
+                    className="px-2 py-0.5 bg-[var(--neon-cyan)] text-[var(--on-neon)] font-display text-[9px] border border-[var(--outline)] hover:brightness-110 active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+                    title="Save current video alignment into this loop marker"
+                  >
+                    {saveLoopSuccess ? '✓ SAVED!' : '💾 SAVE TO LOOP'}
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="relative h-4 bg-[var(--violet-1)] border-2 border-[var(--outline)] overflow-hidden">
+            <div
+              ref={videoBarRef}
+              role="slider"
+              aria-label="Video timeline"
+              tabIndex={0}
+              onClick={handleVideoBarClick}
+              className="relative h-4 bg-[var(--violet-1)] border-2 border-[var(--outline)] cursor-pointer overflow-visible select-none shadow-[1px_1px_0_var(--shadow-hard)]"
+            >
               <div
-                className="absolute inset-y-0 left-0 bg-[var(--neon-green)]/40 border-r-2 border-[var(--neon-green)]"
+                className="absolute inset-y-0 left-0 bg-[var(--neon-green)]/40 border-r-2 border-[var(--neon-green)] pointer-events-none"
                 style={{ width: `${videoProgress}%` }}
               />
               <div
-                className="absolute inset-y-0 w-1 bg-[var(--neon-gold)] z-10"
+                role="slider"
+                tabIndex={0}
+                aria-label="Video start flag"
+                data-testid="video-start-flag"
+                onPointerDown={handleVideoStartFlagPointerDown}
+                className="absolute inset-y-0 -ml-1.5 w-3 bg-[var(--neon-gold)] z-20 cursor-ew-resize hover:scale-125 transition-transform flex items-center justify-center border border-black"
                 style={{ left: `${videoStartPercent}%` }}
-                title={`Video Start: ${formatTime(videoStart)}`}
-              />
+                title={`Video Start: ${formatTimeWithTenths(videoStart)} (Drag to adjust)`}
+              >
+                <span className="w-0.5 h-2 bg-black pointer-events-none" />
+              </div>
             </div>
           </div>
         )}

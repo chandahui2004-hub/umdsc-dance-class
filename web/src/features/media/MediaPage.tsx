@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '../../lib/api';
 import { formatDayLabel } from '../../lib/time';
 import { useCurrentEvent } from '../events/useCurrentEvent';
-import { streamUrl, openInDriveUrl } from '../../lib/google/driveUrls';
+import { streamUrl, openInDriveUrl, previewUrl } from '../../lib/google/driveUrls';
 import { Panel } from '../../components/ui/Panel';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -424,7 +424,6 @@ export const MediaPage: React.FC = () => {
             <div className="space-y-3">
               {filteredVideos.map((vid) => {
                 const sess = sessions.find((s) => s.id === vid.sessionId);
-                const stream = streamUrl(vid.driveFileId);
                 const driveLink = openInDriveUrl(vid.driveFileId);
                 const isCollapsed =
                   collapsedVideoIds[vid.id] !== undefined
@@ -509,13 +508,13 @@ export const MediaPage: React.FC = () => {
                     </div>
 
                     {/* Video Player */}
-                    <div className="w-full bg-[var(--night-1)] border-2 border-[var(--outline)] aspect-video flex items-center justify-center overflow-hidden">
-                      <video
-                        src={stream}
-                        controls
-                        playsInline
-                        preload="metadata"
-                        className="w-full h-full object-contain"
+                    <div className="w-full bg-black border-2 border-[var(--outline)] aspect-video flex items-center justify-center overflow-hidden">
+                      <iframe
+                        src={previewUrl(vid.driveFileId)}
+                        title={vid.title}
+                        className="w-full h-full border-0"
+                        allow="autoplay; encrypted-media; fullscreen"
+                        allowFullScreen
                       />
                     </div>
 
