@@ -60,11 +60,17 @@ export const Studio: React.FC = () => {
     }
   });
 
-  const musicList: MusicItem[] = liveMusic || (bootstrapData as any)?.music || [];
+  const musicList: MusicItem[] = Array.isArray(liveMusic)
+    ? liveMusic
+    : (bootstrapData as any)?.music || [];
   const stylesList = bootstrapData?.styles || [];
   const eventsList = (bootstrapData as any)?.events || [];
-  const sectionsList: Section[] = liveSections || (bootstrapData as any)?.sections || [];
-  const videosList: VideoItem[] = liveVideos || (bootstrapData as any)?.videos || [];
+  const sectionsList: Section[] = Array.isArray(liveSections)
+    ? liveSections
+    : (bootstrapData as any)?.sections || [];
+  const videosList: VideoItem[] = Array.isArray(liveVideos)
+    ? liveVideos
+    : (bootstrapData as any)?.videos || [];
 
   const [selectedMusicId, setSelectedMusicId] = useState<string | null>(musicParam);
   const [activeMusicTitle, setActiveMusicTitle] = useState<string | null>(null);
