@@ -181,7 +181,7 @@ export const DancerHome: React.FC = () => {
         </div>
 
         {/* Event Switcher */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <label htmlFor="dancer-event-select" className="font-display text-[8px] text-[var(--text-2)] font-bold uppercase whitespace-nowrap">
             EVENT:
           </label>
@@ -198,7 +198,7 @@ export const DancerHome: React.FC = () => {
                 }
               }
             }}
-            className="px-well min-h-[44px] px-3 font-display text-[12px] text-[var(--text-1)] cursor-pointer"
+            className="px-well min-h-[44px] px-3 font-display text-[12px] text-[var(--text-1)] cursor-pointer min-w-0 flex-1 w-full truncate"
           >
             <option value="all">ALL EVENTS</option>
             {events.map((ev) => (

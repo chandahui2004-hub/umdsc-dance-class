@@ -347,7 +347,7 @@ export function AudioPlayer({
         <span>{formatTime(duration)}</span>
       </div>
 
-      <div className="mt-5 flex items-center justify-between gap-2">
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
         <button
           className={isLooping ? loopButtonOnClass : loopButtonOffClass}
           type="button"

@@ -24,7 +24,7 @@ const buttonClass =
 const fileButtonClass =
   'inline-flex min-h-12 cursor-pointer items-center justify-center border-2 border-[var(--outline)] bg-[var(--violet-2)] px-4 text-[14px] font-display text-[var(--text-1)] hover:bg-[var(--neon-pink)] hover:text-[var(--on-neon)] active:translate-y-px';
 const tabClass =
-  'min-h-10 border-2 border-[var(--outline)] px-3 text-[12px] font-display uppercase active:translate-y-px';
+  'min-h-10 flex-1 min-w-0 border-2 border-[var(--outline)] px-2 text-[12px] font-display uppercase whitespace-normal break-words leading-tight active:translate-y-px';
 
 export const SourcePicker: React.FC<SourcePickerProps> = ({
   activeSource,
@@ -64,7 +64,7 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({
       </div>
 
       {/* Tabs: CLASS MUSIC | MY MP3 | LINK (YouTube or SoundCloud) */}
-      <div className="mt-4 grid grid-cols-3 gap-1.5 border-2 border-[var(--outline)] bg-[var(--night-1)] p-1">
+      <div className="mt-4 flex gap-1.5 border-2 border-[var(--outline)] bg-[var(--night-1)] p-1">
         <button
           className={`${tabClass} ${
             sourceMode === 'class'

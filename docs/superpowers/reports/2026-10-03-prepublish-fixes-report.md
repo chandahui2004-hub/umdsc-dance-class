@@ -254,3 +254,22 @@
 - Differences from the plan, and why: none (rule placed in `web/src/theme/pixel.css` per NOTE 1 plan correction)
 - Anything unsure or not done: none
 
+## Task 9 — Studio and Home fit at 360–390px
+
+- Commit: `3d9246c` (`3d9246c fix(phone): no cut-off controls in Studio and Home at 360-390px`)
+- Files changed:
+  - `web/src/features/music-studio/dancecue/components/AudioPlayer.tsx`
+  - `web/src/features/music-studio/sources/SourcePicker.tsx`
+  - `web/src/features/music-studio/sync/VideoPanel.tsx`
+  - `web/src/features/calendar/DancerHome.tsx`
+- Commands run and results:
+  - `npx playwright test e2e/phone-layout.spec.ts`:
+    ```
+    8 passed (1.0m)
+    ```
+  - `npm run build`:
+    ```
+    ✓ built in 4.58s
+    ```
+- Differences from the plan, and why: none
+- Anything unsure or not done: none

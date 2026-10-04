@@ -328,12 +328,12 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
         </div>
 
         {/* Video selector dropdown */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <span className="font-mono text-[12px] text-[var(--text-2)]">SELECT:</span>
           <select
             value={selectedVideoId}
             onChange={e => setSelectedVideoId(e.target.value)}
-            className="bg-[var(--night-2)] text-[var(--text-1)] text-[16px] border-2 border-[var(--outline)] px-2 py-1 font-mono outline-none focus:border-[var(--neon-gold)] max-w-[280px] truncate"
+            className="bg-[var(--night-2)] text-[var(--text-1)] text-[16px] border-2 border-[var(--outline)] px-2 py-1 font-mono outline-none focus:border-[var(--neon-gold)] w-full min-w-0 flex-1 truncate"
             aria-label="Select class video"
           >
             <option value="">-- No Video (Audio Only) --</option>
