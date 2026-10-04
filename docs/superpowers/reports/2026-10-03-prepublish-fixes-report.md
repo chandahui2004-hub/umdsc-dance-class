@@ -375,7 +375,7 @@
 
 ## Task 12 — Update the out-of-date e2e tests
 
-- Commit: (pending)
+- Commit: `e6f40dc` (`e6f40dc test(e2e): update out-of-date specs and tag internet-only tests`)
 - Files changed:
   - `web/e2e/admin-today.spec.ts`
   - `web/e2e/admin-classes.spec.ts`
