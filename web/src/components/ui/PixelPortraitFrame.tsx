@@ -91,7 +91,7 @@ export function PixelPortraitFrame({
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center p-2 text-center">
             <span className="font-display text-2xl text-[var(--text-2)] mb-1">👤</span>
-            <span className="font-display text-[8px] text-[var(--text-2)] uppercase leading-tight">
+            <span className="font-display text-[10px] text-[var(--text-2)] uppercase leading-tight">
               {name ? name.slice(0, 2).toUpperCase() : 'TBA'}
             </span>
           </div>

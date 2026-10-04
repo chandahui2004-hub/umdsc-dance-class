@@ -119,7 +119,7 @@ export const SectionsEditor: React.FC<SectionsEditorProps> = ({ music, onClose }
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="font-display text-[8px] text-[var(--text-1)] uppercase block mb-1">
+                <label className="font-display text-[10px] text-[var(--text-1)] uppercase block mb-1">
                   Start (MM : SS)
                 </label>
                 <div className="flex items-center gap-1">
@@ -143,7 +143,7 @@ export const SectionsEditor: React.FC<SectionsEditorProps> = ({ music, onClose }
               </div>
 
               <div>
-                <label className="font-display text-[8px] text-[var(--text-1)] uppercase block mb-1">
+                <label className="font-display text-[10px] text-[var(--text-1)] uppercase block mb-1">
                   End (MM : SS)
                 </label>
                 <div className="flex items-center gap-1">

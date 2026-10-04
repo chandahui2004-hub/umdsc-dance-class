@@ -273,3 +273,41 @@
     ```
 - Differences from the plan, and why: none
 - Anything unsure or not done: none
+
+## Task 10 — Readable text and big fullscreen buttons
+
+- Commit: `fcf6f48` (`fcf6f48 fix(phone): 10px text floor and 44px fullscreen buttons`)
+- Files changed:
+  - `web/scripts/text-floor.mjs`
+  - 28 `.tsx` files in `web/src` (108 occurrences of `text-[8px]` / `text-[9px]` replaced with `text-[10px]`)
+  - `web/src/features/music-studio/FullscreenStudio.tsx`
+  - `web/src/components/ui/TabBar.tsx`
+  - `web/e2e/phone-layout.spec.ts`
+  - `docs/superpowers/reports/shots/home-390px.png`
+  - `docs/superpowers/reports/shots/studio-390px.png`
+  - `docs/superpowers/reports/shots/studio-fullscreen-390px.png`
+  - `docs/superpowers/reports/shots/me-390px.png`
+- Commands run and results:
+  - `node web/scripts/text-floor.mjs`: Total 108
+  - `grep -rE "text-\[(8|9)px\]" web/src`: no output
+  - `npm test -w web`:
+    ```
+    Test Files  44 passed (44)
+         Tests  227 passed (227)
+    ```
+  - `npx playwright test e2e/phone-layout.spec.ts`:
+    ```
+    8 passed (56.9s)
+    ```
+  - `npm run build`:
+    ```
+    ✓ built in 4.99s
+    ```
+- Screenshots captured (390px):
+  - `docs/superpowers/reports/shots/home-390px.png`
+  - `docs/superpowers/reports/shots/studio-390px.png`
+  - `docs/superpowers/reports/shots/studio-fullscreen-390px.png`
+  - `docs/superpowers/reports/shots/me-390px.png`
+- Differences from the plan, and why: Added `min-w-0` to `TabBar.tsx` tabs so that the 5-tab admin dock fits without horizontal clipping on 360–390px viewports.
+- Anything unsure or not done: none
+

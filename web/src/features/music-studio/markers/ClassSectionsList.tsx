@@ -239,7 +239,7 @@ export const ClassSectionsList: React.FC<ClassSectionsListProps> = ({
                     {marker.name}
                   </span>
                   <span
-                    className={`px-1.5 py-0.5 text-[8px] font-mono font-bold uppercase border border-[var(--outline)] ${
+                    className={`px-1.5 py-0.5 text-[10px] font-mono font-bold uppercase border border-[var(--outline)] ${
                       isClass
                         ? 'bg-[var(--neon-gold)] text-[var(--on-neon)]'
                         : 'bg-[var(--neon-pink)] text-[var(--on-neon)]'

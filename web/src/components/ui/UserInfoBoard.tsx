@@ -148,12 +148,12 @@ export const UserInfoBoard: React.FC<UserInfoBoardProps> = ({
     >
       {/* Board Header & Role Badge */}
       <div className="flex items-center justify-between border-b-2 border-[var(--outline)] pb-2">
-        <span className="font-display text-[8px] text-[var(--text-2)] tracking-wider uppercase">
+        <span className="font-display text-[10px] text-[var(--text-2)] tracking-wider uppercase">
           PLAYER PROFILE
         </span>
         <span
           data-testid="user-role-badge"
-          className={`font-display text-[8px] uppercase px-2 py-0.5 border-2 border-[var(--outline)] flex items-center gap-1.5 ${
+          className={`font-display text-[10px] uppercase px-2 py-0.5 border-2 border-[var(--outline)] flex items-center gap-1.5 ${
             isAdmin
               ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold'
               : 'bg-[var(--violet-2)] text-[var(--neon-cyan)] font-bold'
@@ -171,7 +171,7 @@ export const UserInfoBoard: React.FC<UserInfoBoardProps> = ({
       {/* User Information Details */}
       <div className="space-y-1.5 font-display text-xs">
         <div className="flex items-start gap-2">
-          <span className="text-[var(--text-2)] text-[9px] w-14 shrink-0 uppercase pt-0.5">
+          <span className="text-[var(--text-2)] text-[10px] w-14 shrink-0 uppercase pt-0.5">
             USER:
           </span>
           <span
@@ -184,7 +184,7 @@ export const UserInfoBoard: React.FC<UserInfoBoardProps> = ({
         </div>
 
         <div className="flex items-start gap-2">
-          <span className="text-[var(--text-2)] text-[9px] w-14 shrink-0 uppercase pt-0.5">
+          <span className="text-[var(--text-2)] text-[10px] w-14 shrink-0 uppercase pt-0.5">
             MATRIKS:
           </span>
           <span

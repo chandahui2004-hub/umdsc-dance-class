@@ -69,7 +69,7 @@ export const AdminLogin: React.FC = () => {
             <LogoBadge height={96} />
           </div>
           <div className="inline-block bg-[var(--night-2)] text-[var(--neon-gold)] px-3 py-1 border-2 border-[var(--outline)] shadow-[4px_4px_0_var(--outline)] mb-2">
-            <span className="font-display text-[8px] md:text-[12px] tracking-widest">★ SYSTEM CONSOLE ★</span>
+            <span className="font-display text-[10px] md:text-[12px] tracking-widest">★ SYSTEM CONSOLE ★</span>
           </div>
           <h1 className="font-display text-xl md:text-2xl text-[var(--text-1)] px-glow-text" style={{ '--glow': 'var(--neon-cyan)' } as React.CSSProperties}>
             ADMIN ACCESS

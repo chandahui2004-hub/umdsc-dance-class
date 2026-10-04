@@ -55,7 +55,7 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
               </span>
               <span
                 data-testid="mobile-role-badge"
-                className={`font-display text-[8px] uppercase px-1 py-0.5 border border-[var(--outline)] shrink-0 ${
+                className={`font-display text-[10px] uppercase px-1 py-0.5 border border-[var(--outline)] shrink-0 ${
                   isAdmin
                     ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold'
                     : 'bg-[var(--night-0)] text-[var(--neon-cyan)] border-[var(--neon-cyan)]'
@@ -76,7 +76,7 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
                 aria-label={isUserInfoOpen ? 'Close user info board' : 'Open user info board'}
                 data-testid="user-info-toggle-btn"
                 data-truncate-ok
-                className="px-2 py-1 px-panel text-[var(--text-1)] border-2 border-[var(--outline)] font-display text-[9px] active:translate-x-[1px] active:translate-y-[1px] cursor-pointer flex items-center gap-1"
+                className="px-2 py-1 px-panel text-[var(--text-1)] border-2 border-[var(--outline)] font-display text-[10px] active:translate-x-[1px] active:translate-y-[1px] cursor-pointer flex items-center gap-1"
               >
                 <span className="truncate max-w-[55px] font-bold">{username}</span>
                 <span>{isUserInfoOpen ? '▲' : '▼'}</span>
@@ -138,7 +138,7 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
                 aria-label="Collapse navigation"
                 title="Collapse navigation"
                 data-testid="mobile-nav-toggle-btn"
-                className="min-h-[44px] px-3 py-1 px-panel border-2 border-[var(--outline)] text-[var(--neon-gold)] font-display text-[8px] flex items-center gap-1 cursor-pointer select-none active:translate-x-[1px] active:translate-y-[1px]"
+                className="min-h-[44px] px-3 py-1 px-panel border-2 border-[var(--outline)] text-[var(--neon-gold)] font-display text-[10px] flex items-center gap-1 cursor-pointer select-none active:translate-x-[1px] active:translate-y-[1px]"
               >
                 <span>HIDE NAV</span>
                 <span>▼</span>
@@ -155,7 +155,7 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
               aria-label="Expand navigation"
               title="Expand navigation"
               data-testid="mobile-nav-toggle-btn"
-              className="min-h-[44px] px-3 py-2 bg-[var(--neon-gold)] text-[var(--on-neon)] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] font-display text-[9px] font-bold flex items-center gap-1.5 cursor-pointer select-none active:translate-x-[2px] active:translate-y-[2px]"
+              className="min-h-[44px] px-3 py-2 bg-[var(--neon-gold)] text-[var(--on-neon)] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] font-display text-[10px] font-bold flex items-center gap-1.5 cursor-pointer select-none active:translate-x-[2px] active:translate-y-[2px]"
             >
               <span>SHOW NAV</span>
               <span>▲</span>

@@ -25,7 +25,7 @@ export const Field: React.FC<FieldProps> = ({
     <div className="flex flex-col gap-2 w-full">
       <label
         htmlFor={inputId}
-        className="font-display text-[8px] text-[var(--text-2)] tracking-wider uppercase"
+        className="font-display text-[10px] text-[var(--text-2)] tracking-wider uppercase"
       >
         {label}
       </label>

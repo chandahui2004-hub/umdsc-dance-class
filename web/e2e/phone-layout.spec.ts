@@ -1,6 +1,12 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { test, expect, type Page } from '@playwright/test';
 import { mockApi, makeEvent } from './fixtures/mockApi';
 import { dancerBootstrap, adminBootstrap } from './fixtures/mockData';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const DANCER_SESSION = {
   token: 'dancer-token-123',
@@ -242,13 +248,21 @@ for (const width of [360, 390]) {
   test.describe(`phone-layout @ ${width}px`, () => {
     test.use({ viewport: { width, height: 800 } });
 
-    test('phone-layout check across all pages', async ({ page }) => {
+    test('phone-layout check across all pages', async ({ page }, testInfo) => {
       await setupPage(page);
       const failures: string[] = [];
+      const isMobile390 = width === 390 && testInfo.project.name === 'mobile';
+      const shotsDir = path.resolve(__dirname, '../../docs/superpowers/reports/shots');
+      if (isMobile390) {
+        fs.mkdirSync(shotsDir, { recursive: true });
+      }
 
       // 1. Dancer on /
       await page.goto('/');
       failures.push(...(await checkLayout(page, '/')));
+      if (isMobile390) {
+        await page.screenshot({ path: path.join(shotsDir, 'home-390px.png') });
+      }
 
       // 2. / with day sheet open
       const dayBtn = page.locator('button[data-date]').first();
@@ -266,6 +280,9 @@ for (const width of [360, 390]) {
       // 3. /studio?music=m-1
       await page.goto('/studio?music=m-1');
       failures.push(...(await checkLayout(page, '/studio?music=m-1')));
+      if (isMobile390) {
+        await page.screenshot({ path: path.join(shotsDir, 'studio-390px.png') });
+      }
 
       // 4. Studio fullscreen
       const fullscreenBtn = page.getByRole('button', { name: /full ?screen/i });
@@ -273,6 +290,30 @@ for (const width of [360, 390]) {
         await fullscreenBtn.click();
         await page.waitForTimeout(300);
         failures.push(...(await checkLayout(page, '/studio (fullscreen)')));
+        if (isMobile390) {
+          await page.screenshot({ path: path.join(shotsDir, 'studio-fullscreen-390px.png') });
+        }
+
+        // Task 10: on Studio fullscreen page, every visible button has height >= 44
+        const buttonHeightFailures = await page.evaluate(() => {
+          const bad: string[] = [];
+          const container = document.querySelector('[data-testid="fullscreen-studio"]');
+          const btns = container ? Array.from(container.querySelectorAll<HTMLElement>('button')) : [];
+          for (const b of btns) {
+            const style = window.getComputedStyle(b);
+            if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') continue;
+            const r = b.getBoundingClientRect();
+            if (r.width > 0 && r.height > 0) {
+              if (r.height < 43.5) {
+                const label = (b.getAttribute('aria-label') || b.innerText || b.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 30);
+                bad.push(`[/studio (fullscreen)] button "${label}" height ${r.height.toFixed(1)}px < 44px`);
+              }
+            }
+          }
+          return bad;
+        });
+        failures.push(...buttonHeightFailures);
+
         const exitBtn = page.getByRole('button', { name: /exit/i });
         if (await exitBtn.isVisible()) {
           await exitBtn.click();
@@ -283,6 +324,9 @@ for (const width of [360, 390]) {
       // 5. /me
       await page.goto('/me');
       failures.push(...(await checkLayout(page, '/me')));
+      if (isMobile390) {
+        await page.screenshot({ path: path.join(shotsDir, 'me-390px.png') });
+      }
 
       // 6. /login (logged out)
       await page.evaluate(() => {

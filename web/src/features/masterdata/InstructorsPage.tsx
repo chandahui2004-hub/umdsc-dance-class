@@ -349,7 +349,7 @@ export const InstructorsPage: React.FC = () => {
                   <div className="px-well p-3 w-full space-y-2.5">
                     {/* Instructor Signature Color Banner */}
                     <div
-                      className="w-full py-1 text-center border-2 border-[var(--outline)] shadow-[1px_1px_0_var(--outline)] font-display text-[8px] font-bold text-[var(--on-neon)] uppercase tracking-wider"
+                      className="w-full py-1 text-center border-2 border-[var(--outline)] shadow-[1px_1px_0_var(--outline)] font-display text-[10px] font-bold text-[var(--on-neon)] uppercase tracking-wider"
                       style={{ backgroundColor: instColor }}
                     >
                       INSTRUCTOR{inst.color ? ` · ${inst.color.toUpperCase()}` : ''}
@@ -525,7 +525,7 @@ export const InstructorsPage: React.FC = () => {
                 {/* Active Photo Preview & Gallery */}
                 {photos.length === 0 && !activePhotoUrl ? (
                   <div className="px-well p-4 text-center space-y-1">
-                    <p className="font-display text-[8px] md:text-[12px] text-[var(--text-2)]">
+                    <p className="font-display text-[10px] md:text-[12px] text-[var(--text-2)]">
                       NO PICTURE UPLOADED YET
                     </p>
                     <p className="font-body text-[14px] text-[var(--text-3)]">
@@ -565,14 +565,14 @@ export const InstructorsPage: React.FC = () => {
                             {/* Badge */}
                             <div className="relative z-10">
                               {isActive ? (
-                                <span className="bg-[var(--neon-gold)] text-[var(--on-neon)] px-1.5 py-0.5 border border-[var(--outline)] font-display text-[8px] font-bold">
+                                <span className="bg-[var(--neon-gold)] text-[var(--on-neon)] px-1.5 py-0.5 border border-[var(--outline)] font-display text-[10px] font-bold">
                                   ACTIVE
                                 </span>
                               ) : (
                                 <button
                                   type="button"
                                   onClick={() => handleSetActivePhoto(p.id)}
-                                  className="bg-[var(--night-2)] text-[var(--text-1)] px-1.5 py-0.5 border border-[var(--outline)] font-display text-[8px] hover:bg-[var(--neon-gold)] hover:text-[var(--on-neon)] cursor-pointer"
+                                  className="bg-[var(--night-2)] text-[var(--text-1)] px-1.5 py-0.5 border border-[var(--outline)] font-display text-[10px] hover:bg-[var(--neon-gold)] hover:text-[var(--on-neon)] cursor-pointer"
                                 >
                                   SET ACTIVE
                                 </button>
@@ -586,7 +586,7 @@ export const InstructorsPage: React.FC = () => {
                                 onClick={() => handleDeletePhoto(p.id)}
                                 title="Remove photo"
                                 aria-label="Remove photo"
-                                className="w-6 h-6 bg-[var(--neon-red)] text-white font-display text-[8px] flex items-center justify-center border border-[var(--outline)] shadow-[1px_1px_0_var(--outline)] hover:opacity-90 cursor-pointer"
+                                className="w-6 h-6 bg-[var(--neon-red)] text-white font-display text-[10px] flex items-center justify-center border border-[var(--outline)] shadow-[1px_1px_0_var(--outline)] hover:opacity-90 cursor-pointer"
                               >
                                 ✕
                               </button>

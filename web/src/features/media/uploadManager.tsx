@@ -358,7 +358,7 @@ const UploadFloatingBadge: React.FC = () => {
                   #{idx + 1} {item.file.name}
                 </span>
                 <span
-                  className={`text-[9px] px-1 font-display border ${
+                  className={`text-[10px] px-1 font-display border ${
                     item.status === 'done'
                       ? 'bg-[var(--c-green)] text-[var(--on-neon)]'
                       : item.status === 'error'

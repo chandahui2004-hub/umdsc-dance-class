@@ -25,9 +25,9 @@ type AudioPlayerProps = {
 const controlButtonClass =
   "grid size-12 shrink-0 place-items-center border-2 border-[var(--outline)] bg-[var(--night-3)] text-xs font-['Press_Start_2P'] text-[var(--text-1)] shadow-[2px_2px_0_var(--shadow-hard)] transition active:translate-x-[1px] active:translate-y-[1px] hover:bg-[var(--violet-2)] disabled:cursor-not-allowed disabled:opacity-45";
 const loopButtonOffClass =
-  "grid size-12 shrink-0 place-items-center border-2 border-[var(--outline)] bg-[var(--night-3)] text-[9px] min-text-5px font-['Press_Start_2P'] text-[var(--text-1)] shadow-[2px_2px_0_var(--shadow-hard)] transition active:translate-x-[1px] active:translate-y-[1px] hover:bg-[var(--violet-2)]";
+  "grid size-12 shrink-0 place-items-center border-2 border-[var(--outline)] bg-[var(--night-3)] text-[10px] min-text-5px font-['Press_Start_2P'] text-[var(--text-1)] shadow-[2px_2px_0_var(--shadow-hard)] transition active:translate-x-[1px] active:translate-y-[1px] hover:bg-[var(--violet-2)]";
 const loopButtonOnClass =
-  "grid size-12 shrink-0 place-items-center border-2 border-[var(--outline)] bg-[var(--neon-pink)] text-[9px] min-text-5px font-['Press_Start_2P'] text-black shadow-[2px_2px_0_var(--shadow-hard)] transition active:translate-x-[1px] active:translate-y-[1px]";
+  "grid size-12 shrink-0 place-items-center border-2 border-[var(--outline)] bg-[var(--neon-pink)] text-[10px] min-text-5px font-['Press_Start_2P'] text-black shadow-[2px_2px_0_var(--shadow-hard)] transition active:translate-x-[1px] active:translate-y-[1px]";
 const panelClass = "border-2 border-[var(--outline)] bg-[var(--night-2)] px-3 pb-4 pt-3 shadow-[4px_4px_0_var(--shadow-hard)]";
 const waveformHeights = [
   22, 30, 18, 27, 35, 24, 31, 16, 38, 22, 28, 17, 34, 25, 19, 36, 42, 23, 31, 18, 35, 27, 21,
@@ -267,7 +267,7 @@ export function AudioPlayer({
         {/* Floating Tooltip */}
         {tooltip && (
           <div
-            className="absolute -top-7 px-2 py-0.5 bg-[var(--night-1)] border-2 border-[var(--neon-gold)] text-[9px] font-mono text-[var(--neon-gold)] whitespace-nowrap shadow-[2px_2px_0_var(--shadow-hard)] z-40 pointer-events-none -translate-x-1/2"
+            className="absolute -top-7 px-2 py-0.5 bg-[var(--night-1)] border-2 border-[var(--neon-gold)] text-[10px] font-mono text-[var(--neon-gold)] whitespace-nowrap shadow-[2px_2px_0_var(--shadow-hard)] z-40 pointer-events-none -translate-x-1/2"
             style={{ left: `${tooltip.leftPercent}%` }}
           >
             {tooltip.text}
@@ -387,7 +387,7 @@ export function AudioPlayer({
         >
           <span className="sr-only">Playback speed</span>
           <select
-            className="h-full w-full cursor-pointer appearance-none bg-transparent text-center font-['Press_Start_2P'] text-[9px] min-text-5px font-bold text-[var(--text-1)] outline-none disabled:cursor-not-allowed disabled:opacity-45"
+            className="h-full w-full cursor-pointer appearance-none bg-transparent text-center font-['Press_Start_2P'] text-[10px] min-text-5px font-bold text-[var(--text-1)] outline-none disabled:cursor-not-allowed disabled:opacity-45"
             disabled={speedDisabled}
             value={playbackRate}
             onChange={(event) => onSpeedChange(Number(event.target.value))}

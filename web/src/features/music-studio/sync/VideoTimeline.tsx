@@ -156,7 +156,7 @@ export const VideoTimeline: React.FC<VideoTimelineProps> = ({
           )}
           {/* Flag pennant */}
           <div className="w-4 h-3 bg-[var(--neon-gold)] border border-[var(--outline)] flex items-center justify-center shadow-[1px_1px_0_var(--outline)]">
-            <span className="text-[8px] font-bold text-[var(--on-neon)] leading-none">⚑</span>
+            <span className="text-[10px] font-bold text-[var(--on-neon)] leading-none">⚑</span>
           </div>
           {/* Flag pole line */}
           <div className="w-0.5 flex-1 bg-[var(--neon-gold)]" />

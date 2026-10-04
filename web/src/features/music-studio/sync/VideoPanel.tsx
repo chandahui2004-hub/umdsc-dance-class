@@ -233,12 +233,12 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
             Synced Class Video
           </h3>
           {status === 'buffering' && (
-            <span className="px-1.5 py-0.5 bg-[var(--neon-red)] text-[8px] font-bold text-[var(--on-neon)] border border-[var(--outline)] animate-pulse">
+            <span className="px-1.5 py-0.5 bg-[var(--neon-red)] text-[10px] font-bold text-[var(--on-neon)] border border-[var(--outline)] animate-pulse">
               BUFFERING
             </span>
           )}
           {status === 'playing' && (
-            <span className="px-1.5 py-0.5 bg-[var(--neon-green)] text-[8px] font-bold text-[var(--on-neon)] border border-[var(--outline)]">
+            <span className="px-1.5 py-0.5 bg-[var(--neon-green)] text-[10px] font-bold text-[var(--on-neon)] border border-[var(--outline)]">
               SYNCED
             </span>
           )}
@@ -472,7 +472,7 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
               </div>
             )}
             {muted && (
-              <div className="absolute top-2 right-2 bg-[var(--night-2)] border border-[var(--neon-gold)] px-2 py-0.5 text-[8px] text-[var(--neon-gold)] font-mono">
+              <div className="absolute top-2 right-2 bg-[var(--night-2)] border border-[var(--neon-gold)] px-2 py-0.5 text-[10px] text-[var(--neon-gold)] font-mono">
                 MUTED
               </div>
             )}

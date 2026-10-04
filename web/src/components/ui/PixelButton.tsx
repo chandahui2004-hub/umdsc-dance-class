@@ -21,7 +21,7 @@ export const PixelButton: React.FC<PixelButtonProps> = ({
     'inline-flex items-center justify-center font-display uppercase tracking-wider select-none cursor-pointer transition-none disabled:opacity-50 disabled:pointer-events-none text-center';
 
   const sizeStyles = {
-    sm: 'min-h-[44px] px-3 py-1 text-[8px]',
+    sm: 'min-h-[44px] px-3 py-1 text-[10px]',
     md: 'min-h-[48px] px-4 py-2 text-[12px]',
     lg: 'min-h-[56px] px-6 py-3 text-[16px]',
   }[size];

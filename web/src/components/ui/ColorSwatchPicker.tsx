@@ -123,7 +123,7 @@ export const ColorSwatchPicker: React.FC<ColorSwatchPickerProps> = ({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="font-display text-[8px] uppercase tracking-wider text-[var(--text-1)]">
+        <label className="font-display text-[10px] uppercase tracking-wider text-[var(--text-1)]">
           {label}
         </label>
         <button
@@ -132,7 +132,7 @@ export const ColorSwatchPicker: React.FC<ColorSwatchPickerProps> = ({
             setIsAdding((prev) => !prev);
             setHexError(null);
           }}
-          className="font-display text-[9px] text-[var(--neon-cyan)] hover:underline flex items-center gap-1 cursor-pointer"
+          className="font-display text-[10px] text-[var(--neon-cyan)] hover:underline flex items-center gap-1 cursor-pointer"
         >
           {isAdding ? '▲ CLOSE' : '+ ADD NEW COLOR'}
         </button>
@@ -214,7 +214,7 @@ export const ColorSwatchPicker: React.FC<ColorSwatchPickerProps> = ({
                   onClick={(e) => handleRemoveCustomColor(e, c.key)}
                   title={`Remove ${c.label}`}
                   aria-label={`Remove color ${c.label}`}
-                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[var(--neon-red)] text-[var(--on-neon)] font-display text-[8px] flex items-center justify-center border border-[var(--outline)] shadow-[1px_1px_0_var(--outline)] hover:brightness-110 active:scale-95 cursor-pointer z-10"
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[var(--neon-red)] text-[var(--on-neon)] font-display text-[10px] flex items-center justify-center border border-[var(--outline)] shadow-[1px_1px_0_var(--outline)] hover:brightness-110 active:scale-95 cursor-pointer z-10"
                 >
                   ✕
                 </button>

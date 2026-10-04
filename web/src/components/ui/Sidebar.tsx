@@ -135,7 +135,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {!isCollapsed && <span className="truncate">{item.label}</span>}
                   </div>
                   {!isCollapsed && (
-                    <span className="font-display text-[9px]">{isMoreExpanded ? '▲' : '▼'}</span>
+                    <span className="font-display text-[10px]">{isMoreExpanded ? '▲' : '▼'}</span>
                   )}
                 </button>
 
@@ -148,7 +148,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         title={sub.label}
                         aria-label={sub.label}
                         className={({ isActive }) =>
-                          `flex items-center gap-2 px-2 py-2 min-h-[40px] border-2 border-[var(--outline)] font-display text-[9px] select-none transition-none ${
+                          `flex items-center gap-2 px-2 py-2 min-h-[40px] border-2 border-[var(--outline)] font-display text-[10px] select-none transition-none ${
                             isActive
                               ? 'bg-[var(--violet-2)] text-[var(--text-1)] font-bold border-l-4 border-l-[var(--neon-gold)] translate-x-[2px]'
                               : 'bg-[var(--night-0)] text-[var(--text-2)] hover:bg-[var(--violet-1)] hover:text-[var(--text-1)]'
@@ -195,7 +195,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     isCollapsed
                       ? 'absolute -top-1 -right-1'
                       : 'ml-auto'
-                  } bg-[var(--neon-red)] text-[var(--on-neon)] text-[8px] px-1 border border-[var(--outline)]`}
+                  } bg-[var(--neon-red)] text-[var(--on-neon)] text-[10px] px-1 border border-[var(--outline)]`}
                 >
                   {item.badge}
                 </span>

@@ -52,7 +52,7 @@ export const LiveClock: React.FC<LiveClockProps> = ({
           <span className="text-xs" aria-hidden="true">⏰</span>
           <span className="text-[24px] font-bold text-[var(--neon-gold)] tracking-widest">{timeStr}</span>
         </span>
-        <span className="text-[8px] uppercase px-1.5 py-0.5 bg-[var(--night-0)] text-[var(--text-2)] border border-[var(--neon-gold)] font-display">
+        <span className="text-[10px] uppercase px-1.5 py-0.5 bg-[var(--night-0)] text-[var(--text-2)] border border-[var(--neon-gold)] font-display">
           KL (UTC+8)
         </span>
       </div>

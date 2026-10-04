@@ -210,7 +210,7 @@ export const StylesPage: React.FC = () => {
 
                 {/* Aliases */}
                 <div className="space-y-1">
-                  <span className="font-display text-[8px] text-[var(--text-2)] uppercase">
+                  <span className="font-display text-[10px] text-[var(--text-2)] uppercase">
                     Aliases:
                   </span>
                   <div className="flex flex-wrap gap-1">

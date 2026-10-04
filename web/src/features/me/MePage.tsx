@@ -66,35 +66,35 @@ export const MePage: React.FC = () => {
           <span className="font-display text-[12px] text-[var(--text-2)]">
             MEMBER CARD
           </span>
-          <span className="font-display text-[8px] px-2 py-0.5 bg-[var(--neon-green)] text-[var(--on-neon)] border border-[var(--outline)] font-bold">
+          <span className="font-display text-[10px] px-2 py-0.5 bg-[var(--neon-green)] text-[var(--on-neon)] border border-[var(--outline)] font-bold">
             ACTIVE DANCER
           </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono text-[14px]">
           <div>
-            <span className="font-display text-[8px] text-[var(--text-2)] block">FULL NAME:</span>
+            <span className="font-display text-[10px] text-[var(--text-2)] block">FULL NAME:</span>
             <span className="font-display text-[14px] text-[var(--text-1)] font-bold">
               {profile?.fullName || session.get()?.claims.name || 'DANCER'}
             </span>
           </div>
 
           <div>
-            <span className="font-display text-[8px] text-[var(--text-2)] block">MATRIC NUMBER:</span>
+            <span className="font-display text-[10px] text-[var(--text-2)] block">MATRIC NUMBER:</span>
             <span className="font-bold text-[var(--text-1)]">
               {profile?.matricKey || 'N/A'}
             </span>
           </div>
 
           <div>
-            <span className="font-display text-[8px] text-[var(--text-2)] block">TOTAL ATTENDANCE:</span>
+            <span className="font-display text-[10px] text-[var(--text-2)] block">TOTAL ATTENDANCE:</span>
             <span className="font-bold text-[var(--neon-green)]">
               {attendanceLoading ? '…' : totalAttended} / {totalClasses} classes
             </span>
           </div>
 
           <div>
-            <span className="font-display text-[8px] text-[var(--text-2)] block">REGISTERED EVENTS:</span>
+            <span className="font-display text-[10px] text-[var(--text-2)] block">REGISTERED EVENTS:</span>
             <span className="font-bold text-[var(--text-1)]">
               {events.length} {events.length === 1 ? 'event' : 'events'}
             </span>
@@ -127,7 +127,7 @@ export const MePage: React.FC = () => {
                   {/* Event Header */}
                   <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b-2 border-[var(--outline)]">
                     <div className="flex items-center gap-2">
-                      <span className="font-display text-[8px] px-1.5 py-0.5 bg-[var(--neon-gold)] text-[var(--on-neon)] border border-[var(--outline)] font-bold">
+                      <span className="font-display text-[10px] px-1.5 py-0.5 bg-[var(--neon-gold)] text-[var(--on-neon)] border border-[var(--outline)] font-bold">
                         {event.type.toUpperCase()}
                       </span>
                       <span className="font-display text-[12px] md:text-[14px] text-[var(--text-1)] font-bold">

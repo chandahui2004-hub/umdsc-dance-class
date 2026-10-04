@@ -78,7 +78,7 @@ export const TitleScreen: React.FC = () => {
             </div>
           </div>
           <div className="inline-block bg-[var(--night-2)] text-[var(--neon-gold)] px-3 py-1.5 border-2 border-[var(--outline)] shadow-[3px_3px_0_var(--outline)] mb-2.5">
-            <span className="font-display text-[8px] md:text-[10px] tracking-widest">★ 8-BIT EDITION ★</span>
+            <span className="font-display text-[10px] md:text-[10px] tracking-widest">★ 8-BIT EDITION ★</span>
           </div>
           <h1
             className="font-display text-2xl md:text-3xl text-[var(--text-1)] tracking-wider mb-1 px-glow-text"
@@ -86,7 +86,7 @@ export const TitleScreen: React.FC = () => {
           >
             UMDSC
           </h1>
-          <p className="font-display text-[8px] md:text-[10px] text-[var(--text-2)] tracking-wider">
+          <p className="font-display text-[10px] md:text-[10px] text-[var(--text-2)] tracking-wider">
             DANCE CLASS SYSTEM
           </p>
           <div className="mt-3 flex flex-col items-center gap-1.5">

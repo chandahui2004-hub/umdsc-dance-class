@@ -356,7 +356,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
                   </span>
                 </div>
               )}
-              <div className="p-2 bg-[var(--neon-gold)] border border-[var(--outline)] text-center font-display text-[8px] text-[var(--on-neon)] font-bold animate-pulse">
+              <div className="p-2 bg-[var(--neon-gold)] border border-[var(--outline)] text-center font-display text-[10px] text-[var(--on-neon)] font-bold animate-pulse">
                 UPLOADING TO GOOGLE DRIVE · SCREEN WAKE LOCK ACTIVE
               </div>
             </div>

@@ -286,7 +286,7 @@ export const ClassesPage: React.FC = () => {
                                   }}
                                 />
                               ) : (
-                                <span className="w-8 h-10 flex items-center justify-center bg-[var(--night-1)] border-2 border-[var(--outline)] font-display text-[8px] text-[var(--text-2)] flex-shrink-0">👤</span>
+                                <span className="w-8 h-10 flex items-center justify-center bg-[var(--night-1)] border-2 border-[var(--outline)] font-display text-[10px] text-[var(--text-2)] flex-shrink-0">👤</span>
                               )}
                               <div className="font-body text-[14px] text-[var(--text-2)]">
                                 <span className="font-bold text-[var(--text-1)]">{instructor?.name || 'TBA'}</span> · {s.venue || 'TBA'}
@@ -526,7 +526,7 @@ export const ClassesPage: React.FC = () => {
                         }}
                       />
                     ) : (
-                      <span className="w-10 h-[50px] flex items-center justify-center bg-[var(--night-1)] border-2 border-[var(--outline)] font-display text-[9px] text-[var(--text-2)] flex-shrink-0">👤</span>
+                      <span className="w-10 h-[50px] flex items-center justify-center bg-[var(--night-1)] border-2 border-[var(--outline)] font-display text-[10px] text-[var(--text-2)] flex-shrink-0">👤</span>
                     )}
                     <div className="space-y-1">
                       <div className="font-body text-[14px]">

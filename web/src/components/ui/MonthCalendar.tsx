@@ -134,7 +134,7 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
         {WEEKDAYS.map((day) => (
           <div
             key={day}
-            className="font-display text-[8px] text-[var(--text-2)] py-1"
+            className="font-display text-[10px] text-[var(--text-2)] py-1"
           >
             {day}
           </div>
@@ -166,7 +166,7 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
               onClick={() => onSelect?.(dateStr)}
               onKeyDown={(e) => handleKeyDown(e, dateStr)}
               style={isToday && !isSelected ? ({ '--glow': 'var(--neon-cyan)' } as React.CSSProperties) : undefined}
-              className={`px-well min-h-[44px] min-w-[44px] p-1 flex flex-col justify-between items-center transition-none font-display text-[8px] md:text-[12px] cursor-pointer focus:outline-none ${
+              className={`px-well min-h-[44px] min-w-[44px] p-1 flex flex-col justify-between items-center transition-none font-display text-[10px] md:text-[12px] cursor-pointer focus:outline-none ${
                 isSelected
                   ? 'bg-[var(--violet-2)] border-[var(--neon-gold)] shadow-[2px_2px_0_var(--outline)]'
                   : isToday
@@ -178,7 +178,7 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
             >
               {/* Day Number */}
               <span
-                className={`text-[8px] md:text-[12px] leading-none ${
+                className={`text-[10px] md:text-[12px] leading-none ${
                   isCurrentMonth ? 'text-[var(--text-1)]' : 'text-[var(--text-3)]'
                 }`}
               >

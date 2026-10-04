@@ -182,7 +182,7 @@ export const DancerHome: React.FC = () => {
 
         {/* Event Switcher */}
         <div className="flex items-center gap-2 min-w-0">
-          <label htmlFor="dancer-event-select" className="font-display text-[8px] text-[var(--text-2)] font-bold uppercase whitespace-nowrap">
+          <label htmlFor="dancer-event-select" className="font-display text-[10px] text-[var(--text-2)] font-bold uppercase whitespace-nowrap">
             EVENT:
           </label>
           <select
@@ -214,7 +214,7 @@ export const DancerHome: React.FC = () => {
       {currentEvent ? (
         <div data-testid="event-banner" className="px-panel p-2.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
           <div className="flex items-center gap-2">
-            <span className="font-display text-[8px] px-1.5 py-0.5 bg-[var(--neon-gold)] text-[var(--on-neon)] border border-[var(--outline)] font-bold">
+            <span className="font-display text-[10px] px-1.5 py-0.5 bg-[var(--neon-gold)] text-[var(--on-neon)] border border-[var(--outline)] font-bold">
               {currentEvent.type.toUpperCase()}
             </span>
             <span className="font-bold text-[var(--text-1)]">
@@ -228,7 +228,7 @@ export const DancerHome: React.FC = () => {
       ) : (
         <div data-testid="all-events-banner" className="px-panel p-2.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
           <div className="flex items-center gap-2">
-            <span className="font-display text-[8px] px-1.5 py-0.5 bg-[var(--night-2)] text-[var(--neon-gold)] border border-[var(--outline)] font-bold">
+            <span className="font-display text-[10px] px-1.5 py-0.5 bg-[var(--night-2)] text-[var(--neon-gold)] border border-[var(--outline)] font-bold">
               ALL EVENTS
             </span>
             <span className="font-bold text-[var(--text-1)]">
@@ -255,7 +255,7 @@ export const DancerHome: React.FC = () => {
 
       {/* Style & Attendance Legend */}
       <div className="px-panel p-3 space-y-2">
-        <span className="font-display text-[8px] text-[var(--text-2)] font-bold uppercase block">
+        <span className="font-display text-[10px] text-[var(--text-2)] font-bold uppercase block">
           LEGEND:
         </span>
         <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
@@ -272,13 +272,13 @@ export const DancerHome: React.FC = () => {
             );
           })}
           <div className="flex items-center gap-1">
-            <span className="w-3.5 h-3.5 bg-[var(--neon-green)] text-[var(--on-neon)] border border-[var(--outline)] inline-flex items-center justify-center font-bold text-[9px]">
+            <span className="w-3.5 h-3.5 bg-[var(--neon-green)] text-[var(--on-neon)] border border-[var(--outline)] inline-flex items-center justify-center font-bold text-[10px]">
               ✓
             </span>
             <span className="text-[var(--text-2)]">Attended</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="w-3.5 h-3.5 bg-[var(--night-2)] text-[var(--neon-red)] border border-[var(--neon-red)] inline-flex items-center justify-center font-bold text-[9px]">
+            <span className="w-3.5 h-3.5 bg-[var(--night-2)] text-[var(--neon-red)] border border-[var(--neon-red)] inline-flex items-center justify-center font-bold text-[10px]">
               ✕
             </span>
             <span className="text-[var(--text-2)]">Absent</span>

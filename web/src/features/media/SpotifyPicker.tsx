@@ -46,7 +46,7 @@ export const SpotifyPicker: React.FC<SpotifyPickerProps> = ({ resolved, choice, 
   return (
     <div className="space-y-3 border-2 border-[var(--outline)] bg-[var(--night-2)] p-3">
       <div>
-        <p className="font-display text-[8px] text-[var(--text-2)]">SPOTIFY SONG</p>
+        <p className="font-display text-[10px] text-[var(--text-2)]">SPOTIFY SONG</p>
         <p className="font-body text-sm font-bold text-[var(--text-1)]">
           {`${resolved.title} · ${resolved.artist} · ${minutesAndSeconds(resolved.durationSec)}`}
         </p>
@@ -112,7 +112,7 @@ export const SpotifyPicker: React.FC<SpotifyPickerProps> = ({ resolved, choice, 
       </ul>
 
       <div className="space-y-2 border-t-2 border-[var(--outline)] pt-2">
-        <p className="font-display text-[8px] text-[var(--text-2)]">PASTE MY OWN PRACTICE LINK</p>
+        <p className="font-display text-[10px] text-[var(--text-2)]">PASTE MY OWN PRACTICE LINK</p>
         <div className="flex gap-2">
           <input
             type="text"

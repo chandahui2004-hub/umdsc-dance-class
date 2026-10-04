@@ -148,11 +148,11 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
                 <div className="space-y-1 min-w-0">
                   <div className="flex items-center gap-2">
                     {isActive ? (
-                      <span className="font-display text-[8px] px-1.5 py-0.5 bg-[var(--neon-green)] text-[var(--on-neon)] border border-[var(--outline)] font-bold">
+                      <span className="font-display text-[10px] px-1.5 py-0.5 bg-[var(--neon-green)] text-[var(--on-neon)] border border-[var(--outline)] font-bold">
                         ● ACTIVE
                       </span>
                     ) : (
-                      <span className="font-display text-[8px] px-1.5 py-0.5 bg-[var(--night-1)] text-[var(--text-2)] border border-[var(--outline)] font-bold">
+                      <span className="font-display text-[10px] px-1.5 py-0.5 bg-[var(--night-1)] text-[var(--text-2)] border border-[var(--outline)] font-bold">
                         INACTIVE
                       </span>
                     )}
@@ -200,7 +200,7 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
 
       {/* Add Folder Form */}
       <div className="pt-2 border-t border-[var(--outline)] space-y-1">
-        <span className="font-display text-[8px] text-[var(--text-1)] font-bold">
+        <span className="font-display text-[10px] text-[var(--text-1)] font-bold">
           + ADD GOOGLE DRIVE FOLDER LINK:
         </span>
         <div className="flex flex-col sm:flex-row gap-2">

@@ -440,7 +440,7 @@ export const MediaPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => toggleVideoCollapse(vid.id)}
-                          className="font-display text-[8px] px-1.5 py-0.5 bg-[var(--violet-1)] border border-[var(--outline)] hover:bg-[var(--neon-gold)] hover:text-[var(--on-neon)] cursor-pointer text-[var(--text-1)]"
+                          className="font-display text-[10px] px-1.5 py-0.5 bg-[var(--violet-1)] border border-[var(--outline)] hover:bg-[var(--neon-gold)] hover:text-[var(--on-neon)] cursor-pointer text-[var(--text-1)]"
                           aria-label="Expand video"
                         >
                           ▼ EXPAND
@@ -491,7 +491,7 @@ export const MediaPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => toggleVideoCollapse(vid.id)}
-                          className="font-display text-[8px] px-1.5 py-0.5 bg-[var(--violet-1)] border border-[var(--outline)] hover:bg-[var(--neon-gold)] hover:text-[var(--on-neon)] cursor-pointer text-[var(--text-1)]"
+                          className="font-display text-[10px] px-1.5 py-0.5 bg-[var(--violet-1)] border border-[var(--outline)] hover:bg-[var(--neon-gold)] hover:text-[var(--on-neon)] cursor-pointer text-[var(--text-1)]"
                           aria-label="Collapse video"
                         >
                           ▲ COLLAPSE
@@ -617,7 +617,7 @@ export const MediaPage: React.FC = () => {
                       <h4 className="font-display text-xs text-[var(--text-1)] font-bold truncate">
                         {item.title}
                       </h4>
-                      <span className="px-2 py-0.5 border border-[var(--outline)] bg-[var(--neon-gold)] text-[var(--on-neon)] font-mono text-[8px] font-bold">
+                      <span className="px-2 py-0.5 border border-[var(--outline)] bg-[var(--neon-gold)] text-[var(--on-neon)] font-mono text-[10px] font-bold">
                         {item.sourceType.toUpperCase()}
                       </span>
                     </div>
