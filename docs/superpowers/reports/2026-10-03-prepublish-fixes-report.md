@@ -402,3 +402,44 @@
 - Differences from the plan, and why: In PowerShell, `@internet` had to be quoted as `'@internet'` so that PowerShell does not parse it as variable splatting. All 56 tests in `visual-neon.spec.ts` passed cleanly without requiring `--update-snapshots`.
 - Anything unsure or not done: none
 
+## Task 13 — Final gate
+
+- Step 1: `npm test` from workspace root:
+  - `@umdsc/api`:
+    ```
+    Test Files  42 passed (42)
+         Tests  305 passed (305)
+    ```
+  - `@umdsc/web`:
+    ```
+    Test Files  44 passed (44)
+         Tests  232 passed (232)
+    ```
+  - Total: 86 test files, 537 passed (0 failed).
+- Step 2: `npm run build`:
+  ```
+  ✓ built in 6.34s
+  ```
+  Exited with code 0.
+- Step 3: `npx playwright test --grep-invert '@internet'`:
+  ```
+  7 skipped
+  199 passed (4.5m)
+  ```
+  Exited with code 0 (0 failed).
+- Step 4: `git status --short`:
+  ```
+  (clean)
+  ```
+- Step 5: 🧑 **OWNER ACTION** (Awaiting owner test on phone):
+  - Dev server host: `http://192.168.100.56:5173/`
+  - Checklist:
+    1. Dancer login with full name
+    2. Calendar
+    3. Open a class day
+    4. Studio
+    5. Fullscreen practice
+    6. Drag the video start flag with a finger
+    7. Me
+    8. Log out
+
