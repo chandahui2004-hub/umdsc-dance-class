@@ -18,7 +18,7 @@ These values are **public by design**: they end up in the website's JavaScript b
 | OAuth Web Client ID (`VITE_GOOGLE_CLIENT_ID`) | `764158079871-o23bv9038hk864dosf87ls9gkhcpc65f.apps.googleusercontent.com` |
 | API key "API UMDSC" (`VITE_GOOGLE_API_KEY`) | `AIzaSyDaudiyWQ3MnU8aOz8TcAAvOwplQm8fJZc` |
 | OAuth scope | `https://www.googleapis.com/auth/drive.file` only |
-| Authorized JS origins / key referrers so far | `http://localhost:5173` — **add the Cloudflare Pages URL at go-live** (both the OAuth client origins and the API key website restrictions) |
+| Authorized JS origins / key referrers | `http://localhost:5173` and `https://umdsc-dance-class.umdancesportc.workers.dev` (OAuth client origin without slash; API key referrer with `/*`) — owner to add the live one in Google Cloud at go-live |
 
 ## Drive links (test set, 2026-09-28) — all must be shared with the club Gmail as Editor
 | What | ID |
@@ -54,6 +54,6 @@ Locking · Popping · Hip Hop · Latin
 - **Admin authentication:** Admin login verified.
 
 ## Still to fill in
-- Cloudflare Pages URL: created at go-live.
+- Live site (Cloudflare Workers static assets, auto-deploys on push to `main`, config `wrangler.jsonc`): https://umdsc-dance-class.umdancesportc.workers.dev (live 2026-10-04)
 
 
