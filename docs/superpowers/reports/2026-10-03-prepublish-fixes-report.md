@@ -356,7 +356,7 @@
 
 ## Task 11b — fixes from Claude review (NOTE 5)
 
-- Commit: (pending)
+- Commit: `b17367b` (`b17367b fix(studio): 44px touch area for the video start flag`)
 - Files changed:
   - `web/src/features/music-studio/FullscreenStudio.tsx`
   - `web/src/features/music-studio/FullscreenStudio.test.tsx`
