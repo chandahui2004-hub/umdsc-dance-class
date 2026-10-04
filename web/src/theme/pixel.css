@@ -216,3 +216,8 @@ body, table, th, td, button, input, select, textarea, p, span, h1, h2, h3, h4, h
 .px-toast-animated {
   animation: px-toast-in 200ms steps(4) forwards;
 }
+
+/* Hide nav toggle while overlays are open (Task 8) */
+body[data-overlays] [data-testid="mobile-nav-toggle-btn"] {
+  display: none;
+}

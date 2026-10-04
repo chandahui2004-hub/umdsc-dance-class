@@ -4,6 +4,7 @@ import { Sheet } from '../../components/ui/Sheet';
 import { ClassCard } from './ClassCard';
 import { formatDayLabel } from '../../lib/time';
 import { resolveInstructor } from '../../lib/instructorPhotos';
+import { useOverlayOpen } from '../../app/useOverlayOpen';
 
 export interface DaySheetProps {
   isOpen: boolean;
@@ -32,6 +33,8 @@ export const DaySheet: React.FC<DaySheetProps> = ({
   attendanceLoading = false,
   events = []
 }) => {
+  useOverlayOpen(isOpen && Boolean(date));
+
   if (!date) return null;
 
   const daySessions = sessions

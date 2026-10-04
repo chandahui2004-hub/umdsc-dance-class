@@ -3,6 +3,7 @@ import type { Master } from './sync/types';
 import { useSyncedVideo } from './sync/useSyncedVideo';
 import type { Marker } from './dancecue/types/marker';
 import { previewUrl } from '../../lib/google/driveUrls';
+import { useOverlayOpen } from '../../app/useOverlayOpen';
 
 export interface FullscreenStudioProps {
   master?: Master;
@@ -116,6 +117,8 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
   speechTranscript,
   speechListening,
 }) => {
+  useOverlayOpen(true);
+
   // Draggable HUD coordinates
   const [hudPos, setHudPos] = useState({ x: 20, y: 20 });
   const isDraggingHudRef = useRef(false);

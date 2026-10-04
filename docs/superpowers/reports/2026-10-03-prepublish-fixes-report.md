@@ -221,3 +221,36 @@
 - Differences from the plan, and why: none
 - Anything unsure or not done: none (test fails as expected until Tasks 8-9)
 
+## Task 8 — Nav toggle never covers content
+
+- Commit: `d379ad7` (`d379ad7 fix(phone): hide nav toggle during overlays and pad content clear of it`)
+- Files changed:
+  - `web/src/app/useOverlayOpen.ts`
+  - `web/src/app/useOverlayOpen.test.tsx`
+  - `web/src/app/PhoneShell.tsx`
+  - `web/src/theme/pixel.css`
+  - `web/src/features/calendar/DaySheet.tsx`
+  - `web/src/features/music-studio/FullscreenStudio.tsx`
+- Commands run and results:
+  - `npm test -w web -- useOverlayOpen` (RED then GREEN):
+    ```
+    ✓ src/app/useOverlayOpen.test.tsx (3 tests) 32ms
+    Test Files  1 passed (1)
+         Tests  3 passed (3)
+    ```
+  - `npm test -w web`:
+    ```
+    Test Files  44 passed (44)
+         Tests  227 passed (227)
+    ```
+  - `npx playwright test e2e/phone-layout.spec.ts -g "nav toggle"`:
+    ```
+    4 passed (19.6s)
+    ```
+  - `npm run build`:
+    ```
+    ✓ built in 5.17s
+    ```
+- Differences from the plan, and why: none (rule placed in `web/src/theme/pixel.css` per NOTE 1 plan correction)
+- Anything unsure or not done: none
+

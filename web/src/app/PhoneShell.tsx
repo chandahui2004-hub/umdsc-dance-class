@@ -115,7 +115,15 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
         )}
 
         {/* Main Content */}
-        <main className="flex-1 p-4 overflow-x-hidden">{children}</main>
+        <main
+          className={`flex-1 p-4 overflow-x-hidden ${
+            !isNavCollapsed
+              ? 'pb-[calc(var(--dock-h)+env(safe-area-inset-bottom)+72px)]'
+              : 'pb-[calc(env(safe-area-inset-bottom)+72px)]'
+          }`}
+        >
+          {children}
+        </main>
       </div>
 
       {/* Bottom Navigation with Collapse & Expand */}
