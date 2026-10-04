@@ -334,7 +334,8 @@ describe('FullscreenStudio Component', () => {
       />
     );
 
-    const videoTrack = screen.getByRole('slider', { name: /video timeline/i });
+    const flagHandle = screen.getByTestId('video-start-flag');
+    const videoTrack = flagHandle.parentElement!;
     videoTrack.getBoundingClientRect = () => ({
       left: 0,
       top: 0,
@@ -347,11 +348,10 @@ describe('FullscreenStudio Component', () => {
       toJSON: () => {}
     });
 
-    const flagHandle = screen.getByTestId('video-start-flag');
     // Start drag at x = 100 (10s) and drag to x = 250 (25s)
     fireEvent.pointerDown(flagHandle, { clientX: 100 });
-    fireEvent.pointerMove(window, { clientX: 250 });
-    fireEvent.pointerUp(window, { clientX: 250 });
+    fireEvent.pointerMove(flagHandle, { clientX: 250 });
+    fireEvent.pointerUp(flagHandle, { clientX: 250 });
 
     expect(onSetVideoStart).toHaveBeenCalledWith(25);
   });
@@ -406,6 +406,97 @@ describe('FullscreenStudio Component', () => {
     fireEvent.loadedData(videoEl);
 
     expect(onToggleDrivePreview).toHaveBeenCalledWith(true);
+  });
+
+  it('video bar is not a slider; the start flag is the only slider with aria values', () => {
+    render(<FullscreenStudio {...defaultProps} videoDuration={100} videoStart={3} />);
+
+    const sliders = screen.getAllByRole('slider', { name: /video start/i });
+    expect(sliders).toHaveLength(1);
+    expect(sliders[0]).toHaveAttribute('aria-valuemin', '0');
+    expect(sliders[0]).toHaveAttribute('aria-valuenow', '3');
+    expect(screen.queryByRole('slider', { name: /video timeline/i })).toBeNull();
+  });
+
+  it('arrow keys nudge the start flag by 0.5s', () => {
+    const onSetVideoStart = vi.fn();
+    const { rerender } = render(
+      <FullscreenStudio
+        {...defaultProps}
+        videoDuration={100}
+        videoStart={3}
+        onSetVideoStart={onSetVideoStart}
+      />
+    );
+
+    const flag = screen.getByTestId('video-start-flag');
+    flag.focus();
+    fireEvent.keyDown(flag, { key: 'ArrowRight' });
+    expect(onSetVideoStart).toHaveBeenCalledWith(3.5);
+
+    fireEvent.keyDown(flag, { key: 'ArrowLeft' });
+    expect(onSetVideoStart).toHaveBeenCalledWith(2.5);
+
+    rerender(
+      <FullscreenStudio
+        {...defaultProps}
+        videoDuration={100}
+        videoStart={0.2}
+        onSetVideoStart={onSetVideoStart}
+      />
+    );
+    fireEvent.keyDown(flag, { key: 'ArrowLeft' });
+    expect(onSetVideoStart).toHaveBeenCalledWith(0);
+  });
+
+  it('pointercancel ends a drag', () => {
+    const onSetVideoStart = vi.fn();
+    render(
+      <FullscreenStudio
+        {...defaultProps}
+        videoDuration={100}
+        videoStart={10}
+        onSetVideoStart={onSetVideoStart}
+      />
+    );
+
+    const flagHandle = screen.getByTestId('video-start-flag');
+    const videoTrack = flagHandle.parentElement!;
+    videoTrack.getBoundingClientRect = () => ({
+      left: 0,
+      top: 0,
+      width: 1000,
+      height: 16,
+      right: 1000,
+      bottom: 16,
+      x: 0,
+      y: 0,
+      toJSON: () => {}
+    });
+
+    fireEvent.pointerDown(flagHandle, { clientX: 100, pointerId: 1 });
+    fireEvent.pointerCancel(flagHandle, { pointerId: 1 });
+    onSetVideoStart.mockClear();
+
+    fireEvent.pointerMove(flagHandle, { clientX: 250, pointerId: 1 });
+    expect(onSetVideoStart).not.toHaveBeenCalled();
+  });
+
+  it('drive player mode shows the no-sync note', () => {
+    render(
+      <FullscreenStudio
+        {...defaultProps}
+        driveFileId="drive-file-abc"
+        useDrivePreview={true}
+      />
+    );
+
+    expect(
+      screen.getByText("Drive player doesn't follow the music. Switch to Direct Sync to practise in time.")
+    ).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: /switch to direct sync/i })
+    ).toHaveTextContent('🎬 DRIVE PLAYER (NO SYNC)');
   });
 });
 

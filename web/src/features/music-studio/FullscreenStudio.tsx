@@ -403,9 +403,15 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
     }
   };
 
-  const handleVideoStartFlagPointerDown = (e: React.PointerEvent) => {
+  const handleVideoStartFlagPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.stopPropagation();
     if (!onSetVideoStart) return;
+    const target = e.currentTarget;
+    try {
+      target.setPointerCapture(e.pointerId);
+    } catch {
+      // In tests/unsupported environments, setPointerCapture may not be defined
+    }
     isDraggingVideoFlagRef.current = true;
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
@@ -413,16 +419,29 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
       onSetVideoStart(time);
     };
 
-    const handlePointerUp = () => {
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
+    const cleanup = () => {
+      target.removeEventListener('pointermove', handlePointerMove as any);
+      target.removeEventListener('pointerup', handlePointerEnd as any);
+      target.removeEventListener('pointercancel', handlePointerEnd as any);
+      try {
+        if (target.hasPointerCapture?.(e.pointerId)) {
+          target.releasePointerCapture(e.pointerId);
+        }
+      } catch {
+        // ignore
+      }
       setTimeout(() => {
         isDraggingVideoFlagRef.current = false;
       }, 50);
     };
 
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
+    const handlePointerEnd = () => {
+      cleanup();
+    };
+
+    target.addEventListener('pointermove', handlePointerMove as any);
+    target.addEventListener('pointerup', handlePointerEnd as any);
+    target.addEventListener('pointercancel', handlePointerEnd as any);
   };
 
   const loopDurationText = currentRange
@@ -681,7 +700,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
       {/* Top Video / Media Viewport (Takes majority of screen) */}
       <div className={`flex-1 relative min-h-0 w-full flex items-center justify-center overflow-hidden ${hasYouTubeVideo ? 'bg-transparent pointer-events-none' : 'bg-black'}`}>
         {hasDanceVideo && useDrivePreview && driveFileId ? (
-          <div className="w-full h-full relative bg-black flex items-center justify-center">
+          <div className="w-full h-full relative bg-black flex flex-col items-center justify-center">
             <iframe
               src={previewUrl(driveFileId)}
               title={activeMusicTitle || 'Class Routine Video'}
@@ -689,6 +708,9 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
               allow="autoplay; encrypted-media; fullscreen"
               allowFullScreen
             />
+            <p className="absolute bottom-2 inset-x-4 text-center font-display text-[10px] text-[var(--neon-gold)] bg-[var(--night-1)]/90 border border-[var(--outline)] py-1.5 px-2 pointer-events-none">
+              Drive player doesn't follow the music. Switch to Direct Sync to practise in time.
+            </p>
           </div>
         ) : hasDanceVideo ? (
           <video
@@ -886,7 +908,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
                   : 'Direct Sync mode active. Click to switch to Google Drive Player'
               }
             >
-              {useDrivePreview ? '🎬 DRIVE PLAYER' : '⚡ DIRECT SYNC'}
+              {useDrivePreview ? '🎬 DRIVE PLAYER (NO SYNC)' : '⚡ DIRECT SYNC'}
             </button>
           )}
 
@@ -1281,9 +1303,6 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
             </div>
             <div
               ref={videoBarRef}
-              role="slider"
-              aria-label="Video timeline"
-              tabIndex={0}
               onClick={handleVideoBarClick}
               className="relative h-4 bg-[var(--violet-1)] border-2 border-[var(--outline)] cursor-pointer overflow-visible select-none shadow-[1px_1px_0_var(--shadow-hard)]"
             >
@@ -1295,10 +1314,23 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
                 role="slider"
                 tabIndex={0}
                 aria-label="Video start flag"
+                aria-valuemin={0}
+                aria-valuemax={safeVideoDuration}
+                aria-valuenow={videoStart}
+                aria-valuetext={`Video start ${formatTimeWithTenths(videoStart)}`}
+                onKeyDown={e => {
+                  if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    handleNudgeVideoStart(0.5);
+                  } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    handleNudgeVideoStart(-0.5);
+                  }
+                }}
                 data-testid="video-start-flag"
                 onPointerDown={handleVideoStartFlagPointerDown}
-                className="absolute inset-y-0 -ml-1.5 w-3 bg-[var(--neon-gold)] z-20 cursor-ew-resize hover:scale-125 transition-transform flex items-center justify-center border border-black"
-                style={{ left: `${videoStartPercent}%` }}
+                className="absolute inset-y-0 -ml-1.5 w-3 bg-[var(--neon-gold)] z-20 cursor-ew-resize hover:scale-125 transition-transform flex items-center justify-center border border-black focus:outline-none focus:ring-2 focus:ring-[var(--neon-cyan)]"
+                style={{ left: `${videoStartPercent}%`, touchAction: 'none' }}
                 title={`Video Start: ${formatTimeWithTenths(videoStart)} (Drag to adjust)`}
               >
                 <span className="w-0.5 h-2 bg-black pointer-events-none" />
