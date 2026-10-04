@@ -1,0 +1,11 @@
+// Cloudflare Workers static hosting for the UMDSC web app.
+// Cloudflare builds with `npm run build`, then runs `npx wrangler deploy`, which reads this file.
+{
+  "name": "umdsc-dance-class",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./web/dist",
+    // Deep links such as /studio or /admin/calendar get index.html, so React Router can handle them.
+    "not_found_handling": "single-page-application"
+  }
+}
