@@ -310,3 +310,31 @@
     ✓ built in 7.13s
     ```
 - **Differences from plan / Unsure:** none.
+
+---
+
+## Final: API Deployment & Verification
+
+- **Commit hash:** `cb1aae8` (`chore: record API deployment version`)
+- **Apps Script Push Output:**
+  ```
+  > @umdsc/api@0.1.0 push
+  > npm run build && clasp push -f
+
+  > @umdsc/api@0.1.0 build
+  > node build.mjs
+
+  Build complete: dist/Code.js and dist/appsscript.json
+  Pushed 2 files at 7:39:27 pm.
+  └─ dist\appsscript.json
+  └─ dist\Code.js
+  ```
+- **Clasp Deployment Output:**
+  ```
+  npx clasp update-deployment AKfycbz3zfWHdcl_3GuDsCf_ysLpH4XDNyklC87L9HuKpUVvhKrF-BU1M-QCf0PjPePAwwxIHA
+  Redeployed AKfycbz3zfWHdcl_3GuDsCf_ysLpH4XDNyklC87L9HuKpUVvhKrF-BU1M-QCf0PjPePAwwxIHA @23
+  ```
+- **Health Check Verification:**
+  - Endpoint: `https://script.google.com/macros/s/AKfycbz3zfWHdcl_3GuDsCf_ysLpH4XDNyklC87L9HuKpUVvhKrF-BU1M-QCf0PjPePAwwxIHA/exec?action=health`
+  - Response: `{"ok":true,"data":{"version":"0.1.0"}}`
+- **Documentation Updated:** Recorded Version 23 in `docs/SETUP-VALUES.md`.
