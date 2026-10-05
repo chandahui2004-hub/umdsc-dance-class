@@ -236,6 +236,45 @@
     ```
 ---
 
+## Task 4b — Fixes from Claude Review (NOTE 7)
+
+- **Commit hash:** `6b4a8ef` (`fix(media): no auto Google popup, 10px text, 44px taps in folders panel`)
+- **What was changed & why:**
+  - Exported `getCachedToken()` from `web/src/lib/google/gis.ts` to return cached token only when valid for >60s without prompting.
+  - Updated `ClassLeadVideoFoldersPanel.tsx`:
+    - In `useEffect`, uses `getCachedToken()` to verify folders if already authed, skipping automatic token request on mount so Google popup never opens without user tap.
+    - Updated missing-link badge to use `text-[var(--on-neon)]` instead of `text-white` on neon red fill.
+    - Updated `✓ AUTHORIZED` and `AUTHORIZE` button typography to `text-[10px]` (eliminating `text-[9px]`).
+    - Added `min-h-[44px]` to toggle button and `AUTHORIZE` button, ensuring all interactive buttons satisfy 44px tap targets.
+  - Updated `web/src/features/media/MediaPage.tsx:241` to use `text-[10px]` for upload blocked notice.
+  - Added unit test in `ClassLeadVideoFoldersPanel.test.tsx` verifying `getAccessToken` is never called on mount when token is not cached.
+  - Added tap target height assertion in `web/e2e/phone-layout.spec.ts` verifying that every visible button in `[data-testid="class-lead-video-folders-panel"]` has height ≥ 44px on phones.
+- **Verification Commands & Results:**
+  - `npm test -w web`: 47 passed (252 tests).
+  - `cd web && npx playwright test e2e/phone-layout.spec.ts`: 12 passed (0 failed).
+- **Differences from plan / Unsure:** none.
+
+---
+
+## Task 5b — Fixes from Claude Review (NOTE 8)
+
+- **Commit hash:** `efb2e25` (`fix(media): upload screen note, never upload larger file, fallback notice`)
+- **What was changed & why:**
+  - In `web/src/features/media/UploadDialog.tsx`:
+    - Updated progress bar banner text to exact wording: `"Keep this screen open until the upload finishes."`
+    - Displayed fallback notice: `"Couldn't compress on this device — uploading the original (it may take longer)."` during upload when compressor returns `conversion_failed` or `unsupported` (and never for `already_h264_under_60mb`).
+  - In `web/src/lib/media/videoCompressor.ts`:
+    - Added guard: if `compressedFile.size >= file.size`, returns original file with `compressed: false, reason: 'larger_than_original'`, ensuring we never upload a larger file than original.
+  - Added unit tests:
+    - In `videoCompressor.test.ts`: test asserting fallback to original file if compressed buffer is larger than original.
+    - In `UploadDialog.test.tsx`: test asserting fallback notice appears and original file is uploaded when compressor fails.
+- **Verification Commands & Results:**
+  - `npm test`: 42 API test files (307 tests) + 47 Web test files (252 tests) = 89 test files, 559 tests passed.
+  - `npm run build`: built in 7.13s, exit 0. Standalone chunk `mediabunny-CdOs27BB.js` (740.23 kB).
+- **Differences from plan / Unsure:** none.
+
+---
+
 ## Task 6: Full Verification, Final E2E Suite, API Deploy Approval & Report
 
 - **Commit hash:** `30cda2b` (`test(e2e): align admin-events and admin-media tests with attendance and upload changes`)
@@ -249,8 +288,8 @@
     Test Files  42 passed (42) in api
     Tests  307 passed (307) in api
     Test Files  47 passed (47) in web
-    Tests  249 passed (249) in web
-    Total: 89 passed (556 passed)
+    Tests  252 passed (252) in web
+    Total: 89 passed (559 passed)
     ```
   - Playwright E2E Suite (`npx playwright test --grep-invert '@internet'`):
     ```
@@ -260,14 +299,14 @@
     ```
   - Phone Layout Suite (`npx playwright test e2e/phone-layout.spec.ts`):
     ```
-    12 passed (1.4m)
+    12 passed (1.3m)
     0 failed
     ```
   - Production Build (`npm run build` in `web/`):
     ```
-    dist/assets/index-CIQCDQO3.css      92.10 kB │ gzip:  27.41 kB
+    dist/assets/index-8sFUDNWW.css      92.07 kB │ gzip:  27.40 kB
     dist/assets/mediabunny-CdOs27BB.js 740.23 kB │ gzip: 187.76 kB
-    dist/assets/index-Cgx7jg4I.js      762.90 kB │ gzip: 206.93 kB
-    ✓ built in 7.09s
+    dist/assets/index-5gTDedHo.js      763.38 kB │ gzip: 207.04 kB
+    ✓ built in 7.13s
     ```
 - **Differences from plan / Unsure:** none.
