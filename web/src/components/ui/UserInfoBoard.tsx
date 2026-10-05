@@ -171,7 +171,7 @@ export const UserInfoBoard: React.FC<UserInfoBoardProps> = ({
       {/* User Information Details */}
       <div className="space-y-1.5 font-display text-xs">
         <div className="flex items-start gap-2">
-          <span className="text-[var(--text-2)] text-[10px] w-14 shrink-0 uppercase pt-0.5">
+          <span className="text-[var(--text-2)] text-[10px] w-[88px] shrink-0 whitespace-nowrap uppercase pt-0.5">
             USER:
           </span>
           <span
@@ -184,12 +184,12 @@ export const UserInfoBoard: React.FC<UserInfoBoardProps> = ({
         </div>
 
         <div className="flex items-start gap-2">
-          <span className="text-[var(--text-2)] text-[10px] w-14 shrink-0 uppercase pt-0.5">
+          <span className="text-[var(--text-2)] text-[10px] w-[88px] shrink-0 whitespace-nowrap uppercase pt-0.5">
             MATRIKS:
           </span>
           <span
             data-testid="user-matriks-display"
-            className="text-[var(--neon-cyan)] font-mono text-sm font-bold tracking-wider"
+            className="text-[var(--neon-cyan)] font-mono text-sm font-bold tracking-wider min-w-0 break-all"
           >
             {matriksNumber}
           </span>
