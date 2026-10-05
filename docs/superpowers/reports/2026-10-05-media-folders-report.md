@@ -185,7 +185,7 @@
 
 ## Task 5: UploadDialog Video Upload Gating & mediabunny WebCodecs Video Compression
 
-- **Commit hash:** (pending commit)
+- **Commit hash:** `3acc01a`
 - **What was changed & why:**
   - Installed `mediabunny` (v1.61.1, MPL-2.0 license).
   - Implemented `web/src/lib/media/videoCompressor.ts`:
