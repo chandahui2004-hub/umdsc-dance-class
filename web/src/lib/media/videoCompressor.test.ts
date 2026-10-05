@@ -136,4 +136,19 @@ describe('videoCompressor', () => {
     expect(result.error).toContain('Audio track could not be preserved');
     expect(result.file).toBe(file);
   });
+
+  it('falls back to original file if compressed file is larger than original', async () => {
+    const { detectVideoCodec } = await import('../google/videoCodec');
+    vi.mocked(detectVideoCodec).mockResolvedValue('unknown');
+
+    // mockBuffer has size 4; file has size 2
+    mockBuffer = new Uint8Array([1, 2, 3, 4]).buffer;
+    const file = new File([new Uint8Array([1, 2])], 'small.mov', { type: 'video/quicktime' });
+
+    const result = await compressVideo(file);
+
+    expect(result.compressed).toBe(false);
+    expect(result.reason).toBe('larger_than_original');
+    expect(result.file).toBe(file);
+  });
 });

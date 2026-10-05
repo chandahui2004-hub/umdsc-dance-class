@@ -233,4 +233,41 @@ describe('UploadDialog Gating and Video Compression', () => {
       )
     );
   });
+
+  it("shows fallback notice when compressor fails, and continues upload with original file", async () => {
+    const originalFile = new File([new Uint8Array(200)], 'huge.mov', { type: 'video/quicktime' });
+
+    mockCompressVideo.mockResolvedValue({
+      file: originalFile,
+      compressed: false,
+      reason: 'conversion_failed'
+    });
+
+    let finishUpload: (val: any) => void;
+    mockUploadResumable.mockImplementation(
+      () => new Promise((res) => { finishUpload = res; })
+    );
+
+    renderDialog(styleWithLink);
+    chooseFile(originalFile);
+
+    fireEvent.click(screen.getByRole('button', { name: 'START UPLOAD' }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Couldn't compress on this device — uploading the original/)
+      ).toBeInTheDocument()
+    );
+
+    finishUpload!({ id: 'done' });
+
+    await waitFor(() =>
+      expect(mockUploadResumable).toHaveBeenCalledWith(
+        expect.objectContaining({
+          file: originalFile,
+          name: 'huge.mov'
+        })
+      )
+    );
+  });
 });

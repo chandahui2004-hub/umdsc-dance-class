@@ -138,6 +138,16 @@ export async function compressVideo(
       type: 'video/mp4'
     });
 
+    if (compressedFile.size >= file.size) {
+      return {
+        file,
+        compressed: false,
+        reason: 'larger_than_original',
+        originalSize: file.size,
+        newSize: compressedFile.size
+      };
+    }
+
     return {
       file: compressedFile,
       compressed: true,

@@ -5,7 +5,7 @@ import { loadGisScript, getAccessToken } from '../../lib/google/gis';
 import { pickFolder, checkFolderAccess } from '../../lib/google/picker';
 import { ensureClassFolder, ClassFolderTarget } from '../../lib/google/driveFolders';
 import { uploadResumable, makePublic } from '../../lib/google/resumableUpload';
-import { compressVideo } from '../../lib/media/videoCompressor';
+import { compressVideo, CompressionResult } from '../../lib/media/videoCompressor';
 import { useOverlayOpen } from '../../app/useOverlayOpen';
 import { Panel } from '../../components/ui/Panel';
 import { PixelButton } from '../../components/ui/PixelButton';
@@ -154,16 +154,21 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
         setCurrentFileIndex(i);
         const prefix = files.length > 1 ? `[${i + 1}/${files.length}] ` : '';
 
+        let compResult: CompressionResult | undefined;
         if (type === 'video') {
           setUploadStatus(`${prefix}Checking and compressing video...`);
-          const compResult = await compressVideo(curFile, {
+          compResult = await compressVideo(curFile, {
             onProgress: (pct) => setProgressPercent(pct),
             onStatus: (st) => setUploadStatus(`${prefix}${st}`)
           });
           curFile = compResult.file;
         }
 
-        setUploadStatus(`${prefix}Uploading ${curFile.name} to Google Drive...`);
+        const uploadLabel =
+          compResult?.reason === 'conversion_failed' || compResult?.reason === 'unsupported'
+            ? `${prefix}Couldn't compress on this device — uploading the original (it may take longer).`
+            : `${prefix}Uploading ${curFile.name} to Google Drive...`;
+        setUploadStatus(uploadLabel);
         setProgressPercent(0);
 
         const uploaded = await uploadResumable({
@@ -359,7 +364,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
                 </div>
               )}
               <div className="p-2 bg-[var(--neon-gold)] border border-[var(--outline)] text-center font-display text-[10px] text-[var(--on-neon)] font-bold animate-pulse">
-                KEEP THIS SCREEN OPEN UNTIL UPLOAD FINISHES · SCREEN WAKE LOCK ACTIVE
+                Keep this screen open until the upload finishes.
               </div>
             </div>
           )}
