@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '../../lib/api';
 import { getAccessToken } from '../../lib/google/gis';
-import { pickFolder, hasPickerGrant } from '../../lib/google/picker';
+import { pickFolder, checkFolderAccess } from '../../lib/google/picker';
 import { ensureClassFolder, ClassFolderTarget } from '../../lib/google/driveFolders';
 import { uploadResumable, makePublic } from '../../lib/google/resumableUpload';
 import { PixelButton } from '../../components/ui/PixelButton';
@@ -144,9 +144,9 @@ export const UploadManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         throw new Error('Video destination folder not configured.');
       }
 
-      // 3. Picker grant if needed
-      const grantFolder = target.eventFolderId || target.videoMasterFolderId;
-      if (!hasPickerGrant(grantFolder)) {
+      // 3. Picker grant on the class lead (style) folder if Google says we lack access
+      const grantFolder = target.videoMasterFolderId || target.eventFolderId;
+      if (!(await checkFolderAccess(token, grantFolder))) {
         setQueue((prev) =>
           prev.map((item) =>
             item.id === currentItem.id ? { ...item, statusText: 'Authorizing Drive folder access...' } : item

@@ -70,7 +70,12 @@ export async function checkFolderAccess(token: string, folderId: string): Promis
   }
 }
 
-export async function pickFolder(token: string, parentFolderId: string): Promise<string> {
+/**
+ * Opens the Google Picker showing exactly one folder, so the user can select it and grant
+ * this app (drive.file scope) access to it. setFileIds shows the folder itself; setParent
+ * would show only its contents, and picking a child grants access to that child only.
+ */
+export async function pickFolder(token: string, folderId: string): Promise<string> {
   await ensurePickerLoaded();
 
   const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
@@ -78,22 +83,26 @@ export async function pickFolder(token: string, parentFolderId: string): Promise
 
   return new Promise((resolve, reject) => {
     try {
-      const view = new window.google.picker.DocsView(window.google.picker.ViewId.FOLDERS)
-        .setSelectFolderEnabled(true)
+      const view = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS)
+        .setMimeTypes('application/vnd.google-apps.folder')
         .setIncludeFolders(true)
-        .setParent(parentFolderId);
+        .setSelectFolderEnabled(true)
+        .setFileIds(folderId);
 
       const picker = new window.google.picker.PickerBuilder()
         .addView(view)
         .setOAuthToken(token)
         .setDeveloperKey(apiKey)
         .setAppId(appId)
+        .setTitle('Tap the class lead folder, then press Select')
         .setCallback((data: any) => {
           if (data.action === window.google.picker.Action.PICKED) {
-            const doc = data.docs[0];
-            const pickedId = doc.id;
-            localStorage.setItem(`umdsc:pickerGrant:${pickedId}`, 'true');
-            localStorage.setItem(`umdsc:pickerGrant:${parentFolderId}`, 'true');
+            const pickedId = data.docs?.[0]?.id;
+            if (pickedId !== folderId) {
+              reject(new Error('Please select the class lead folder itself, then press Select.'));
+              return;
+            }
+            localStorage.setItem(`umdsc:pickerGrant:${folderId}`, 'true');
             resolve(pickedId);
           } else if (data.action === window.google.picker.Action.CANCEL) {
             reject(new Error('Folder selection was cancelled'));
