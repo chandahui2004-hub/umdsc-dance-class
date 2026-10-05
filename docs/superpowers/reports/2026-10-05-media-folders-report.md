@@ -140,7 +140,7 @@
 
 ## Task 4: Media Page Per-DanceStyle Video Drive Folders Panel & Events Cleanup
 
-- **Commit hash:** (pending commit)
+- **Commit hash:** `17f65ea`
 - **What was changed & why:**
   - Removed `<AttendanceFolderHeader />` from `web/src/features/events/EventsPage.tsx`. Attendance configuration is kept solely on the Attendance page.
   - Implemented `web/src/lib/permissions.ts` helper (`can(claims, code)`) to check user permissions against wildcards and style arrays, with unit tests in `web/src/lib/permissions.test.ts`.
