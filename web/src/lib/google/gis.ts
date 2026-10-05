@@ -71,6 +71,19 @@ function initAndRequestToken(opts?: { prompt?: '' | 'consent' }): Promise<string
   });
 }
 
+export function getCachedToken(): string | null {
+  const now = Date.now();
+  if (cachedToken && tokenExpiresAt - now > 60000) {
+    return cachedToken;
+  }
+  return null;
+}
+
+export function _resetCachedTokenForTesting(): void {
+  cachedToken = null;
+  tokenExpiresAt = 0;
+}
+
 export function getAccessToken(opts?: { prompt?: '' | 'consent' }): Promise<string> {
   const now = Date.now();
   // Reuse token if still valid for > 60 seconds and no explicit consent prompt requested

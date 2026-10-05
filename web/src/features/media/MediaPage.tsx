@@ -238,7 +238,7 @@ export const MediaPage: React.FC = () => {
             </PixelButton>
           </div>
           {activeStyle && !activeStyle.videoFolderId && (
-            <p className="font-display text-[9px] text-[var(--neon-red)] font-bold uppercase tracking-tight">
+            <p className="font-display text-[10px] text-[var(--neon-red)] font-bold uppercase tracking-tight">
               ⚠ FOLDER LINK NOT INSERTED FOR {activeStyle.name.toUpperCase()} — UPLOADS BLOCKED
             </p>
           )}

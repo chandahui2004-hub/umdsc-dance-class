@@ -12,7 +12,8 @@ vi.mock('../../lib/api', () => ({
 }));
 
 vi.mock('../../lib/google/gis', () => ({
-  getAccessToken: vi.fn().mockResolvedValue('fake-token')
+  getAccessToken: vi.fn().mockResolvedValue('fake-token'),
+  getCachedToken: vi.fn().mockReturnValue(null)
 }));
 
 vi.mock('../../lib/google/picker', () => ({
@@ -177,5 +178,15 @@ describe('ClassLeadVideoFoldersPanel', () => {
         videoFolderUrl: 'https://drive.google.com/drive/folders/new_folder_12345'
       });
     });
+  });
+
+  it('does not call getAccessToken on mount when no cached token exists', async () => {
+    const { getAccessToken, getCachedToken } = await import('../../lib/google/gis');
+    (getCachedToken as any).mockReturnValue(null);
+    (getAccessToken as any).mockClear();
+
+    await renderPanel([styleWithLink, styleWithoutLink]);
+
+    expect(getAccessToken).not.toHaveBeenCalled();
   });
 });

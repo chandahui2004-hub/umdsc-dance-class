@@ -6,7 +6,7 @@ import { session } from '../../lib/session';
 import { can } from '../../lib/permissions';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { openInDriveUrl } from '../../lib/google/driveUrls';
-import { getAccessToken } from '../../lib/google/gis';
+import { getAccessToken, getCachedToken } from '../../lib/google/gis';
 import { pickFolder, checkFolderAccess } from '../../lib/google/picker';
 
 const SWATCH_COLORS: Record<string, string> = {
@@ -48,12 +48,13 @@ export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProp
 
   const isCoarsePointer = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
 
-  // Check access for linked folders
+  // Check access for linked folders only if a valid token is already cached (never prompt on mount)
   useEffect(() => {
     let cancelled = false;
     const checkAll = async () => {
+      const token = getCachedToken();
+      if (!token) return;
       try {
-        const token = await getAccessToken();
         for (const s of styles) {
           if (s.videoFolderId && authorizedFolders[s.videoFolderId] === undefined) {
             const hasAccess = await checkFolderAccess(token, s.videoFolderId);
@@ -135,7 +136,7 @@ export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProp
           <span
             className={`font-display text-[10px] px-2 py-0.5 border border-[var(--outline)] font-bold ${
               hasMissing
-                ? 'bg-[var(--neon-red)] text-white'
+                ? 'bg-[var(--neon-red)] text-[var(--on-neon)]'
                 : 'bg-[var(--neon-green)] text-[var(--on-neon)]'
             }`}
           >
@@ -147,7 +148,7 @@ export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProp
           type="button"
           onClick={() => setIsExpanded((prev) => !prev)}
           data-testid="toggle-folders-panel"
-          className="font-display text-[10px] uppercase text-[var(--text-1)] bg-[var(--violet-2)] border-2 border-[var(--outline)] px-3 py-1 self-start sm:self-auto cursor-pointer active:translate-x-0.5 active:translate-y-0.5"
+          className="font-display text-[10px] uppercase text-[var(--text-1)] bg-[var(--violet-2)] border-2 border-[var(--outline)] px-3 py-1 min-h-[44px] inline-flex items-center justify-center self-start sm:self-auto cursor-pointer active:translate-x-0.5 active:translate-y-0.5"
         >
           {isExpanded ? '▲ COLLAPSE' : '▼ EXPAND'}
         </button>
@@ -213,7 +214,7 @@ export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProp
                               <span>DRIVE FOLDER ↗</span>
                             </a>
                             {isAuthed ? (
-                              <span className="font-display text-[9px] text-[var(--neon-green)] font-bold">
+                              <span className="font-display text-[10px] text-[var(--neon-green)] font-bold">
                                 ✓ AUTHORIZED
                               </span>
                             ) : !isCoarsePointer ? (
@@ -221,7 +222,7 @@ export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProp
                                 type="button"
                                 onClick={() => handleAuthorize(s)}
                                 disabled={isAuthorizing[s.videoFolderId]}
-                                className="font-display text-[9px] px-1.5 py-0.5 bg-[var(--neon-gold)] text-[var(--on-neon)] border border-[var(--outline)] uppercase active:translate-y-px"
+                                className="font-display text-[10px] min-h-[44px] px-3 bg-[var(--neon-gold)] text-[var(--on-neon)] border border-[var(--outline)] uppercase active:translate-y-px inline-flex items-center justify-center cursor-pointer"
                               >
                                 {isAuthorizing[s.videoFolderId] ? '...' : 'AUTHORIZE'}
                               </button>

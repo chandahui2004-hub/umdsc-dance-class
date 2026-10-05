@@ -362,6 +362,26 @@ for (const width of [360, 390]) {
           await page.waitForTimeout(200);
         }
         failures.push(...(await checkLayout(page, '/admin/media (folders expanded)')));
+
+        // NOTE 7: every visible button inside class-lead-video-folders-panel has height >= 44
+        const panelBtnFailures = await page.evaluate(() => {
+          const bad: string[] = [];
+          const container = document.querySelector('[data-testid="class-lead-video-folders-panel"]');
+          const btns = container ? Array.from(container.querySelectorAll<HTMLElement>('button')) : [];
+          for (const b of btns) {
+            const style = window.getComputedStyle(b);
+            if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') continue;
+            const r = b.getBoundingClientRect();
+            if (r.width > 0 && r.height > 0) {
+              if (r.height < 43.5) {
+                const label = (b.getAttribute('aria-label') || b.innerText || b.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 30);
+                bad.push(`[/admin/media (folders panel)] button "${label}" height ${r.height.toFixed(1)}px < 44px`);
+              }
+            }
+          }
+          return bad;
+        });
+        failures.push(...panelBtnFailures);
       }
 
       // 10. /admin/events (as admin)
