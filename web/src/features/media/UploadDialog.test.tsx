@@ -51,7 +51,9 @@ vi.mock('../../lib/google/resumableUpload', () => ({
 }));
 
 vi.mock('../../lib/media/videoCompressor', () => ({
-  compressVideo: (...args: any[]) => mockCompressVideo(...args)
+  compressVideo: (...args: any[]) => mockCompressVideo(...args),
+  defaultUploadMode: (files: { size: number }[]) =>
+    files.some(f => f.size > 150 * 1024 * 1024) ? 'compress' : 'original'
 }));
 
 const styleWithLink = {
@@ -240,6 +242,7 @@ describe('UploadDialog Gating and Video Compression', () => {
 
     renderDialog(styleWithLink);
     chooseFile(originalFile);
+    fireEvent.click(screen.getByRole('radio', { name: /SMALLER/ }));
 
     fireEvent.click(screen.getByRole('button', { name: 'START UPLOAD' }));
 
@@ -270,6 +273,7 @@ describe('UploadDialog Gating and Video Compression', () => {
 
     renderDialog(styleWithLink);
     chooseFile(originalFile);
+    fireEvent.click(screen.getByRole('radio', { name: /SMALLER/ }));
 
     fireEvent.click(screen.getByRole('button', { name: 'START UPLOAD' }));
 
@@ -329,6 +333,52 @@ describe('UploadDialog Gating and Video Compression', () => {
       chooseFile(videoFile());
       fireEvent.click(screen.getByRole('button', { name: /^START UPLOAD/ }));
       await waitFor(() => expect(mockUploadResumable).toHaveBeenCalled());
+    });
+  });
+
+  describe('Fast (original) or Smaller (compress) switch', () => {
+    const MB = 1024 * 1024;
+    const sized = (name: string, bytes: number) => {
+      const file = new File([new Uint8Array(10)], name, { type: 'video/quicktime' });
+      Object.defineProperty(file, 'size', { value: bytes });
+      return file;
+    };
+
+    it('picks FAST for a video of 150 MB or less, and uploads it without compressing', async () => {
+      renderDialog();
+      chooseFile(sized('small.mov', 150 * MB));
+
+      expect(screen.getByRole('radio', { name: /FAST/ })).toHaveAttribute('aria-checked', 'true');
+      fireEvent.click(screen.getByRole('button', { name: /^START UPLOAD/ }));
+
+      await waitFor(() => expect(mockUploadResumable).toHaveBeenCalled());
+      expect(mockCompressVideo).not.toHaveBeenCalled();
+      expect(mockUploadResumable).toHaveBeenCalledWith(expect.objectContaining({ name: 'small.mov' }));
+    });
+
+    it('picks SMALLER for a video over 150 MB, and compresses it', async () => {
+      renderDialog();
+      chooseFile(sized('big.mov', 151 * MB));
+
+      expect(screen.getByRole('radio', { name: /SMALLER/ })).toHaveAttribute('aria-checked', 'true');
+      fireEvent.click(screen.getByRole('button', { name: /^START UPLOAD/ }));
+
+      await waitFor(() => expect(mockCompressVideo).toHaveBeenCalled());
+    });
+
+    it('lets the user switch a big video to FAST', async () => {
+      renderDialog();
+      chooseFile(sized('big.mov', 400 * MB));
+      fireEvent.click(screen.getByRole('radio', { name: /FAST/ }));
+      fireEvent.click(screen.getByRole('button', { name: /^START UPLOAD/ }));
+
+      await waitFor(() => expect(mockUploadResumable).toHaveBeenCalled());
+      expect(mockCompressVideo).not.toHaveBeenCalled();
+    });
+
+    it('shows the iPhone camera tip', () => {
+      renderDialog();
+      expect(screen.getByTestId('camera-tip')).toHaveTextContent(/1080p HD at 30 fps/);
     });
   });
 });

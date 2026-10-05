@@ -9,6 +9,16 @@ export interface CompressionResult {
   error?: string;
 }
 
+/** Videos up to this size upload as the original by default; compressing them takes longer than it saves. */
+export const FAST_UPLOAD_MAX_BYTES = 150 * 1024 * 1024;
+
+/** 'original' = Fast: upload the file as recorded. 'compress' = Smaller: shrink to 720p first. */
+export type UploadMode = 'original' | 'compress';
+
+export function defaultUploadMode(files: { size: number }[]): UploadMode {
+  return files.some(f => f.size > FAST_UPLOAD_MAX_BYTES) ? 'compress' : 'original';
+}
+
 export interface CompressOptions {
   onProgress?: (percent: number) => void;
   onStatus?: (status: string) => void;
@@ -89,27 +99,41 @@ export async function compressVideo(
     targetWidth = Math.max(2, targetWidth);
     targetHeight = Math.max(2, targetHeight);
 
-    const target = new BufferTarget();
-    const output = new Output({
-      format: new Mp4OutputFormat({ fastStart: 'in-memory' }),
-      target
-    });
+    // Ask for the phone's hardware video chip first (much faster); some devices refuse it,
+    // so retry once with the browser's default choice before giving up.
+    const buildConversion = async (hardwareAcceleration: 'prefer-hardware' | 'no-preference') => {
+      const target = new BufferTarget();
+      const output = new Output({
+        format: new Mp4OutputFormat({ fastStart: 'in-memory' }),
+        target
+      });
+      const conversion = await Conversion.init({
+        input,
+        output,
+        video: {
+          codec: 'avc',
+          width: targetWidth,
+          height: targetHeight,
+          fit: 'contain',
+          bitrate: 2_500_000,
+          frameRate: 30,
+          hardwareAcceleration
+        },
+        copy: {
+          mode: 'preferred'
+        }
+      });
+      return { target, conversion };
+    };
 
-    const conversion = await Conversion.init({
-      input,
-      output,
-      video: {
-        codec: 'avc',
-        width: targetWidth,
-        height: targetHeight,
-        fit: 'contain',
-        bitrate: 2_500_000,
-        frameRate: 30
-      },
-      copy: {
-        mode: 'preferred'
-      }
-    });
+    let { target, conversion } = await buildConversion('prefer-hardware');
+    if (conversion.isValid === false) {
+      ({ target, conversion } = await buildConversion('no-preference'));
+    }
+    if (conversion.isValid === false) {
+      const reasons = conversion.discardedTracks.map(t => t.reason).join(', ');
+      throw new Error(`This device cannot convert the video (${reasons || 'unsupported'})`);
+    }
 
     // Verify audio track is not silently dropped
     const hasInputAudio = (await input.getPrimaryAudioTrack()) !== null;

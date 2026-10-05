@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { compressVideo } from './videoCompressor';
+import { compressVideo, defaultUploadMode, FAST_UPLOAD_MAX_BYTES } from './videoCompressor';
 
 vi.mock('../google/videoCodec', () => ({
   detectVideoCodec: vi.fn()
@@ -13,6 +13,8 @@ const mockGetPrimaryVideoTrack = vi.fn();
 const mockGetPrimaryAudioTrack = vi.fn();
 
 let mockDiscardedTracks: any[] = [];
+// Validity per init call, in order; missing entries mean valid.
+let mockValidity: boolean[] = [];
 let mockBuffer: ArrayBuffer | null = new Uint8Array([1, 2, 3, 4]).buffer;
 
 vi.mock('mediabunny', () => {
@@ -30,8 +32,10 @@ vi.mock('mediabunny', () => {
     }),
     Conversion: {
       init: mockInit.mockImplementation(async (opts: any) => {
+        const isValid = mockValidity.length ? mockValidity.shift() : true;
         return {
-          discardedTracks: mockDiscardedTracks,
+          isValid,
+          discardedTracks: isValid ? mockDiscardedTracks : [{ track: { type: 'video' }, reason: 'no_encodable_target_codec' }],
           execute: async () => {
             if (opts.output?.target) {
               opts.output.target.buffer = mockBuffer;
@@ -48,6 +52,7 @@ describe('videoCompressor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockDiscardedTracks = [];
+    mockValidity = [];
     mockBuffer = new Uint8Array([1, 2, 3, 4]).buffer;
     mockExecute.mockResolvedValue(undefined);
     (window as any).VideoEncoder = vi.fn();
@@ -150,5 +155,55 @@ describe('videoCompressor', () => {
     expect(result.compressed).toBe(false);
     expect(result.reason).toBe('larger_than_original');
     expect(result.file).toBe(file);
+  });
+
+  describe('choosing Fast (original) or Smaller (compress)', () => {
+    const MB = 1024 * 1024;
+
+    it('the cut-off is 150 MB', () => {
+      expect(FAST_UPLOAD_MAX_BYTES).toBe(150 * MB);
+    });
+
+    it('picks Fast when every video is 150 MB or less', () => {
+      expect(defaultUploadMode([{ size: 20 * MB }, { size: 150 * MB }])).toBe('original');
+    });
+
+    it('picks Smaller when any video is over 150 MB', () => {
+      expect(defaultUploadMode([{ size: 20 * MB }, { size: 150 * MB + 1 }])).toBe('compress');
+    });
+
+    it('picks Fast when nothing is chosen yet', () => {
+      expect(defaultUploadMode([])).toBe('original');
+    });
+  });
+
+  describe('hardware video chip', () => {
+    it('asks for hardware acceleration first', async () => {
+      const file = new File([new Uint8Array(100)], 'big.mov', { type: 'video/quicktime' });
+      await compressVideo(file);
+      expect(mockInit.mock.calls[0][0].video.hardwareAcceleration).toBe('prefer-hardware');
+    });
+
+    it('retries without the hardware hint when the phone refuses it', async () => {
+      mockValidity = [false, true];
+      const file = new File([new Uint8Array(100)], 'big.mov', { type: 'video/quicktime' });
+
+      const result = await compressVideo(file);
+
+      expect(mockInit).toHaveBeenCalledTimes(2);
+      expect(mockInit.mock.calls[1][0].video.hardwareAcceleration).toBe('no-preference');
+      expect(result.reason).not.toBe('conversion_failed');
+    });
+
+    it('falls back to the original when neither setting works', async () => {
+      mockValidity = [false, false];
+      const file = new File([new Uint8Array(100)], 'big.mov', { type: 'video/quicktime' });
+
+      const result = await compressVideo(file);
+
+      expect(result.compressed).toBe(false);
+      expect(result.reason).toBe('conversion_failed');
+      expect(result.file).toBe(file);
+    });
   });
 });

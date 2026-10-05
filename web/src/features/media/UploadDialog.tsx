@@ -5,7 +5,7 @@ import { loadGisScript, getAccessToken } from '../../lib/google/gis';
 import { pickFolder, checkFolderAccess } from '../../lib/google/picker';
 import { ensureClassFolder, ClassFolderTarget } from '../../lib/google/driveFolders';
 import { uploadResumable, makePublic } from '../../lib/google/resumableUpload';
-import { compressVideo, CompressionResult } from '../../lib/media/videoCompressor';
+import { compressVideo, CompressionResult, defaultUploadMode, UploadMode } from '../../lib/media/videoCompressor';
 import { useOverlayOpen } from '../../app/useOverlayOpen';
 import { fetchAccountEmail, sameAccount, useGoogleAccountEmail } from '../../lib/google/googleAccount';
 import { GoogleAccountBar } from './GoogleAccountBar';
@@ -49,6 +49,12 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const isFolderMissing = type === 'video' && !style.videoFolderId;
+  // Fast (original) vs Smaller (compress). Follows the file sizes until the user picks one.
+  const [uploadMode, setUploadMode] = useState<UploadMode>('original');
+  const [modeChosenByUser, setModeChosenByUser] = useState(false);
+  useEffect(() => {
+    if (!modeChosenByUser) setUploadMode(defaultUploadMode(files));
+  }, [files, modeChosenByUser]);
   const currentEmail = useGoogleAccountEmail();
   const uploader = style.videoUploaderEmail || '';
   // Uploads go into the class lead's folder with the class lead's account (and storage).
@@ -181,7 +187,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
         const prefix = files.length > 1 ? `[${i + 1}/${files.length}] ` : '';
 
         let compResult: CompressionResult | undefined;
-        if (type === 'video') {
+        if (type === 'video' && uploadMode === 'compress') {
           setUploadStatus(`${prefix}Checking and compressing video...`);
           compResult = await compressVideo(curFile, {
             onProgress: (pct) => setProgressPercent(pct),
@@ -338,6 +344,50 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
               className="w-full min-h-[44px] p-2 border-2 border-[var(--outline)] font-mono text-base bg-[var(--night-1)] text-[var(--text-1)]"
             />
           </Field>
+
+          {type === 'video' && (
+            <p data-testid="camera-tip" className="font-body text-xs text-[var(--text-3)]">
+              Faster uploads: iPhone Settings › Camera › Record Video › 1080p HD at 30 fps, and Formats › Most
+              Compatible.
+            </p>
+          )}
+
+          {type === 'video' && files.length > 0 && (
+            <div data-testid="upload-mode-switch" className="space-y-2">
+              <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Upload speed">
+                {(
+                  [
+                    ['original', '⚡ FAST: UPLOAD ORIGINAL'],
+                    ['compress', '📦 SMALLER: COMPRESS FIRST']
+                  ] as const
+                ).map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    role="radio"
+                    aria-checked={uploadMode === mode}
+                    disabled={isUploading}
+                    onClick={() => {
+                      setUploadMode(mode);
+                      setModeChosenByUser(true);
+                    }}
+                    className={`min-h-[44px] px-2 py-2 font-display text-[10px] uppercase leading-tight border-2 border-[var(--outline)] cursor-pointer disabled:opacity-50 ${
+                      uploadMode === mode
+                        ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold'
+                        : 'bg-[var(--night-1)] text-[var(--text-2)]'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <p className="font-body text-xs text-[var(--text-2)]">
+                {uploadMode === 'original'
+                  ? 'Uploads the video exactly as recorded: starts straight away, uses more Drive storage.'
+                  : 'Shrinks the video to 720p on this device first: slower to start, saves storage and data.'}
+              </p>
+            </div>
+          )}
 
           {/* Selected Files List */}
           {files.length > 0 && (
