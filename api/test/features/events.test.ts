@@ -126,7 +126,7 @@ describe('Feature: events (features/events)', () => {
     const res = call('events.create', createPayload());
 
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error.message).toContain('Set the attendance master folder on the Events page first');
+    if (!res.ok) expect(res.error.message).toContain('Set the attendance master folder on the Attendance page first');
     expect(ctx.db.events.all().length).toBe(0);
   });
 

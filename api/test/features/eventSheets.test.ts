@@ -22,7 +22,7 @@ describe('event sheets and source', () => {
 
   it('no master folder → VALIDATION message', () => {
     const event = seedEvent(ctx, { styleIds: ['st_popping'] });
-    expect(() => ensureEventSheets(ctx, event)).toThrow('Set the attendance master folder on the Events page first');
+    expect(() => ensureEventSheets(ctx, event)).toThrow('Set the attendance master folder on the Attendance page first');
   });
 
   it('existing sheet outside the event folder is moved in', () => {

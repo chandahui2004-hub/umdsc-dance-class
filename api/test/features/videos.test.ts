@@ -76,7 +76,7 @@ describe('Feature: Videos (features/videos)', () => {
         defaultInstructorId: '',
         defaultVenue: 'Studio A',
         attendanceFolderId: 'fld_att_12345678901234567890',
-        videoFolderId: ''
+        videoFolderId: 'fld_popping_drive'
       },
       'system',
       ctx.now()
@@ -136,8 +136,8 @@ describe('Feature: Videos (features/videos)', () => {
     expect(res.ok).toBe(true);
     if (res.ok) {
       expect(res.data).toEqual({
-        videoMasterFolderId: 'fld_video_master',
-        eventFolderId: 'fld_vid_12345678901234567890',
+        videoMasterFolderId: 'fld_popping_drive',
+        eventFolderId: '',
         eventFolderName: 'OCT MONTHLY CLASS',
         classFolderName: '2026-10-06 Popping Class 1',
         musicFolderName: 'Music'
@@ -145,9 +145,9 @@ describe('Feature: Videos (features/videos)', () => {
     }
   });
 
-  it('targetFolder prefers style.videoFolderId over defaultVideoFolderId when set', () => {
+  it('targetFolder throws VALIDATION when style.videoFolderId is missing', () => {
     const poppingStyle = ctx.db.styles.find(s => s.id === 'st_popping' && s.active)[0];
-    ctx.db.styles.update(poppingStyle.id, poppingStyle.version, { videoFolderId: 'fld_popping_custom_master' }, 'admin', ctx.now());
+    ctx.db.styles.update(poppingStyle.id, poppingStyle.version, { videoFolderId: '' }, 'admin', ctx.now());
 
     const res = handleRequest(
       {
@@ -159,9 +159,97 @@ describe('Feature: Videos (features/videos)', () => {
       secrets
     );
 
-    expect(res.ok).toBe(true);
-    if (res.ok) {
-      expect((res.data as any).videoMasterFolderId).toBe('fld_popping_custom_master');
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error.code).toBe('VALIDATION');
+      expect(res.error.message).toContain('Class lead video folder link not inserted for Popping. Insert it on the Media page first.');
+    }
+  });
+
+  it('targetFolder isolates uploads of two styles in the same event into their own style folders', () => {
+    // Style 1 (Popping): fld_popping_drive with child event folder fld_popping_oct
+    (ctx.drive as any).items.set('fld_popping_oct', {
+      id: 'fld_popping_oct',
+      kind: 'folder',
+      name: 'OCT MONTHLY CLASS',
+      parentId: 'fld_popping_drive',
+      canEdit: true
+    });
+
+    // Style 2 (Locking): fld_locking_drive with child event folder fld_locking_oct
+    ctx.db.styles.insert(
+      {
+        id: 'st_locking',
+        name: 'Locking',
+        aliases: ['locking'],
+        colorKey: 'yellow',
+        defaultWeekday: 4,
+        defaultStart: '20:00',
+        defaultEnd: '22:00',
+        defaultInstructorId: '',
+        defaultVenue: 'Studio B',
+        attendanceFolderId: 'fld_att_locking',
+        videoFolderId: 'fld_locking_drive'
+      },
+      'system',
+      ctx.now()
+    );
+    (ctx.drive as any).items.set('fld_locking_oct', {
+      id: 'fld_locking_oct',
+      kind: 'folder',
+      name: 'OCT MONTHLY CLASS',
+      parentId: 'fld_locking_drive',
+      canEdit: true
+    });
+
+    const lockingSession = ctx.db.sessions.insert(
+      {
+        eventId: event.id,
+        styleId: 'st_locking',
+        seq: 1,
+        date: '2026-10-08',
+        start: '20:00',
+        end: '22:00',
+        instructorId: '',
+        venue: 'Studio B',
+        status: 'scheduled',
+        note: ''
+      },
+      'system',
+      ctx.now()
+    );
+
+    const resPopping = handleRequest(
+      {
+        action: 'videos.targetFolder',
+        token: adminToken,
+        payload: { sessionId: session1.id }
+      },
+      ctx,
+      secrets
+    );
+    const resLocking = handleRequest(
+      {
+        action: 'videos.targetFolder',
+        token: adminToken,
+        payload: { sessionId: lockingSession.id }
+      },
+      ctx,
+      secrets
+    );
+
+    expect(resPopping.ok).toBe(true);
+    expect(resLocking.ok).toBe(true);
+    if (resPopping.ok && resLocking.ok) {
+      expect((resPopping.data as any).videoMasterFolderId).toBe('fld_popping_drive');
+      expect((resPopping.data as any).eventFolderId).toBe('fld_popping_oct');
+
+      expect((resLocking.data as any).videoMasterFolderId).toBe('fld_locking_drive');
+      expect((resLocking.data as any).eventFolderId).toBe('fld_locking_oct');
+
+      // Neither uses event.videoFolderId
+      expect((resPopping.data as any).eventFolderId).not.toBe(event.videoFolderId);
+      expect((resLocking.data as any).eventFolderId).not.toBe(event.videoFolderId);
     }
   });
 
@@ -233,7 +321,7 @@ describe('Feature: Videos (features/videos)', () => {
     }
   });
 
-  it('register saves the uploaded event folder on an event that has none', () => {
+  it('register does not overwrite event.videoFolderId', () => {
     const e2 = seedEvent(ctx, { name: 'TRIAL', styleIds: ['st_popping'] });
     const s2 = ctx.db.sessions.insert(
       { eventId: e2.id, styleId: 'st_popping', seq: 1, date: '2026-10-07', start: '20:00', end: '22:00', instructorId: '', venue: '', status: 'scheduled', note: '' },
@@ -256,11 +344,18 @@ describe('Feature: Videos (features/videos)', () => {
 
     expect(res.ok).toBe(true);
     if (res.ok) expect((res.data as any).eventId).toBe(e2.id);
-    expect(ctx.db.events.get(e2.id)!.videoFolderId).toBe('fld_trial_video');
+    expect(ctx.db.events.get(e2.id)!.videoFolderId).toBe('');
   });
 
   it('scan suggests session by filename date, else by parent class-folder name, else by createdTime date', () => {
-    const rootFolderId = 'fld_vid_12345678901234567890';
+    const rootFolderId = 'fld_scan_event_folder';
+    (ctx.drive as any).items.set(rootFolderId, {
+      id: rootFolderId,
+      kind: 'folder',
+      name: 'OCT MONTHLY CLASS',
+      parentId: 'fld_popping_drive',
+      canEdit: true
+    });
     const subFolderId = 'fld_sub_12345678901234567890';
 
     // Folder for session 2
@@ -336,8 +431,35 @@ describe('Feature: Videos (features/videos)', () => {
     }
   });
 
+  it('scan returns empty if style.videoFolderId is not set or event folder is missing', () => {
+    const poppingStyle = ctx.db.styles.find(s => s.id === 'st_popping' && s.active)[0];
+    ctx.db.styles.update(poppingStyle.id, poppingStyle.version, { videoFolderId: '' }, 'admin', ctx.now());
+
+    const res = handleRequest(
+      {
+        action: 'videos.scan',
+        token: adminToken,
+        payload: { styleId: 'st_popping', eventId: event.id }
+      },
+      ctx,
+      secrets
+    );
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.data).toEqual([]);
+    }
+  });
+
   it('scan excludes files already in Videos', () => {
-    const rootFolderId = 'fld_vid_12345678901234567890';
+    const rootFolderId = 'fld_scan_event_folder_2';
+    (ctx.drive as any).items.set(rootFolderId, {
+      id: rootFolderId,
+      kind: 'folder',
+      name: 'OCT MONTHLY CLASS',
+      parentId: 'fld_popping_drive',
+      canEdit: true
+    });
     (ctx.drive as any).items.set('file_reg_1234567890123456', {
       id: 'file_reg_1234567890123456',
       kind: 'file',

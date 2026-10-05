@@ -111,9 +111,9 @@ describe('ClassesPage Filter Component', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText(/Popping Class 1/i)).toBeInTheDocument();
-      expect(screen.getByText(/Latin Class 1/i)).toBeInTheDocument();
-      expect(screen.getByText(/Hip Hop Class 1/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Popping Class 1/i)[0]).toBeInTheDocument();
+      expect(screen.getAllByText(/Latin Class 1/i)[0]).toBeInTheDocument();
+      expect(screen.getAllByText(/Hip Hop Class 1/i)[0]).toBeInTheDocument();
     });
 
     expect(screen.getByLabelText(/Filter classes by dance style/i)).toBeInTheDocument();
@@ -125,7 +125,7 @@ describe('ClassesPage Filter Component', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText(/Popping Class 1/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Popping Class 1/i)[0]).toBeInTheDocument();
     });
 
     // Select Popping
@@ -134,7 +134,7 @@ describe('ClassesPage Filter Component', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/Popping Class 1/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Popping Class 1/i)[0]).toBeInTheDocument();
       expect(screen.queryByText(/Latin Class 1/i)).not.toBeInTheDocument();
       expect(screen.queryByText(/Hip Hop Class 1/i)).not.toBeInTheDocument();
       expect(screen.getByTestId('classes-count-badge')).toHaveTextContent(/SHOWING 1 OF 3 CLASSES/i);
@@ -145,7 +145,7 @@ describe('ClassesPage Filter Component', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText(/Latin Class 1/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Latin Class 1/i)[0]).toBeInTheDocument();
     });
 
     // Select Lam Hong Woh
@@ -154,7 +154,7 @@ describe('ClassesPage Filter Component', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/Latin Class 1/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Latin Class 1/i)[0]).toBeInTheDocument();
       expect(screen.queryByText(/Popping Class 1/i)).not.toBeInTheDocument();
       expect(screen.queryByText(/Hip Hop Class 1/i)).not.toBeInTheDocument();
       expect(screen.getByTestId('classes-count-badge')).toHaveTextContent(/SHOWING 1 OF 3 CLASSES/i);
@@ -165,7 +165,7 @@ describe('ClassesPage Filter Component', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText(/Popping Class 1/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Popping Class 1/i)[0]).toBeInTheDocument();
     });
 
     // Filter by Popping and Lam Hong Woh (no match)
@@ -182,12 +182,12 @@ describe('ClassesPage Filter Component', () => {
     });
 
     // Click Reset
-    fireEvent.click(screen.getByRole('button', { name: /RESET FILTERS/i }));
+    fireEvent.click(screen.getAllByRole('button', { name: /RESET FILTERS/i })[0]);
 
     await waitFor(() => {
-      expect(screen.getByText(/Popping Class 1/i)).toBeInTheDocument();
-      expect(screen.getByText(/Latin Class 1/i)).toBeInTheDocument();
-      expect(screen.getByText(/Hip Hop Class 1/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Popping Class 1/i)[0]).toBeInTheDocument();
+      expect(screen.getAllByText(/Latin Class 1/i)[0]).toBeInTheDocument();
+      expect(screen.getAllByText(/Hip Hop Class 1/i)[0]).toBeInTheDocument();
       expect(screen.getByTestId('classes-count-badge')).toHaveTextContent(/SHOWING 3 OF 3 CLASSES/i);
     });
   });

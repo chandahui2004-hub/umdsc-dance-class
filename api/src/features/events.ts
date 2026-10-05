@@ -311,7 +311,7 @@ export function getEventRoutes(): Record<string, Route> {
           }
         }
         if (!ctx.db.settings.find(s => s.key === 'defaultAttendanceFolderId' && s.active)[0]?.value) {
-          throw new AppError('VALIDATION', 'Set the attendance master folder on the Events page first');
+          throw new AppError('VALIDATION', 'Set the attendance master folder on the Attendance page first');
         }
 
         const actor = auth?.claims.sub || 'system';

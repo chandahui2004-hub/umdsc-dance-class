@@ -65,15 +65,19 @@ export function getVideoRoutes(): Record<string, Route> {
           throw new AppError('NOT_FOUND', `Style not found: ${session.styleId}`);
         }
 
+        if (!style.videoFolderId) {
+          throw new AppError(
+            'VALIDATION',
+            `Class lead video folder link not inserted for ${style.name}. Insert it on the Media page first.`
+          );
+        }
+
         const event = getEvent(ctx, session.eventId);
-        const videoMasterFolderId =
-          style.videoFolderId ||
-          ctx.db.settings.find(s => s.key === 'defaultVideoFolderId' && s.active)[0]?.value ||
-          '';
+        const eventFolderId = ctx.drive.findChildFolder(style.videoFolderId, event.name) || '';
 
         return {
-          videoMasterFolderId,
-          eventFolderId: event.videoFolderId,
+          videoMasterFolderId: style.videoFolderId,
+          eventFolderId,
           eventFolderName: event.name,
           classFolderName: `${session.date} ${style.name} Class ${session.seq}`,
           musicFolderName: 'Music'
@@ -112,9 +116,6 @@ export function getVideoRoutes(): Record<string, Route> {
 
         const actor = auth?.claims.sub || 'system';
         const event = getEvent(ctx, session.eventId);
-        if (eventFolderId && !event.videoFolderId) {
-          ctx.db.events.update(event.id, event.version, { videoFolderId: String(eventFolderId) }, actor, ctx.now());
-        }
         const inserted = ctx.db.videos.insert(
           {
             styleId: session.styleId,
@@ -208,13 +209,11 @@ export function getVideoRoutes(): Record<string, Route> {
           throw new AppError('NOT_FOUND', `Style not found: ${styleId}`);
         }
 
-        // Scan the event's own video folder; if none is saved yet, look for a
-        // folder named after the event under the style video folder, else video master folder.
-        const videoMaster =
-          style.videoFolderId ||
-          ctx.db.settings.find(s => s.key === 'defaultVideoFolderId' && s.active)[0]?.value;
-        const rootFolderId =
-          event.videoFolderId || (videoMaster ? ctx.drive.findChildFolder(videoMaster, event.name) : null);
+        // Scan only under the dance style's own video folder, inside the child folder named after the event.
+        if (!style.videoFolderId) {
+          return [];
+        }
+        const rootFolderId = ctx.drive.findChildFolder(style.videoFolderId, event.name);
         if (!rootFolderId) {
           return [];
         }

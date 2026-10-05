@@ -28,7 +28,7 @@ export function saveEventFields(
 function attendanceMaster(ctx: Ctx): string {
   const master = ctx.db.settings.find(s => s.key === 'defaultAttendanceFolderId' && s.active)[0]?.value;
   if (!master) {
-    throw new AppError('VALIDATION', 'Set the attendance master folder on the Events page first');
+    throw new AppError('VALIDATION', 'Set the attendance master folder on the Attendance page first');
   }
   return master;
 }
