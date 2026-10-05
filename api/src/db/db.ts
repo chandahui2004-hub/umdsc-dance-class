@@ -204,7 +204,8 @@ const defaultCodecs = {
       defaultVenue: c.defaultVenue || '',
       attendanceFolderId: c.attendanceFolderId || '',
       videoFolderId: c.videoFolderId || '',
-      videoFoldersJson: c.videoFoldersJson || '[]'
+      videoFoldersJson: c.videoFoldersJson || '[]',
+      videoUploaderEmail: c.videoUploaderEmail || ''
     })
   },
   instructors: {

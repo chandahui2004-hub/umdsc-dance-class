@@ -32,10 +32,13 @@ export function loadGisScript(): Promise<void> {
   return gisLoadedPromise;
 }
 
+/** '' reuses the last account silently; 'select_account' shows Google's account chooser. */
+export type GooglePrompt = '' | 'consent' | 'select_account';
+
 let cachedToken: string | null = null;
 let tokenExpiresAt = 0;
 
-function initAndRequestToken(opts?: { prompt?: '' | 'consent' }): Promise<string> {
+function initAndRequestToken(opts?: { prompt?: GooglePrompt }): Promise<string> {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   if (!clientId) {
     return Promise.reject(new Error('VITE_GOOGLE_CLIENT_ID environment variable is missing'));
@@ -84,7 +87,7 @@ export function _resetCachedTokenForTesting(): void {
   tokenExpiresAt = 0;
 }
 
-export function getAccessToken(opts?: { prompt?: '' | 'consent' }): Promise<string> {
+export function getAccessToken(opts?: { prompt?: GooglePrompt }): Promise<string> {
   const now = Date.now();
   // Reuse token if still valid for > 60 seconds and no explicit consent prompt requested
   if (cachedToken && tokenExpiresAt - now > 60000 && !opts?.prompt) {

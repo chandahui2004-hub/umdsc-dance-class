@@ -1,4 +1,4 @@
-import { Route } from '../router';
+import { Route, AuthInfo } from '../router';
 import { AppError } from '../errors';
 import { Table } from '../db/table';
 import { logAudit } from '../logic/audit';
@@ -12,15 +12,17 @@ export function crudRoutes<T extends { id: string; version: number; active: bool
   listPerm?: PermissionCode | 'signedIn' | 'public';
   processPayload?: (ctx: any, payload: any, isUpdate: boolean, existing?: any) => any;
   onList?: (ctx: any) => void;
+  /** Shapes each listed row for the caller, e.g. to hide admin-only fields from dancers. */
+  mapListRow?: (row: T, auth: AuthInfo | null) => T;
   getTargetName?: (row: any) => string;
 }): Record<string, Route> {
-  const { prefix, getTable, perm, listPerm = perm, processPayload, onList, getTargetName = (r) => r.name || r.id } = opts;
+  const { prefix, getTable, perm, listPerm = perm, processPayload, onList, mapListRow, getTargetName = (r) => r.name || r.id } = opts;
 
   return {
     [`${prefix}.list`]: {
       perm: listPerm,
       write: false,
-      handler: (ctx) => {
+      handler: (ctx, auth) => {
         if (onList) {
           try {
             onList(ctx);
@@ -28,7 +30,8 @@ export function crudRoutes<T extends { id: string; version: number; active: bool
             // ignore
           }
         }
-        return getTable(ctx).find(r => r.active);
+        const rows = getTable(ctx).find(r => r.active);
+        return mapListRow ? rows.map(r => mapListRow(r, auth)) : rows;
       }
     },
 
@@ -129,12 +132,19 @@ export function crudRoutes<T extends { id: string; version: number; active: bool
   };
 }
 
+/** Class leads' Google account emails are for admins only; dancers never receive them. */
+export function withoutUploaderEmail<S extends { videoUploaderEmail?: string }>(style: S): S {
+  const { videoUploaderEmail: _hidden, ...rest } = style;
+  return rest as S;
+}
+
 export function getMasterDataRoutes(): Record<string, Route> {
   const stylesRoutes = crudRoutes({
     prefix: 'styles',
     getTable: (ctx) => ctx.db.styles,
     perm: 'styles.edit',
     listPerm: 'signedIn',
+    mapListRow: (row, auth) => (auth?.claims.role === 'admin' ? row : (withoutUploaderEmail(row as any) as typeof row)),
     processPayload: (ctx, payload, isUpdate, existing) => {
       let folders: { id: string; name: string; url: string; addedAt: string }[] = [];
       if (existing?.videoFoldersJson) {
@@ -220,6 +230,22 @@ export function getMasterDataRoutes(): Record<string, Route> {
           payload.videoFolderId = '';
         }
         delete payload.videoFolderUrl;
+      }
+
+      // The Google account that authorized this style's folder; uploads must use the same account.
+      if (payload.videoUploaderEmail !== undefined) {
+        const email = String(payload.videoUploaderEmail || '').trim().toLowerCase();
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          throw new AppError('VALIDATION', 'Uploader account must be an email address');
+        }
+        payload.videoUploaderEmail = email;
+      } else if (
+        payload.videoFolderId !== undefined &&
+        existing?.videoFolderId &&
+        payload.videoFolderId !== existing.videoFolderId
+      ) {
+        // A different folder has to be authorized again, possibly by another class lead.
+        payload.videoUploaderEmail = '';
       }
 
       if (payload.attendanceFolderUrl !== undefined) {

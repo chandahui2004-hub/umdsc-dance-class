@@ -13,6 +13,8 @@ const mockEnsureClassFolder = vi.fn();
 const mockUploadResumable = vi.fn();
 const mockMakePublic = vi.fn();
 const mockCompressVideo = vi.fn();
+const mockFetchAccountEmail = vi.fn();
+let mockCurrentEmail: string | null = null;
 
 vi.mock('../../lib/api', () => ({
   api: { post: (...args: any[]) => mockPost(...args) },
@@ -22,6 +24,16 @@ vi.mock('../../lib/api', () => ({
 vi.mock('../../lib/google/gis', () => ({
   loadGisScript: () => mockLoadGisScript(),
   getAccessToken: () => mockGetAccessToken()
+}));
+
+vi.mock('../../lib/google/googleAccount', () => ({
+  fetchAccountEmail: (...args: any[]) => mockFetchAccountEmail(...args),
+  sameAccount: (a?: string | null, b?: string | null) =>
+    !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase(),
+  useGoogleAccountEmail: () => mockCurrentEmail,
+  refreshAccountFromCache: async () => null,
+  signInGoogle: vi.fn(),
+  switchGoogleAccount: vi.fn()
 }));
 
 vi.mock('../../lib/google/picker', () => ({
@@ -42,7 +54,13 @@ vi.mock('../../lib/media/videoCompressor', () => ({
   compressVideo: (...args: any[]) => mockCompressVideo(...args)
 }));
 
-const styleWithLink = { id: 'st1', name: 'Locking', videoFolderId: 'folder_locking' } as DanceStyle;
+const styleWithLink = {
+  id: 'st1',
+  name: 'Locking',
+  videoFolderId: 'folder_locking',
+  videoUploaderEmail: 'lead@gmail.com'
+} as DanceStyle;
+const styleWithoutUploader = { id: 'st3', name: 'Hip Hop', videoFolderId: 'folder_hiphop' } as DanceStyle;
 const styleWithoutLink = { id: 'st2', name: 'Popping', videoFolderId: '' } as DanceStyle;
 const sessions = [{ id: 's1', date: '2026-10-15', seq: 1, styleId: 'st1', eventId: 'e1' }] as ClassSession[];
 
@@ -71,6 +89,8 @@ describe('UploadDialog Gating and Video Compression', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetAccessToken.mockResolvedValue('fake-access-token');
+    mockFetchAccountEmail.mockResolvedValue('lead@gmail.com');
+    mockCurrentEmail = null;
     mockPost.mockResolvedValue({
       data: {
         videoMasterFolderId: 'folder_locking',
@@ -269,5 +289,46 @@ describe('UploadDialog Gating and Video Compression', () => {
         })
       )
     );
+  });
+
+  describe('class lead upload account', () => {
+    const videoFile = () => new File([new Uint8Array(10)], 'clip.mp4', { type: 'video/mp4' });
+
+    it('disables START UPLOAD when the style has no upload account yet', () => {
+      renderDialog(styleWithoutUploader);
+      chooseFile(videoFile());
+      expect(screen.getByTestId('upload-account-alert')).toHaveTextContent(/Hip Hop has no upload account yet/);
+      expect(screen.getByRole('button', { name: /^START UPLOAD/ })).toBeDisabled();
+    });
+
+    it('disables START UPLOAD when the signed-in account is not the class lead account', () => {
+      mockCurrentEmail = 'club@gmail.com';
+      renderDialog();
+      chooseFile(videoFile());
+      expect(screen.getByTestId('upload-account-alert')).toHaveTextContent(
+        /Locking uploads with lead@gmail.com, but you're signed in as club@gmail.com/
+      );
+      expect(screen.getByRole('button', { name: /^START UPLOAD/ })).toBeDisabled();
+    });
+
+    it('stops before uploading when Google returns a different account at start', async () => {
+      mockFetchAccountEmail.mockResolvedValue('club@gmail.com');
+      renderDialog();
+      chooseFile(videoFile());
+      fireEvent.click(screen.getByRole('button', { name: /^START UPLOAD/ }));
+      await waitFor(() =>
+        expect(screen.getByRole('alert')).toHaveTextContent(/Tap SWITCH ACCOUNT and choose lead@gmail.com/)
+      );
+      expect(mockUploadResumable).not.toHaveBeenCalled();
+      expect(mockEnsureClassFolder).not.toHaveBeenCalled();
+    });
+
+    it('uploads when the signed-in account matches, ignoring letter case', async () => {
+      mockFetchAccountEmail.mockResolvedValue('Lead@Gmail.com');
+      renderDialog();
+      chooseFile(videoFile());
+      fireEvent.click(screen.getByRole('button', { name: /^START UPLOAD/ }));
+      await waitFor(() => expect(mockUploadResumable).toHaveBeenCalled());
+    });
   });
 });

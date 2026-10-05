@@ -7,6 +7,8 @@ import { ensureClassFolder, ClassFolderTarget } from '../../lib/google/driveFold
 import { uploadResumable, makePublic } from '../../lib/google/resumableUpload';
 import { compressVideo, CompressionResult } from '../../lib/media/videoCompressor';
 import { useOverlayOpen } from '../../app/useOverlayOpen';
+import { fetchAccountEmail, sameAccount, useGoogleAccountEmail } from '../../lib/google/googleAccount';
+import { GoogleAccountBar } from './GoogleAccountBar';
 import { Panel } from '../../components/ui/Panel';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { Field } from '../../components/ui/Field';
@@ -47,6 +49,16 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const isFolderMissing = type === 'video' && !style.videoFolderId;
+  const currentEmail = useGoogleAccountEmail();
+  const uploader = style.videoUploaderEmail || '';
+  // Uploads go into the class lead's folder with the class lead's account (and storage).
+  const accountProblem = isFolderMissing
+    ? null
+    : !uploader
+      ? `${style.name} has no upload account yet. On a computer, open Media › Class Lead Video Drive Folders and tap AUTHORIZE for ${style.name} while signed in with the class lead's Google account.`
+      : currentEmail && !sameAccount(currentEmail, uploader)
+        ? `${style.name} uploads with ${uploader}, but you're signed in as ${currentEmail}. Tap SWITCH ACCOUNT and choose ${uploader}.`
+        : null;
 
   // Preload GIS SDK immediately when dialog opens so token requests don't require an async network script fetch inside tap
   useEffect(() => {
@@ -111,6 +123,20 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
       }
 
       const token = await tokenPromise;
+
+      // Never upload with the wrong Google account: it would use that account's storage.
+      setUploadStatus('Checking Google account...');
+      const signedInEmail = await fetchAccountEmail(token);
+      if (!uploader) {
+        throw new Error(
+          `${style.name} has no upload account yet. On a computer, open Media › Class Lead Video Drive Folders and tap AUTHORIZE for ${style.name} while signed in with the class lead's Google account.`
+        );
+      }
+      if (!sameAccount(signedInEmail, uploader)) {
+        throw new Error(
+          `${style.name} uploads with ${uploader}, but you're signed in as ${signedInEmail}. Tap SWITCH ACCOUNT and choose ${uploader}.`
+        );
+      }
 
       // 2. Fetch target folder details from API
       setUploadStatus('Resolving Google Drive destination folder...');
@@ -245,6 +271,18 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
               <span>
                 Class lead video folder link not inserted for {style.name}. Insert it on the Media page first.
               </span>
+            </div>
+          )}
+
+          {!isFolderMissing && <GoogleAccountBar disabled={isUploading} />}
+
+          {accountProblem && (
+            <div
+              role="alert"
+              data-testid="upload-account-alert"
+              className="p-3 bg-[var(--violet-2)] border-2 border-[var(--neon-orange)] text-[var(--neon-orange)] font-bold text-xs"
+            >
+              ⚠ {accountProblem}
             </div>
           )}
 
@@ -383,7 +421,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
               size="md"
               variant="primary"
               className="flex-1"
-              disabled={isUploading || files.length === 0 || isFolderMissing}
+              disabled={isUploading || files.length === 0 || isFolderMissing || Boolean(accountProblem)}
               onClick={handleStartUpload}
             >
               {isUploading

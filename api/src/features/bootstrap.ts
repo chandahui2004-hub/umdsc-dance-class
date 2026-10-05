@@ -11,6 +11,7 @@ import {
   Section,
   EventItem
 } from '@umdsc/shared';
+import { withoutUploaderEmail } from './masterData';
 import { dancerStylesInEvent } from './eventMembers';
 import { ensureEventSheets } from './eventSheets';
 import { safeCachePut } from '../logic/cache';
@@ -328,7 +329,7 @@ export function getDancerBootstrap(
     events: dancerEvents.map(e => ({
       id: e.id, name: e.name, type: e.type, startDate: e.startDate, endDate: e.endDate, status: e.status, styleIds: e.styleIds
     })),
-    styles,
+    styles: styles.map(withoutUploaderEmail),
     instructors,
     sessions: Array.from(sessionsMap.values()).sort((a, b) => a.date.localeCompare(b.date)),
     attendance: [],

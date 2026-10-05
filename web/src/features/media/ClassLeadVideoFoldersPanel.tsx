@@ -8,6 +8,8 @@ import { PixelButton } from '../../components/ui/PixelButton';
 import { openInDriveUrl } from '../../lib/google/driveUrls';
 import { getAccessToken, getCachedToken } from '../../lib/google/gis';
 import { pickFolder, checkFolderAccess } from '../../lib/google/picker';
+import { fetchAccountEmail, sameAccount, useGoogleAccountEmail } from '../../lib/google/googleAccount';
+import { GoogleAccountBar } from './GoogleAccountBar';
 
 const SWATCH_COLORS: Record<string, string> = {
   green: 'var(--c-green)',
@@ -33,9 +35,12 @@ export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProp
   const currentClaims = session.get()?.claims;
   const canEdit = can(currentClaims?.perms, 'styles.edit');
 
-  // Starts expanded when any style lacks videoFolderId; collapsed when all have links
+  // Starts expanded when any style lacks a folder link or an upload account; collapsed otherwise
   const hasMissing = useMemo(() => styles.some((s) => !s.videoFolderId), [styles]);
-  const [isExpanded, setIsExpanded] = useState<boolean>(() => styles.some((s) => !s.videoFolderId));
+  const [isExpanded, setIsExpanded] = useState<boolean>(() =>
+    styles.some((s) => !s.videoFolderId || !s.videoUploaderEmail)
+  );
+  const currentEmail = useGoogleAccountEmail();
 
   // Inline editing state: styleId -> URL input
   const [editingStyleId, setEditingStyleId] = useState<string | null>(null);
@@ -48,15 +53,17 @@ export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProp
 
   const isCoarsePointer = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
 
-  // Check access for linked folders only if a valid token is already cached (never prompt on mount)
+  // Check access for linked folders only if a valid token is already cached (never prompt on mount).
+  // Access belongs to a Google account, so re-check whenever the signed-in account changes.
   useEffect(() => {
     let cancelled = false;
+    setAuthorizedFolders({});
     const checkAll = async () => {
       const token = getCachedToken();
       if (!token) return;
       try {
         for (const s of styles) {
-          if (s.videoFolderId && authorizedFolders[s.videoFolderId] === undefined) {
+          if (s.videoFolderId) {
             const hasAccess = await checkFolderAccess(token, s.videoFolderId);
             if (!cancelled) {
               setAuthorizedFolders((prev) => ({ ...prev, [s.videoFolderId]: hasAccess }));
@@ -71,7 +78,7 @@ export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProp
     return () => {
       cancelled = true;
     };
-  }, [styles]);
+  }, [styles, currentEmail]);
 
   const saveMutation = useMutation({
     mutationFn: async ({ style, url }: { style: DanceStyle; url: string }) => {
@@ -105,12 +112,21 @@ export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProp
 
   const handleAuthorize = async (style: DanceStyle) => {
     if (!style.videoFolderId) return;
+    // Token first, inside the tap, so iOS Safari allows Google's popup.
+    const tokenPromise = getAccessToken();
     setIsAuthorizing((prev) => ({ ...prev, [style.videoFolderId]: true }));
     try {
-      const token = await getAccessToken();
+      const token = await tokenPromise;
       await pickFolder(token, style.videoFolderId);
       const hasAccess = await checkFolderAccess(token, style.videoFolderId);
       setAuthorizedFolders((prev) => ({ ...prev, [style.videoFolderId]: hasAccess }));
+      if (!hasAccess) {
+        throw new Error('Google did not give access to this folder. Try AUTHORIZE again and select the folder.');
+      }
+      // Remember which account authorized it: uploads for this style must use the same account.
+      const email = await fetchAccountEmail(token);
+      await api.post('styles.update', { id: style.id, version: style.version, videoUploaderEmail: email });
+      await queryClient.invalidateQueries({ queryKey: ['styles'] });
     } catch (err: any) {
       alert(`Authorization failed: ${err.message || err}`);
     } finally {
@@ -173,8 +189,11 @@ export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProp
         <div className="space-y-3 pt-1">
           <p className="font-body text-xs text-[var(--text-2)]">
             Class recap videos are saved only in each style's designated Google Drive folder. If a link is missing,
-            video upload is blocked until a valid Drive folder is inserted.
+            video upload is blocked until a valid Drive folder is inserted. Each style uploads with the Google
+            account that authorized it, and the video uses that account's storage.
           </p>
+
+          <GoogleAccountBar />
 
           {styles.length === 0 ? (
             <p className="font-body text-xs text-[var(--text-3)] italic">
@@ -185,7 +204,9 @@ export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProp
               {styles.map((s) => {
                 const swatchBg = SWATCH_COLORS[s.colorKey] || 'var(--c-blue)';
                 const isEditing = editingStyleId === s.id;
-                const isAuthed = s.videoFolderId ? authorizedFolders[s.videoFolderId] : false;
+                const uploader = s.videoUploaderEmail || '';
+                const isUploaderSignedIn = sameAccount(currentEmail, uploader);
+                const isAuthed = Boolean(s.videoFolderId && authorizedFolders[s.videoFolderId] && isUploaderSignedIn);
 
                 return (
                   <div
@@ -204,29 +225,47 @@ export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProp
                           {s.name}
                         </span>
                         {s.videoFolderId ? (
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <a
-                              href={openInDriveUrl(s.videoFolderId)}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="font-mono text-[11px] text-[var(--neon-cyan)] hover:underline flex items-center gap-1"
-                            >
-                              <span>DRIVE FOLDER ↗</span>
-                            </a>
-                            {isAuthed ? (
-                              <span className="font-display text-[10px] text-[var(--neon-green)] font-bold">
-                                ✓ AUTHORIZED
-                              </span>
-                            ) : !isCoarsePointer ? (
-                              <button
-                                type="button"
-                                onClick={() => handleAuthorize(s)}
-                                disabled={isAuthorizing[s.videoFolderId]}
-                                className="font-display text-[10px] min-h-[44px] px-3 bg-[var(--neon-gold)] text-[var(--on-neon)] border border-[var(--outline)] uppercase active:translate-y-px inline-flex items-center justify-center cursor-pointer"
+                          <div className="mt-0.5 space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <a
+                                href={openInDriveUrl(s.videoFolderId)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="font-mono text-[11px] text-[var(--neon-cyan)] hover:underline flex items-center gap-1"
                               >
-                                {isAuthorizing[s.videoFolderId] ? '...' : 'AUTHORIZE'}
-                              </button>
-                            ) : null}
+                                <span>DRIVE FOLDER ↗</span>
+                              </a>
+                              {isAuthed && (
+                                <span className="font-display text-[10px] text-[var(--neon-green)] font-bold">
+                                  ✓ AUTHORIZED
+                                </span>
+                              )}
+                              {canEdit && !isCoarsePointer && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAuthorize(s)}
+                                  disabled={isAuthorizing[s.videoFolderId]}
+                                  title={currentEmail ? `Authorize as ${currentEmail}` : 'Sign in to Google and authorize'}
+                                  className="font-display text-[10px] min-h-[44px] px-3 bg-[var(--neon-gold)] text-[var(--on-neon)] border border-[var(--outline)] uppercase active:translate-y-px inline-flex items-center justify-center cursor-pointer"
+                                >
+                                  {isAuthorizing[s.videoFolderId] ? '...' : uploader ? 'RE-AUTHORIZE' : 'AUTHORIZE'}
+                                </button>
+                              )}
+                            </div>
+                            {uploader ? (
+                              <div data-testid={`uploader-${s.id}`} className="font-body text-[11px] text-[var(--text-2)]">
+                                Uploads as <span className="font-mono text-[var(--text-1)] break-all">{uploader}</span>
+                                {currentEmail && !isUploaderSignedIn && (
+                                  <span className="block text-[var(--neon-orange)]">
+                                    You're signed in as {currentEmail}. Switch account to upload for {s.name}.
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <div data-testid={`uploader-${s.id}`} className="font-display text-[10px] text-[var(--neon-orange)] font-bold">
+                                ⚠ NO UPLOAD ACCOUNT — {canEdit ? 'tap AUTHORIZE on a computer with the class lead\'s account' : 'ask an admin to authorize it'}
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <div className="mt-0.5">

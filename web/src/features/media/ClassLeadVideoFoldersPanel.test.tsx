@@ -16,6 +16,19 @@ vi.mock('../../lib/google/gis', () => ({
   getCachedToken: vi.fn().mockReturnValue(null)
 }));
 
+const mockFetchAccountEmail = vi.fn();
+let mockCurrentEmail: string | null = null;
+
+vi.mock('../../lib/google/googleAccount', () => ({
+  fetchAccountEmail: (...args: any[]) => mockFetchAccountEmail(...args),
+  sameAccount: (a?: string | null, b?: string | null) =>
+    !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase(),
+  useGoogleAccountEmail: () => mockCurrentEmail,
+  refreshAccountFromCache: async () => null,
+  signInGoogle: vi.fn(),
+  switchGoogleAccount: vi.fn()
+}));
+
 vi.mock('../../lib/google/picker', () => ({
   pickFolder: vi.fn(),
   checkFolderAccess: vi.fn().mockResolvedValue(true)
@@ -60,6 +73,7 @@ const styleWithLink: DanceStyle = {
   defaultVenue: 'Studio A',
   attendanceFolderId: 'att_1',
   videoFolderId: 'vid_folder_popping',
+  videoUploaderEmail: 'popping.lead@gmail.com',
   active: true,
   version: 2,
   updatedBy: 'admin',
@@ -100,6 +114,8 @@ async function renderPanel(styles: DanceStyle[]) {
 describe('ClassLeadVideoFoldersPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockCurrentEmail = null;
+    mockFetchAccountEmail.mockResolvedValue('locking.lead@gmail.com');
     session.set('tok', {
       sub: 'admin',
       role: 'admin',
@@ -122,7 +138,7 @@ describe('ClassLeadVideoFoldersPanel', () => {
   it('collapsed when all event styles have links', async () => {
     const allLinked = [
       styleWithLink,
-      { ...styleWithoutLink, videoFolderId: 'vid_folder_locking' }
+      { ...styleWithoutLink, videoFolderId: 'vid_folder_locking', videoUploaderEmail: 'locking.lead@gmail.com' }
     ];
     await renderPanel(allLinked);
 
@@ -188,5 +204,40 @@ describe('ClassLeadVideoFoldersPanel', () => {
     await renderPanel([styleWithLink, styleWithoutLink]);
 
     expect(getAccessToken).not.toHaveBeenCalled();
+  });
+
+  it('shows which account uploads for each style, and warns when another account is signed in', async () => {
+    mockCurrentEmail = 'club@gmail.com';
+    await renderPanel([styleWithLink, styleWithoutLink]);
+
+    expect(screen.getByTestId('uploader-st_popping')).toHaveTextContent('Uploads as popping.lead@gmail.com');
+    expect(screen.getByTestId('uploader-st_popping')).toHaveTextContent(
+      "You're signed in as club@gmail.com. Switch account to upload for Popping."
+    );
+    expect(screen.getByTestId('google-account-bar')).toBeDefined();
+  });
+
+  it('shows NO UPLOAD ACCOUNT for a linked style that was never authorized', async () => {
+    const linkedNoUploader = { ...styleWithoutLink, videoFolderId: 'vid_folder_locking' };
+    await renderPanel([styleWithLink, linkedNoUploader]);
+
+    expect(screen.getByTestId('uploader-st_locking')).toHaveTextContent('NO UPLOAD ACCOUNT');
+    expect(screen.getByRole('button', { name: 'AUTHORIZE' })).toBeDefined();
+  });
+
+  it('AUTHORIZE saves the signed-in Google account as the style uploader', async () => {
+    const linkedNoUploader = { ...styleWithoutLink, videoFolderId: 'vid_folder_locking', version: 5 };
+    (api.post as any).mockResolvedValue({ data: {} });
+    await renderPanel([styleWithLink, linkedNoUploader]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'AUTHORIZE' }));
+
+    await waitFor(() =>
+      expect(api.post).toHaveBeenCalledWith('styles.update', {
+        id: 'st_locking',
+        version: 5,
+        videoUploaderEmail: 'locking.lead@gmail.com'
+      })
+    );
   });
 });

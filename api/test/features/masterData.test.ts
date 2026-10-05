@@ -166,6 +166,95 @@ describe('Feature: Master Data (Styles & Instructors)', () => {
     }
   });
 
+  describe('styles.update videoUploaderEmail (class lead upload account)', () => {
+    const insertStyle = (videoFolderId: string) =>
+      ctx.db.styles.insert(
+        {
+          name: 'Locking',
+          aliases: 'locking',
+          colorKey: 'blue',
+          defaultWeekday: 2,
+          defaultStart: '20:00',
+          defaultEnd: '22:00',
+          defaultInstructorId: '',
+          defaultVenue: 'Studio A',
+          attendanceFolderId: '',
+          videoFolderId
+        },
+        'admin1',
+        ctx.now()
+      );
+
+    const update = (payload: Record<string, unknown>) =>
+      handleRequest({ action: 'styles.update', token: adminToken, payload }, ctx, secrets);
+
+    it('saves the uploader email trimmed and lower-cased', () => {
+      const folderId = ctx.drive.createFolder('LockingVideos', 'root');
+      const style = insertStyle(folderId);
+
+      const res = update({ id: style.id, version: style.version, videoUploaderEmail: '  LockingLead@Gmail.com ' });
+
+      expect(res.ok).toBe(true);
+      if (res.ok) expect((res.data as any).videoUploaderEmail).toBe('lockinglead@gmail.com');
+      expect(ctx.db.styles.get(style.id)?.videoUploaderEmail).toBe('lockinglead@gmail.com');
+    });
+
+    it('rejects something that is not an email', () => {
+      const folderId = ctx.drive.createFolder('LockingVideos', 'root');
+      const style = insertStyle(folderId);
+
+      const res = update({ id: style.id, version: style.version, videoUploaderEmail: 'not-an-email' });
+
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.error.code).toBe('VALIDATION');
+    });
+
+    it('clears the uploader email when the video folder link changes to another folder', () => {
+      const oldFolder = ctx.drive.createFolder('LockingVideos', 'root');
+      const newFolder = ctx.drive.createFolder('LockingVideos2', 'root');
+      const style = insertStyle(oldFolder);
+      const first = update({ id: style.id, version: style.version, videoUploaderEmail: 'lead@gmail.com' });
+      expect(first.ok).toBe(true);
+      const v = (first as any).data.version;
+
+      const res = update({ id: style.id, version: v, videoFolderUrl: 'https://drive.google.com/drive/folders/' + newFolder });
+
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect((res.data as any).videoFolderId).toBe(newFolder);
+        expect((res.data as any).videoUploaderEmail).toBe('');
+      }
+    });
+
+    it('styles.list hides the uploader email from dancers but shows it to admins', () => {
+      const folder = ctx.drive.createFolder('LockingVideos', 'root');
+      const style = insertStyle(folder);
+      update({ id: style.id, version: style.version, videoUploaderEmail: 'lead@gmail.com' });
+
+      const asDancer = handleRequest({ action: 'styles.list', token: dancerToken, payload: {} }, ctx, secrets);
+      const asAdmin = handleRequest({ action: 'styles.list', token: adminToken, payload: {} }, ctx, secrets);
+
+      expect(asDancer.ok && asAdmin.ok).toBe(true);
+      const dancerRow = (asDancer as any).data.find((s: any) => s.id === style.id);
+      const adminRow = (asAdmin as any).data.find((s: any) => s.id === style.id);
+      expect(dancerRow).toBeDefined();
+      expect(dancerRow.videoUploaderEmail).toBeUndefined();
+      expect(adminRow.videoUploaderEmail).toBe('lead@gmail.com');
+    });
+
+    it('keeps the uploader email when the same folder link is saved again', () => {
+      const folder = ctx.drive.createFolder('LockingVideos', 'root');
+      const style = insertStyle(folder);
+      const first = update({ id: style.id, version: style.version, videoUploaderEmail: 'lead@gmail.com' });
+      const v = (first as any).data.version;
+
+      const res = update({ id: style.id, version: v, videoFolderUrl: 'https://drive.google.com/drive/folders/' + folder });
+
+      expect(res.ok).toBe(true);
+      if (res.ok) expect((res.data as any).videoUploaderEmail).toBe('lead@gmail.com');
+    });
+  });
+
   it('styles.update manages multiple video folders: add, activate, and remove', () => {
     const folder1 = ctx.drive.createFolder('root', 'Popping Batch 1');
     const folder2 = ctx.drive.createFolder('root', 'Popping Batch 2');

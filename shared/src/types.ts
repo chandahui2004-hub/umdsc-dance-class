@@ -44,7 +44,7 @@ export interface StyleVideoFolder {
 }
 export interface RowMeta { id: string; version: number; updatedBy: string; updatedAt: string; active: boolean }
 export interface DanceStyle extends RowMeta { name: string; aliases: string[]; colorKey: string; defaultWeekday: number|null;
-  defaultStart: HHmm; defaultEnd: HHmm; defaultInstructorId: string; defaultVenue: string; attendanceFolderId: string; videoFolderId: string; videoFoldersJson?: string }
+  defaultStart: HHmm; defaultEnd: HHmm; defaultInstructorId: string; defaultVenue: string; attendanceFolderId: string; videoFolderId: string; videoFoldersJson?: string; videoUploaderEmail?: string }
 export interface InstructorPhoto {
   id: string;
   url: string;

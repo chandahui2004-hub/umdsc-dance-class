@@ -2,8 +2,10 @@ import { test, expect } from '@playwright/test';
 import { loginAsAdmin, mockApi, makeEvent } from './fixtures/mockApi';
 import { adminBootstrap } from './fixtures/mockData';
 
+// The class lead account that authorized the Hip Hop folder; uploads must sign in with it.
+const UPLOADER = 'hiphop.lead@example.com';
 const STYLES = [
-  adminBootstrap.styles[0],
+  { ...adminBootstrap.styles[0], videoUploaderEmail: UPLOADER },
   { ...adminBootstrap.styles[0], id: 'style-latin', name: 'Latin', aliases: ['latin'], colorKey: 'pink' }
 ];
 const EVENT = makeEvent({ styleIds: ['style-hiphop'] });
@@ -133,6 +135,12 @@ test.describe('Admin Media Page', () => {
       }
       if (url.includes('/upload/mock-session')) {
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'uploaded-drive-file-999', name: 'routine_recap.mp4' }) });
+      }
+      if (url.includes('/drive/v3/about')) {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ user: { emailAddress: UPLOADER } }) });
+      }
+      if (url.includes('/drive/v3/about')) {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ user: { emailAddress: UPLOADER } }) });
       }
       if (url.includes('/permissions')) {
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'perm-1' }) });
