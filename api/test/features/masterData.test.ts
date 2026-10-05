@@ -242,6 +242,21 @@ describe('Feature: Master Data (Styles & Instructors)', () => {
       expect(adminRow.videoUploaderEmail).toBe('lead@gmail.com');
     });
 
+    it('removing the folder link (empty videoFolderUrl) clears the folder and the uploader account', () => {
+      const folder = ctx.drive.createFolder('LockingVideos', 'root');
+      const style = insertStyle(folder);
+      const first = update({ id: style.id, version: style.version, videoUploaderEmail: 'lead@gmail.com' });
+      const v = (first as any).data.version;
+
+      const res = update({ id: style.id, version: v, videoFolderUrl: '' });
+
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect((res.data as any).videoFolderId).toBe('');
+        expect((res.data as any).videoUploaderEmail).toBe('');
+      }
+    });
+
     it('keeps the uploader email when the same folder link is saved again', () => {
       const folder = ctx.drive.createFolder('LockingVideos', 'root');
       const style = insertStyle(folder);

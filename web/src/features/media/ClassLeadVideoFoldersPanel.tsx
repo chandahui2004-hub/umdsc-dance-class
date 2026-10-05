@@ -110,6 +110,19 @@ export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProp
     saveMutation.mutate({ style, url: urlInput });
   };
 
+  const handleRemove = (style: DanceStyle) => {
+    const ok = window.confirm(
+      `Remove the video folder link for ${style.name}? Videos already in Google Drive stay there. ` +
+        `Uploads for ${style.name} are blocked until a new link is inserted.`
+    );
+    if (ok) {
+      saveMutation.mutate(
+        { style, url: '' },
+        { onError: (err) => alert(`Could not remove the link: ${errorMessage(err)}`) }
+      );
+    }
+  };
+
   const handleAuthorize = async (style: DanceStyle) => {
     if (!style.videoFolderId) return;
     // Token first, inside the tap, so iOS Safari allows Google's popup.
@@ -325,13 +338,25 @@ export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProp
                           )}
                         </div>
                       ) : canEdit ? (
-                        <PixelButton
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => handleStartEdit(s)}
-                        >
-                          {s.videoFolderId ? 'CHANGE LINK' : '+ INSERT LINK'}
-                        </PixelButton>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <PixelButton
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => handleStartEdit(s)}
+                          >
+                            {s.videoFolderId ? 'CHANGE LINK' : '+ INSERT LINK'}
+                          </PixelButton>
+                          {s.videoFolderId && (
+                            <PixelButton
+                              size="sm"
+                              variant="danger"
+                              disabled={saveMutation.isPending}
+                              onClick={() => handleRemove(s)}
+                            >
+                              REMOVE LINK
+                            </PixelButton>
+                          )}
+                        </div>
                       ) : null}
                     </div>
                   </div>

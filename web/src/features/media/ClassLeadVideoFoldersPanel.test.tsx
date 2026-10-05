@@ -254,4 +254,33 @@ describe('ClassLeadVideoFoldersPanel', () => {
       window.matchMedia = realMatchMedia;
     }
   });
+
+  it('REMOVE LINK asks first, then clears the folder link with styles.update', async () => {
+    (api.post as any).mockResolvedValue({ data: {} });
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await renderPanel([styleWithLink, styleWithoutLink]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'REMOVE LINK' }));
+
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringMatching(/Remove the video folder link for Popping/));
+    await waitFor(() =>
+      expect(api.post).toHaveBeenCalledWith('styles.update', { id: 'st_popping', version: 2, videoFolderUrl: '' })
+    );
+    confirmSpy.mockRestore();
+  });
+
+  it('REMOVE LINK does nothing when the admin cancels', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    await renderPanel([styleWithLink, styleWithoutLink]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'REMOVE LINK' }));
+
+    expect(api.post).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
+  });
+
+  it('shows REMOVE LINK only for styles that have a link, and only to editors', async () => {
+    await renderPanel([styleWithLink, styleWithoutLink]);
+    expect(screen.getAllByRole('button', { name: 'REMOVE LINK' })).toHaveLength(1);
+  });
 });
