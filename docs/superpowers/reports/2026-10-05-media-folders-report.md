@@ -35,7 +35,7 @@
 
 ## Task 2 — Backend Target Folder Isolation, Concurrency Locking & Error Text Updates
 
-- **Commit:** pending (feat(api): isolate video folders by dance style and update attendance error text)
+- **Commit:** `d99cf1d` (`feat(api): isolate video folders by dance style and update attendance error text`)
 - **Folder Creation Architecture Analysis (A2 Requirement):**
   - **Where folders are created today:** `web/src/lib/google/driveFolders.ts:34-54` (`ensureFolderPath` via `fetch('https://www.googleapis.com/drive/v3/files', ...)` using the admin's OAuth token under `https://www.googleapis.com/auth/drive.file` scope).
   - **What Apps Script does:** `api/src/features/videos.ts:68-80` (`videos.targetFolder`) does NOT create upload folders. It only reads database records and returns folder names and IDs.
