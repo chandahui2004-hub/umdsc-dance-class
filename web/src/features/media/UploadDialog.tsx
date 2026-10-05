@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, errorMessage } from '../../lib/api';
-import { getAccessToken } from '../../lib/google/gis';
-import { pickFolder, hasPickerGrant } from '../../lib/google/picker';
+import { loadGisScript, getAccessToken } from '../../lib/google/gis';
+import { pickFolder, checkFolderAccess } from '../../lib/google/picker';
 import { ensureClassFolder, ClassFolderTarget } from '../../lib/google/driveFolders';
-import { uploadResumable, makePublic, videoFormatWarning } from '../../lib/google/resumableUpload';
+import { uploadResumable, makePublic } from '../../lib/google/resumableUpload';
+import { compressVideo } from '../../lib/media/videoCompressor';
+import { useOverlayOpen } from '../../app/useOverlayOpen';
 import { Panel } from '../../components/ui/Panel';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { Field } from '../../components/ui/Field';
@@ -31,20 +33,25 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
   onClose,
   onSuccess
 }) => {
+  useOverlayOpen(true);
   const navigate = useNavigate();
   const [selectedSessionId, setSelectedSessionId] = useState<string>(
     initialSessionId || (sessions[0]?.id || '')
   );
   const [files, setFiles] = useState<File[]>([]);
-  const [formatWarning, setFormatWarning] = useState<string | null>(null);
-  const [warningIgnored, setWarningIgnored] = useState<boolean>(false);
-  const [checkingFormat, setCheckingFormat] = useState<boolean>(false);
 
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [currentFileIndex, setCurrentFileIndex] = useState<number>(0);
   const [progressPercent, setProgressPercent] = useState<number>(0);
   const [uploadStatus, setUploadStatus] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+
+  const isFolderMissing = type === 'video' && !style.videoFolderId;
+
+  // Preload GIS SDK immediately when dialog opens so token requests don't require an async network script fetch inside tap
+  useEffect(() => {
+    void loadGisScript();
+  }, []);
 
   // Prevent accidental tab closure while uploading
   useEffect(() => {
@@ -60,8 +67,6 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
-    setFormatWarning(null);
-    setWarningIgnored(false);
 
     if (e.target.files && e.target.files.length > 0) {
       const selected = Array.from(e.target.files);
@@ -79,31 +84,20 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
       }
 
       setFiles(selected);
-      if (type === 'video') {
-        // Reads the codec out of the file, so Upload stays disabled until the answer is in.
-        setCheckingFormat(true);
-        void Promise.all(selected.map(f => videoFormatWarning(f)))
-          .then(warnings => {
-            const first = warnings.find(Boolean);
-            if (first) setFormatWarning(first);
-          })
-          .catch(() => {
-            // An unreadable file simply gets no codec warning; the upload itself reports real problems.
-          })
-          .finally(() => setCheckingFormat(false));
-      }
     }
   };
 
   const removeFile = (idxToRemove: number) => {
     setFiles(prev => prev.filter((_, idx) => idx !== idxToRemove));
-    if (files.length <= 1) {
-      setFormatWarning(null);
-    }
   };
 
   const handleStartUpload = async () => {
-    if (files.length === 0 || !selectedSessionId) return;
+    if (files.length === 0 || !selectedSessionId || isFolderMissing) return;
+
+    // 1. Get OAuth access token synchronously inside the user tap event before ANY await
+    // This preserves user activation gesture context in Safari on iOS
+    const tokenPromise = getAccessToken();
+
     setIsUploading(true);
     setError(null);
     setProgressPercent(0);
@@ -116,19 +110,31 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
         wakeLock = await (navigator as any).wakeLock.request('screen').catch(() => null);
       }
 
-      // 1. Get OAuth access token
-      const token = await getAccessToken();
+      const token = await tokenPromise;
 
       // 2. Fetch target folder details from API
       setUploadStatus('Resolving Google Drive destination folder...');
       const target = (await api.post<ClassFolderTarget>('videos.targetFolder', { sessionId: selectedSessionId })).data;
-      if (!target.videoMasterFolderId && !target.eventFolderId) {
-        throw new Error('Set the video master folder on the Events page first.');
+      const grantFolder = target.videoMasterFolderId || target.eventFolderId;
+      if (!grantFolder) {
+        throw new Error(`Class lead video folder link not inserted for ${style.name}. Insert it on the Media page first.`);
       }
 
-      // 3. One-time Picker grant on the video master folder (drive.file scope)
-      const grantFolder = target.eventFolderId || target.videoMasterFolderId;
-      if (!hasPickerGrant(grantFolder)) {
+      // 3. Verify access to the class lead folder with real files.get check
+      setUploadStatus('Verifying Google Drive folder access...');
+      const hasAccess = await checkFolderAccess(token, grantFolder);
+      if (!hasAccess) {
+        const isCoarsePointer =
+          typeof window !== 'undefined' &&
+          window.matchMedia &&
+          window.matchMedia('(pointer: coarse)').matches;
+
+        if (isCoarsePointer) {
+          throw new Error(
+            `This class lead folder isn't authorized yet. Open the Media page on a computer once and tap AUTHORIZE for ${style.name}.`
+          );
+        }
+
         setUploadStatus('Authorizing folder access via Google Picker...');
         try {
           await pickFolder(token, grantFolder);
@@ -137,16 +143,26 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
         }
       }
 
-      // 4. Video master › event › class (› Music)
+      // 4. Video style › event › class (› Music)
       setUploadStatus('Ensuring Drive subfolders exist...');
       const folders = await ensureClassFolder(token, target, type);
       const parentFolderId = folders.musicFolderId || folders.classFolderId;
 
-      // 5. Upload files sequentially
+      // 5. Upload files sequentially with client-side compression for videos
       for (let i = 0; i < files.length; i++) {
-        const curFile = files[i];
+        let curFile = files[i];
         setCurrentFileIndex(i);
         const prefix = files.length > 1 ? `[${i + 1}/${files.length}] ` : '';
+
+        if (type === 'video') {
+          setUploadStatus(`${prefix}Checking and compressing video...`);
+          const compResult = await compressVideo(curFile, {
+            onProgress: (pct) => setProgressPercent(pct),
+            onStatus: (st) => setUploadStatus(`${prefix}${st}`)
+          });
+          curFile = compResult.file;
+        }
+
         setUploadStatus(`${prefix}Uploading ${curFile.name} to Google Drive...`);
         setProgressPercent(0);
 
@@ -199,7 +215,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
   const totalBytes = files.reduce((acc, f) => acc + f.size, 0);
 
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-start justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/80 z-[var(--z-modal,50)] flex items-start justify-center p-4 overflow-y-auto">
       <div className="w-full max-w-lg my-auto py-4">
         <Panel
           title={type === 'video' ? 'UPLOAD CLASS RECAP VIDEO(S)' : 'UPLOAD CLASS MP3 MUSIC'}
@@ -211,6 +227,19 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
               className="bg-[var(--violet-2)] border-2 border-[var(--neon-red)] p-3 text-[var(--neon-red)] font-bold text-xs"
             >
               {error}
+            </div>
+          )}
+
+          {isFolderMissing && (
+            <div
+              role="alert"
+              data-testid="missing-video-folder-alert"
+              className="p-3 bg-[var(--violet-2)] border-2 border-[var(--neon-orange)] text-[var(--neon-orange)] font-bold text-xs flex items-center gap-2"
+            >
+              <span>⚠</span>
+              <span>
+                Class lead video folder link not inserted for {style.name}. Insert it on the Media page first.
+              </span>
             </div>
           )}
 
@@ -306,33 +335,6 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
             </div>
           )}
 
-          {/* Video Format Warning Alert */}
-          {formatWarning && !warningIgnored && (
-            <div className="p-3 bg-[var(--violet-2)] border-2 border-[var(--neon-orange)] text-[var(--text-1)] space-y-2 text-xs">
-              <p className="font-bold text-[var(--neon-gold)]">VIDEO FORMAT WARNING</p>
-              <p>{formatWarning}</p>
-              <div className="flex gap-2 pt-1">
-                <PixelButton
-                  size="md"
-                  variant="primary"
-                  onClick={() => setWarningIgnored(true)}
-                >
-                  CONTINUE ANYWAY
-                </PixelButton>
-                <PixelButton
-                  size="md"
-                  variant="secondary"
-                  onClick={() => {
-                    setFiles([]);
-                    setFormatWarning(null);
-                  }}
-                >
-                  CHOOSE OTHER FILES
-                </PixelButton>
-              </div>
-            </div>
-          )}
-
           {/* Upload Progress Bar */}
           {isUploading && (
             <div className="p-4 bg-[var(--night-1)] border-2 border-[var(--outline)] space-y-2">
@@ -357,7 +359,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
                 </div>
               )}
               <div className="p-2 bg-[var(--neon-gold)] border border-[var(--outline)] text-center font-display text-[10px] text-[var(--on-neon)] font-bold animate-pulse">
-                UPLOADING TO GOOGLE DRIVE · SCREEN WAKE LOCK ACTIVE
+                KEEP THIS SCREEN OPEN UNTIL UPLOAD FINISHES · SCREEN WAKE LOCK ACTIVE
               </div>
             </div>
           )}
@@ -376,7 +378,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
               size="md"
               variant="primary"
               className="flex-1"
-              disabled={isUploading || checkingFormat || files.length === 0 || (Boolean(formatWarning) && !warningIgnored)}
+              disabled={isUploading || files.length === 0 || isFolderMissing}
               onClick={handleStartUpload}
             >
               {isUploading

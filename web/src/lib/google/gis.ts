@@ -35,22 +35,10 @@ export function loadGisScript(): Promise<void> {
 let cachedToken: string | null = null;
 let tokenExpiresAt = 0;
 
-export async function getAccessToken(opts?: { prompt?: '' | 'consent' }): Promise<string> {
-  const now = Date.now();
-  // Reuse token if still valid for > 60 seconds and no explicit consent prompt requested
-  if (cachedToken && tokenExpiresAt - now > 60000 && !opts?.prompt) {
-    return cachedToken;
-  }
-
-  await loadGisScript();
-
-  if (!window.google?.accounts?.oauth2) {
-    throw new Error('Google Identity Services SDK is unavailable');
-  }
-
+function initAndRequestToken(opts?: { prompt?: '' | 'consent' }): Promise<string> {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   if (!clientId) {
-    throw new Error('VITE_GOOGLE_CLIENT_ID environment variable is missing');
+    return Promise.reject(new Error('VITE_GOOGLE_CLIENT_ID environment variable is missing'));
   }
 
   return new Promise((resolve, reject) => {
@@ -80,5 +68,26 @@ export async function getAccessToken(opts?: { prompt?: '' | 'consent' }): Promis
     } catch (err) {
       reject(err);
     }
+  });
+}
+
+export function getAccessToken(opts?: { prompt?: '' | 'consent' }): Promise<string> {
+  const now = Date.now();
+  // Reuse token if still valid for > 60 seconds and no explicit consent prompt requested
+  if (cachedToken && tokenExpiresAt - now > 60000 && !opts?.prompt) {
+    return Promise.resolve(cachedToken);
+  }
+
+  // If GIS is already loaded (e.g. preloaded on mount), invoke requestAccessToken synchronously
+  // so iOS Safari does not block popup windows due to loss of user activation gesture context.
+  if (window.google?.accounts?.oauth2) {
+    return initAndRequestToken(opts);
+  }
+
+  return loadGisScript().then(() => {
+    if (!window.google?.accounts?.oauth2) {
+      throw new Error('Google Identity Services SDK is unavailable');
+    }
+    return initAndRequestToken(opts);
   });
 }

@@ -181,5 +181,61 @@
     ```
 - **Differences from plan / Unsure:** none.
 
+---
+
+## Task 5: UploadDialog Video Upload Gating & mediabunny WebCodecs Video Compression
+
+- **Commit hash:** (pending commit)
+- **What was changed & why:**
+  - Installed `mediabunny` (v1.61.1, MPL-2.0 license).
+  - Implemented `web/src/lib/media/videoCompressor.ts`:
+    - Lazily loads `mediabunny` via dynamic `import('mediabunny')` so initial bundle size is unaffected.
+    - Evaluates `file.size < 60 MB && isMp4 && detectVideoCodec(file) === 'h264'`: skips re-compression if the file is already small H.264 MP4.
+    - Transcodes videos using WebCodecs into H.264 (`avc`), scaling down long side to max 1280px (even pixel bounds), max 30 fps, ~2.5 Mbps bitrate.
+    - Copies AAC audio track with zero quality loss or audio drift (`copy: { mode: 'preferred' }`), verifying that audio tracks are never dropped silently.
+    - Falls back gracefully to original file if `VideoEncoder` is unsupported or conversion throws, logging reason and allowing Drive Player fallback.
+  - Updated `web/src/lib/google/gis.ts`:
+    - Refactored `getAccessToken` so that when GIS is already loaded, `requestAccessToken()` executes synchronously on the user tap's stack frame without intermediate `await` or microtask ticks, preserving Safari iOS user activation context.
+  - Updated `web/src/features/media/UploadDialog.tsx`:
+    - Preloads GIS script on dialog mount (`useEffect` -> `loadGisScript()`).
+    - In `handleStartUpload`, invokes `getAccessToken()` synchronously before requesting `wakeLock`.
+    - Access check: calls `checkFolderAccess(token, grantFolder)` against the class lead folder. If 403/404 on touch devices (`matchMedia('(pointer: coarse)')`), shows instructions to authorize on computer and aborts without opening Picker. On desktop, opens Google Picker.
+    - Upload gating: if active style has no `videoFolderId`, displays `⚠ Class lead video folder link not inserted for <style>. Insert it on the Media page first.` and disables `START UPLOAD`.
+    - Removed blocking `videoFormatWarning` / `window.confirm` HEVC warning.
+    - Compresses video files with progress feedback and displays "KEEP THIS SCREEN OPEN UNTIL UPLOAD FINISHES · SCREEN WAKE LOCK ACTIVE".
+  - Configured `web/vite.config.ts` with `manualChunks: { mediabunny }` to guarantee strict bundle isolation.
+  - Added unit tests:
+    - `web/src/lib/media/videoCompressor.test.ts` (5 tests covering skip, compress, and fallbacks).
+    - `web/src/features/media/UploadDialog.test.tsx` (6 tests covering gating, synchronous token call, coarse/fine pointer access check, and compression).
+- **Lazy loading verification:**
+  - Standalone chunk: `dist/assets/mediabunny-CdOs27BB.js` (740.23 kB │ gzip: 187.76 kB).
+  - Main entry: `dist/assets/index-Cgx7jg4I.js` (762.90 kB │ gzip: 206.93 kB).
+  - Main bundle loads `mediabunny` on demand via `await import("./mediabunny-CdOs27BB.js")`. It is never loaded on dancer or calendar routes.
+- **Command output:**
+  - `cd web; npx playwright test e2e/phone-layout.spec.ts` (Run 1):
+    ```
+    12 passed (1.3m)
+    ```
+  - `cd web; npx playwright test e2e/phone-layout.spec.ts` (Run 2):
+    ```
+    12 passed (1.3m)
+    ```
+  - `npm test`:
+    ```
+    Test Files  42 passed (42) in api
+    Tests  307 passed (307) in api
+    Test Files  47 passed (47) in web
+    Tests  249 passed (249) in web
+    Total: 89 passed (556 passed)
+    ```
+  - `npm run build`:
+    ```
+    dist/assets/mediabunny-CdOs27BB.js  740.23 kB │ gzip: 187.76 kB
+    dist/assets/index-Cgx7jg4I.js       762.90 kB │ gzip: 206.93 kB
+    ✓ built in 6.99s
+    ```
+- **Differences from plan / Unsure:** none.
+
+
 
 

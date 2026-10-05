@@ -1,24 +1,52 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { ClassSession, DanceStyle } from '@umdsc/shared';
 import { UploadDialog } from './UploadDialog';
 
-vi.mock('../../lib/api', () => ({ api: { post: vi.fn() }, errorMessage: (e: unknown) => String(e) }));
-vi.mock('../../lib/google/gis', () => ({ getAccessToken: vi.fn() }));
-vi.mock('../../lib/google/picker', () => ({ pickFolder: vi.fn(), hasPickerGrant: vi.fn(() => false) }));
-vi.mock('../../lib/google/driveFolders', () => ({ ensureClassFolder: vi.fn() }));
+const mockPost = vi.fn();
+const mockGetAccessToken = vi.fn();
+const mockLoadGisScript = vi.fn();
+const mockPickFolder = vi.fn();
+const mockCheckFolderAccess = vi.fn();
+const mockEnsureClassFolder = vi.fn();
+const mockUploadResumable = vi.fn();
+const mockMakePublic = vi.fn();
+const mockCompressVideo = vi.fn();
 
-const style = { id: 'st1', name: 'Locking', videoFolderId: 'f1' } as DanceStyle;
+vi.mock('../../lib/api', () => ({
+  api: { post: (...args: any[]) => mockPost(...args) },
+  errorMessage: (e: any) => e?.message || String(e)
+}));
+
+vi.mock('../../lib/google/gis', () => ({
+  loadGisScript: () => mockLoadGisScript(),
+  getAccessToken: () => mockGetAccessToken()
+}));
+
+vi.mock('../../lib/google/picker', () => ({
+  pickFolder: (...args: any[]) => mockPickFolder(...args),
+  checkFolderAccess: (...args: any[]) => mockCheckFolderAccess(...args)
+}));
+
+vi.mock('../../lib/google/driveFolders', () => ({
+  ensureClassFolder: (...args: any[]) => mockEnsureClassFolder(...args)
+}));
+
+vi.mock('../../lib/google/resumableUpload', () => ({
+  uploadResumable: (...args: any[]) => mockUploadResumable(...args),
+  makePublic: (...args: any[]) => mockMakePublic(...args)
+}));
+
+vi.mock('../../lib/media/videoCompressor', () => ({
+  compressVideo: (...args: any[]) => mockCompressVideo(...args)
+}));
+
+const styleWithLink = { id: 'st1', name: 'Locking', videoFolderId: 'folder_locking' } as DanceStyle;
+const styleWithoutLink = { id: 'st2', name: 'Popping', videoFolderId: '' } as DanceStyle;
 const sessions = [{ id: 's1', date: '2026-10-15', seq: 1, styleId: 'st1', eventId: 'e1' }] as ClassSession[];
 
-function mp4With(marker: string) {
-  const bytes = new Uint8Array(2048);
-  bytes.set(new TextEncoder().encode(marker), 700);
-  return new File([bytes], 'class.mp4', { type: 'video/mp4' });
-}
-
-function renderDialog() {
+function renderDialog(style: DanceStyle = styleWithLink) {
   return render(
     <MemoryRouter>
       <UploadDialog
@@ -39,23 +67,170 @@ const chooseFile = (file: File) =>
     target: { files: [file] }
   });
 
-describe('UploadDialog HEVC warning (warns, never blocks)', () => {
-  it('warns about an HEVC mp4 and still lets the admin continue', async () => {
-    renderDialog();
-    chooseFile(mp4With('hvc1'));
+describe('UploadDialog Gating and Video Compression', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetAccessToken.mockResolvedValue('fake-access-token');
+    mockPost.mockResolvedValue({
+      data: {
+        videoMasterFolderId: 'folder_locking',
+        eventFolderId: 'event_subfolder_id'
+      }
+    });
+    mockCheckFolderAccess.mockResolvedValue(true);
+    mockEnsureClassFolder.mockResolvedValue({
+      eventFolderId: 'event_subfolder_id',
+      classFolderId: 'class_subfolder_id'
+    });
+    mockUploadResumable.mockResolvedValue({ id: 'uploaded_file_id' });
+    mockMakePublic.mockResolvedValue(undefined);
+    mockCompressVideo.mockImplementation(async (file: File) => ({
+      file,
+      compressed: false
+    }));
 
-    expect(await screen.findByText(/This video is H\.265\/HEVC/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'START UPLOAD' })).toBeDisabled();
-
-    fireEvent.click(screen.getByRole('button', { name: 'CONTINUE ANYWAY' }));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'START UPLOAD' })).toBeEnabled());
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn()
+    }));
   });
 
-  it('shows no warning for an H.264 mp4', async () => {
-    renderDialog();
-    chooseFile(mp4With('avc1'));
+  it('disables START UPLOAD and displays warning when dance style has no videoFolderId', async () => {
+    renderDialog(styleWithoutLink);
+    const file = new File([new Uint8Array(100)], 'test.mp4', { type: 'video/mp4' });
+    chooseFile(file);
 
-    await waitFor(() => expect(screen.getByRole('button', { name: 'START UPLOAD' })).toBeEnabled());
-    expect(screen.queryByText(/H\.265\/HEVC/)).toBeNull();
+    expect(screen.getByTestId('missing-video-folder-alert')).toBeInTheDocument();
+    expect(screen.getByText(/Class lead video folder link not inserted for Popping/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'START UPLOAD' })).toBeDisabled();
+  });
+
+  it('calls getAccessToken before awaiting wakeLock', async () => {
+    const callOrder: string[] = [];
+    mockGetAccessToken.mockImplementation(() => {
+      callOrder.push('getAccessToken');
+      return Promise.resolve('token-123');
+    });
+
+    let wakeLockResolve: any;
+    const wakeLockPromise = new Promise((res) => {
+      wakeLockResolve = res;
+    });
+
+    (navigator as any).wakeLock = {
+      request: vi.fn().mockImplementation(() => {
+        callOrder.push('wakeLock.request');
+        wakeLockResolve({ release: vi.fn().mockResolvedValue(undefined) });
+        return wakeLockPromise;
+      })
+    };
+
+    renderDialog(styleWithLink);
+    const file = new File([new Uint8Array(100)], 'test.mp4', { type: 'video/mp4' });
+    chooseFile(file);
+
+    fireEvent.click(screen.getByRole('button', { name: 'START UPLOAD' }));
+
+    // getAccessToken must be called immediately, before wakeLock promise resolves
+    expect(callOrder[0]).toBe('getAccessToken');
+    await waitFor(() => expect(mockUploadResumable).toHaveBeenCalled());
+  });
+
+  it('files.get 200 -> skips Google Picker', async () => {
+    mockCheckFolderAccess.mockResolvedValue(true);
+
+    renderDialog(styleWithLink);
+    const file = new File([new Uint8Array(100)], 'test.mp4', { type: 'video/mp4' });
+    chooseFile(file);
+
+    fireEvent.click(screen.getByRole('button', { name: 'START UPLOAD' }));
+
+    await waitFor(() => expect(mockUploadResumable).toHaveBeenCalled());
+    expect(mockCheckFolderAccess).toHaveBeenCalledWith('fake-access-token', 'folder_locking');
+    expect(mockPickFolder).not.toHaveBeenCalled();
+  });
+
+  it('files.get 404 + coarse pointer -> shows authorize message, does not call Picker', async () => {
+    mockCheckFolderAccess.mockResolvedValue(false);
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query.includes('pointer: coarse'),
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn()
+    }));
+
+    renderDialog(styleWithLink);
+    const file = new File([new Uint8Array(100)], 'test.mp4', { type: 'video/mp4' });
+    chooseFile(file);
+
+    fireEvent.click(screen.getByRole('button', { name: 'START UPLOAD' }));
+
+    expect(
+      await screen.findByText(
+        /This class lead folder isn't authorized yet. Open the Media page on a computer once and tap AUTHORIZE for Locking./
+      )
+    ).toBeInTheDocument();
+    expect(mockPickFolder).not.toHaveBeenCalled();
+    expect(mockUploadResumable).not.toHaveBeenCalled();
+  });
+
+  it('files.get 404 + fine pointer -> calls Google Picker', async () => {
+    mockCheckFolderAccess.mockResolvedValue(false);
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn()
+    }));
+
+    renderDialog(styleWithLink);
+    const file = new File([new Uint8Array(100)], 'test.mp4', { type: 'video/mp4' });
+    chooseFile(file);
+
+    fireEvent.click(screen.getByRole('button', { name: 'START UPLOAD' }));
+
+    await waitFor(() => expect(mockPickFolder).toHaveBeenCalledWith('fake-access-token', 'folder_locking'));
+    await waitFor(() => expect(mockUploadResumable).toHaveBeenCalled());
+  });
+
+  it('compresses video and passes compressed file to uploadResumable', async () => {
+    const originalFile = new File([new Uint8Array(200)], 'huge.mov', { type: 'video/quicktime' });
+    const compressedFile = new File([new Uint8Array(50)], 'huge.mp4', { type: 'video/mp4' });
+
+    mockCompressVideo.mockResolvedValue({
+      file: compressedFile,
+      compressed: true,
+      originalSize: 200,
+      newSize: 50
+    });
+
+    renderDialog(styleWithLink);
+    chooseFile(originalFile);
+
+    fireEvent.click(screen.getByRole('button', { name: 'START UPLOAD' }));
+
+    await waitFor(() => expect(mockCompressVideo).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(mockUploadResumable).toHaveBeenCalledWith(
+        expect.objectContaining({
+          file: compressedFile,
+          name: 'huge.mp4'
+        })
+      )
+    );
   });
 });
