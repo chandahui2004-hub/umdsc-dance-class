@@ -92,7 +92,7 @@
 
 ## Task 3 — Shared Modal Vertical Scroll Clipping Fix
 
-- **Commit:** pending (`fix(ui): eliminate modal scroll clipping on mobile and small screens`)
+- **Commit:** `d770f57` (`fix(ui): eliminate modal scroll clipping on mobile and small screens`)
 - **Files touched:**
   - `web/src/features/masterdata/StylesPage.tsx`
   - `web/src/features/masterdata/InstructorsPage.tsx`
