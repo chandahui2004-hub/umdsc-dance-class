@@ -4,6 +4,16 @@ import { PixelButton } from '../../components/ui/PixelButton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { formatDayLabel } from '../../lib/time';
 
+const FULL_NAMES_KEY = 'umdsc:rosterFullNames';
+
+function readFullNamesPref(): boolean {
+  try {
+    return localStorage.getItem(FULL_NAMES_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 export interface RosterMember {
   memberId: string;
   fullName: string;
@@ -32,6 +42,19 @@ export const RosterList: React.FC<RosterListProps> = ({
   listClassName
 }) => {
   const [search, setSearch] = useState('');
+  // Phones are narrow: long names are shortened unless the user asks to see them in full.
+  const [showFullNames, setShowFullNames] = useState<boolean>(readFullNamesPref);
+  const toggleFullNames = () => {
+    setShowFullNames(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem(FULL_NAMES_KEY, next ? '1' : '0');
+      } catch {
+        // Private mode: the choice just isn't remembered.
+      }
+      return next;
+    });
+  };
 
   const activeSession = useMemo(
     () => sessions.find((s) => s.id === activeSessionId) || sessions[0] || null,
@@ -104,6 +127,15 @@ export const RosterList: React.FC<RosterListProps> = ({
         </div>
       </div>
 
+      <button
+        type="button"
+        onClick={toggleFullNames}
+        aria-pressed={showFullNames}
+        className="w-full min-h-[44px] px-3 border-2 border-[var(--outline)] font-display text-[10px] uppercase bg-[var(--violet-2)] text-[var(--text-1)] cursor-pointer active:translate-y-px"
+      >
+        {showFullNames ? '▲ SHORT NAMES' : '▼ SHOW FULL NAMES'}
+      </button>
+
       {/* Roster Dancers List with scrollbar */}
       <div
         className={
@@ -125,12 +157,19 @@ export const RosterList: React.FC<RosterListProps> = ({
               <div
                 key={m.memberId}
                 data-member-id={m.memberId}
-                className={`p-3 border-2 border-[var(--outline)] flex items-center justify-between gap-3 shadow-[2px_2px_0_var(--outline)] transition-none min-h-[56px] ${
+                data-testid={`roster-row-${m.memberId}`}
+                className={`p-3 border-2 border-[var(--outline)] flex gap-3 shadow-[2px_2px_0_var(--outline)] transition-none min-h-[56px] ${
+                  showFullNames ? 'flex-col items-stretch' : 'items-center justify-between'
+                } ${
                   isPresent ? 'bg-[var(--violet-2)]' : 'bg-[var(--night-2)]'
                 }`}
               >
                 <div className="min-w-0 flex-1">
-                  <h4 className="font-display text-[12px] text-[var(--text-1)] truncate font-bold">
+                  <h4
+                    className={`font-display text-[12px] text-[var(--text-1)] font-bold ${
+                      showFullNames ? 'whitespace-normal break-words leading-relaxed' : 'truncate'
+                    }`}
+                  >
                     {m.fullName}
                   </h4>
                   <p className="font-mono text-[12px] text-[var(--text-2)]">
@@ -138,7 +177,7 @@ export const RosterList: React.FC<RosterListProps> = ({
                   </p>
                 </div>
 
-                <div className="flex-shrink-0">
+                <div className={showFullNames ? 'w-full [&>button]:w-full' : 'flex-shrink-0'}>
                   <PixelButton
                     size="md"
                     disabled={readOnly}
