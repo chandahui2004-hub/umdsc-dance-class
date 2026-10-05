@@ -103,7 +103,7 @@ test.describe('Admin Media Page', () => {
       .toMatchObject({ url: SPOTIFY, chosenYoutubeId: 'aaaaaaaaaaa', styleId: 'style-hiphop', eventId: 'evt-oct' });
   });
 
-  test('.mov video file selection shows format warning', async ({ page }) => {
+  test('.mov video file selection does not block upload with format warning', async ({ page }) => {
     await mockApi(page, BASE);
     await page.goto('/admin/media');
     await expect(page.getByRole('heading', { name: /Media Management/i })).toBeVisible();
@@ -113,8 +113,8 @@ test.describe('Admin Media Page', () => {
       mimeType: 'video/quicktime',
       buffer: Buffer.from('fake-video-content')
     });
-    await expect(page.getByText(/QuickTime \(\.mov\) or HEVC video/i)).toBeVisible();
-    await expect(page.getByRole('button', { name: /CONTINUE ANYWAY/i })).toBeVisible();
+    await expect(page.getByText(/QuickTime \(\.mov\) or HEVC video/i)).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^START UPLOAD/i })).toBeEnabled();
   });
 
   test('upload flow calls videos.register with the new file and event folder', async ({ page }) => {

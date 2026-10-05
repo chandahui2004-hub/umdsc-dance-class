@@ -62,13 +62,16 @@ test.describe('Admin Events page', () => {
 
   test('a folder that could not be moved is listed with a retry hint', async ({ page }) => {
     await mockApi(page, {
+      'events.list': () => EVENTS,
+      'styles.list': () => [],
       'settings.get': () => ({ defaultAttendanceFolderId: 'fld-master-a' }),
       'settings.setLink': () => ({
         key: 'defaultAttendanceFolderId', value: 'fld-master-b', moved: 1, created: 0, reused: 0,
         failed: [{ eventName: 'OCT MONTHLY CLASS', message: 'Access denied' }]
       })
     });
-    await page.goto('/admin/events');
+    await page.goto('/admin/attendance');
+    await page.waitForLoadState('networkidle');
     await page.getByRole('button', { name: /CHANGE ATTENDANCE FOLDER/i }).click();
     await page.getByLabel(/Attendance master folder link/i).fill('fld-master-b');
     await page.getByRole('button', { name: /^SAVE$/i }).click();
@@ -78,10 +81,13 @@ test.describe('Admin Events page', () => {
 
   test('changing the attendance master folder reports moved folders', async ({ page }) => {
     const calls = await mockApi(page, {
+      'events.list': () => EVENTS,
+      'styles.list': () => [],
       'settings.get': () => ({ defaultAttendanceFolderId: 'fld-master-a' }),
       'settings.setLink': () => ({ key: 'defaultAttendanceFolderId', value: 'fld-master-b', moved: 2, created: 0, reused: 1 })
     });
-    await page.goto('/admin/events');
+    await page.goto('/admin/attendance');
+    await page.waitForLoadState('networkidle');
     await page.getByRole('button', { name: /CHANGE ATTENDANCE FOLDER/i }).click();
     await page.getByLabel(/Attendance master folder link/i).fill('https://drive.google.com/drive/folders/fld-master-b');
     await page.getByRole('button', { name: /^SAVE$/i }).click();
