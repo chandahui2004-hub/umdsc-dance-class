@@ -261,9 +261,11 @@ export const InstructorsPage: React.FC = () => {
         return await api.post('instructors.update', payload, { opId: newOpId() });
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['instructors'] });
-      queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['instructors'] }),
+        queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] })
+      ]);
       closeForm();
     },
     onError: (err) => {
@@ -275,9 +277,11 @@ export const InstructorsPage: React.FC = () => {
     mutationFn: async (inst: Instructor) => {
       return await api.post('instructors.delete', { id: inst.id, version: inst.version }, { opId: newOpId() });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['instructors'] });
-      queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['instructors'] }),
+        queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] })
+      ]);
     },
     onError: (err) => {
       setFormError('Failed to delete instructor: ' + errorMessage(err));

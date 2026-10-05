@@ -20,10 +20,10 @@ export const ResetTestDataPanel: React.FC = () => {
 
   const reset = useMutation({
     mutationFn: async () => (await call<{ backupSpreadsheetId: string }>('admin.resetTestData', { confirm: typed })).data,
-    onSuccess: r => {
+    onSuccess: async r => {
+      await queryClient.invalidateQueries();
       setError(null);
       setBackupId(r.backupSpreadsheetId);
-      queryClient.invalidateQueries();
     },
     onError: err => setError(errorMessage(err))
   });

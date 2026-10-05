@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { loginAsAdmin, mockApi, makeEvent } from './fixtures/mockApi';
+import { loginAsAdmin, mockApi, makeEvent, API_URL_REGEX } from './fixtures/mockApi';
 import { adminBootstrap } from './fixtures/mockData';
 
 const STYLES = [
@@ -80,6 +80,54 @@ test.describe('Admin Attendance Page', () => {
     await expect.poll(() => calls.find(c => c.action === 'attendance.mark')?.payload?.marks).toContainEqual(
       expect.objectContaining({ memberId: 'm-2', sessionId: 'ses-1', present: true })
     );
+  });
+
+  test('submit waits for the saved ticks: the old 0 count never flashes', async ({ page }) => {
+    let serverPresent: Record<string, string[]> = { 'm-1': [], 'm-2': [] };
+    let version = 1;
+    let submitted = false;
+    await mockApi(page, {
+      'events.list': () => [EVENT],
+      'styles.list': () => STYLES,
+      'attendance.get': () => ({ ...GRID, version, present: serverPresent }),
+      'attendance.mark': p => {
+        submitted = true;
+        const next = { ...serverPresent };
+        for (const m of p.marks) {
+          const cur = next[m.memberId] || [];
+          next[m.memberId] = m.present ? [...cur, m.sessionId] : cur.filter((s: string) => s !== m.sessionId);
+        }
+        serverPresent = next;
+        version += 1;
+        return markOk(p);
+      }
+    });
+    // Google Sheets is slow: the reload after submit takes a while
+    await page.route(API_URL_REGEX, async route => {
+      const body = JSON.parse(route.request().postData() || '{}');
+      if (submitted && body.action === 'attendance.get') await new Promise(r => setTimeout(r, 1500));
+      return route.fallback();
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/admin/attendance');
+
+    await expect(page.getByText(/SCORE 0\/2/i)).toBeVisible();
+    await page.getByRole('button', { name: /^EDIT$/ }).click();
+    await page.locator('[data-member-id="m-1"]').getByRole('button', { name: /ABSENT/i }).click();
+    await page.locator('[data-member-id="m-2"]').getByRole('button', { name: /ABSENT/i }).click();
+    await expect(page.getByText(/SCORE 2\/2/i)).toBeVisible();
+
+    await page.evaluate(() => {
+      (window as any).__sawZero = false;
+      new MutationObserver(() => {
+        if (/SCORE 0\/2/i.test(document.body.textContent || '')) (window as any).__sawZero = true;
+      }).observe(document.body, { subtree: true, childList: true, characterData: true });
+    });
+    await page.getByRole('button', { name: /^SUBMIT$/ }).click();
+    await expect(page.getByText(/SAVING TO GOOGLE SHEET/i)).toBeVisible();
+    await expect(page.getByText(/SAVED ATTENDANCE/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/SCORE 2\/2/i)).toBeVisible();
+    expect(await page.evaluate(() => (window as any).__sawZero)).toBe(false);
   });
 
   test('desktop attendance grid renders at 1440 with sticky name column', async ({ page }) => {

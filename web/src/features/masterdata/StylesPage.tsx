@@ -137,9 +137,11 @@ export const StylesPage: React.FC = () => {
         return await api.post('styles.update', payload);
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['styles'] });
-      queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['styles'] }),
+        queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] })
+      ]);
       closeForm();
     },
     onError: (err) => {
@@ -151,9 +153,11 @@ export const StylesPage: React.FC = () => {
     mutationFn: async (style: DanceStyle) => {
       return await api.post('styles.deactivate', { id: style.id, version: style.version });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['styles'] });
-      queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['styles'] }),
+        queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] })
+      ]);
     }
   });
 
@@ -278,13 +282,14 @@ export const StylesPage: React.FC = () => {
                   <PixelButton
                     size="md"
                     variant="danger"
+                    disabled={deactivateMutation.isPending}
                     onClick={() => {
                       if (confirm(`Deactivate style "${style.name}"?`)) {
                         deactivateMutation.mutate(style);
                       }
                     }}
                   >
-                    DEACTIVATE
+                    {deactivateMutation.isPending && deactivateMutation.variables?.id === style.id ? 'DEACTIVATING…' : 'DEACTIVATE'}
                   </PixelButton>
                 </div>
               </Panel>

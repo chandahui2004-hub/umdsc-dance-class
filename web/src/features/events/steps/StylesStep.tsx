@@ -37,12 +37,12 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
           videoFolderId: ''
         })
       ).data,
-    onSuccess: style => {
+    onSuccess: async style => {
+      await queryClient.invalidateQueries({ queryKey: ['styles'] });
       setError(null);
       setNewName('');
       setNewAliases('');
       setShowNew(false);
-      queryClient.invalidateQueries({ queryKey: ['styles'] });
       onChange({ styleIds: [...draft.styleIds, style.id] });
     },
     onError: err => setError(errorMessage(err))

@@ -62,9 +62,11 @@ export const ScanPanel: React.FC<ScanPanelProps> = ({
         title: name
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['videos'] });
-      refetch();
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['videos'] }),
+        refetch()
+      ]);
       onSuccess();
     },
     onError: (err) => {

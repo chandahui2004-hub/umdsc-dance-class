@@ -43,10 +43,9 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
 
   const sync = useMutation({
     mutationFn: async () => (await call<SyncResult>('events.sync', { id: event.id })).data,
-    onSuccess: r => {
+    onSuccess: async r => {
+      await Promise.all([refresh(), queryClient.invalidateQueries({ queryKey: ['members'] })]);
       setNote(r.message || `Synced: +${r.added} new, ${r.updated} updated`);
-      refresh();
-      queryClient.invalidateQueries({ queryKey: ['members'] });
     },
     onError
   });
@@ -58,9 +57,9 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
   });
   const recreate = useMutation({
     mutationFn: async () => call('events.recreateFolder', { id: event.id }),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await refresh();
       setNote('Folder recreated.');
-      refresh();
     },
     onError
   });
@@ -157,13 +156,13 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
                 }
               }}
             >
-              ARCHIVE
+              {setStatus.isPending ? 'ARCHIVING…' : 'ARCHIVE'}
             </PixelButton>
           </>
         )}
         {archived && (
           <PixelButton size="md" variant="secondary" disabled={setStatus.isPending} onClick={() => setStatus.mutate('events.unarchive')}>
-            UNARCHIVE
+            {setStatus.isPending ? 'UNARCHIVING…' : 'UNARCHIVE'}
           </PixelButton>
         )}
       </div>

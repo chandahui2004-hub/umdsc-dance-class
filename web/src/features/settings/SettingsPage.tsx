@@ -50,8 +50,8 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
         videoFolderUrl: folderUrl
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['styles'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['styles'] });
       setStatus({ text: 'VIDEO LINK UPDATED!', type: 'success' });
       setUrl('');
     },
@@ -68,8 +68,8 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
         activateVideoFolderId: folderId
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['styles'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['styles'] });
       setStatus({ text: 'FOLDER ACTIVATED!', type: 'success' });
     },
     onError: (err) => {
@@ -85,8 +85,8 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
         removeVideoFolderId: folderId
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['styles'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['styles'] });
       setStatus({ text: 'FOLDER REMOVED!', type: 'success' });
     },
     onError: (err) => {
@@ -180,7 +180,7 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
                       disabled={activateFolderMutation.isPending}
                       onClick={() => activateFolderMutation.mutate(folder.id)}
                     >
-                      ACTIVATE
+                      {activateFolderMutation.isPending && activateFolderMutation.variables === folder.id ? 'ACTIVATING…' : 'ACTIVATE'}
                     </PixelButton>
                   )}
                   <PixelButton
@@ -189,7 +189,7 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
                     disabled={removeFolderMutation.isPending}
                     onClick={() => removeFolderMutation.mutate(folder.id)}
                   >
-                    REMOVE
+                    {removeFolderMutation.isPending && removeFolderMutation.variables === folder.id ? 'REMOVING…' : 'REMOVE'}
                   </PixelButton>
                 </div>
               </div>
@@ -268,9 +268,11 @@ export const SettingsPage: React.FC = () => {
     mutationFn: async ({ key, url }: { key: string; url: string }) => {
       return await api.post('settings.setLink', { key, url });
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['settings'] });
-      queryClient.invalidateQueries({ queryKey: ['links.history'] });
+    onSuccess: async (_, variables) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['settings'] }),
+        queryClient.invalidateQueries({ queryKey: ['links.history'] })
+      ]);
       setStatusMessage({
         key: variables.key,
         text: 'LINK UPDATED SUCCESSFULLY!',

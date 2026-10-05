@@ -22,7 +22,8 @@ interface UploadDialogProps {
   sessions: ClassSession[];
   initialSessionId?: string | null;
   onClose: () => void;
-  onSuccess: () => void;
+  /** Reloads the list; the dialog keeps its busy state until it resolves. */
+  onSuccess: () => unknown;
 }
 
 export const UploadDialog: React.FC<UploadDialogProps> = ({
@@ -237,8 +238,9 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
         }
       }
 
+      setUploadStatus('Refreshing the list...');
+      await onSuccess();
       setIsUploading(false);
-      onSuccess();
     } catch (err: any) {
       setIsUploading(false);
       setError(errorMessage(err) || err.message || 'Upload failed');

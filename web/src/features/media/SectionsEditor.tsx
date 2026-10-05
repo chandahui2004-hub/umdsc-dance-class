@@ -58,10 +58,12 @@ export const SectionsEditor: React.FC<SectionsEditorProps> = ({ music, onClose }
         endSec: totalEnd
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['sections', music.id] }),
+        refetch()
+      ]);
       setName('');
-      queryClient.invalidateQueries({ queryKey: ['sections', music.id] });
-      refetch();
     },
     onError: (err) => {
       setError(errorMessage(err));
@@ -72,9 +74,11 @@ export const SectionsEditor: React.FC<SectionsEditorProps> = ({ music, onClose }
     mutationFn: async ({ id, version }: { id: string; version: number }) => {
       return await api.post('sections.deactivate', { id, version });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sections', music.id] });
-      refetch();
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['sections', music.id] }),
+        refetch()
+      ]);
     },
     onError: (err) => {
       alert(errorMessage(err));
@@ -216,7 +220,7 @@ export const SectionsEditor: React.FC<SectionsEditorProps> = ({ music, onClose }
                         })
                       }
                     >
-                      DELETE
+                      {deleteMutation.isPending && deleteMutation.variables?.id === sec.id ? 'DELETING…' : 'DELETE'}
                     </PixelButton>
                   </div>
                 ))}

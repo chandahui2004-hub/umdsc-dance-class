@@ -88,9 +88,11 @@ export const RolesPage: React.FC = () => {
         });
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['roles'] });
-      queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['roles'] }),
+        queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] })
+      ]);
       closeForm();
     },
     onError: (err) => {
@@ -106,9 +108,11 @@ export const RolesPage: React.FC = () => {
         permissions: matrixPermissions
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['roles'] });
-      queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['roles'] }),
+        queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] })
+      ]);
       setSelectedRole(null);
     },
     onError: (err) => {
@@ -120,9 +124,11 @@ export const RolesPage: React.FC = () => {
     mutationFn: async (role: Role) => {
       return await api.post('roles.deactivate', { id: role.id, version: role.version });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['roles'] });
-      queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['roles'] }),
+        queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] })
+      ]);
     }
   });
 
@@ -238,13 +244,14 @@ export const RolesPage: React.FC = () => {
                   <PixelButton
                     size="md"
                     variant="danger"
+                    disabled={deactivateMutation.isPending}
                     onClick={() => {
                       if (confirm(`Deactivate role "${role.name}"?`)) {
                         deactivateMutation.mutate(role);
                       }
                     }}
                   >
-                    DEACTIVATE
+                    {deactivateMutation.isPending && deactivateMutation.variables?.id === role.id ? 'DEACTIVATING…' : 'DEACTIVATE'}
                   </PixelButton>
                 )}
               </div>

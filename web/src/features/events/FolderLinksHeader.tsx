@@ -31,7 +31,11 @@ const FolderRow: React.FC<{ folder: FolderSetting; value?: string }> = ({ folder
 
   const save = useMutation({
     mutationFn: async () => (await call<SetLinkResult>('settings.setLink', { key: folder.key, url: url.trim() })).data,
-    onSuccess: r => {
+    onSuccess: async r => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['settings'] }),
+        queryClient.invalidateQueries({ queryKey: ['events'] })
+      ]);
       setEditing(false);
       setError(null);
       setFailed(r.failed || []);
@@ -40,8 +44,6 @@ const FolderRow: React.FC<{ folder: FolderSetting; value?: string }> = ({ folder
           ? `Moved ${r.moved}, created ${r.created}, reused ${r.reused} event folders`
           : 'Saved.'
       );
-      queryClient.invalidateQueries({ queryKey: ['settings'] });
-      queryClient.invalidateQueries({ queryKey: ['events'] });
     },
     onError: err => setError(errorMessage(err))
   });

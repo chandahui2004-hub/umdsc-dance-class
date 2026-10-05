@@ -16,7 +16,8 @@ export interface SessionEditorProps {
   /** Event dates: the date picker only allows days inside the event. */
   minDate?: string;
   maxDate?: string;
-  onSaved: () => void;
+  /** Reloads the class list; the editor stays in SAVING until it resolves. */
+  onSaved: () => unknown;
 }
 
 export const SessionEditor: React.FC<SessionEditorProps> = ({
@@ -37,6 +38,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
   const [status, setStatus] = useState<'scheduled' | 'replacement' | 'cancelled'>('scheduled');
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Version conflict state
@@ -81,7 +83,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
         note
       });
 
-      onSaved();
+      await onSaved();
       onClose();
     } catch (err) {
       if (err instanceof ApiError && err.code === 'VERSION_CONFLICT') {
@@ -100,15 +102,17 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
       return;
     }
     setLoading(true);
+    setDeleting(true);
     setError(null);
     try {
       await call('sessions.delete', { id: session.id, version: session.version });
-      onSaved();
+      await onSaved();
       onClose();
     } catch (err) {
       setError(errorMessage(err));
     } finally {
       setLoading(false);
+      setDeleting(false);
     }
   };
 
@@ -310,7 +314,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
             disabled={loading}
             className="flex-1"
           >
-            {loading ? 'SAVING...' : 'SAVE CHANGES'}
+            {loading && !deleting ? 'SAVING...' : 'SAVE CHANGES'}
           </PixelButton>
 
           <PixelButton
@@ -332,7 +336,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
             onClick={handleDelete}
             disabled={loading}
           >
-            DELETE THIS CLASS
+            {deleting ? 'DELETING...' : 'DELETE THIS CLASS'}
           </PixelButton>
           <p className="font-body text-[12px] text-[var(--text-2)] mt-1">
             For a class added by mistake. To keep a class on the schedule but mark it as not

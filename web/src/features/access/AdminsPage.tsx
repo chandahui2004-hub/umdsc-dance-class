@@ -67,8 +67,8 @@ export const AdminsPage: React.FC = () => {
         roleId
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admins'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admins'] });
       closeModals();
     },
     onError: (err) => {
@@ -85,8 +85,8 @@ export const AdminsPage: React.FC = () => {
         newPassword
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admins'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admins'] });
       closeModals();
     },
     onError: (err) => {
@@ -102,8 +102,8 @@ export const AdminsPage: React.FC = () => {
         active: false
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admins'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admins'] });
     },
     onError: (err) => {
       alert(errorMessage(err));
@@ -184,13 +184,14 @@ export const AdminsPage: React.FC = () => {
                           <PixelButton
                             size="md"
                             variant="danger"
+                            disabled={deactivateMutation.isPending}
                             onClick={() => {
                               if (confirm(`Deactivate admin "${admin.username}"?`)) {
                                 deactivateMutation.mutate(admin);
                               }
                             }}
                           >
-                            DEACTIVATE
+                            {deactivateMutation.isPending && deactivateMutation.variables?.id === admin.id ? 'DEACTIVATING…' : 'DEACTIVATE'}
                           </PixelButton>
                         </div>
                       </td>

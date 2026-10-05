@@ -33,10 +33,11 @@ export const ReviewStep: React.FC<StepProps> = ({ draft, onBack, isEdit, event, 
     styleIds: draft.styleIds
   };
 
-  const finish = (eventId: string) => {
-    for (const key of ['events', 'sessions', 'members', 'attendance', 'bootstrap']) {
-      queryClient.invalidateQueries({ queryKey: [key] });
-    }
+  // Stays in SAVING/CREATING until the lists hold the new event, so the old one never flashes.
+  const finish = async (eventId: string) => {
+    await Promise.all(
+      ['events', 'sessions', 'members', 'attendance', 'bootstrap'].map(key => queryClient.invalidateQueries({ queryKey: [key] }))
+    );
     setCurrentId(eventId);
     navigate('/admin/events');
   };

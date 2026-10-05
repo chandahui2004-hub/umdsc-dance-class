@@ -224,7 +224,16 @@ export const UploadManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         });
       }
 
-      // Success
+      // Success: show it only once the list on screen includes the new file
+      setQueue((prev) =>
+        prev.map((item) =>
+          item.id === currentItem.id ? { ...item, statusText: 'Refreshing the list...' } : item
+        )
+      );
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['videos'] }),
+        queryClient.invalidateQueries({ queryKey: ['music'] })
+      ]);
       setQueue((prev) =>
         prev.map((item) =>
           item.id === currentItem.id
@@ -232,9 +241,6 @@ export const UploadManagerProvider: React.FC<{ children: React.ReactNode }> = ({
             : item
         )
       );
-
-      queryClient.invalidateQueries({ queryKey: ['videos'] });
-      queryClient.invalidateQueries({ queryKey: ['music'] });
     } catch (err: any) {
       const errText = errorMessage(err) || err.message || 'Upload failed';
       setQueue((prev) =>

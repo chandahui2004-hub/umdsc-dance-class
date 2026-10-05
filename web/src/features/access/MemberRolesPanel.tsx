@@ -43,8 +43,8 @@ export const MemberRolesPanel: React.FC<MemberRolesPanelProps> = ({ role, styles
         styleIds: selectedStyles
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['memberRoles', role.id] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['memberRoles', role.id] });
       setIsAssigning(false);
       setMatricInput('');
       setSelectedStyles([]);
@@ -59,8 +59,8 @@ export const MemberRolesPanel: React.FC<MemberRolesPanelProps> = ({ role, styles
     mutationFn: async (item: MemberRoleItem) => {
       return await api.post('memberRoles.remove', { id: item.id, version: item.version });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['memberRoles', role.id] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['memberRoles', role.id] });
     }
   });
 
@@ -197,13 +197,14 @@ export const MemberRolesPanel: React.FC<MemberRolesPanelProps> = ({ role, styles
                     <PixelButton
                       size="md"
                       variant="danger"
+                      disabled={removeMutation.isPending}
                       onClick={() => {
                         if (confirm(`Remove role assignment for matric ${item.matricKey}?`)) {
                           removeMutation.mutate(item);
                         }
                       }}
                     >
-                      REMOVE
+                      {removeMutation.isPending && removeMutation.variables?.id === item.id ? 'REMOVING…' : 'REMOVE'}
                     </PixelButton>
                   </td>
                 </tr>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '../../lib/api';
 import { attendanceQueue } from '../../lib/tickQueue';
 import { PixelButton } from '../../components/ui/PixelButton';
@@ -27,6 +27,7 @@ function downloadXlsx(fileName: string, base64: string): void {
 
 export const AttendancePage: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   const { events, current: event, setCurrentId, isLoading: eventsLoading, isAll } = useCurrentEvent();
   const eventId = event?.id || '';
 
@@ -124,7 +125,7 @@ export const AttendancePage: React.FC = () => {
   }, [ready, eventId, styleId, gridData?.version, refetch]);
 
   const handleToggle = (memberId: string, sessionId: string, nextPresent: boolean) => {
-    if (!editing) return;
+    if (!editing || submitMutation.isPending) return;
     setLocalPresent(prev => {
       const cur = prev[memberId] || [];
       return {
@@ -170,11 +171,17 @@ export const AttendancePage: React.FC = () => {
       if (isPending()) {
         throw new Error('Some ticks could not be saved yet. They will keep retrying in the background.');
       }
+      // Stay in SUBMITTING until the sheet's new ticks are back, so the old count never flashes.
+      const submitted = localPresent;
+      const fresh = await refetch();
+      if (fresh.isError || !fresh.data?.present) {
+        // Reload failed: the ticks are saved, so show what was submitted.
+        queryClient.setQueryData<AttendanceGridData>(['attendance', eventId, styleId], old =>
+          old ? { ...old, present: submitted } : old
+        );
+      }
     },
-    onSuccess: async () => {
-      setEditing(false);
-      await refetch();
-    },
+    onSuccess: () => setEditing(false),
     onError: err => setSubmitError(errorMessage(err))
   });
 
@@ -327,7 +334,9 @@ export const AttendancePage: React.FC = () => {
               }`}
             >
               <div className="font-display text-[12px] text-[var(--text-1)]">
-                {editing
+                {submitMutation.isPending
+                  ? 'SAVING TO GOOGLE SHEET… PLEASE WAIT'
+                  : editing
                   ? unsavedChanges.length === 0
                     ? 'EDITING — TICK PRESENT DANCERS, THEN SUBMIT'
                     : `EDITING — ${unsavedChanges.length} UNSAVED CHANGE${unsavedChanges.length === 1 ? '' : 'S'}`
@@ -372,7 +381,7 @@ export const AttendancePage: React.FC = () => {
                 activeSessionId={activeSessionId}
                 onSelectSession={setActiveSessionId}
                 onToggle={handleToggle}
-                readOnly={!editing}
+                readOnly={!editing || submitMutation.isPending}
               />
             </Panel>
           </div>
@@ -383,7 +392,7 @@ export const AttendancePage: React.FC = () => {
               members={members}
               presentMap={localPresent}
               onToggle={handleToggle}
-              readOnly={!editing}
+              readOnly={!editing || submitMutation.isPending}
             />
           </div>
 
@@ -403,7 +412,7 @@ export const AttendancePage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   {editing ? (
                     <>
-                      <PixelButton size="md" variant="secondary" onClick={cancelEdit}>
+                      <PixelButton size="md" variant="secondary" disabled={submitMutation.isPending} onClick={cancelEdit}>
                         CANCEL
                       </PixelButton>
                       <PixelButton
@@ -459,7 +468,7 @@ export const AttendancePage: React.FC = () => {
                     members={members}
                     presentMap={localPresent}
                     onToggle={handleToggle}
-                    readOnly={!editing}
+                    readOnly={!editing || submitMutation.isPending}
                     containerClassName="h-full overflow-auto pixel-scrollbar border-4 border-[var(--outline)] shadow-[4px_4px_0_var(--outline)] bg-[var(--night-2)]"
                   />
                 </div>
@@ -471,7 +480,7 @@ export const AttendancePage: React.FC = () => {
                     activeSessionId={activeSessionId}
                     onSelectSession={setActiveSessionId}
                     onToggle={handleToggle}
-                    readOnly={!editing}
+                    readOnly={!editing || submitMutation.isPending}
                     listClassName="h-full overflow-y-auto pixel-scrollbar p-1 space-y-2 border-2 border-[var(--outline)] bg-[var(--night-1)]"
                   />
                 </div>

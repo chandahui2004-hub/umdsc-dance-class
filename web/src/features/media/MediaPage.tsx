@@ -139,8 +139,8 @@ export const MediaPage: React.FC = () => {
       }
       return { trashed, title };
     },
-    onSuccess: ({ trashed, title }) => {
-      queryClient.invalidateQueries({ queryKey: ['videos'] });
+    onSuccess: async ({ trashed, title }) => {
+      await queryClient.invalidateQueries({ queryKey: ['videos'] });
       if (!trashed) {
         alert(
           `"${title}" was removed from the website, but Google Drive did not let this account delete the file ` +
@@ -159,8 +159,8 @@ export const MediaPage: React.FC = () => {
     mutationFn: async ({ id, version }: { id: string; version: number }) => {
       return await api.post('music.deactivate', { id, version });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['music'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['music'] });
     },
     onError: (err) => {
       alert(errorMessage(err));
@@ -510,7 +510,7 @@ export const MediaPage: React.FC = () => {
                             })
                           }
                         >
-                          DEL
+                          {deleteVideoMutation.isPending && deleteVideoMutation.variables?.id === vid.id ? 'DELETING…' : 'DEL'}
                         </PixelButton>
                       </div>
                     </div>
@@ -577,7 +577,7 @@ export const MediaPage: React.FC = () => {
                           })
                         }
                       >
-                        DELETE
+                        {deleteVideoMutation.isPending && deleteVideoMutation.variables?.id === vid.id ? 'DELETING…' : 'DELETE'}
                       </PixelButton>
                     </div>
                   </div>
@@ -706,7 +706,7 @@ export const MediaPage: React.FC = () => {
                           })
                         }
                       >
-                        DELETE
+                        {deleteMusicMutation.isPending && deleteMusicMutation.variables?.id === item.id ? 'DELETING…' : 'DELETE'}
                       </PixelButton>
                     </div>
                   </div>
@@ -727,9 +727,9 @@ export const MediaPage: React.FC = () => {
           sessions={sessions}
           initialSessionId={selectedSessionId}
           onClose={() => setShowUploadVideo(false)}
-          onSuccess={() => {
+          onSuccess={async () => {
+            await queryClient.invalidateQueries({ queryKey: ['videos'] });
             setShowUploadVideo(false);
-            queryClient.invalidateQueries({ queryKey: ['videos'] });
           }}
         />
       )}
@@ -743,9 +743,9 @@ export const MediaPage: React.FC = () => {
           sessions={sessions}
           initialSessionId={selectedSessionId}
           onClose={() => setShowUploadMp3(false)}
-          onSuccess={() => {
+          onSuccess={async () => {
+            await queryClient.invalidateQueries({ queryKey: ['music'] });
             setShowUploadMp3(false);
-            queryClient.invalidateQueries({ queryKey: ['music'] });
           }}
         />
       )}
@@ -757,9 +757,7 @@ export const MediaPage: React.FC = () => {
           eventName={event?.name || ''}
           sessions={sessions}
           onClose={() => setShowScan(false)}
-          onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ['videos'] });
-          }}
+          onSuccess={() => {}}
         />
       )}
 
@@ -770,10 +768,7 @@ export const MediaPage: React.FC = () => {
           sessions={sessions}
           initialSessionId={selectedSessionId}
           onClose={() => setShowAddMusic(false)}
-          onSuccess={() => {
-            setShowAddMusic(false);
-            queryClient.invalidateQueries({ queryKey: ['music'] });
-          }}
+          onSuccess={() => setShowAddMusic(false)}
         />
       )}
 

@@ -30,10 +30,10 @@ export const RetentionPanel: React.FC = () => {
 
   const wipe = useMutation({
     mutationFn: async () => (await call<{ wiped: number }>('retention.apply', { matricKeys: selected })).data,
-    onSuccess: r => {
+    onSuccess: async r => {
+      await queryClient.invalidateQueries({ queryKey: ['members'] });
       setNote(`Removed ${r.wiped} dancers`);
       setPreview(null);
-      queryClient.invalidateQueries({ queryKey: ['members'] });
     },
     onError: err => setError(errorMessage(err))
   });

@@ -89,8 +89,8 @@ export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProp
       });
       return res.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['styles'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['styles'] });
       setEditingStyleId(null);
       setUrlInput('');
       setSaveError(null);

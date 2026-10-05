@@ -111,8 +111,8 @@ export const MusicForm: React.FC<MusicFormProps> = ({
       }
       return await api.post('music.create', payload);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['music'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['music'] });
       onSuccess();
     },
     onError: err => {
