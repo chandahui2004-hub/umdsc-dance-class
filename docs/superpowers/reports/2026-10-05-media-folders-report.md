@@ -136,4 +136,50 @@
     ```
 - **Differences from plan / Unsure:** none.
 
+---
+
+## Task 4: Media Page Per-DanceStyle Video Drive Folders Panel & Events Cleanup
+
+- **Commit hash:** (pending commit)
+- **What was changed & why:**
+  - Removed `<AttendanceFolderHeader />` from `web/src/features/events/EventsPage.tsx`. Attendance configuration is kept solely on the Attendance page.
+  - Implemented `web/src/lib/permissions.ts` helper (`can(claims, code)`) to check user permissions against wildcards and style arrays, with unit tests in `web/src/lib/permissions.test.ts`.
+  - Implemented `web/src/features/media/ClassLeadVideoFoldersPanel.tsx`:
+    - Collapsible panel labeled "CLASS LEAD VIDEO DRIVE FOLDERS".
+    - Defaults to expanded when any style in `event.styleIds` lacks a `videoFolderId`, otherwise collapsed.
+    - Shows `⚠ LINK NOT INSERTED` badge for styles missing a Drive folder link.
+    - When user has `styles.edit` permission, allows inserting or changing the Google Drive URL inline, which updates the dance style via `styles.update`.
+    - When user lacks `styles.edit`, hides insert/change buttons and displays `⚠ LINK NOT INSERTED — ask an admin to add it`.
+    - Includes `AUTHORIZE` button for desktop that calls `pickFolder(token, style.videoFolderId)` to grant the style folder under `drive.file` scope, and displays `✓ AUTHORIZED` once verified via `checkFolderAccess`.
+  - Updated `web/src/features/media/MediaPage.tsx`:
+    - Replaced the master `<VideoFolderHeader />` with `<ClassLeadVideoFoldersPanel event={event} styles={styles} />`.
+    - Gated the page-level `UPLOAD VIDEO` and `SCAN FOLDER` buttons: disabled when the active filtered dance style lacks `videoFolderId`, with an explicit explanation text displayed on screen (not only hover).
+    - Displayed warning banner in the video recap section when a style has no video folder linked.
+  - Added unit tests in `web/src/features/media/ClassLeadVideoFoldersPanel.test.tsx` verifying default expansion, collapse, missing link warning, permissions hiding edit buttons, and style update payload.
+  - Extended `web/e2e/phone-layout.spec.ts` with checks for `/admin/media` with panel expanded and `/admin/events`.
+- **Command output:**
+  - `cd web; npx playwright test e2e/phone-layout.spec.ts` (Run 1):
+    ```
+    12 passed (1.3m)
+    ```
+  - `cd web; npx playwright test e2e/phone-layout.spec.ts` (Run 2):
+    ```
+    12 passed (1.3m)
+    ```
+  - `npm test`:
+    ```
+    Test Files  42 passed (42) in api
+    Tests  307 passed (307) in api
+    Test Files  46 passed (46) in web
+    Tests  240 passed (240) in web
+    Total: 88 passed (547 passed)
+    ```
+  - `npm run build`:
+    ```
+    dist/assets/index-B2cyBZdX.js  759.98 kB │ gzip: 205.80 kB
+    ✓ built in 4.64s
+    ```
+- **Differences from plan / Unsure:** none.
+
+
 

@@ -53,6 +53,23 @@ export function hasPickerGrant(folderId: string): boolean {
   return localStorage.getItem(`umdsc:pickerGrant:${folderId}`) === 'true';
 }
 
+/**
+ * Checks whether the current OAuth token already has access to a Google Drive folder.
+ * Returns true if status 200, false otherwise.
+ */
+export async function checkFolderAccess(token: string, folderId: string): Promise<boolean> {
+  if (!token || !folderId) return false;
+  try {
+    const url = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(folderId)}?fields=id&supportsAllDrives=true`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return res.status === 200;
+  } catch {
+    return false;
+  }
+}
+
 export async function pickFolder(token: string, parentFolderId: string): Promise<string> {
   await ensurePickerLoaded();
 

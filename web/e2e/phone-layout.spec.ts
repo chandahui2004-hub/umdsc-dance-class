@@ -353,6 +353,21 @@ for (const width of [360, 390]) {
       await page.goto('/admin/media');
       failures.push(...(await checkLayout(page, '/admin/media')));
 
+      // 9b. /admin/media with Class Lead Video Drive Folders panel expanded
+      const expandBtn = page.getByTestId('toggle-folders-panel');
+      if (await expandBtn.isVisible()) {
+        const text = await expandBtn.innerText();
+        if (text.includes('EXPAND')) {
+          await expandBtn.click();
+          await page.waitForTimeout(200);
+        }
+        failures.push(...(await checkLayout(page, '/admin/media (folders expanded)')));
+      }
+
+      // 10. /admin/events (as admin)
+      await page.goto('/admin/events');
+      failures.push(...(await checkLayout(page, '/admin/events')));
+
       expect(failures, `Found ${failures.length} layout failures:\n${failures.join('\n')}`).toEqual([]);
     });
 

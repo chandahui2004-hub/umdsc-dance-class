@@ -12,7 +12,7 @@ import { UploadDialog } from './UploadDialog';
 import { ScanPanel } from './ScanPanel';
 import { MusicForm } from './MusicForm';
 import { SectionsEditor } from './SectionsEditor';
-import { VideoFolderHeader } from '../events/FolderLinksHeader';
+import { ClassLeadVideoFoldersPanel } from './ClassLeadVideoFoldersPanel';
 import type { ClassSession, DanceStyle, Video, Music } from '@umdsc/shared';
 
 export const MediaPage: React.FC = () => {
@@ -200,43 +200,52 @@ export const MediaPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <PixelButton
-            size="md"
-            variant="secondary"
-            onClick={() => setShowScan(true)}
-            disabled={!activeStyle}
-          >
-            SCAN FOLDER
-          </PixelButton>
-          <PixelButton
-            size="md"
-            variant="secondary"
-            onClick={() => setShowAddMusic(true)}
-            disabled={!activeStyle}
-          >
-            + MUSIC LINK
-          </PixelButton>
-          <PixelButton
-            size="md"
-            variant="secondary"
-            onClick={() => setShowUploadMp3(true)}
-            disabled={!activeStyle}
-          >
-            UPLOAD MP3
-          </PixelButton>
-          <PixelButton
-            size="md"
-            variant="primary"
-            onClick={() => setShowUploadVideo(true)}
-            disabled={!activeStyle}
-          >
-            UPLOAD VIDEO
-          </PixelButton>
+        <div className="flex flex-col items-start sm:items-end gap-1">
+          <div className="flex flex-wrap gap-2">
+            <PixelButton
+              size="md"
+              variant="secondary"
+              onClick={() => setShowScan(true)}
+              disabled={!activeStyle || !activeStyle.videoFolderId}
+              title={!activeStyle?.videoFolderId ? 'Folder link required to scan' : undefined}
+            >
+              SCAN FOLDER
+            </PixelButton>
+            <PixelButton
+              size="md"
+              variant="secondary"
+              onClick={() => setShowAddMusic(true)}
+              disabled={!activeStyle}
+            >
+              + MUSIC LINK
+            </PixelButton>
+            <PixelButton
+              size="md"
+              variant="secondary"
+              onClick={() => setShowUploadMp3(true)}
+              disabled={!activeStyle}
+            >
+              UPLOAD MP3
+            </PixelButton>
+            <PixelButton
+              size="md"
+              variant="primary"
+              onClick={() => setShowUploadVideo(true)}
+              disabled={!activeStyle || !activeStyle.videoFolderId}
+              title={!activeStyle?.videoFolderId ? 'Folder link required to upload videos' : undefined}
+            >
+              UPLOAD VIDEO
+            </PixelButton>
+          </div>
+          {activeStyle && !activeStyle.videoFolderId && (
+            <p className="font-display text-[9px] text-[var(--neon-red)] font-bold uppercase tracking-tight">
+              ⚠ FOLDER LINK NOT INSERTED FOR {activeStyle.name.toUpperCase()} — UPLOADS BLOCKED
+            </p>
+          )}
         </div>
       </div>
 
-      <VideoFolderHeader />
+      <ClassLeadVideoFoldersPanel event={event} styles={styles} />
 
       {/* Style chips (the event comes from the picker) */}
       <div className="bg-[var(--night-2)] border-2 border-[var(--outline)] p-4 shadow-[2px_2px_0_var(--outline)] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
@@ -398,11 +407,19 @@ export const MediaPage: React.FC = () => {
               size="md"
               variant="secondary"
               onClick={() => setShowUploadVideo(true)}
-              disabled={!activeStyle}
+              disabled={!activeStyle || !activeStyle.videoFolderId}
             >
               + ADD RECAP {selectedSession ? `FOR CLASS #${selectedSession.seq}` : ''}
             </PixelButton>
           </div>
+
+          {activeStyle && !activeStyle.videoFolderId && (
+            <div className="p-3 bg-[var(--neon-red)]/10 border-2 border-[var(--neon-red)] flex items-center gap-2">
+              <span className="font-display text-[11px] text-[var(--neon-red)] font-bold">
+                ⚠ Class lead video folder link not inserted for {activeStyle.name}. Videos cannot be uploaded until a folder link is added above.
+              </span>
+            </div>
+          )}
 
           {filteredVideos.length === 0 ? (
             <EmptyState
@@ -414,7 +431,7 @@ export const MediaPage: React.FC = () => {
                   size="md"
                   variant="primary"
                   onClick={() => setShowUploadVideo(true)}
-                  disabled={!activeStyle}
+                  disabled={!activeStyle || !activeStyle.videoFolderId}
                 >
                   ADD RECAP NOW
                 </PixelButton>
