@@ -317,12 +317,14 @@ export class GasDriveAdapter implements DrivePort {
     }
   }
 
-  deleteFile(fileId: string): void {
+  deleteFile(fileId: string): boolean {
     try {
       const file = DriveApp.getFileById(fileId);
       file.setTrashed(true);
+      return true;
     } catch (e: any) {
       Logger.log('deleteFile error: ' + e.message);
+      return false;
     }
   }
 }

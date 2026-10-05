@@ -157,7 +157,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
 
         if (isCoarsePointer) {
           throw new Error(
-            `This class lead folder isn't authorized yet. Open the Media page on a computer once and tap AUTHORIZE for ${style.name}.`
+            `This class lead folder isn't authorized yet. Close this window, open Class Lead Video Drive Folders on the Media page and tap AUTHORIZE for ${style.name} (easiest on a computer).`
           );
         }
 

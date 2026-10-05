@@ -182,8 +182,12 @@ export class FakeDrive implements DrivePort {
     }
   }
 
-  deleteFile(fileId: string): void {
+  /** Returns false (like Drive) when the file is missing or owned by another account. */
+  deleteFile(fileId: string): boolean {
+    const item = this.items.get(fileId) as any;
+    if (!item || item.ownedByOther) return false;
     this.items.delete(fileId);
+    return true;
   }
 }
 

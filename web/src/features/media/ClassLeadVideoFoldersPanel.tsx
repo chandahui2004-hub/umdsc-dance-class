@@ -240,7 +240,7 @@ export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProp
                                   ✓ AUTHORIZED
                                 </span>
                               )}
-                              {canEdit && !isCoarsePointer && (
+                              {canEdit && (
                                 <button
                                   type="button"
                                   onClick={() => handleAuthorize(s)}
@@ -250,6 +250,11 @@ export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProp
                                 >
                                   {isAuthorizing[s.videoFolderId] ? '...' : uploader ? 'RE-AUTHORIZE' : 'AUTHORIZE'}
                                 </button>
+                              )}
+                              {canEdit && isCoarsePointer && !isAuthed && (
+                                <span className="block w-full font-body text-[11px] text-[var(--text-3)]">
+                                  If Google's folder window doesn't open on this phone, do this step on a computer.
+                                </span>
                               )}
                             </div>
                             {uploader ? (
@@ -263,7 +268,7 @@ export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProp
                               </div>
                             ) : (
                               <div data-testid={`uploader-${s.id}`} className="font-display text-[10px] text-[var(--neon-orange)] font-bold">
-                                ⚠ NO UPLOAD ACCOUNT — {canEdit ? 'tap AUTHORIZE on a computer with the class lead\'s account' : 'ask an admin to authorize it'}
+                                ⚠ NO UPLOAD ACCOUNT — {canEdit ? 'tap AUTHORIZE while signed in with the class lead\'s account' : 'ask an admin to authorize it'}
                               </div>
                             )}
                           </div>

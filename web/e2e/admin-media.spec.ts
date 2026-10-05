@@ -199,6 +199,58 @@ test.describe('Admin Media Page', () => {
     });
   });
 
+  test('deleting a video asks first, removes it, and the server trashes the Drive file', async ({ page }) => {
+    const calls = await mockApi(page, {
+      ...BASE,
+      'videos.list': () => [{ id: 'vid-9', sessionId: 'ses-1', title: 'Old Recap.mp4', driveFileId: 'drive-vid-9', mimeType: 'video/mp4', sizeBytes: 1000, uploadedBy: 'admin', createdAt: '2026-10-08T20:30:00Z', version: 3, active: true }],
+      'videos.deactivate': () => ({ deactivated: true, driveTrashed: true })
+    });
+    const dialogs: string[] = [];
+    page.on('dialog', d => {
+      dialogs.push(d.message());
+      void d.accept();
+    });
+
+    await page.goto('/admin/media');
+    await expect(page.getByText('CLASS RECAP VIDEOS (1)')).toBeVisible();
+    await page.getByRole('button', { name: /^(DEL|DELETE)$/ }).first().click();
+
+    await expect.poll(() => calls.find(c => c.action === 'videos.deactivate')?.payload).toEqual({ id: 'vid-9', version: 3 });
+    expect(dialogs[0]).toMatch(/moved to the Google Drive trash/);
+    expect(dialogs).toHaveLength(1);
+  });
+
+  test('cancelling the delete question keeps the video', async ({ page }) => {
+    const calls = await mockApi(page, { ...BASE, 'videos.list': () => [{ id: 'vid-9', sessionId: 'ses-1', title: 'Old Recap.mp4', driveFileId: 'drive-vid-9', mimeType: 'video/mp4', sizeBytes: 1000, uploadedBy: 'admin', createdAt: '2026-10-08T20:30:00Z', version: 3, active: true }] });
+    page.on('dialog', d => void d.dismiss());
+
+    await page.goto('/admin/media');
+    await expect(page.getByText('CLASS RECAP VIDEOS (1)')).toBeVisible();
+    await page.getByRole('button', { name: /^(DEL|DELETE)$/ }).first().click();
+    await page.waitForTimeout(500);
+
+    expect(calls.some(c => c.action === 'videos.deactivate')).toBe(false);
+  });
+
+  test('tells the admin when Drive would not delete the file', async ({ page }) => {
+    await mockApi(page, {
+      ...BASE,
+      'videos.list': () => [{ id: 'vid-9', sessionId: 'ses-1', title: 'Old Recap.mp4', driveFileId: 'drive-vid-9', mimeType: 'video/mp4', sizeBytes: 1000, uploadedBy: 'admin', createdAt: '2026-10-08T20:30:00Z', version: 3, active: true }],
+      'videos.deactivate': () => ({ deactivated: true, driveTrashed: false })
+    });
+    const dialogs: string[] = [];
+    page.on('dialog', d => {
+      dialogs.push(d.message());
+      void d.accept();
+    });
+
+    await page.goto('/admin/media');
+    await page.getByRole('button', { name: /^(DEL|DELETE)$/ }).first().click();
+
+    await expect.poll(() => dialogs.length).toBe(2);
+    expect(dialogs[1]).toMatch(/Google Drive did not let this account delete the file/);
+  });
+
   test('collapses and expands all recap videos', async ({ page }) => {
     await mockApi(page, {
       ...BASE,

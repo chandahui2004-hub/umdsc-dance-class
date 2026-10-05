@@ -5,6 +5,8 @@ import { api, errorMessage } from '../../lib/api';
 import { formatDayLabel } from '../../lib/time';
 import { useCurrentEvent } from '../events/useCurrentEvent';
 import { streamUrl, openInDriveUrl, previewUrl } from '../../lib/google/driveUrls';
+import { getCachedToken } from '../../lib/google/gis';
+import { trashDriveFile } from '../../lib/google/driveTrash';
 import { Panel } from '../../components/ui/Panel';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -125,13 +127,27 @@ export const MediaPage: React.FC = () => {
     enabled: ready
   });
 
-  // Delete Video mutation
+  // Delete Video mutation: removes it from the website and moves the Drive file to the trash
   const deleteVideoMutation = useMutation({
-    mutationFn: async ({ id, version }: { id: string; version: number }) => {
-      return await api.post('videos.deactivate', { id, version });
+    mutationFn: async ({ id, version, driveFileId, title }: { id: string; version: number; driveFileId: string; title: string }) => {
+      const res = await api.post<{ deactivated: boolean; driveTrashed?: boolean }>('videos.deactivate', { id, version });
+      // The club account can only trash files it owns; retry with the signed-in uploader's account.
+      let trashed = Boolean(res.data?.driveTrashed);
+      const token = getCachedToken();
+      if (!trashed && token) {
+        trashed = await trashDriveFile(token, driveFileId);
+      }
+      return { trashed, title };
     },
-    onSuccess: () => {
+    onSuccess: ({ trashed, title }) => {
       queryClient.invalidateQueries({ queryKey: ['videos'] });
+      if (!trashed) {
+        alert(
+          `"${title}" was removed from the website, but Google Drive did not let this account delete the file ` +
+            `(another Google account uploaded it). Open the class folder in Google Drive and delete it there, ` +
+            `or sign in with the class lead's account before deleting next time.`
+        );
+      }
     },
     onError: (err) => {
       alert(errorMessage(err));
@@ -485,9 +501,12 @@ export const MediaPage: React.FC = () => {
                           variant="danger"
                           disabled={deleteVideoMutation.isPending}
                           onClick={() =>
+                            window.confirm(`Delete "${vid.title}"? It will also be moved to the Google Drive trash (you can restore it from there for 30 days).`) &&
                             deleteVideoMutation.mutate({
                               id: vid.id,
-                              version: vid.version
+                              version: vid.version,
+                              driveFileId: vid.driveFileId,
+                              title: vid.title
                             })
                           }
                         >
@@ -549,9 +568,12 @@ export const MediaPage: React.FC = () => {
                         variant="danger"
                         disabled={deleteVideoMutation.isPending}
                         onClick={() =>
+                          window.confirm(`Delete "${vid.title}"? It will also be moved to the Google Drive trash (you can restore it from there for 30 days).`) &&
                           deleteVideoMutation.mutate({
                             id: vid.id,
-                            version: vid.version
+                            version: vid.version,
+                            driveFileId: vid.driveFileId,
+                            title: vid.title
                           })
                         }
                       >

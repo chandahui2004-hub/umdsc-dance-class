@@ -197,7 +197,7 @@ describe('UploadDialog Gating and Video Compression', () => {
 
     expect(
       await screen.findByText(
-        /This class lead folder isn't authorized yet. Open the Media page on a computer once and tap AUTHORIZE for Locking./
+        /This class lead folder isn't authorized yet. Close this window, open Class Lead Video Drive Folders on the Media page and tap AUTHORIZE for Locking/
       )
     ).toBeInTheDocument();
     expect(mockPickFolder).not.toHaveBeenCalled();

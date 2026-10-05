@@ -189,8 +189,11 @@ export function getVideoRoutes(): Record<string, Route> {
 
         const actor = auth?.claims.sub || 'system';
         ctx.db.videos.deactivate(id, Number(version), actor, ctx.now());
-        logAudit(ctx, actor, 'videos.deactivate', id, `Deactivated video ${id}`);
-        return { deactivated: true };
+        // Also move the file to the Drive trash (recoverable for 30 days). The club account can only
+        // trash files it owns; the website retries with the uploader's own Google account otherwise.
+        const driveTrashed = existing.driveFileId ? ctx.drive.deleteFile(existing.driveFileId) : false;
+        logAudit(ctx, actor, 'videos.deactivate', id, `Deactivated video ${id}; Drive trash: ${driveTrashed ? 'yes' : 'no'}`);
+        return { deactivated: true, driveTrashed };
       }
     },
 

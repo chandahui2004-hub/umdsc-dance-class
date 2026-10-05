@@ -275,6 +275,44 @@ describe('Feature: Videos (features/videos)', () => {
     }
   });
 
+  describe('videos.deactivate also removes the file from Google Drive', () => {
+    const registerVideo = (fileId: string, extra: Record<string, unknown> = {}) => {
+      (ctx.drive as any).items.set(fileId, {
+        id: fileId, kind: 'file', name: 'Recap.mp4', canEdit: true, mimeType: 'video/mp4', sizeBytes: 1000, ...extra
+      });
+      const res = handleRequest(
+        { action: 'videos.register', token: adminToken, payload: { driveFileId: fileId, sessionId: session1.id, title: 'Recap' } },
+        ctx,
+        secrets
+      );
+      expect(res.ok).toBe(true);
+      return (res as any).data;
+    };
+    const deactivate = (video: any) =>
+      handleRequest({ action: 'videos.deactivate', token: adminToken, payload: { id: video.id, version: video.version } }, ctx, secrets);
+
+    it('moves the Drive file to the trash and reports driveTrashed: true', () => {
+      const video = registerVideo('file_owned_by_club_123456789');
+
+      const res = deactivate(video);
+
+      expect(res.ok).toBe(true);
+      expect((res as any).data).toEqual({ deactivated: true, driveTrashed: true });
+      expect((ctx.drive as any).items.has('file_owned_by_club_123456789')).toBe(false);
+      expect(ctx.db.videos.find(v => v.id === video.id && v.active)).toHaveLength(0);
+    });
+
+    it('still removes the video from the website when Drive refuses, and reports driveTrashed: false', () => {
+      const video = registerVideo('file_owned_by_lead_123456789', { ownedByOther: true });
+
+      const res = deactivate(video);
+
+      expect(res.ok).toBe(true);
+      expect((res as any).data).toEqual({ deactivated: true, driveTrashed: false });
+      expect(ctx.db.videos.find(v => v.id === video.id && v.active)).toHaveLength(0);
+    });
+  });
+
   it('register success saves video row and makes it viewable in list', () => {
     // Add file to fake drive
     (ctx.drive as any).items.set('file_vid_1234567890123456', {

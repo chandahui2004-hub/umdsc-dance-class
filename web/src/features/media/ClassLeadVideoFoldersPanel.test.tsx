@@ -240,4 +240,18 @@ describe('ClassLeadVideoFoldersPanel', () => {
       })
     );
   });
+
+  it('shows AUTHORIZE on a phone too, with a hint to use a computer if the Google window does not open', async () => {
+    const realMatchMedia = window.matchMedia;
+    window.matchMedia = ((query: string) => ({ matches: query === '(pointer: coarse)', media: query })) as any;
+    try {
+      const linkedNoUploader = { ...styleWithoutLink, videoFolderId: 'vid_folder_locking' };
+      await renderPanel([styleWithLink, linkedNoUploader]);
+
+      expect(screen.getByRole('button', { name: 'AUTHORIZE' })).toBeDefined();
+      expect(screen.getAllByText(/do this step on a computer/i).length).toBeGreaterThan(0);
+    } finally {
+      window.matchMedia = realMatchMedia;
+    }
+  });
 });

@@ -71,7 +71,8 @@ export interface DrivePort {
   getParentFolderId(fileId: string): string | null;
   createFileFromBase64(folderId: string, name: string, mimeType: string, base64Data: string): { id: string; url: string };
   renameFile(fileId: string, name: string): void;
-  deleteFile(fileId: string): void;
+  /** Moves a file to the Drive trash. Returns false if Drive refused (e.g. another account owns it). */
+  deleteFile(fileId: string): boolean;
 }
 
 export interface CachePort {
