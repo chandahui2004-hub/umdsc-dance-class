@@ -199,8 +199,8 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
   const totalBytes = files.reduce((acc, f) => acc + f.size, 0);
 
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-lg">
+    <div className="fixed inset-0 bg-black/80 z-50 flex items-start justify-center p-4 overflow-y-auto">
+      <div className="w-full max-w-lg my-auto py-4">
         <Panel
           title={type === 'video' ? 'UPLOAD CLASS RECAP VIDEO(S)' : 'UPLOAD CLASS MP3 MUSIC'}
           className="px-corners bg-[var(--night-2)] space-y-4"

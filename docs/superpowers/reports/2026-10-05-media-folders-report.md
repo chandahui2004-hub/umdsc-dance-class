@@ -88,3 +88,52 @@
     ```
 - **Differences from plan / Unsure:** none.
 
+---
+
+## Task 3 — Shared Modal Vertical Scroll Clipping Fix
+
+- **Commit:** pending (`fix(ui): eliminate modal scroll clipping on mobile and small screens`)
+- **Files touched:**
+  - `web/src/features/masterdata/StylesPage.tsx`
+  - `web/src/features/masterdata/InstructorsPage.tsx`
+  - `web/src/features/access/RolesPage.tsx`
+  - `web/src/features/access/AdminsPage.tsx`
+  - `web/src/features/media/UploadDialog.tsx`
+  - `web/src/features/media/SectionsEditor.tsx`
+  - `web/src/features/media/ScanPanel.tsx`
+  - `web/src/features/media/MusicForm.tsx`
+  - `web/src/theme/tokens.css`
+  - `web/e2e/phone-layout.spec.ts`
+- **Changes made:**
+  - Systematically resolved the flexbox negative scroll clipping defect across all modal overlays (`StylesPage`, `InstructorsPage`, `RolesPage`, `AdminsPage`, `UploadDialog`, `SectionsEditor`, `ScanPanel`, `MusicForm`). Replaced `items-center` with `items-start justify-center p-4 overflow-y-auto` on overlay containers, with `my-auto py-4` on child panels. Shorter modals remain vertically centered via `my-auto`, while tall modals start at top padding without clipping off-screen, enabling full top-to-bottom scrollability.
+  - Defined `--z-modal: 50;` in `web/src/theme/tokens.css` so modals using `z-[var(--z-modal)]` sit at z-index 50 above navigation bars.
+  - Added `useOverlayOpen` to `StylesPage` and `InstructorsPage` to register modal state onto `document.body.dataset.overlays`, cleanly hiding the mobile navigation button while dialogs are open.
+  - Added E2E verification test `style edit modal does not clip vertically and is fully scrollable` in `web/e2e/phone-layout.spec.ts` for both 360px and 390px viewports:
+    - Asserts modal bounding rect `top >= 0`.
+    - Asserts `SAVE STYLE` at the bottom of the form can be scrolled into view.
+    - Asserts `CANCEL` closes the modal cleanly.
+- **Commands run and results:**
+  - `cd web; npx playwright test e2e/phone-layout.spec.ts` (Run 1):
+    ```
+    12 passed (1.3m)
+    ```
+  - `cd web; npx playwright test e2e/phone-layout.spec.ts` (Run 2):
+    ```
+    12 passed (1.2m)
+    ```
+  - `npm test`:
+    ```
+    Test Files  42 passed (42) in api
+    Tests  307 passed (307) in api
+    Test Files  44 passed (44) in web
+    Tests  232 passed (232) in web
+    Total: 86 passed (539 passed)
+    ```
+  - `npm run build`:
+    ```
+    dist/assets/index-C1xcSkvs.js  752.96 kB │ gzip: 203.98 kB
+    ✓ built in 4.46s
+    ```
+- **Differences from plan / Unsure:** none.
+
+

@@ -7,6 +7,7 @@ import { Field } from '../../components/ui/Field';
 import { ColorSwatchPicker } from '../../components/ui/ColorSwatchPicker';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { useOverlayOpen } from '../../app/useOverlayOpen';
 import type { DanceStyle, Instructor } from '@umdsc/shared';
 
 const SWATCH_COLORS = [
@@ -35,6 +36,7 @@ export const StylesPage: React.FC = () => {
   const [editingStyle, setEditingStyle] = useState<DanceStyle | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  useOverlayOpen(Boolean(isCreating || editingStyle));
 
   // Form states
   const [name, setName] = useState('');
@@ -293,8 +295,8 @@ export const StylesPage: React.FC = () => {
 
       {/* Create / Edit Modal */}
       {(isCreating || editingStyle) && (
-        <div className="fixed inset-0 bg-[var(--night-1)]/80 z-[var(--z-modal)] flex items-center justify-center p-4 overflow-y-auto">
-          <div className="w-full max-w-2xl my-8">
+        <div className="fixed inset-0 bg-[var(--night-1)]/80 z-[var(--z-modal)] flex items-start justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-2xl my-auto py-4">
             <Panel
               title={isCreating ? 'CREATE DANCE STYLE' : `EDIT ${editingStyle?.name}`}
               className="px-corners bg-[var(--night-2)] p-4 sm:p-6 space-y-5"

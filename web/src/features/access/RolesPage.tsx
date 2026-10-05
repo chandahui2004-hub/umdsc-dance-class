@@ -255,8 +255,8 @@ export const RolesPage: React.FC = () => {
 
       {/* Permission Matrix & Member Assignment Modal */}
       {selectedRole && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="w-full max-w-3xl my-8 space-y-4">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-start justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-3xl my-auto py-4 space-y-4">
             <Panel
               title={`PERMISSIONS: ${selectedRole.name}`}
               className="px-corners bg-[var(--night-2)] space-y-4"
@@ -368,8 +368,8 @@ export const RolesPage: React.FC = () => {
 
       {/* Create / Edit Role Modal */}
       {(isCreating || editingRole) && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-start justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-md my-auto py-4">
             <Panel
               title={isCreating ? 'CREATE NEW ROLE' : `EDIT ${editingRole?.name}`}
               className="px-corners bg-[var(--night-2)] space-y-4"

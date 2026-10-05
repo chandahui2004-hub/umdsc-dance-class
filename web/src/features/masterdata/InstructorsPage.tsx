@@ -19,6 +19,7 @@ import {
   type DrivePhotoFile
 } from '../../lib/instructorPhotos';
 import type { Instructor, InstructorPhoto } from '@umdsc/shared';
+import { useOverlayOpen } from '../../app/useOverlayOpen';
 
 export const InstructorsPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -27,6 +28,7 @@ export const InstructorsPage: React.FC = () => {
   const [editingInstructor, setEditingInstructor] = useState<Instructor | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  useOverlayOpen(Boolean(isCreating || editingInstructor));
 
   // Form states
   const [name, setName] = useState('');
@@ -406,8 +408,8 @@ export const InstructorsPage: React.FC = () => {
 
       {/* Create / Edit Modal */}
       {(isCreating || editingInstructor) && (
-        <div className="fixed inset-0 bg-[var(--night-0)]/80 px-dither z-[var(--z-modal)] flex items-center justify-center p-4 overflow-y-auto">
-          <div className="w-full max-w-2xl my-8">
+        <div className="fixed inset-0 bg-[var(--night-0)]/80 px-dither z-[var(--z-modal)] flex items-start justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-2xl my-auto py-4">
             <Panel
               title={isCreating ? 'CREATE INSTRUCTOR' : `EDIT ${editingInstructor?.name}`}
               className="px-corners p-4 sm:p-6 space-y-5"

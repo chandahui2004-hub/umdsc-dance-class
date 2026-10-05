@@ -205,8 +205,8 @@ export const AdminsPage: React.FC = () => {
 
       {/* Create Admin Modal */}
       {isCreating && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-start justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-md my-auto py-4">
             <Panel
               title="CREATE ADMIN ACCOUNT"
               className="px-corners bg-[var(--night-2)] space-y-4"
@@ -307,8 +307,8 @@ export const AdminsPage: React.FC = () => {
 
       {/* Reset Password Modal */}
       {resettingAdmin && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-start justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-md my-auto py-4">
             <Panel
               title={`RESET PASSWORD: ${resettingAdmin.username}`}
               className="px-corners bg-[var(--night-2)] space-y-4"

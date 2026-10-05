@@ -43,6 +43,7 @@
   --z-content: 10;
   --z-chrome: 30;
   --z-overlay: 50;
+  --z-modal: 50;
   --z-toast: 70;
 
   /* Spacing Scale */

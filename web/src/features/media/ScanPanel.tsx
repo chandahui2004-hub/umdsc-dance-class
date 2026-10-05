@@ -73,8 +73,8 @@ export const ScanPanel: React.FC<ScanPanelProps> = ({
   });
 
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/80 z-50 flex items-start justify-center p-4 overflow-y-auto">
+      <div className="w-full max-w-2xl max-h-[90vh] my-auto py-4 flex flex-col">
         <Panel
           title={`SCAN FOLDER: ${style.name} (${eventName})`}
           className="px-corners bg-[var(--night-2)] flex-1 overflow-y-auto space-y-4"

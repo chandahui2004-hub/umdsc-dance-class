@@ -121,8 +121,8 @@ export const MusicForm: React.FC<MusicFormProps> = ({
   });
 
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="w-full max-w-md my-auto">
+    <div className="fixed inset-0 bg-black/80 z-50 flex items-start justify-center p-4 overflow-y-auto">
+      <div className="w-full max-w-md my-auto py-4">
         <Panel title="ADD MUSIC TRACK" className="px-corners bg-[var(--night-2)] space-y-4">
           {error && (
             <div

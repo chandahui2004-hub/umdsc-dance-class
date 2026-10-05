@@ -389,5 +389,42 @@ for (const width of [360, 390]) {
       await page.waitForTimeout(200);
       await expect(page.getByTestId('mobile-nav-toggle-btn')).toBeVisible();
     });
+
+    test('style edit modal does not clip vertically and is fully scrollable', async ({ page }) => {
+      await page.addInitScript(() => {
+        sessionStorage.setItem('__test_role', 'admin');
+      });
+      await setupPage(page);
+
+      await page.goto('/admin/styles');
+      await page.waitForLoadState('networkidle');
+
+      // Click EDIT button on first style
+      const editBtn = page.getByRole('button', { name: 'EDIT' }).first();
+      await expect(editBtn).toBeVisible();
+      await editBtn.click();
+      await page.waitForTimeout(200);
+
+      // Find modal panel
+      const modal = page.locator('div.fixed.inset-0 .px-corners').first();
+      await expect(modal).toBeVisible();
+
+      // Assert modal top >= 0 (no negative scroll clipping)
+      const top = await modal.evaluate(el => el.getBoundingClientRect().top);
+      expect(top).toBeGreaterThanOrEqual(0);
+
+      // Assert the last button (SAVE STYLE) can be scrolled into view
+      const saveBtn = page.getByRole('button', { name: 'SAVE STYLE' });
+      await saveBtn.scrollIntoViewIfNeeded();
+      await expect(saveBtn).toBeVisible();
+      const saveTop = await saveBtn.evaluate(el => el.getBoundingClientRect().top);
+      expect(saveTop).toBeGreaterThan(0);
+
+      // Close modal
+      const cancelBtn = page.getByRole('button', { name: 'CANCEL' });
+      await cancelBtn.scrollIntoViewIfNeeded();
+      await cancelBtn.click();
+      await expect(modal).toBeHidden();
+    });
   });
 }
