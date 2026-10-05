@@ -234,8 +234,40 @@
     dist/assets/index-Cgx7jg4I.js       762.90 kB │ gzip: 206.93 kB
     ✓ built in 6.99s
     ```
+---
+
+## Task 6: Full Verification, Final E2E Suite, API Deploy Approval & Report
+
+- **Commit hash:** `30cda2b` (`test(e2e): align admin-events and admin-media tests with attendance and upload changes`)
+- **What was changed & why:**
+  - Aligned `web/e2e/admin-events.spec.ts` with spec changes: attendance master folder link tests moved to `/admin/attendance` with `waitForLoadState('networkidle')`.
+  - Aligned `web/e2e/admin-media.spec.ts` with spec changes: updated `.mov` test to assert the obsolete blocking warning banner is removed and `START UPLOAD` is enabled directly due to client-side video compression.
+  - Full end-to-end regression validation performed across mobile (390px / 360px) and desktop (1440px) viewports.
+- **Verification Commands & Results:**
+  - `npm test` (root workspace):
+    ```
+    Test Files  42 passed (42) in api
+    Tests  307 passed (307) in api
+    Test Files  47 passed (47) in web
+    Tests  249 passed (249) in web
+    Total: 89 passed (556 passed)
+    ```
+  - Playwright E2E Suite (`npx playwright test --grep-invert '@internet'`):
+    ```
+    7 skipped
+    203 passed (4.8m)
+    0 failed
+    ```
+  - Phone Layout Suite (`npx playwright test e2e/phone-layout.spec.ts`):
+    ```
+    12 passed (1.4m)
+    0 failed
+    ```
+  - Production Build (`npm run build` in `web/`):
+    ```
+    dist/assets/index-CIQCDQO3.css      92.10 kB │ gzip:  27.41 kB
+    dist/assets/mediabunny-CdOs27BB.js 740.23 kB │ gzip: 187.76 kB
+    dist/assets/index-Cgx7jg4I.js      762.90 kB │ gzip: 206.93 kB
+    ✓ built in 7.09s
+    ```
 - **Differences from plan / Unsure:** none.
-
-
-
-
