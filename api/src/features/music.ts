@@ -5,6 +5,7 @@ import { Music, getYouTubeVideoId } from '@umdsc/shared';
 import { logAudit } from '../logic/audit';
 import { getEvent } from './eventMembers';
 import { resolveMusicLink, deriveMusicSource } from './musicLinks';
+import { dancerCanSee } from './bootstrap';
 
 export function visibleMusic(
   ctx: Ctx,
@@ -25,17 +26,13 @@ export function visibleMusic(
     musicList = musicList.filter(m => m.styleId === styleId);
   }
 
-  // Dancer scoping
+  // Dancer scoping: only the event + style classes they registered for
   if (auth?.claims.role === 'dancer') {
     const perm = auth.claims.perms['music.view'];
     if (Array.isArray(perm)) {
       musicList = musicList.filter(m => perm.includes(m.styleId));
     }
-
-    const matricKey = auth.claims.sub.replace(/^M-/, '');
-    const mi = ctx.db.memberIndex.find(m => m.matricKey === matricKey && m.active)[0];
-    const myEvents = mi ? mi.eventIds : [];
-    musicList = musicList.filter(m => myEvents.includes(m.eventId));
+    musicList = musicList.filter(dancerCanSee(ctx, auth));
   }
 
   return musicList;

@@ -5,6 +5,8 @@ import { makeCtx } from '../fakes/makeCtx';
 import { Hmac, signToken } from '../../src/security/tokens';
 import { getBootstrapRoutes } from '../../src/features/bootstrap';
 import { getAuthRoutes } from '../../src/features/auth';
+import { getVideoRoutes } from '../../src/features/videos';
+import { getMusicRoutes } from '../../src/features/music';
 import { buildLayout } from '../../src/logic/attendanceGrid';
 import { seedEvent } from '../fixtures/events';
 import { ClassSession, EventItem, Member } from '@umdsc/shared';
@@ -119,6 +121,50 @@ describe('Feature: Bootstrap with Caching (features/bootstrap)', () => {
       expect(b.music.map((m: any) => m.title)).toEqual(['Popping Song']);
       expect(b.events.map((e: any) => e.name)).toEqual(['OCT MONTHLY CLASS']);
     }
+  });
+
+  describe('Studio lists (videos.list, music.list, sections.list) for a dancer', () => {
+    beforeEach(() => {
+      registerRoutes(getVideoRoutes());
+      registerRoutes(getMusicRoutes());
+      const hhSong = ctx.db.music.insert(
+        { styleId: 'st_hiphop', eventId: event.id, sessionId: '', title: 'Hip Hop Song', sourceType: 'youtube', driveFileId: '', youtubeId: 'dQw4w9WgXcQ' },
+        'admin1', ctx.now()
+      );
+      ctx.db.sections.insert({ musicId: hhSong.id, name: 'Hip Hop Chorus', startSec: 0, endSec: 10 } as any, 'admin1', ctx.now());
+      const popSong = ctx.db.music.find(m => m.title === 'Popping Song')[0];
+      ctx.db.sections.insert({ musicId: popSong.id, name: 'Popping Intro', startSec: 0, endSec: 10 } as any, 'admin1', ctx.now());
+    });
+
+    const titles = (action: string, token: string, key = 'title') => {
+      const res = handleRequest({ action, token, payload: {} }, ctx, secrets);
+      expect(res.ok).toBe(true);
+      return res.ok ? (res.data as any[]).map(x => x[key]) : [];
+    };
+
+    it('show only the styles the dancer registered for, not every style of their event', () => {
+      expect(titles('videos.list', dancerToken)).toEqual(['Popping Class 1 Video']);
+      expect(titles('music.list', dancerToken)).toEqual(['Popping Song']);
+      expect(titles('sections.list', dancerToken, 'name')).toEqual(['Popping Intro']);
+    });
+
+    it('show nothing to a dancer with no events', () => {
+      addIndex('22003333', 'New Dancer', []);
+      const token = dancerTokenFor('22003333', 'New Dancer');
+      expect(titles('videos.list', token)).toEqual([]);
+      expect(titles('music.list', token)).toEqual([]);
+    });
+
+    it('still show admins every style', () => {
+      const admin = signToken(
+        { sub: 'admin1', role: 'admin', name: 'Admin One', exp: Math.floor(ctx.now().getTime() / 1000) + 3600, pv: 1,
+          perms: { 'videos.view': '*', 'music.view': '*' } },
+        secrets.tokenSecret,
+        secrets.hmac
+      );
+      expect(titles('videos.list', admin).sort()).toEqual(['Hip Hop Video', 'Popping Class 1 Video']);
+      expect(titles('music.list', admin).sort()).toEqual(['Hip Hop Song', 'Popping Song']);
+    });
   });
 
   it('dancer.attendance returns only the signed-in dancer own attendance', () => {

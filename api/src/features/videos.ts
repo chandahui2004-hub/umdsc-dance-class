@@ -4,6 +4,7 @@ import { parseDateFromName } from '../logic/filenameDate';
 import { logAudit } from '../logic/audit';
 import { can } from '../logic/permissions';
 import { getEvent } from './eventMembers';
+import { dancerCanSee } from './bootstrap';
 
 export function getVideoRoutes(): Record<string, Route> {
   return {
@@ -25,17 +26,13 @@ export function getVideoRoutes(): Record<string, Route> {
           videos = videos.filter(v => v.sessionId === sessionId);
         }
 
-        // Dancer scoping
+        // Dancer scoping: only the event + style classes they registered for
         if (auth?.claims.role === 'dancer') {
           const perm = auth.claims.perms['videos.view'];
           if (Array.isArray(perm)) {
             videos = videos.filter(v => perm.includes(v.styleId));
           }
-
-          const matricKey = auth.claims.sub.replace(/^M-/, '');
-          const mi = ctx.db.memberIndex.find(m => m.matricKey === matricKey && m.active)[0];
-          const myEvents = mi ? mi.eventIds : [];
-          videos = videos.filter(v => myEvents.includes(v.eventId));
+          videos = videos.filter(dancerCanSee(ctx, auth));
         }
 
         return videos;

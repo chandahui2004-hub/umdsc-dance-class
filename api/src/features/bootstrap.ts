@@ -1,4 +1,4 @@
-import { Route } from '../router';
+import { Route, AuthInfo } from '../router';
 import { AppError } from '../errors';
 import { Ctx } from '../ports';
 import {
@@ -128,6 +128,22 @@ function resolveDancerEventStyles(
   timer?.mark('styles');
 
   return { dancerEvents, eventStylesMap };
+}
+
+/**
+ * For a dancer token: true when an item of this event and style belongs to a class they registered for.
+ * The Dancer role grants videos.view and music.view for every style, so the event alone is not enough.
+ */
+export function dancerCanSee(ctx: Ctx, auth: AuthInfo): (item: { eventId: string; styleId: string }) => boolean {
+  const matricKey = auth.claims.sub.replace(/^M-/, '');
+  let eventStylesMap: Map<string, Set<string>>;
+  try {
+    const dancer = loadDancerIndex(ctx, matricKey);
+    eventStylesMap = resolveDancerEventStyles(ctx, dancer, matricKey, auth.claims.perms).eventStylesMap;
+  } catch {
+    eventStylesMap = new Map();
+  }
+  return item => Boolean(eventStylesMap.get(item.eventId)?.has(item.styleId));
 }
 
 /** The signed-in dancer's own attendance per class. Loaded after the calendar so login never waits on it. */

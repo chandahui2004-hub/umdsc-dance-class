@@ -374,7 +374,8 @@ describe('Feature: Music & Sections (features/music)', () => {
     );
 
     ctx.db.memberIndex.insert(
-      { matricKey: '22001111', nameKey: 'popper ali', fullName: 'Popper Ali', eventIds: ['evt_test'], lastEventEnd: '2026-10-31' },
+      { matricKey: '22001111', nameKey: 'popper ali', fullName: 'Popper Ali', eventIds: ['evt_test'], lastEventEnd: '2026-10-31',
+        eventStyles: { evt_test: ['st_popping'] } } as any,
       'system',
       ctx.now()
     );
