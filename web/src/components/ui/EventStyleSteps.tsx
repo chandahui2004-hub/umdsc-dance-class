@@ -34,7 +34,7 @@ export const StepPanel: React.FC<StepPanelProps> = ({ numeral, title, highlight,
     </span>
     <div className="flex-1 min-w-0 space-y-2">
       <p className={`font-display text-[12px] tracking-wider ${disabled ? 'text-[var(--text-2)]' : 'text-[var(--neon-gold)]'}`}>
-        {numeral} · {title}
+        {title}
       </p>
       {disabled && disabledNote ? (
         <p className="font-body text-[16px] text-[var(--text-2)]">{disabledNote}</p>

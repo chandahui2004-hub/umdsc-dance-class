@@ -42,8 +42,8 @@ test.describe('Event (I) and dance style (II) steps', () => {
     const calls = await mockApi(page, BASE);
     await page.goto('/admin/attendance');
 
-    await expect(page.getByText('I · CHOOSE EVENT')).toBeVisible();
-    await expect(page.getByText('II · CHOOSE DANCE STYLE')).toBeVisible();
+    await expect(page.getByText('CHOOSE EVENT', { exact: true })).toBeVisible();
+    await expect(page.getByText('CHOOSE DANCE STYLE', { exact: true })).toBeVisible();
     await expectStepsInOrder(page);
 
     const tools = page.getByRole('toolbar', { name: 'Roster tools' });
@@ -85,10 +85,14 @@ test.describe('Event (I) and dance style (II) steps', () => {
     await expect.poll(() => calls.filter(c => c.action === 'videos.list').length).toBeGreaterThan(before);
   });
 
-  test('dancers: event step above the style step', async ({ page }) => {
+  test('dancers: event step above the style step, list tools below the style step', async ({ page }) => {
     await mockApi(page, { ...BASE, 'members.list': () => [] });
     await page.goto('/admin/members');
     await expectStepsInOrder(page);
+    const tools = await page.getByRole('toolbar', { name: 'Dancer list tools' }).boundingBox();
+    const two = await page.getByTestId('step-II').boundingBox();
+    expect(tools && two && tools.y > two.y).toBe(true);
+    await expect(page.getByRole('toolbar', { name: 'Dancer list tools' }).getByRole('button', { name: /EXPORT CSV/ })).toBeVisible();
   });
 
   test('dance styles page has no event picker', async ({ page }) => {

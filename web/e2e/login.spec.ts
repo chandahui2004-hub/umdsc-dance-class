@@ -228,4 +228,14 @@ test.describe('Login, Title Screen, and Route Guards', () => {
     // Must immediately show dancer information from cache without waiting for network
     await expect(page.getByText('SARAH BINTI AHMAD').first()).toBeVisible({ timeout: 2000 });
   });
+  test('admin login can show and hide the password', async ({ page }) => {
+    await page.goto('/admin/login');
+    const box = page.getByLabel(/^Password/i);
+    await box.fill('secret123');
+    await expect(box).toHaveAttribute('type', 'password');
+    await page.getByRole('button', { name: /SHOW PASSWORD/ }).click();
+    await expect(box).toHaveAttribute('type', 'text');
+    await page.getByRole('button', { name: /HIDE PASSWORD/ }).click();
+    await expect(box).toHaveAttribute('type', 'password');
+  });
 });
