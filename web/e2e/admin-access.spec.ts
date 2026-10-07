@@ -224,4 +224,35 @@ test.describe('Admin Access Management (Admins & Roles)', () => {
     await expect(page.getByRole('cell', { name: 'treasurer', exact: true })).toBeVisible();
     await expect(page.getByText('Club Treasurer')).toBeVisible();
   });
+
+  test('EDIT changes username and password; REFRESH reloads accounts edited in the sheet', async ({ page }) => {
+    const { mockApi } = await import('./fixtures/mockApi');
+    const ADMIN = { id: 'adm-1', username: 'admin', displayName: 'Club Admin', roleId: 'role_admin', version: 1, active: true };
+    let refreshed = false;
+    const calls = await mockApi(page, {
+      'roles.list': () => [{ id: 'role_admin', name: 'Admin', loginType: 'admin', isSystem: true, permissions: [], version: 1, active: true }],
+      'admins.list': () => [ADMIN],
+      'admins.update': p => ({ ...ADMIN, username: p.username, displayName: p.displayName, version: 2 }),
+      'admins.refresh': () => {
+        refreshed = true;
+        return [{ ...ADMIN, displayName: 'Changed In Sheet' }];
+      }
+    });
+    await page.goto('/admin/admins');
+
+    await expect(page.getByRole('button', { name: /RESET PASSWORD/ })).toHaveCount(0);
+    await page.getByRole('button', { name: /EDIT/ }).first().click();
+    await page.getByLabel('Username').fill('headadmin');
+    await page.getByLabel('New Password').fill('NewPass789');
+    await page.getByRole('button', { name: /SHOW PASSWORD/ }).click();
+    await expect(page.getByLabel('New Password')).toHaveAttribute('type', 'text');
+    await page.getByRole('button', { name: 'SAVE CHANGES' }).click();
+    await expect
+      .poll(() => calls.find(c => c.action === 'admins.update')?.payload)
+      .toMatchObject({ id: 'adm-1', version: 1, username: 'headadmin', displayName: 'Club Admin', newPassword: 'NewPass789' });
+
+    await page.getByRole('button', { name: /REFRESH/ }).click();
+    await expect.poll(() => refreshed).toBe(true);
+    await expect(page.getByText('Changed In Sheet')).toBeVisible();
+  });
 });

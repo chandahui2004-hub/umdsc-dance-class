@@ -5,6 +5,7 @@ import { validateRolePermissions } from '../logic/permissions';
 import { hashPassword, PASSWORD_ITERATIONS } from '../security/passwords';
 import { normalizeMatric } from '../logic/normalize';
 import { PermissionCode } from '@umdsc/shared';
+import { forgetLoginDirectory } from './adminAccounts';
 
 function bumpPermVersion(ctx: any): void {
   const current = Number(ctx.props.get('PERM_VERSION') || 1);
@@ -21,6 +22,18 @@ export function getAccessRoutes(): Record<string, Route> {
       perm: 'admins.manage',
       write: false,
       handler: (ctx) => {
+        const admins = ctx.db.admins.find(a => a.active);
+        return admins.map(({ passwordHash, salt, ...rest }) => rest);
+      }
+    },
+
+    // Re-reads the Admins sheet after someone edited it directly, so logins use the new values
+    'admins.refresh': {
+      perm: 'admins.manage',
+      write: false,
+      handler: (ctx) => {
+        forgetLoginDirectory(ctx);
+        ctx.db.reload();
         const admins = ctx.db.admins.find(a => a.active);
         return admins.map(({ passwordHash, salt, ...rest }) => rest);
       }
@@ -63,6 +76,7 @@ export function getAccessRoutes(): Record<string, Route> {
           ctx.now()
         );
 
+        forgetLoginDirectory(ctx);
         logAudit(ctx, actor, 'admins.create', username);
         const { passwordHash: _, salt: __, ...safe } = inserted;
         return safe;
@@ -74,7 +88,8 @@ export function getAccessRoutes(): Record<string, Route> {
       write: true,
       bumpsData: true,
       handler: (ctx, auth, payload: any) => {
-        const { id, version, displayName, roleId, active } = payload || {};
+        const { id, version, displayName, roleId, active, newPassword } = payload || {};
+        const username = payload?.username !== undefined ? String(payload.username).trim() : undefined;
         if (!id || version === undefined) {
           throw new AppError('VALIDATION', 'id and version are required');
         }
@@ -95,13 +110,29 @@ export function getAccessRoutes(): Record<string, Route> {
           }
         }
 
+        if (username !== undefined && username !== existing.username) {
+          if (!username) {
+            throw new AppError('VALIDATION', 'Username cannot be empty');
+          }
+          if (ctx.db.admins.find(a => a.username === username && a.active && a.id !== id)[0]) {
+            throw new AppError('VALIDATION', `Admin username "${username}" is already taken`);
+          }
+        }
+
         const actor = auth?.claims.sub || 'system';
         const updates: any = {};
+        if (username !== undefined) updates.username = username;
+        if (newPassword) {
+          updates.salt = generateSalt();
+          updates.passwordHash = hashPassword(String(newPassword), updates.salt, PASSWORD_ITERATIONS, (ctx as any)._secrets?.hmac);
+          updates.iterations = PASSWORD_ITERATIONS;
+        }
         if (displayName !== undefined) updates.displayName = displayName;
         if (roleId !== undefined) updates.roleId = roleId;
         if (active !== undefined) updates.active = active;
 
         const updated = ctx.db.admins.update(id, version, updates, actor, ctx.now());
+        forgetLoginDirectory(ctx);
         logAudit(ctx, actor, 'admins.update', existing.username);
         const { passwordHash: _, salt: __, ...safe } = updated;
         return safe;
@@ -144,6 +175,7 @@ export function getAccessRoutes(): Record<string, Route> {
           ctx.now()
         );
 
+        forgetLoginDirectory(ctx);
         logAudit(ctx, actor, 'admins.resetPassword', existing.username);
         return { success: true };
       }

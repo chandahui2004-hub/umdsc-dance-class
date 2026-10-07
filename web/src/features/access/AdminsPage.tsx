@@ -12,7 +12,7 @@ export const AdminsPage: React.FC = () => {
   const queryClient = useQueryClient();
 
   const [isCreating, setIsCreating] = useState(false);
-  const [resettingAdmin, setResettingAdmin] = useState<AdminUser | null>(null);
+  const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
   // Form states for create
@@ -21,8 +21,21 @@ export const AdminsPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [roleId, setRoleId] = useState('');
 
-  // Form state for reset password
+  // Form state for editing an admin (blank new password keeps the current one)
+  const [editUsername, setEditUsername] = useState('');
+  const [editDisplayName, setEditDisplayName] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+
+  const openEdit = (admin: AdminUser) => {
+    setEditingAdmin(admin);
+    setIsCreating(false);
+    setEditUsername(admin.username);
+    setEditDisplayName(admin.displayName);
+    setNewPassword('');
+    setShowNewPassword(false);
+    setFormError(null);
+  };
 
   const { data: admins = [], isLoading: loadingAdmins } = useQuery<AdminUser[]>({
     queryKey: ['admins'],
@@ -44,7 +57,7 @@ export const AdminsPage: React.FC = () => {
 
   const openCreate = () => {
     setIsCreating(true);
-    setResettingAdmin(null);
+    setEditingAdmin(null);
     setUsername('');
     setDisplayName('');
     setPassword('');
@@ -54,7 +67,7 @@ export const AdminsPage: React.FC = () => {
 
   const closeModals = () => {
     setIsCreating(false);
-    setResettingAdmin(null);
+    setEditingAdmin(null);
     setFormError(null);
   };
 
@@ -76,13 +89,16 @@ export const AdminsPage: React.FC = () => {
     }
   });
 
-  const resetPasswordMutation = useMutation({
+  // Saves to the Admins sheet and refreshes the server's login copy at the same time
+  const editAdminMutation = useMutation({
     mutationFn: async () => {
-      if (!resettingAdmin) return;
-      return await api.post('admins.resetPassword', {
-        id: resettingAdmin.id,
-        version: resettingAdmin.version,
-        newPassword
+      if (!editingAdmin) return;
+      return await api.post('admins.update', {
+        id: editingAdmin.id,
+        version: editingAdmin.version,
+        username: editUsername.trim(),
+        displayName: editDisplayName.trim(),
+        ...(newPassword ? { newPassword } : {})
       });
     },
     onSuccess: async () => {
@@ -92,6 +108,13 @@ export const AdminsPage: React.FC = () => {
     onError: (err) => {
       setFormError(errorMessage(err));
     }
+  });
+
+  // For edits made straight in the Admins sheet: reloads them into the server's login copy
+  const refreshMutation = useMutation({
+    mutationFn: async () => (await api.post<AdminUser[]>('admins.refresh')).data,
+    onSuccess: (fresh) => queryClient.setQueryData(['admins'], fresh),
+    onError: (err) => alert(errorMessage(err))
   });
 
   const deactivateMutation = useMutation({
@@ -121,9 +144,14 @@ export const AdminsPage: React.FC = () => {
             Manage club executive admin accounts and passwords.
           </p>
         </div>
-        <PixelButton size="md" variant="primary" onClick={openCreate}>
-          + NEW ADMIN
-        </PixelButton>
+        <div className="flex flex-wrap gap-2">
+          <PixelButton size="md" variant="secondary" disabled={refreshMutation.isPending} onClick={() => refreshMutation.mutate()}>
+            {refreshMutation.isPending ? 'REFRESHING…' : '↻ REFRESH'}
+          </PixelButton>
+          <PixelButton size="md" variant="primary" onClick={openCreate}>
+            + NEW ADMIN
+          </PixelButton>
+        </div>
       </div>
 
       {loadingAdmins ? (
@@ -173,13 +201,9 @@ export const AdminsPage: React.FC = () => {
                           <PixelButton
                             size="md"
                             variant="secondary"
-                            onClick={() => {
-                              setResettingAdmin(admin);
-                              setNewPassword('');
-                              setFormError(null);
-                            }}
+                            onClick={() => openEdit(admin)}
                           >
-                            RESET PASSWORD
+                            ✎ EDIT
                           </PixelButton>
                           <PixelButton
                             size="md"
@@ -306,14 +330,11 @@ export const AdminsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Reset Password Modal */}
-      {resettingAdmin && (
+      {/* Edit Admin Modal */}
+      {editingAdmin && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-start justify-center p-4 overflow-y-auto">
           <div className="w-full max-w-md my-auto py-4">
-            <Panel
-              title={`RESET PASSWORD: ${resettingAdmin.username}`}
-              className="px-corners bg-[var(--night-2)] space-y-4"
-            >
+            <Panel title={`EDIT ADMIN: ${editingAdmin.username}`} className="px-corners bg-[var(--night-2)] space-y-4">
               {formError && (
                 <div
                   role="alert"
@@ -323,35 +344,62 @@ export const AdminsPage: React.FC = () => {
                 </div>
               )}
 
-              <Field label="New Password" required>
+              <Field label="Username" required>
                 <input
-                  id="reset-password-input"
-                  aria-label="New Password"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="••••••••"
+                  aria-label="Username"
+                  type="text"
+                  autoComplete="off"
+                  value={editUsername}
+                  onChange={(e) => setEditUsername(e.target.value)}
                   className="w-full min-h-[44px] px-3 border-2 border-[var(--outline)] font-mono text-base bg-[var(--night-1)] text-[var(--text-1)]"
                   required
                 />
               </Field>
+
+              <Field label="Display Name" required>
+                <input
+                  aria-label="Display Name"
+                  type="text"
+                  value={editDisplayName}
+                  onChange={(e) => setEditDisplayName(e.target.value)}
+                  className="w-full min-h-[44px] px-3 border-2 border-[var(--outline)] font-body text-base bg-[var(--night-1)] text-[var(--text-1)]"
+                  required
+                />
+              </Field>
+
+              <Field label="New Password (leave blank to keep the current one)">
+                <input
+                  aria-label="New Password"
+                  type={showNewPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full min-h-[44px] px-3 border-2 border-[var(--outline)] font-mono text-base bg-[var(--night-1)] text-[var(--text-1)]"
+                />
+              </Field>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  aria-pressed={showNewPassword}
+                  onClick={() => setShowNewPassword((v) => !v)}
+                  className="min-h-[44px] px-2 font-display text-[12px] text-[var(--neon-cyan)] underline cursor-pointer"
+                >
+                  {showNewPassword ? '🙈 HIDE PASSWORD' : '👁 SHOW PASSWORD'}
+                </button>
+              </div>
 
               <div className="flex gap-3 pt-3 border-t-2 border-[var(--outline)]">
                 <PixelButton
                   size="md"
                   variant="primary"
                   className="flex-1"
-                  disabled={resetPasswordMutation.isPending || !newPassword}
-                  onClick={() => resetPasswordMutation.mutate()}
+                  disabled={editAdminMutation.isPending || !editUsername.trim() || !editDisplayName.trim()}
+                  onClick={() => editAdminMutation.mutate()}
                 >
-                  {resetPasswordMutation.isPending ? 'UPDATING...' : 'UPDATE PASSWORD'}
+                  {editAdminMutation.isPending ? 'SAVING…' : 'SAVE CHANGES'}
                 </PixelButton>
-                <PixelButton
-                  size="md"
-                  variant="secondary"
-                  disabled={resetPasswordMutation.isPending}
-                  onClick={closeModals}
-                >
+                <PixelButton size="md" variant="secondary" disabled={editAdminMutation.isPending} onClick={closeModals}>
                   CANCEL
                 </PixelButton>
               </div>

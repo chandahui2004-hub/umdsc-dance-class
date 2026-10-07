@@ -163,6 +163,26 @@ describe('Feature: Access (Admins, Roles, Permissions, MemberRoles)', () => {
     }
   });
 
+  it('admins.update can change the username, refusing one already taken', () => {
+    const admin = ctx.db.admins.find(a => a.username === 'superadmin')[0];
+    ctx.db.admins.insert(
+      { username: 'second', displayName: 'Second', passwordHash: 'x', salt: 'y', iterations: PASSWORD_ITERATIONS, roleId: admin.roleId },
+      'system',
+      new Date()
+    );
+    const update = (username: string, version: number) =>
+      handleRequest({ action: 'admins.update', token: adminToken, payload: { id: admin.id, version, username } }, ctx, secrets);
+
+    const taken = update(' second ', admin.version);
+    expect(taken.ok).toBe(false);
+    if (!taken.ok) expect(taken.error.message).toContain('Admin username "second" is already taken');
+
+    const ok = update(' chief ', admin.version);
+    expect(ok.ok).toBe(true);
+    expect(ok.ok && (ok.data as any).username).toBe('chief');
+    expect(JSON.stringify(ok.ok ? ok.data : '')).not.toContain('passwordHash');
+  });
+
   it('memberRoles.assign increments PERM_VERSION; old token then → UNAUTHORIZED', () => {
     // Current PV = 1
     ctx.props.set('PERM_VERSION', '1');
