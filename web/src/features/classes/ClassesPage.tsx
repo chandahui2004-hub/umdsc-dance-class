@@ -66,12 +66,18 @@ export const ClassesPage: React.FC = () => {
   const { data: dayVideos = [] } = useQuery<VideoItem[]>({
     queryKey: ['videos', eventId, 'calendar'],
     enabled: Boolean(eventId),
-    queryFn: async () => (await call<VideoItem[]>('videos.list', mediaPayload)).data || []
+    queryFn: async () => {
+      const data = (await call<VideoItem[]>('videos.list', mediaPayload)).data;
+      return Array.isArray(data) ? data : [];
+    }
   });
   const { data: dayMusic = [] } = useQuery<MusicItem[]>({
     queryKey: ['music', eventId, 'calendar'],
     enabled: Boolean(eventId),
-    queryFn: async () => (await call<MusicItem[]>('music.list', mediaPayload)).data || []
+    queryFn: async () => {
+      const data = (await call<MusicItem[]>('music.list', mediaPayload)).data;
+      return Array.isArray(data) ? data : [];
+    }
   });
 
   const [filterEventId, setFilterEventId] = useState<string>('all');

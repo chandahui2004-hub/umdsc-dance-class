@@ -130,6 +130,65 @@ test.describe('Admin Attendance Page', () => {
     expect(await page.evaluate(() => (window as any).__sawZero)).toBe(false);
   });
 
+  test('a refused save shows the server reason within seconds instead of retrying for minutes', async ({ page }) => {
+    let marks = 0;
+    await mockApi(page, {
+      'events.list': () => [EVENT],
+      'styles.list': () => STYLES,
+      'attendance.get': () => GRID,
+      'attendance.mark': () => {
+        marks++;
+        return { __error: { code: 'VALIDATION', message: 'Member m-2 is not registered in style style-hiphop' } };
+      }
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/admin/attendance');
+    await page.getByRole('button', { name: /^EDIT$/ }).click();
+    await page.locator('[data-member-id="m-2"]').getByRole('button', { name: /ABSENT/i }).click();
+    const t0 = Date.now();
+    await page.getByRole('button', { name: /^SUBMIT$/ }).click();
+
+    await expect(page.getByRole('alert')).toHaveText(/Not saved: Member m-2 is not registered/, { timeout: 8000 });
+    expect(Date.now() - t0).toBeLessThan(8000);
+    expect(marks).toBe(1);
+    await expect(page.getByText(/SAVING…/)).toHaveCount(0);
+  });
+
+  test('a lost reply (Google 404) is re-sent with the same tick IDs and ends saved', async ({ page }) => {
+    let serverPresent: Record<string, string[]> = { 'm-1': ['ses-1'], 'm-2': [] };
+    const seenOps: string[][] = [];
+    await mockApi(page, {
+      'events.list': () => [EVENT],
+      'styles.list': () => STYLES,
+      'attendance.get': () => ({ ...GRID, version: seenOps.length + 1, present: serverPresent }),
+      'attendance.mark': p => {
+        seenOps.push(p.marks.map((m: any) => m.opId));
+        serverPresent = { ...serverPresent, 'm-2': ['ses-1'] };
+        return markOk(p); // the fixed server confirms already-saved ticks again
+      }
+    });
+    // Google loses the reply of the first save, after the server has already saved it
+    await page.route(API_URL_REGEX, async route => {
+      const body = JSON.parse(route.request().postData() || '{}');
+      if (body.action === 'attendance.mark' && seenOps.length === 0) {
+        seenOps.push(body.payload.marks.map((m: any) => m.opId));
+        serverPresent = { ...serverPresent, 'm-2': ['ses-1'] };
+        return route.fulfill({ status: 404, contentType: 'text/html', body: '<html>Not Found</html>' });
+      }
+      return route.fallback();
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/admin/attendance');
+    await page.getByRole('button', { name: /^EDIT$/ }).click();
+    await page.locator('[data-member-id="m-2"]').getByRole('button', { name: /ABSENT/i }).click();
+    await page.getByRole('button', { name: /^SUBMIT$/ }).click();
+
+    await expect(page.getByText('SAVED ATTENDANCE — PRESS EDIT TO CHANGE TICKS')).toBeVisible({ timeout: 20000 });
+    await expect(page.getByText(/SCORE 2\/2/i)).toBeVisible();
+    expect(seenOps.length).toBeGreaterThanOrEqual(2);
+    expect(seenOps[1]).toEqual(seenOps[0]);
+  });
+
   test('desktop attendance grid renders at 1440 with sticky name column', async ({ page }) => {
     await mockApi(page, { 'events.list': () => [EVENT], 'styles.list': () => STYLES, 'attendance.get': () => GRID });
     await page.setViewportSize({ width: 1440, height: 900 });

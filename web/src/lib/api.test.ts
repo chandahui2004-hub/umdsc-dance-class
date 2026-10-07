@@ -174,6 +174,37 @@ describe('API Client & Session', () => {
     expect(attempts).toBe(3);
   });
 
+  it('a lost reply (Google 404 page) is re-sent with the same one-time opId, so the server never saves twice', async () => {
+    vi.useFakeTimers();
+    const bodies: any[] = [];
+    let attempts = 0;
+    const fetchMock = vi.fn().mockImplementation(async (_url: string, init: RequestInit) => {
+      bodies.push(JSON.parse(String(init.body)));
+      attempts++;
+      if (attempts === 1) {
+        // Google's "echo" page answers 404 with HTML, so the JSON can't be read
+        return { ok: false, status: 404, json: async () => { throw new SyntaxError('Unexpected token <'); } };
+      }
+      return { ok: true, json: async () => ({ ok: true, data: { saved: true }, dataVersion: 1, serverTime: '' }) };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const p = call('sessions.create', { styleId: 'x' });
+    await vi.advanceTimersByTimeAsync(10000);
+    await p;
+
+    expect(bodies).toHaveLength(2);
+    expect(bodies[0].opId).toBeTruthy();
+    expect(bodies[1].opId).toBe(bodies[0].opId);
+  });
+
+  it('keeps a caller-given opId', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: true, data: {}, dataVersion: 1, serverTime: '' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    await call('instructors.update', {}, { opId: 'op-mine' });
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1].body)).opId).toBe('op-mine');
+  });
+
   it('generates valid opId and handles error messages properly', () => {
     const op1 = newOpId();
     const op2 = newOpId();

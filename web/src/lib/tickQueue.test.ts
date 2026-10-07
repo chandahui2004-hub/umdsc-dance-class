@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createTickQueue } from './tickQueue';
+import { ApiError } from './api';
 
 describe('createTickQueue', () => {
   beforeEach(() => {
@@ -178,5 +179,32 @@ describe('attendanceQueue storage', () => {
   it('uses a new storage key so old month-based ticks are ignored', async () => {
     const { TICK_STORE_KEY } = await import('./tickQueue');
     expect(TICK_STORE_KEY).toBe('umdsc:ticks:v2');
+  });
+
+  it('a save the server refuses is dropped and its reason is reported, instead of retrying forever', async () => {
+    const send = vi.fn().mockRejectedValue(new ApiError('VALIDATION', 'Member M-1 is not registered in style Latin', false));
+    const queue = createTickQueue({ send, storeKey: 'test:ticks:refused' });
+    queue.enqueue({ eventId: 'e', styleId: 's', sessionId: 'ses', memberId: 'M-1', present: true });
+
+    await queue.flush();
+
+    expect(queue.pending()).toEqual([]);
+    expect(queue.takeError('e', 's')).toBe('Member M-1 is not registered in style Latin');
+    expect(queue.takeError('e', 's')).toBeNull(); // reported once
+  });
+
+  it('a busy server or lost connection keeps the ticks for another try', async () => {
+    const send = vi
+      .fn()
+      .mockRejectedValueOnce(new ApiError('BUSY', 'busy', true))
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    const queue = createTickQueue({ send, storeKey: 'test:ticks:retry' });
+    queue.enqueue({ eventId: 'e', styleId: 's', sessionId: 'ses', memberId: 'M-1', present: true });
+
+    await queue.flush();
+    expect(queue.pending()).toHaveLength(1);
+    await queue.flush();
+    expect(queue.pending()).toHaveLength(1);
+    expect(queue.takeError('e', 's')).toBeNull();
   });
 });

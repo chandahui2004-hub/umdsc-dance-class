@@ -161,25 +161,34 @@ export const AttendancePage: React.FC = () => {
   const submitMutation = useMutation({
     mutationFn: async () => {
       setSubmitError(null);
-      for (const c of unsavedChanges) {
-        attendanceQueue.enqueue({ eventId, styleId, ...c });
-      }
-      const isPending = () => attendanceQueue.pending().some(t => t.eventId === eventId && t.styleId === styleId);
-      for (let i = 0; i < 20 && isPending(); i++) {
-        await attendanceQueue.flush();
-        if (isPending()) await new Promise(r => setTimeout(r, 1000));
-      }
-      if (isPending()) {
-        throw new Error('Some ticks could not be saved yet. They will keep retrying in the background.');
-      }
-      // Stay in SUBMITTING until the sheet's new ticks are back, so the old count never flashes.
-      const submitted = localPresent;
-      const fresh = await refetch();
-      if (fresh.isError || !fresh.data?.present) {
-        // Reload failed: the ticks are saved, so show what was submitted.
-        queryClient.setQueryData<AttendanceGridData>(['attendance', eventId, styleId], old =>
-          old ? { ...old, present: submitted } : old
-        );
+      // Saving can take a while on a slow connection: keep the phone screen on meanwhile
+      const wakeLock: { release: () => Promise<void> } | null =
+        'wakeLock' in navigator ? await (navigator as any).wakeLock.request('screen').catch(() => null) : null;
+      try {
+        for (const c of unsavedChanges) {
+          attendanceQueue.enqueue({ eventId, styleId, ...c });
+        }
+        const isPending = () => attendanceQueue.pending().some(t => t.eventId === eventId && t.styleId === styleId);
+        for (let i = 0; i < 20 && isPending(); i++) {
+          await attendanceQueue.flush();
+          const refused = attendanceQueue.takeError(eventId, styleId);
+          if (refused) throw new Error(`Not saved: ${refused}`);
+          if (isPending()) await new Promise(r => setTimeout(r, 1000));
+        }
+        if (isPending()) {
+          throw new Error('The connection is slow, so some ticks are still saving. They are kept on this phone and keep retrying.');
+        }
+        // Stay in SUBMITTING until the sheet's new ticks are back, so the old count never flashes.
+        const submitted = localPresent;
+        const fresh = await refetch();
+        if (fresh.isError || !fresh.data?.present) {
+          // Reload failed: the ticks are saved, so show what was submitted.
+          queryClient.setQueryData<AttendanceGridData>(['attendance', eventId, styleId], old =>
+            old ? { ...old, present: submitted } : old
+          );
+        }
+      } finally {
+        wakeLock?.release().catch(() => undefined);
       }
     },
     onSuccess: () => setEditing(false),

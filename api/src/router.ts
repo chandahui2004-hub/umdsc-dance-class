@@ -9,6 +9,7 @@ import { AppError, toErrorBody } from './errors';
 import { verifyToken, Hmac } from './security/tokens';
 import { can } from './logic/permissions';
 import { withScriptLock } from './db/lock';
+import { safeCachePut } from './logic/cache';
 import { getSetupRoutes } from './features/setup';
 import { getAuthRoutes } from './features/auth';
 import { getSettingsRoutes } from './features/settings';
@@ -145,8 +146,10 @@ export function handleRequest(
           ctx.props.set('DATA_VERSION', String(nextDv));
         }
 
+        // Kept so a re-send after a lost reply returns this result instead of saving twice; a reply
+        // too big for the cache is simply not kept (the save itself already succeeded)
         if (req.opId) {
-          ctx.cache.put('op:' + req.opId, JSON.stringify(res), 6 * 3600);
+          safeCachePut(ctx.cache, 'op:' + req.opId, JSON.stringify(res ?? null), 6 * 3600);
         }
 
         return res;

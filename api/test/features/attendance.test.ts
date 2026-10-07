@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import crypto from 'node:crypto';
 import { handleRequest, registerRoutes } from '../../src/router';
 import { makeCtx } from '../fakes/makeCtx';
+import { FakeSheet } from '../fakes/fakeSheets';
 import { Hmac, signToken } from '../../src/security/tokens';
 import { getAttendanceRoutes } from '../../src/features/attendance';
 import { getSessionRoutes } from '../../src/features/sessions';
@@ -87,8 +88,13 @@ describe('Feature: Attendance (features/attendance)', () => {
     const res1 = call('attendance.mark', payload);
     expect(res1.ok && (res1.data as any).applied).toEqual(['op_dup_1']);
 
+    // A re-send (the first reply was lost) is confirmed again, so the page stops retrying,
+    // but the cell is not written a second time
+    const writes = vi.spyOn(FakeSheet.prototype, 'setValues');
     const res2 = call('attendance.mark', payload);
-    expect(res2.ok && (res2.data as any).applied).toEqual([]);
+    expect(res2.ok && (res2.data as any).applied).toEqual(['op_dup_1']);
+    expect(writes).not.toHaveBeenCalled();
+    writes.mockRestore();
   });
 
   it('two admins marking different cells in the same sheet: both applied', () => {

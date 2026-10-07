@@ -93,7 +93,11 @@ export async function mockApi(
       contentType: 'application/json',
       body: JSON.stringify(
         failure
-          ? { ok: false, error: { code: failure.code, message: failure.message, retryable: false } }
+          ? {
+              ok: false,
+              // Like the real server: a busy server or quota hit is worth retrying, a refusal is not
+              error: { code: failure.code, message: failure.message, retryable: failure.retryable ?? ['BUSY', 'QUOTA'].includes(failure.code) }
+            }
           : { ok: true, data, dataVersion: 1, serverTime: new Date().toISOString() }
       )
     });

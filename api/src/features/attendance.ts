@@ -215,7 +215,10 @@ export function getAttendanceRoutes(): Record<string, Route> {
 
         for (const mark of marks) {
           if (mark.opId && ctx.cache.get('op:' + mark.opId)) {
-            continue; // already applied
+            // Already applied by an earlier send whose reply was lost: confirm it again so the
+            // page stops re-sending it, without writing the cell twice
+            applied.push(mark.opId);
+            continue;
           }
 
           let cell = locateCell(keyRow, data.map((r: string[]) => r[memberIdColIdx]), mark.memberId, mark.sessionId);

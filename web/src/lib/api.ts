@@ -87,6 +87,9 @@ export async function call<T>(
 ): Promise<{ data: T; dataVersion: number }> {
   const apiUrl = (import.meta.env.VITE_API_URL as string) || '/api';
   const maxRetries = opts?.retries ?? 4;
+  // One ID for every attempt of this call: Google sometimes loses a reply (404) after the server has
+  // already saved, and the server uses the ID to answer a re-send without saving twice.
+  const opId = opts?.opId ?? newOpId();
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -95,7 +98,7 @@ export async function call<T>(
         action,
         token: currentSession?.token,
         payload,
-        opId: opts?.opId,
+        opId,
         sinceVersion: opts?.sinceVersion
       };
 

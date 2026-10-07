@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import crypto from 'node:crypto';
 import { handleRequest, registerRoutes, ROUTES } from '../src/router';
 import { makeCtx } from './fakes/makeCtx';
@@ -131,6 +131,30 @@ describe('Router', () => {
       expect(res2.data).toEqual({ counter: 1 });
     }
     expect(counter).toBe(1);
+  });
+
+  it('a reply too big to keep for re-sends still succeeds (the save already happened)', () => {
+    const ctx = makeCtx();
+    let counter = 0;
+    registerRoutes({
+      'test.bigWrite': {
+        perm: 'public',
+        write: true,
+        handler: () => {
+          counter++;
+          return { rows: 'x'.repeat(150_000) };
+        }
+      }
+    });
+    const put = vi.spyOn(ctx.cache, 'put').mockImplementation(() => {
+      throw new Error('Argument too large: value');
+    });
+
+    const res = handleRequest({ action: 'test.bigWrite', opId: 'op_big' }, ctx, secrets);
+
+    expect(res.ok).toBe(true);
+    expect(counter).toBe(1);
+    put.mockRestore();
   });
 
   it('GAS "Service invoked too many times" → QUOTA retryable=true', () => {

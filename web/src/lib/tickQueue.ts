@@ -1,5 +1,5 @@
 import { get, set } from 'idb-keyval';
-import { api, newOpId } from './api';
+import { api, newOpId, ApiError } from './api';
 
 export interface Tick {
   opId: string;
@@ -29,6 +29,8 @@ export function createTickQueue(deps: TickQueueDeps) {
   const getNow = deps.now || (() => Date.now());
 
   let items: Tick[] = [];
+  // The server's reason for ticks it refused, per event + style, until the page reads it
+  const refused = new Map<string, string>();
   const listeners = new Set<(pendingCount: number) => void>();
   let isFlushing = false;
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -121,9 +123,16 @@ export function createTickQueue(deps: TickQueueDeps) {
           const res = await deps.send(eventId, styleId, marksToSend);
           const appliedSet = new Set(res.applied);
           items = items.filter((x) => !appliedSet.has(x.opId));
-        } catch {
-          // On network/retryable failure, batch stays in items for next flush
-          scheduleFlush(2000);
+        } catch (err) {
+          if (err instanceof ApiError && !err.retryable && err.code !== 'UNAUTHORIZED') {
+            // Refused (e.g. not registered): retrying can't help and would block later ticks forever
+            const batchIds = new Set(batch.map((t) => t.opId));
+            items = items.filter((x) => !batchIds.has(x.opId));
+            refused.set(`${eventId}:${styleId}`, err.message);
+          } else {
+            // Busy server, lost connection or expired login: keep the ticks for another try
+            scheduleFlush(2000);
+          }
         }
       }
     } finally {
@@ -160,12 +169,21 @@ export function createTickQueue(deps: TickQueueDeps) {
     };
   };
 
+  /** The server's reason for refused ticks of this event + style (reported once), or null. */
+  const takeError = (eventId: string, styleId: string): string | null => {
+    const key = `${eventId}:${styleId}`;
+    const message = refused.get(key) ?? null;
+    refused.delete(key);
+    return message;
+  };
+
   return {
     enqueue,
     pending,
     flush,
     subscribe,
-    load
+    load,
+    takeError
   };
 }
 
