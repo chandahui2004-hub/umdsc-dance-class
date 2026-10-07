@@ -131,9 +131,14 @@ export function setStyleInstructors(d: EventDraft, styleId: string, ids: string[
   };
 }
 
-/** The first ticked style that still has no instructor. */
-export function missingInstructorStyle(d: EventDraft): string | null {
-  return d.styleIds.find(styleId => !(d.styleInstructors[styleId]?.length)) ?? null;
+/**
+ * The first ticked ACTIVE style that still has no instructor. A ticked style that has since been
+ * deactivated (not in activeStyleIds) needs none, so it never blocks the wizard.
+ */
+export function missingInstructorStyle(d: EventDraft, activeStyleIds: readonly string[]): string | null {
+  return (
+    d.styleIds.find(styleId => activeStyleIds.includes(styleId) && !(d.styleInstructors[styleId]?.length)) ?? null
+  );
 }
 
 /** Classes to send to the server, one list across all styles. */

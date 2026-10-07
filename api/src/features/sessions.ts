@@ -155,7 +155,7 @@ export function getSessionRoutes(): Record<string, Route> {
         if (date !== undefined && date !== existing.date) {
           assertDateInEvent(getEvent(ctx, existing.eventId), date);
         }
-        if (instructorId !== undefined) {
+        if (instructorId !== undefined && instructorId !== existing.instructorId) {
           assertClassInstructor(ctx, getEvent(ctx, existing.eventId), existing.styleId, instructorId, existing.instructorId);
         }
 

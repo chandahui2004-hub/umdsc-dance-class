@@ -71,6 +71,8 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
     instructorId && !allowedInstructorIds.includes(instructorId)
       ? instructors.find((i) => i.id === instructorId)
       : undefined;
+  // The class's instructor was deleted: keep it selectable so the drop-down shows it and saving keeps it unchanged.
+  const removedInstructorId = instructorId && !instructors.some((i) => i.id === instructorId) ? instructorId : '';
   const title = `EDIT ${styleObj?.name?.toUpperCase() || 'CLASS'} SESSION ${session.seq}`;
 
   const handleSubmit = async (overrideVersion?: number) => {
@@ -271,6 +273,9 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
                 <option value={outsideInstructor.id}>
                   {outsideInstructor.name} (not in this event's list)
                 </option>
+              )}
+              {removedInstructorId && (
+                <option value={removedInstructorId}>Removed instructor (not in this event's list)</option>
               )}
             </select>
           </div>

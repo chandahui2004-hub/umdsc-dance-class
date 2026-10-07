@@ -95,12 +95,13 @@ export function handleRequest(
       auth = { claims };
 
       // One-time fill-in for "one style, many instructors"; admin-only, skipped after the first run.
-      // A busy lock must not fail the admin's request; a later request retries.
+      // No failure here (a busy lock or anything else) may fail the admin's request: it is logged and
+      // a later admin request retries, since the fill-in is safe to re-run.
       if (claims.role === 'admin') {
         try {
           ensureStyleInstructors(ctx);
         } catch (e) {
-          if (!(e instanceof AppError && e.code === 'BUSY')) throw e;
+          if (!(e instanceof AppError && e.code === 'BUSY')) console.error('style-instructor fill-in failed:', e);
         }
       }
 

@@ -31,8 +31,13 @@ export function ensureStyleInstructors(ctx: Ctx): boolean {
     const now = ctx.now();
     let wrote = false;
 
+    // Only active styles and active (not deleted) instructors take part.
     const styles = ctx.db.styles.find(s => s.active);
-    const defaultOf = new Map(styles.map(s => [s.id, s.defaultInstructorId]));
+    const activeInstructors = ctx.db.instructors.find(i => i.active);
+    const isActiveInstructor = new Set(activeInstructors.map(i => i.id));
+    const defaultOf = new Map(
+      styles.map(s => [s.id, isActiveInstructor.has(s.defaultInstructorId) ? s.defaultInstructorId : ''])
+    );
 
     // 1. Classes without an instructor take the style default (before the lists below read them).
     const classes = ctx.db.sessions.find(s => s.active);
@@ -48,14 +53,14 @@ export function ensureStyleInstructors(ctx: Ctx): boolean {
     // 2. Instructors with no styles yet: the styles whose default they are, plus styles of their classes.
     const stylesByInstructor = new Map<string, string[]>();
     const addStyle = (instructorId: string, styleId: string) => {
-      if (!instructorId || !styleId) return;
+      if (!instructorId || !styleId || !defaultOf.has(styleId)) return; // defaultOf holds the active styles
       const list = stylesByInstructor.get(instructorId) || [];
       if (!list.includes(styleId)) list.push(styleId);
       stylesByInstructor.set(instructorId, list);
     };
-    for (const s of styles) addStyle(s.defaultInstructorId, s.id);
+    for (const s of styles) addStyle(defaultOf.get(s.id) || '', s.id);
     for (const cls of classes) addStyle(cls.instructorId, cls.styleId);
-    for (const ins of ctx.db.instructors.find(i => (i.styleIds || []).length === 0)) {
+    for (const ins of activeInstructors.filter(i => (i.styleIds || []).length === 0)) {
       const found = stylesByInstructor.get(ins.id);
       if (found?.length) {
         ctx.db.instructors.update(ins.id, ins.version, { styleIds: found }, ACTOR, now);
@@ -71,7 +76,9 @@ export function ensureStyleInstructors(ctx: Ctx): boolean {
         classes
           .filter(c => c.eventId === ev.id && c.styleId === styleId)
           .sort((a, b) => a.date.localeCompare(b.date) || a.seq - b.seq)
-          .forEach(c => { if (c.instructorId && !ids.includes(c.instructorId)) ids.push(c.instructorId); });
+          .forEach(c => {
+            if (isActiveInstructor.has(c.instructorId) && !ids.includes(c.instructorId)) ids.push(c.instructorId);
+          });
         if (ids.length === 0 && defaultOf.get(styleId)) ids.push(defaultOf.get(styleId)!);
         if (ids.length) lists[styleId] = ids;
       }
@@ -117,8 +124,11 @@ export function assertUniqueStyle(ctx: Ctx, name: string, aliases: string[], sel
   }
 }
 
-/** Validates the styles an instructor teaches: at least one, each an active style. Returns the cleaned ids. */
-export function assertInstructorStyles(ctx: Ctx, styleIds: unknown): string[] {
+/**
+ * Validates the styles an instructor teaches: at least one active style. Inactive or unknown ids the
+ * instructor already had (previous) are dropped silently; newly sent ones are refused. Returns the cleaned ids.
+ */
+export function assertInstructorStyles(ctx: Ctx, styleIds: unknown, previous: string[] = []): string[] {
   const ids: string[] = [];
   if (Array.isArray(styleIds)) {
     for (const raw of styleIds) {
@@ -126,15 +136,16 @@ export function assertInstructorStyles(ctx: Ctx, styleIds: unknown): string[] {
       if (id && !ids.includes(id)) ids.push(id);
     }
   }
-  if (ids.length === 0) {
-    throw new AppError('VALIDATION', 'Choose at least one dance style this instructor teaches.');
-  }
   const active = new Set(ctx.db.styles.find(s => s.active).map(s => s.id));
-  const bad = ids.filter(id => !active.has(id));
+  const bad = ids.filter(id => !active.has(id) && !previous.includes(id));
   if (bad.length) {
     throw new AppError('VALIDATION', `Unknown or inactive dance style: ${bad.join(', ')}`);
   }
-  return ids;
+  const kept = ids.filter(id => active.has(id));
+  if (kept.length === 0) {
+    throw new AppError('VALIDATION', 'Choose at least one dance style this instructor teaches.');
+  }
+  return kept;
 }
 
 /** Takes a deleted instructor out of every event's per-style instructor lists. Classes are left alone. */
@@ -153,11 +164,19 @@ const styleName = (ctx: Ctx, styleId: string): string => ctx.db.styles.find(s =>
 
 /**
  * Cleans an event's per-style instructor lists. Keeps only styles in styleIds, drops duplicates
- * (order kept), and requires every style to have at least one active instructor who teaches it.
+ * (order kept), and requires every ACTIVE style to have at least one instructor. Each newly added
+ * instructor must be active and teach the style; one already in that style's list (previous) is
+ * kept as is, even if they stopped teaching it or were deleted.
  */
-export function cleanStyleInstructors(ctx: Ctx, styleIds: string[], raw: unknown): Record<string, string[]> {
+export function cleanStyleInstructors(
+  ctx: Ctx,
+  styleIds: string[],
+  raw: unknown,
+  previous: Record<string, string[]> = {}
+): Record<string, string[]> {
   const input = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
   const instructors = new Map(ctx.db.instructors.find(i => i.active).map(i => [i.id, i]));
+  const activeStyles = new Set(ctx.db.styles.find(s => s.active).map(s => s.id));
   const out: Record<string, string[]> = {};
   for (const styleId of styleIds) {
     const ids: string[] = [];
@@ -168,10 +187,12 @@ export function cleanStyleInstructors(ctx: Ctx, styleIds: string[], raw: unknown
         if (id && !ids.includes(id)) ids.push(id);
       }
     }
-    if (ids.length === 0) {
+    if (ids.length === 0 && activeStyles.has(styleId)) {
       throw new AppError('VALIDATION', `Choose at least one instructor for ${styleName(ctx, styleId)}.`);
     }
+    const listed = previous[styleId] || [];
     for (const id of ids) {
+      if (listed.includes(id)) continue;
       const ins = instructors.get(id);
       if (!ins || !(ins.styleIds || []).includes(styleId)) {
         const name = ins?.name || ctx.db.instructors.find(i => i.id === id)[0]?.name || id;

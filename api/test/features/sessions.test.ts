@@ -299,6 +299,18 @@ describe('Feature: Class Sessions (features/sessions)', () => {
       expect(ctx.db.sessions.get(cls.id)!.instructorId).toBe(outsider);
     });
 
+    it('update of a class whose event was deleted, with its unchanged instructor, still succeeds', () => {
+      const cls = ctx.db.sessions.insert(
+        { eventId: ev.id, styleId: 'st_popping', seq: 1, date: '2026-10-06', start: '20:00', end: '22:00', instructorId: kelvin, venue: '', status: 'scheduled', note: '' },
+        'admin1', ctx.now()
+      );
+      const e = ctx.db.events.get(ev.id)!;
+      ctx.db.events.deactivate(ev.id, e.version, 'admin1', ctx.now());
+      const res = call('sessions.update', { id: cls.id, version: cls.version, instructorId: kelvin, note: 'moved' });
+      expect(res.ok, JSON.stringify(res)).toBe(true);
+      expect(ctx.db.sessions.get(cls.id)).toMatchObject({ instructorId: kelvin, note: 'moved' });
+    });
+
     it('batchUpsert accepts the unchanged out-of-list instructor of an existing class', () => {
       const cls = ctx.db.sessions.insert(
         { eventId: ev.id, styleId: 'st_popping', seq: 1, date: '2026-10-06', start: '20:00', end: '22:00', instructorId: outsider, venue: '', status: 'scheduled', note: '' },

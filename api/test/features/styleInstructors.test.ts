@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import crypto from 'node:crypto';
 import { handleRequest } from '../../src/router';
 import { makeCtx } from '../fakes/makeCtx';
@@ -119,6 +119,62 @@ describe('Feature: one-time style-instructor fill-in (features/styleInstructors)
     ensureStyleInstructors(ctx);
     expect(styleIdsOf(P)).toEqual([]);
     expect(ctx.db.sessions.get(emptyClass)!.instructorId).toBe('');
+  });
+
+  it('a class taught by a deactivated instructor does not put them in the event list', () => {
+    const l = ctx.db.instructors.get(L)!;
+    ctx.db.instructors.deactivate(L, l.version, 'system', ctx.now());
+    ensureStyleInstructors(ctx);
+    expect(ctx.db.events.get(E)!.styleInstructors).toEqual({ [A]: [K], [B]: [C] });
+    expect(styleIdsOf(L)).toEqual([]);
+  });
+
+  it('a deactivated default instructor is not used', () => {
+    const k = ctx.db.instructors.get(K)!;
+    ctx.db.instructors.deactivate(K, k.version, 'system', ctx.now());
+    ensureStyleInstructors(ctx);
+    expect(ctx.db.sessions.get(sesA2)!.instructorId).toBe('');
+    expect(ctx.db.events.get(E)!.styleInstructors).toEqual({ [A]: [L], [B]: [C] });
+    expect(ctx.db.events.get(F)!.styleInstructors).toEqual({});
+    expect(styleIdsOf(K)).toEqual([]);
+  });
+
+  it("a class of an inactive style adds nothing to anyone's styles", () => {
+    const dead = style('Gamma', '');
+    ctx.db.styles.deactivate(dead, 1, 'system', ctx.now());
+    const P = instructor('Pat');
+    session(E, dead, 1, '2026-10-06', L);
+    session(E, dead, 2, '2026-10-13', P);
+    ensureStyleInstructors(ctx);
+    expect(styleIdsOf(L)).toEqual([A]);
+    expect(styleIdsOf(P)).toEqual([]);
+  });
+
+  it('a non-BUSY fill-in error does not fail an admin request and leaves the fill-in pending', () => {
+    const exp = Math.floor(ctx.now().getTime() / 1000) + 3600;
+    const admin = signToken(
+      { sub: 'admin1', role: 'admin', name: 'Admin', exp, pv: 1, perms: { 'members.view': '*' } },
+      secrets.tokenSecret, secrets.hmac
+    );
+    const orig = ctx.db.sessions.find.bind(ctx.db.sessions);
+    let broken = true;
+    (ctx.db.sessions as any).find = (...args: any[]) => {
+      if (broken) throw new Error('sheet exploded');
+      return (orig as any)(...args);
+    };
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const res = handleRequest({ action: 'events.list', token: admin, payload: {} } as any, ctx, secrets);
+      expect(res.ok, JSON.stringify(res)).toBe(true);
+      expect(ctx.props.get('STYLE_INSTRUCTORS_V1')).toBeNull();
+      expect(errors).toHaveBeenCalled();
+    } finally {
+      errors.mockRestore();
+    }
+
+    broken = false;
+    handleRequest({ action: 'events.list', token: admin, payload: {} } as any, ctx, secrets);
+    expect(ctx.props.get('STYLE_INSTRUCTORS_V1')).toBe('done');
   });
 
   it('a busy lock does not fail an admin request and leaves the fill-in pending', () => {

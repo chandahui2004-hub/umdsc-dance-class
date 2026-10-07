@@ -77,6 +77,9 @@ export const InstructorsPage: React.FC = () => {
   const { data: events = [] } = useEvents();
 
   const styleName = (id: string) => styles.find((s) => s.id === id)?.name || id;
+  // Only active styles count: a deactivated (or unknown) style id an instructor still carries is never shown or sent.
+  const isActiveStyle = (id: string) => styles.some((s) => s.id === id && s.active !== false);
+  const activeStyleIds = styleIds.filter(isActiveStyle);
 
   const toggleStyle = (id: string) =>
     setStyleIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -329,7 +332,7 @@ export const InstructorsPage: React.FC = () => {
         name: name.trim(),
         contact: contact.trim(),
         color: color.trim(),
-        styleIds,
+        styleIds: activeStyleIds,
         photoUrl: activePhotoUrl || '',
         photosJson: JSON.stringify(photos)
       };
@@ -457,8 +460,8 @@ export const InstructorsPage: React.FC = () => {
                         </span>
                       </p>
                       <div className="flex flex-wrap gap-1 pt-1">
-                        {(inst.styleIds || []).length > 0 ? (
-                          (inst.styleIds || []).map((sid) => (
+                        {(inst.styleIds || []).some(isActiveStyle) ? (
+                          (inst.styleIds || []).filter(isActiveStyle).map((sid) => (
                             <span
                               key={sid}
                               className="bg-[var(--night-1)] border border-[var(--outline)] px-2 py-0.5 font-mono text-[12px] text-[var(--text-1)]"
@@ -572,7 +575,7 @@ export const InstructorsPage: React.FC = () => {
                     );
                   })}
                 </div>
-                {styleIds.length === 0 && (
+                {activeStyleIds.length === 0 && (
                   <p className="font-body text-[14px] text-[var(--text-2)]">Choose at least one dance style this instructor teaches.</p>
                 )}
                 {stillTeachingNotes.map((note) => (
@@ -762,7 +765,7 @@ export const InstructorsPage: React.FC = () => {
                   size="md"
                   variant="primary"
                   className="flex-1"
-                  disabled={saveMutation.isPending || !name.trim() || styleIds.length === 0}
+                  disabled={saveMutation.isPending || !name.trim() || activeStyleIds.length === 0}
                   onClick={() => saveMutation.mutate()}
                 >
                   {saveMutation.isPending ? 'SAVING...' : 'SAVE INSTRUCTOR'}

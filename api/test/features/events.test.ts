@@ -247,6 +247,39 @@ describe('Feature: events (features/events)', () => {
         if (!res.ok) expect(res.error.message).toBe('VALIDATION: Choose at least one instructor for Locking.');
         expect(fresh().styleIds).toEqual(['st_popping', 'st_hiphop']);
       });
+
+      it('keeps an already-listed instructor who no longer teaches the style', () => {
+        const k = ctx.db.instructors.get(kelvin)!;
+        ctx.db.instructors.update(kelvin, k.version, { styleIds: ['st_hiphop'] }, 'system', ctx.now());
+        const res = update({ name: 'OCT RENAMED', styleInstructors: { st_popping: [kelvin, lam], st_hiphop: [lam] } });
+        expect(res.ok, JSON.stringify(res)).toBe(true);
+        expect(fresh().styleInstructors).toEqual({ st_popping: [kelvin, lam], st_hiphop: [lam] });
+      });
+
+      it('keeps an already-listed deactivated instructor', () => {
+        const l = ctx.db.instructors.get(lam)!;
+        ctx.db.instructors.deactivate(lam, l.version, 'system', ctx.now());
+        const res = update({ name: 'OCT RENAMED', styleInstructors: { st_popping: [kelvin, lam], st_hiphop: [lam] } });
+        expect(res.ok, JSON.stringify(res)).toBe(true);
+        expect(fresh().styleInstructors).toEqual({ st_popping: [kelvin, lam], st_hiphop: [lam] });
+      });
+
+      it('still refuses adding an instructor who does not teach the style', () => {
+        addInstructor('Other', ['st_latin']);
+        const other = ctx.db.instructors.find(i => i.name === 'Other')[0].id;
+        const res = update({ styleInstructors: { st_popping: [kelvin, other], st_hiphop: [lam] } });
+        expect(res.ok).toBe(false);
+        if (!res.ok) expect(res.error.message).toBe("VALIDATION: Other doesn't teach Popping.");
+      });
+
+      it('does not require instructors for a style that has been deactivated', () => {
+        const hh = ctx.db.styles.get('st_hiphop')!;
+        ctx.db.styles.deactivate('st_hiphop', hh.version, 'system', ctx.now());
+        const res = update({ name: 'OCT RENAMED', styleInstructors: { st_popping: [kelvin] } });
+        expect(res.ok, JSON.stringify(res)).toBe(true);
+        expect(fresh().styleIds).toEqual(['st_popping', 'st_hiphop']);
+        expect(fresh().styleInstructors).toEqual({ st_popping: [kelvin], st_hiphop: [] });
+      });
     });
   });
 

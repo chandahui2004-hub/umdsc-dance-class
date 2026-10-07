@@ -394,7 +394,7 @@ export function getMasterDataRoutes(): Record<string, Route> {
     },
     processPayload: (ctx, payload, isUpdate, existing) => {
       if (!isUpdate || payload.styleIds !== undefined) {
-        payload.styleIds = assertInstructorStyles(ctx, payload.styleIds);
+        payload.styleIds = assertInstructorStyles(ctx, payload.styleIds, isUpdate ? existing?.styleIds || [] : []);
       }
 
       const folderId = getInstructorPhotosFolder(ctx);

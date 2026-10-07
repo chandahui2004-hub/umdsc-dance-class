@@ -117,8 +117,15 @@ describe('eventDraft', () => {
 
   it('missingInstructorStyle names the first ticked style with no instructor', () => {
     const d = { ...emptyDraft('2026-10-01'), styleIds: ['pop', 'hh', 'jazz'], styleInstructors: { pop: ['a'], jazz: [] } };
-    expect(missingInstructorStyle(d)).toBe('hh');
-    expect(missingInstructorStyle({ ...d, styleInstructors: { pop: ['a'], hh: ['b'], jazz: ['c'] } })).toBeNull();
+    const active = ['pop', 'hh', 'jazz'];
+    expect(missingInstructorStyle(d, active)).toBe('hh');
+    expect(missingInstructorStyle({ ...d, styleInstructors: { pop: ['a'], hh: ['b'], jazz: ['c'] } }, active)).toBeNull();
+  });
+
+  it('missingInstructorStyle ignores a ticked style that is no longer active', () => {
+    const d = { ...emptyDraft('2026-10-01'), styleIds: ['pop', 'gone'], styleInstructors: { pop: ['a'] } };
+    expect(missingInstructorStyle(d, ['pop', 'hh'])).toBeNull();
+    expect(missingInstructorStyle(d, ['pop', 'gone'])).toBe('gone');
   });
 
   it('draftFromEvent seeds empty style lists from the event classes', () => {

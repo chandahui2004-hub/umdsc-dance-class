@@ -145,7 +145,7 @@ export function getEventRoutes(): Record<string, Route> {
 
         const styleInstructors =
           payload.styleInstructors !== undefined
-            ? cleanStyleInstructors(ctx, next.styleIds, payload.styleInstructors)
+            ? cleanStyleInstructors(ctx, next.styleIds, payload.styleInstructors, existing.styleInstructors || {})
             : Object.fromEntries(
                 Object.entries(existing.styleInstructors || {}).filter(([styleId]) => next.styleIds.includes(styleId))
               );

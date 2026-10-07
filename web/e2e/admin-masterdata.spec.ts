@@ -377,6 +377,25 @@ test.describe('Style / instructor relationship', () => {
     await expect(carmen.getByText('Popping', { exact: true })).toHaveCount(0);
   });
 
+  test('a deactivated style is not shown on the card and is not sent when saving', async ({ page }) => {
+    const calls = await mockApi(page, {
+      'styles.list': () => [...STYLES, { ...STYLE_BASE, id: 'jazz', name: 'Jazz', aliases: ['jazz'], active: false }],
+      'instructors.list': () => [{ ...INST_BASE, id: 'nina', name: 'Nina', styleIds: ['locking', 'style-gone', 'jazz'] }],
+      'instructors.update': (p) => ({ ...p, version: 2, active: true })
+    });
+    await page.goto('/admin/instructors');
+    const nina = page.locator('.px-panel', { hasText: 'Nina' });
+    await expect(nina.getByText('Locking', { exact: true })).toBeVisible();
+    await expect(nina.getByText('style-gone')).toHaveCount(0);
+    await expect(nina.getByText('Jazz')).toHaveCount(0);
+
+    await nina.getByRole('button', { name: 'EDIT' }).click();
+    await page.getByRole('button', { name: /SAVE INSTRUCTOR/i }).click();
+    await expect
+      .poll(() => calls.find((c) => c.action === 'instructors.update')?.payload?.styleIds)
+      .toEqual(['locking']);
+  });
+
   test('unticking a style still used by an event shows the note', async ({ page }) => {
     await mockApi(page, {
       'styles.list': () => STYLES,

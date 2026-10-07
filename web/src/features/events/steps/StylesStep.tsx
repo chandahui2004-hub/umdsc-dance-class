@@ -45,6 +45,7 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
     let next = draft;
     let changed = false;
     for (const id of draft.styleIds) {
+      if (!styles.some(s => s.id === id && s.active !== false)) continue; // an inactive style needs no instructor
       const candidates = instructorsForStyle(instructors, id);
       if (candidates.length !== 1) continue;
       const key = `${id}:${candidates[0].id}`;
@@ -56,9 +57,14 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
       }
     }
     if (changed) onChange({ styleInstructors: next.styleInstructors, schedule: next.schedule });
-  }, [draft, instructors]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [draft, instructors, styles]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const missingStyleId = missingInstructorStyle(draft);
+  // A style deactivated after this event was made can still be ticked; it needs no instructor and is shown
+  // below as "(inactive style)" so the admin can untick it.
+  const activeStyles = styles.filter(s => s.active !== false);
+  const activeStyleIds = activeStyles.map(s => s.id);
+  const inactiveTicked = draft.styleIds.filter(id => !activeStyleIds.includes(id));
+  const missingStyleId = missingInstructorStyle(draft, activeStyleIds);
   const missingStyleName = missingStyleId ? styles.find(s => s.id === missingStyleId)?.name || missingStyleId : '';
 
   const createStyle = useMutation({
@@ -98,7 +104,7 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
       <p className="font-body text-[16px] text-[var(--text-1)]">Tick the dance styles taught in this event.</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {styles.map(s => (
+        {activeStyles.map(s => (
           <div key={s.id} className="space-y-2">
           <label
             className={`flex items-center gap-3 min-h-[48px] px-3 border-2 border-[var(--outline)] cursor-pointer select-none transition-none ${
@@ -124,6 +130,17 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
             />
           )}
           </div>
+        ))}
+        {inactiveTicked.map(id => (
+          <label
+            key={id}
+            className="flex items-center gap-3 min-h-[48px] px-3 border-2 border-[var(--outline)] cursor-pointer select-none transition-none bg-[var(--night-2)] hover:bg-[var(--violet-1)]"
+          >
+            <input type="checkbox" checked onChange={() => toggle(id)} className="w-5 h-5 accent-[var(--neon-gold)]" />
+            <span className="font-body text-[16px] text-[var(--text-1)]">
+              {styles.find(s => s.id === id)?.name || id} (inactive style)
+            </span>
+          </label>
         ))}
       </div>
 

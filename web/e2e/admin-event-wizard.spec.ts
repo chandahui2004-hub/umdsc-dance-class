@@ -258,6 +258,31 @@ test.describe('Event wizard', () => {
     await expect(page.getByText('(inactive)')).toBeVisible();
   });
 
+  test('an event that still includes a deactivated style can move on, and shows it as (inactive style)', async ({ page }) => {
+    await mockApi(page, {
+      'styles.list': () => MANY_STYLES,
+      'instructors.list': () => MANY_INSTRUCTORS,
+      'events.list': () => [makeEvent({ styleIds: ['locking', 'style-gone'], styleInstructors: { locking: [] } })],
+      'sessions.list': () => []
+    });
+    await page.goto('/admin/events/evt-oct/edit');
+    await expect(page.getByLabel('Google Sheet Link')).toBeVisible();
+    await NEXT(page).click();
+    await NEXT(page).click();
+
+    const gone = page.getByRole('checkbox', { name: 'style-gone (inactive style)' });
+    await expect(gone).toBeChecked();
+    await expect(NEXT(page)).toBeDisabled();
+    await expect(page.getByText('Choose an instructor for Locking.')).toBeVisible();
+
+    await page.getByRole('checkbox', { name: 'Kelvin' }).check();
+    await expect(NEXT(page)).toBeEnabled();
+
+    await gone.click(); // the row disappears once unticked, so click rather than uncheck
+    await expect(page.getByText('(inactive style)')).toHaveCount(0);
+    await expect(NEXT(page)).toBeEnabled();
+  });
+
   test('SCHEDULE has a per-class instructor drop-down only when a style has several', async ({ page }) => {
     await openStylesStep(page);
     await page.getByRole('checkbox', { name: /Latin/ }).check();

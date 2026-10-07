@@ -615,6 +615,41 @@ describe('Feature: Master Data (Styles & Instructors)', () => {
       expect(narrowed.data.styleIds).toEqual([b]);
     });
 
+    it('update keeps working after one of the instructor styles is deactivated, and drops it', () => {
+      const a = addStyle('Popping');
+      const b = addStyle('Locking');
+      const jane = call('instructors.create', { name: 'Jane', styleIds: [a, b] }).data;
+      const gone = ctx.db.styles.get(b)!;
+      ctx.db.styles.deactivate(gone.id, gone.version, 'admin1', ctx.now());
+
+      const edited = call('instructors.update', { id: jane.id, version: jane.version, contact: '012', styleIds: [a, b] });
+      expect(edited.ok, JSON.stringify(edited)).toBe(true);
+      expect(edited.data.styleIds).toEqual([a]);
+      expect(ctx.db.instructors.get(jane.id)!.styleIds).toEqual([a]);
+    });
+
+    it('update still rejects a newly sent inactive style', () => {
+      const a = addStyle('Popping');
+      const gone = ctx.db.styles.get(addStyle('Locking'))!;
+      ctx.db.styles.deactivate(gone.id, gone.version, 'admin1', ctx.now());
+      const jane = call('instructors.create', { name: 'Jane', styleIds: [a] }).data;
+      expectFailure(
+        call('instructors.update', { id: jane.id, version: jane.version, styleIds: [a, gone.id] }),
+        `Unknown or inactive dance style: ${gone.id}`
+      );
+    });
+
+    it('update rejects an instructor left with no active style', () => {
+      const a = addStyle('Popping');
+      const jane = call('instructors.create', { name: 'Jane', styleIds: [a] }).data;
+      const gone = ctx.db.styles.get(a)!;
+      ctx.db.styles.deactivate(gone.id, gone.version, 'admin1', ctx.now());
+      expectFailure(
+        call('instructors.update', { id: jane.id, version: jane.version, styleIds: [a] }),
+        'Choose at least one dance style this instructor teaches.'
+      );
+    });
+
     it('instructors.delete removes the instructor from every event list but keeps classes', () => {
       const popping = addStyle('Popping');
       const locking = addStyle('Locking');
