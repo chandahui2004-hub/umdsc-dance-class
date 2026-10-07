@@ -1,4 +1,4 @@
-import type { ClassSession, EventItem, EventType, ISODate, SourcePreview } from '@umdsc/shared';
+import type { ClassSession, EventItem, EventType, Instructor, ISODate, SourcePreview } from '@umdsc/shared';
 
 export interface ScheduledClass {
   /** Set for classes that already exist (edit mode). */
@@ -9,6 +9,7 @@ export interface ScheduledClass {
   end: string;
   venue?: string;
   status?: ClassSession['status'];
+  instructorId?: string;
 }
 
 /** Everything the event wizard collects before it creates or updates an event. */
@@ -22,6 +23,8 @@ export interface EventDraft {
   startDate: ISODate;
   endDate: ISODate;
   styleIds: string[];
+  /** Instructors chosen per style; each class then picks one of its style's list. */
+  styleInstructors: Record<string, string[]>;
   schedule: Record<string, ScheduledClass[]>;
 }
 
@@ -36,6 +39,7 @@ export function emptyDraft(today: ISODate): EventDraft {
     startDate: today,
     endDate: today,
     styleIds: [],
+    styleInstructors: {},
     schedule: {}
   };
 }
@@ -57,8 +61,18 @@ export function draftFromEvent(e: EventItem, sessions: ClassSession[]): EventDra
       start: s.start,
       end: s.end,
       venue: s.venue,
-      status: s.status
+      status: s.status,
+      instructorId: s.instructorId
     });
+  }
+
+  // A style the event has no instructor list for falls back to whoever its classes already use.
+  const styleInstructors: Record<string, string[]> = {};
+  for (const styleId of e.styleIds) {
+    const saved = e.styleInstructors?.[styleId] ?? [];
+    styleInstructors[styleId] = saved.length
+      ? [...saved]
+      : [...new Set((schedule[styleId] || []).map(c => c.instructorId).filter((id): id is string => Boolean(id)))];
   }
 
   return {
@@ -71,6 +85,7 @@ export function draftFromEvent(e: EventItem, sessions: ClassSession[]): EventDra
     startDate: e.startDate,
     endDate: e.endDate,
     styleIds: [...e.styleIds],
+    styleInstructors,
     schedule
   };
 }
@@ -84,7 +99,36 @@ export function pruneSchedule(d: EventDraft): EventDraft {
       .sort((a, b) => a.date.localeCompare(b.date))
       .map((c, i) => ({ ...c, seq: i + 1 }));
   }
-  return { ...d, schedule };
+  const styleInstructors: Record<string, string[]> = {};
+  for (const styleId of d.styleIds) {
+    if (styleId in d.styleInstructors) styleInstructors[styleId] = d.styleInstructors[styleId];
+  }
+  return { ...d, schedule, styleInstructors };
+}
+
+/** Active instructors who teach the style, by name. */
+export function instructorsForStyle(instructors: Instructor[], styleId: string): Instructor[] {
+  return instructors
+    .filter(i => i.active && i.styleIds.includes(styleId))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Sets a style's instructors; classes whose instructor was removed move to the first remaining one. */
+export function setStyleInstructors(d: EventDraft, styleId: string, ids: string[]): EventDraft {
+  const fallback = ids[0] ?? '';
+  const classes = (d.schedule[styleId] || []).map(c =>
+    c.instructorId && !ids.includes(c.instructorId) ? { ...c, instructorId: fallback } : c
+  );
+  return {
+    ...d,
+    styleInstructors: { ...d.styleInstructors, [styleId]: ids },
+    schedule: { ...d.schedule, [styleId]: classes }
+  };
+}
+
+/** The first ticked style that still has no instructor. */
+export function missingInstructorStyle(d: EventDraft): string | null {
+  return d.styleIds.find(styleId => !(d.styleInstructors[styleId]?.length)) ?? null;
 }
 
 /** Classes to send to the server, one list across all styles. */
