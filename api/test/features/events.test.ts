@@ -91,6 +91,165 @@ describe('Feature: events (features/events)', () => {
     expect(drive.parentOf(pop.spreadsheetId)).toBe(folder);
   });
 
+  describe('style instructors', () => {
+    const addStyle = (id: string, name: string) =>
+      ctx.db.styles.insert(
+        { id, name, aliases: [name.toLowerCase()], colorKey: 'pink', defaultWeekday: null, defaultStart: '20:00', defaultEnd: '22:00',
+          defaultInstructorId: 'ins_default', defaultVenue: '', attendanceFolderId: '', videoFolderId: '' } as any,
+        'system',
+        ctx.now()
+      );
+    const addInstructor = (name: string, styleIds: string[], active = true) => {
+      const i = ctx.db.instructors.insert({ name, contact: '', styleIds } as any, 'system', ctx.now());
+      if (!active) ctx.db.instructors.deactivate(i.id, i.version, 'system', ctx.now());
+      return i.id;
+    };
+    let kelvin: string;
+    let lam: string;
+
+    beforeEach(() => {
+      addStyle('st_latin', 'Latin');
+      addStyle('st_locking', 'Locking');
+      kelvin = addInstructor('Kelvin', ['st_popping', 'st_hiphop', 'st_latin']);
+      lam = addInstructor('Lam', ['st_popping', 'st_hiphop']);
+    });
+
+    const one = (extra: any = {}) => createPayload({
+      styleIds: ['st_popping', 'st_hiphop'],
+      styleInstructors: { st_popping: [kelvin, lam], st_hiphop: [lam] },
+      ...extra
+    });
+
+    it('create saves styleInstructors and gives classes their chosen instructor', () => {
+      const res = call('events.create', one({
+        sessions: [
+          { styleId: 'st_popping', seq: 1, date: '2026-10-06', start: '20:00', end: '22:00', instructorId: lam },
+          { styleId: 'st_hiphop', seq: 1, date: '2026-10-08', start: '19:00', end: '21:00' }
+        ]
+      }));
+
+      expect(res.ok).toBe(true);
+      const event = res.ok ? (res.data as any).event : null;
+      expect(ctx.db.events.get(event.id)!.styleInstructors).toEqual({ st_popping: [kelvin, lam], st_hiphop: [lam] });
+      const classes = ctx.db.sessions.find(s => s.eventId === event.id);
+      expect(classes.find(c => c.styleId === 'st_popping')!.instructorId).toBe(lam);
+    });
+
+    it('create gives a class with no instructor the first in the list', () => {
+      const res = call('events.create', one());
+
+      const event = res.ok ? (res.data as any).event : null;
+      const classes = ctx.db.sessions.find(s => s.eventId === event.id);
+      expect(classes.filter(c => c.styleId === 'st_popping').every(c => c.instructorId === kelvin)).toBe(true);
+      expect(classes.filter(c => c.styleId === 'st_hiphop').every(c => c.instructorId === lam)).toBe(true);
+    });
+
+    it("create refuses an instructor who doesn't teach the style", () => {
+      const res = call('events.create', one({
+        styleIds: ['st_popping', 'st_locking'],
+        styleInstructors: { st_popping: [kelvin], st_locking: [lam] },
+        sessions: []
+      }));
+
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.error.message).toBe("VALIDATION: Lam doesn't teach Locking.");
+      expect(ctx.db.events.all().length).toBe(0);
+    });
+
+    it('create refuses a style with no instructors', () => {
+      const res = call('events.create', one({
+        styleIds: ['st_popping', 'st_locking'],
+        styleInstructors: { st_popping: [kelvin] },
+        sessions: []
+      }));
+
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.error.message).toBe('VALIDATION: Choose at least one instructor for Locking.');
+      expect(ctx.db.events.all().length).toBe(0);
+    });
+
+    it('create refuses an inactive or unknown instructor', () => {
+      const gone = addInstructor('Gone', ['st_popping'], false);
+      const res = call('events.create', one({ styleInstructors: { st_popping: [gone], st_hiphop: [lam] } }));
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.error.message).toBe("VALIDATION: Gone doesn't teach Popping.");
+
+      const unknown = call('events.create', one({ styleInstructors: { st_popping: ['ins_nope'], st_hiphop: [lam] } }));
+      expect(unknown.ok).toBe(false);
+    });
+
+    it('create de-duplicates, keeps order and ignores styles not in the event', () => {
+      const res = call('events.create', one({
+        styleInstructors: { st_popping: [lam, kelvin, lam], st_hiphop: [lam], st_latin: [kelvin] },
+        sessions: []
+      }));
+
+      const event = res.ok ? (res.data as any).event : null;
+      expect(ctx.db.events.get(event.id)!.styleInstructors).toEqual({ st_popping: [lam, kelvin], st_hiphop: [lam] });
+    });
+
+    it('create refuses a class instructor outside its style list', () => {
+      const other = addInstructor('Other', ['st_latin', 'st_popping']);
+      const res = call('events.create', one({
+        styleIds: ['st_popping', 'st_latin'],
+        styleInstructors: { st_popping: [kelvin], st_latin: [other] },
+        sessions: [{ styleId: 'st_latin', seq: 1, date: '2026-10-06', start: '20:00', end: '22:00', instructorId: kelvin }]
+      }));
+
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.error.message).toBe("VALIDATION: Kelvin isn't an instructor for Latin in this event.");
+      expect(ctx.db.events.all().length).toBe(0);
+    });
+
+    it('old website create without styleInstructors fills lists from active teachers, and allows a style nobody teaches', () => {
+      addInstructor('Retired', ['st_popping'], false);
+      const res = call('events.create', createPayload({
+        styleIds: ['st_popping', 'st_locking'],
+        sessions: [{ styleId: 'st_locking', seq: 1, date: '2026-10-06', start: '20:00', end: '22:00' }]
+      }));
+
+      expect(res.ok).toBe(true);
+      const event = res.ok ? (res.data as any).event : null;
+      expect(ctx.db.events.get(event.id)!.styleInstructors).toEqual({ st_popping: [kelvin, lam], st_locking: [] });
+      const cls = ctx.db.sessions.find(s => s.eventId === event.id)[0];
+      expect(cls.instructorId).toBe('');
+    });
+
+    describe('update', () => {
+      let event: any;
+      const fresh = () => ctx.db.events.get(event.id)!;
+      const update = (fields: any) => call('events.update', { id: event.id, version: fresh().version, ...fields });
+
+      beforeEach(() => {
+        const res = call('events.create', one());
+        event = res.ok ? (res.data as any).event : null;
+      });
+
+      it('replaces the lists and drops styles removed from the event', () => {
+        const res = update({ styleIds: ['st_popping', 'st_latin'], styleInstructors: { st_popping: [lam], st_latin: [kelvin], st_hiphop: [lam] } });
+
+        expect(res.ok).toBe(true);
+        expect(fresh().styleInstructors).toEqual({ st_popping: [lam], st_latin: [kelvin] });
+      });
+
+      it('without styleInstructors keeps the stored lists (old website)', () => {
+        const res = update({ name: 'OCT MONTHLY CLASS 2026' });
+        expect(res.ok).toBe(true);
+        expect(fresh().styleInstructors).toEqual({ st_popping: [kelvin, lam], st_hiphop: [lam] });
+
+        expect(update({ styleIds: ['st_popping'] }).ok).toBe(true);
+        expect(fresh().styleInstructors).toEqual({ st_popping: [kelvin, lam] });
+      });
+
+      it('refuses a style left with no instructors', () => {
+        const res = update({ styleIds: ['st_popping', 'st_locking'], styleInstructors: { st_popping: [kelvin] } });
+        expect(res.ok).toBe(false);
+        if (!res.ok) expect(res.error.message).toBe('VALIDATION: Choose at least one instructor for Locking.');
+        expect(fresh().styleIds).toEqual(['st_popping', 'st_hiphop']);
+      });
+    });
+  });
+
   it('create rejects duplicate name ignoring case and spaces', () => {
     expect(call('events.create', createPayload()).ok).toBe(true);
     const res = call('events.create', createPayload({ name: ' oct  monthly class ' }));

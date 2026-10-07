@@ -1,3 +1,4 @@
+import { EventItem } from '@umdsc/shared';
 import { Ctx } from '../ports';
 import { withScriptLock } from '../db/lock';
 import { AppError } from '../errors';
@@ -146,4 +147,54 @@ export function removeInstructorFromEvents(ctx: Ctx, instructorId: string, actor
     }
     ctx.db.events.update(ev.id, ev.version, { styleInstructors: lists }, actor, now);
   }
+}
+
+const styleName = (ctx: Ctx, styleId: string): string => ctx.db.styles.find(s => s.id === styleId)[0]?.name || styleId;
+
+/**
+ * Cleans an event's per-style instructor lists. Keeps only styles in styleIds, drops duplicates
+ * (order kept), and requires every style to have at least one active instructor who teaches it.
+ */
+export function cleanStyleInstructors(ctx: Ctx, styleIds: string[], raw: unknown): Record<string, string[]> {
+  const input = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  const instructors = new Map(ctx.db.instructors.find(i => i.active).map(i => [i.id, i]));
+  const out: Record<string, string[]> = {};
+  for (const styleId of styleIds) {
+    const ids: string[] = [];
+    const given = input[styleId];
+    if (Array.isArray(given)) {
+      for (const v of given) {
+        const id = typeof v === 'string' ? v.trim() : '';
+        if (id && !ids.includes(id)) ids.push(id);
+      }
+    }
+    if (ids.length === 0) {
+      throw new AppError('VALIDATION', `Choose at least one instructor for ${styleName(ctx, styleId)}.`);
+    }
+    for (const id of ids) {
+      const ins = instructors.get(id);
+      if (!ins || !(ins.styleIds || []).includes(styleId)) {
+        const name = ins?.name || ctx.db.instructors.find(i => i.id === id)[0]?.name || id;
+        throw new AppError('VALIDATION', `${name} doesn't teach ${styleName(ctx, styleId)}.`);
+      }
+    }
+    out[styleId] = ids;
+  }
+  return out;
+}
+
+/** The first instructor listed for a style in an event, or '' when there is none. */
+export function firstInstructor(event: EventItem, styleId: string): string {
+  return (event.styleInstructors || {})[styleId]?.[0] || '';
+}
+
+/**
+ * A class's instructor must be one of its event's instructors for that style. An empty id and the
+ * instructor the class already has (previous) always pass.
+ */
+export function assertClassInstructor(ctx: Ctx, event: EventItem, styleId: string, instructorId: string, previous?: string): void {
+  if (instructorId === '' || instructorId === previous) return;
+  if ((event.styleInstructors || {})[styleId]?.includes(instructorId)) return;
+  const name = ctx.db.instructors.find(i => i.id === instructorId)[0]?.name || instructorId;
+  throw new AppError('VALIDATION', `${name} isn't an instructor for ${styleName(ctx, styleId)} in this event.`);
 }

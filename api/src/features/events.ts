@@ -12,6 +12,7 @@ import { getEvent, readEventMembers } from './eventMembers';
 import { importEventMembers, sourceUnchanged } from './eventImport';
 import { withScriptLock } from '../db/lock';
 import { assertSchemaReady } from './reset';
+import { cleanStyleInstructors, firstInstructor, assertClassInstructor } from './styleInstructors';
 
 const AUTO_SYNC_SECONDS = 600;
 const SYNC_NOW_SECONDS = 60;
@@ -71,6 +72,7 @@ interface SessionInput {
   date: string;
   start: string;
   end: string;
+  instructorId?: string;
   venue?: string;
 }
 
@@ -141,7 +143,14 @@ export function getEventRoutes(): Record<string, Route> {
           );
         }
 
-        const patch: any = { ...next, nameKey: eventNameKey(next.name) };
+        const styleInstructors =
+          payload.styleInstructors !== undefined
+            ? cleanStyleInstructors(ctx, next.styleIds, payload.styleInstructors)
+            : Object.fromEntries(
+                Object.entries(existing.styleInstructors || {}).filter(([styleId]) => next.styleIds.includes(styleId))
+              );
+
+        const patch: any = { ...next, styleInstructors, nameKey: eventNameKey(next.name) };
         if (payload.columnMap !== undefined) patch.columnMapJson = JSON.stringify(payload.columnMap || {});
         if (payload.classIndex !== undefined) patch.classIndex = Number(payload.classIndex);
         if (payload.sheetUrl !== undefined) {
@@ -299,6 +308,17 @@ export function getEventRoutes(): Record<string, Route> {
           ctx.db.events.find(e => e.active).map(e => ({ id: e.id, nameKey: e.nameKey }))
         );
         const sourceSheetId = validateLink(ctx, String(payload?.sheetUrl || ''), 'spreadsheet');
+        // The current website sends no lists: fill each from the active instructors who teach the style
+        // (a style nobody teaches gets an empty list) instead of requiring a choice.
+        const styleInstructors =
+          payload?.styleInstructors === undefined
+            ? Object.fromEntries(
+                styleIds.map(styleId => [
+                  styleId,
+                  ctx.db.instructors.find(i => i.active && (i.styleIds || []).includes(styleId)).map(i => i.id)
+                ])
+              )
+            : cleanStyleInstructors(ctx, styleIds, payload.styleInstructors);
         for (const s of sessions) {
           if (!styleIds.includes(s.styleId)) {
             throw new AppError('VALIDATION', `Class #${s.seq} is for a style that is not in this event`);
@@ -309,6 +329,7 @@ export function getEventRoutes(): Record<string, Route> {
           if (!s.seq || !s.start || !s.end) {
             throw new AppError('VALIDATION', 'Each class needs seq, date, start and end');
           }
+          assertClassInstructor(ctx, { styleInstructors } as EventItem, s.styleId, s.instructorId || '');
         }
         if (!ctx.db.settings.find(s => s.key === 'defaultAttendanceFolderId' && s.active)[0]?.value) {
           throw new AppError('VALIDATION', 'Set the attendance master folder on the Attendance page first');
@@ -327,7 +348,7 @@ export function getEventRoutes(): Record<string, Route> {
             columnMapJson: JSON.stringify(payload?.columnMap || {}),
             classIndex: payload?.classIndex === undefined || payload?.classIndex === null ? -1 : Number(payload.classIndex),
             styleIds,
-            styleInstructors: {},
+            styleInstructors,
             folderId: '',
             videoFolderId: '',
             membersSpreadsheetId: '',
@@ -354,7 +375,7 @@ export function getEventRoutes(): Record<string, Route> {
               date: s.date,
               start: s.start,
               end: s.end,
-              instructorId: s.instructorId || style?.defaultInstructorId || '',
+              instructorId: s.instructorId || firstInstructor(created, s.styleId),
               venue: s.venue || style?.defaultVenue || '',
               status: 'scheduled',
               note: ''
