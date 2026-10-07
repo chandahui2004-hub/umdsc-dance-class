@@ -165,14 +165,19 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
               aria-label={ariaLabel}
               onClick={() => onSelect?.(dateStr)}
               onKeyDown={(e) => handleKeyDown(e, dateStr)}
-              style={isToday && !isSelected ? ({ '--glow': 'var(--neon-cyan)' } as React.CSSProperties) : undefined}
+              aria-pressed={isSelected}
+              data-today={isToday || undefined}
+              style={isToday ? ({ '--glow': 'var(--neon-cyan)' } as React.CSSProperties) : undefined}
               className={`px-well min-h-[44px] min-w-[44px] p-1 flex flex-col justify-between items-center transition-none font-display text-[10px] md:text-[12px] cursor-pointer focus:outline-none ${
+                isToday ? 'px-neon' : ''
+              } ${
                 isSelected
-                  ? 'bg-[var(--violet-2)] border-[var(--neon-gold)] shadow-[2px_2px_0_var(--outline)]'
+                  ? // Selected: pink inset frame, pressed down (today keeps its cyan glow around it)
+                    'bg-[var(--violet-2)] border-[var(--neon-pink)] shadow-[inset_0_0_0_2px_var(--neon-pink),inset_3px_3px_0_var(--night-0)] translate-x-[2px] translate-y-[2px]'
                   : isToday
-                  ? 'border-[var(--neon-cyan)] px-neon'
+                  ? 'border-[var(--neon-cyan)]'
                   : isCurrentMonth
-                  ? 'hover:bg-[var(--violet-1)]'
+                  ? 'hover:bg-[var(--violet-1)] active:translate-y-[2px]'
                   : 'opacity-30'
               }`}
             >

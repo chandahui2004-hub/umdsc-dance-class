@@ -36,6 +36,27 @@ test.describe('Admin Classes & Calendar', () => {
     });
   });
 
+  test('the chosen day shows class cards with recap videos and music, and EDIT CLASS opens the editor', async ({ page }) => {
+    await mockApi(page, {
+      ...BASE,
+      'sessions.list': () => [session('ses-1')],
+      'videos.list': () => [{ id: 'vid-1', eventId: 'evt-oct', styleId: 'style-hiphop', sessionId: 'ses-1', title: 'Week 1 Recap.mp4',
+        driveFileId: 'drive-1', mimeType: 'video/mp4', sizeBytes: 1, folderId: 'f', uploadedBy: 'admin', source: 'upload', version: 1, active: true }],
+      'music.list': () => [{ id: 'mus-1', eventId: 'evt-oct', styleId: 'style-hiphop', sessionId: 'ses-1', title: 'Practice Song',
+        sourceType: 'youtube', driveFileId: '', youtubeId: 'aaaaaaaaaaa', version: 1, active: true }]
+    });
+    await page.goto('/admin/calendar');
+    await page.getByRole('button', { name: /Thu 08 Oct/ }).click();
+    await expect(page.getByRole('button', { name: /Thu 08 Oct/ })).toHaveAttribute('aria-pressed', 'true');
+
+    const card = page.getByTestId('class-card-ses-1');
+    await expect(card.getByText('Week 1 Recap.mp4')).toBeVisible();
+    await expect(card.getByText('Practice Song')).toBeVisible();
+    await expect(card.getByText(/ABSENT|ATTENDED/)).toHaveCount(0);
+    await card.getByRole('button', { name: /EDIT CLASS/ }).click();
+    await expect(page.getByText(/EDIT HIP HOP SESSION 1/i)).toBeVisible();
+  });
+
   test('dates outside the event cannot be picked and months can be freely navigated', async ({ page }) => {
     await mockApi(page, { ...BASE, 'sessions.list': () => [session('ses-1')] });
     await page.goto('/admin/calendar');

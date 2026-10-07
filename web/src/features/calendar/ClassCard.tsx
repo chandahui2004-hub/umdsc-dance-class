@@ -19,6 +19,9 @@ export interface ClassCardProps {
   videos: VideoItem[];
   music: MusicItem[];
   eventName?: string;
+  /** Admin view: no personal ATTENDED/ABSENT badge; `action` (e.g. EDIT CLASS) shows in its place. */
+  showAttendance?: boolean;
+  action?: React.ReactNode;
 }
 
 export const ClassCard: React.FC<ClassCardProps> = ({
@@ -29,7 +32,9 @@ export const ClassCard: React.FC<ClassCardProps> = ({
   attendanceLoading = false,
   videos,
   music,
-  eventName
+  eventName,
+  showAttendance = true,
+  action
 }) => {
   const navigate = useNavigate();
   const today = todayKL();
@@ -85,9 +90,11 @@ export const ClassCard: React.FC<ClassCardProps> = ({
           )}
         </div>
 
-        {/* Attendance Status */}
+        {/* Attendance Status (dancers) or the admin's action */}
         <div>
-          {attendancePresent === true ? (
+          {!showAttendance ? (
+            action ?? null
+          ) : attendancePresent === true ? (
             <span className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--neon-green)] text-[var(--on-neon)] border-2 border-[var(--outline)] font-display text-[10px] md:text-[12px] font-bold">
               ✓ ATTENDED
             </span>

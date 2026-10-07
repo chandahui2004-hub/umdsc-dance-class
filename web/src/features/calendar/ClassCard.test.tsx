@@ -1,3 +1,4 @@
+import type React from 'react';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -94,7 +95,7 @@ describe('ClassCard recap videos', () => {
 
 describe('ClassCard attendance badge while attendance loads', () => {
   const pastSession = { ...session, date: '2020-01-01' };
-  const renderPast = (props: { attendanceLoading?: boolean; attendancePresent?: boolean }) =>
+  const renderPast = (props: Partial<React.ComponentProps<typeof ClassCard>>) =>
     render(
       <MemoryRouter>
         <ClassCard session={pastSession} videos={[]} music={[]} {...props} />
@@ -115,5 +116,11 @@ describe('ClassCard attendance badge while attendance loads', () => {
   it('shows ATTENDED even while loading if it is already known', () => {
     renderPast({ attendanceLoading: true, attendancePresent: true });
     expect(screen.getByText(/ATTENDED/)).toBeInTheDocument();
+  });
+
+  it('admin view hides the attendance badge and shows the given action instead', () => {
+    renderPast({ attendanceLoading: false, showAttendance: false, action: <button type="button">EDIT CLASS</button> });
+    expect(screen.queryByText(/ABSENT/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'EDIT CLASS' })).toBeInTheDocument();
   });
 });
