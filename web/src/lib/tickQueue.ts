@@ -32,7 +32,6 @@ export function createTickQueue(deps: TickQueueDeps) {
   // The server's reason for ticks it refused, per event + style, until the page reads it
   const refused = new Map<string, string>();
   const listeners = new Set<(pendingCount: number) => void>();
-  let isFlushing = false;
   let timer: ReturnType<typeof setTimeout> | null = null;
 
   const notify = () => {
@@ -92,9 +91,18 @@ export function createTickQueue(deps: TickQueueDeps) {
     scheduleFlush();
   };
 
-  const flush = async (): Promise<void> => {
-    if (isFlushing || items.length === 0) return;
-    isFlushing = true;
+  // A flush asked for while one runs waits for that one, so SUBMIT never gives up on a slow save
+  let inFlight: Promise<void> | null = null;
+  const flush = (): Promise<void> => {
+    if (inFlight) return inFlight;
+    if (items.length === 0) return Promise.resolve();
+    inFlight = runFlush().finally(() => {
+      inFlight = null;
+    });
+    return inFlight;
+  };
+
+  const runFlush = async (): Promise<void> => {
 
     try {
       // Group by event and styleId
@@ -136,7 +144,6 @@ export function createTickQueue(deps: TickQueueDeps) {
         }
       }
     } finally {
-      isFlushing = false;
       await persist();
       notify();
 

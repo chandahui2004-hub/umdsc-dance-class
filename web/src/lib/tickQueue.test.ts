@@ -207,4 +207,22 @@ describe('attendanceQueue storage', () => {
     expect(queue.pending()).toHaveLength(1);
     expect(queue.takeError('e', 's')).toBeNull();
   });
+
+  it('a flush asked for while one is running waits for that one instead of returning at once', async () => {
+    let finish: (v: { applied: string[] }) => void = () => undefined;
+    const send = vi.fn().mockImplementation((_e: string, _s: string, marks: any[]) =>
+      new Promise(resolve => { finish = () => resolve({ applied: marks.map(m => m.opId) }); })
+    );
+    const queue = createTickQueue({ send, storeKey: 'test:ticks:inflight' });
+    queue.enqueue({ eventId: 'e', styleId: 's', sessionId: 'ses', memberId: 'M-1', present: true });
+
+    const first = queue.flush();
+    let secondDone = false;
+    const second = queue.flush().then(() => { secondDone = true; });
+    await new Promise(r => setTimeout(r, 20));
+    expect(secondDone).toBe(false); // still waiting for the slow save
+    finish({ applied: [] });
+    await Promise.all([first, second]);
+    expect(queue.pending()).toEqual([]);
+  });
 });
