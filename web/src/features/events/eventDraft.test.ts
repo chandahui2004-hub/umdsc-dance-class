@@ -107,12 +107,30 @@ describe('eventDraft', () => {
         ]
       }
     };
-    const next = setStyleInstructors(d, 'pop', ['b']);
+    const next = setStyleInstructors(d, 'pop', ['b'], '2026-10-01');
     expect(next.styleInstructors.pop).toEqual(['b']);
     expect(next.schedule.pop.map(c => c.instructorId)).toEqual(['b', 'b']);
-    const none = setStyleInstructors(d, 'pop', []);
+    const none = setStyleInstructors(d, 'pop', [], '2026-10-01');
     expect(none.schedule.pop.map(c => c.instructorId)).toEqual(['', '']);
     expect(d.schedule.pop[0].instructorId).toBe('a');
+  });
+
+  it('setStyleInstructors keeps the instructor of classes that already happened', () => {
+    const d = {
+      ...emptyDraft('2026-10-01'),
+      styleIds: ['pop'],
+      styleInstructors: { pop: ['a', 'b'] },
+      schedule: {
+        pop: [
+          { ...cls(1, '2026-10-06'), instructorId: 'a' },
+          { ...cls(2, '2026-10-13'), instructorId: 'a' },
+          { ...cls(3, '2026-10-20'), instructorId: 'a' }
+        ]
+      }
+    };
+    // Today is the 13th: the 6 Oct class keeps 'a'; today's and later classes move to 'b'
+    const next = setStyleInstructors(d, 'pop', ['b'], '2026-10-13');
+    expect(next.schedule.pop.map(c => c.instructorId)).toEqual(['a', 'b', 'b']);
   });
 
   it('missingInstructorStyle names the first ticked style with no instructor', () => {

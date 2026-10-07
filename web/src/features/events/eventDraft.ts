@@ -1,4 +1,5 @@
 import type { ClassSession, EventItem, EventType, Instructor, ISODate, SourcePreview } from '@umdsc/shared';
+import { todayKL } from '../../lib/time';
 
 export interface ScheduledClass {
   /** Set for classes that already exist (edit mode). */
@@ -118,11 +119,14 @@ export function effectiveInstructorId(c: { instructorId?: string }, listed: stri
   return c.instructorId || listed[0] || '';
 }
 
-/** Sets a style's instructors; classes whose instructor was removed move to the first remaining one. */
-export function setStyleInstructors(d: EventDraft, styleId: string, ids: string[]): EventDraft {
+/**
+ * Sets a style's instructors. Today's and later classes whose instructor was removed move to the first
+ * remaining one; classes that already happened keep their instructor, so past records stay true.
+ */
+export function setStyleInstructors(d: EventDraft, styleId: string, ids: string[], today: ISODate = todayKL()): EventDraft {
   const fallback = ids[0] ?? '';
   const classes = (d.schedule[styleId] || []).map(c =>
-    c.instructorId && !ids.includes(c.instructorId) ? { ...c, instructorId: fallback } : c
+    c.date >= today && c.instructorId && !ids.includes(c.instructorId) ? { ...c, instructorId: fallback } : c
   );
   return {
     ...d,
