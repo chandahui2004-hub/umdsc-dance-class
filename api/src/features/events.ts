@@ -327,6 +327,7 @@ export function getEventRoutes(): Record<string, Route> {
             columnMapJson: JSON.stringify(payload?.columnMap || {}),
             classIndex: payload?.classIndex === undefined || payload?.classIndex === null ? -1 : Number(payload.classIndex),
             styleIds,
+            styleInstructors: {},
             folderId: '',
             videoFolderId: '',
             membersSpreadsheetId: '',

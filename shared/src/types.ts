@@ -58,6 +58,7 @@ export interface Instructor extends RowMeta {
   photoUrl?: string;
   photos?: InstructorPhoto[];
   photosJson?: string;
+  styleIds: string[];
 }
 export interface ClassSession extends RowMeta { eventId: string; styleId: string; seq: number; date: ISODate; start: HHmm; end: HHmm;
   instructorId: string; venue: string; status: 'scheduled'|'replacement'|'cancelled'; note: string }
@@ -91,7 +92,7 @@ export type EventStatus = 'active' | 'archived';
 export interface EventItem extends RowMeta {
   name: string; nameKey: string; type: EventType; startDate: ISODate; endDate: ISODate;
   sourceSheetId: string; sourceTab: string; columnMapJson: string; classIndex: number;
-  styleIds: string[]; folderId: string; videoFolderId: string; membersSpreadsheetId: string;
+  styleIds: string[]; styleInstructors: Record<string, string[]>; folderId: string; videoFolderId: string; membersSpreadsheetId: string;
   status: EventStatus; sourceRowCount: number; sourceLastRowHash: string;
   lastSyncAt: string; lastSyncError: string; memberCount: number;
 }

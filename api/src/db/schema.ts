@@ -2,10 +2,10 @@ export const COMMON_COLUMNS = ['id', 'version', 'updatedBy', 'updatedAt', 'activ
 
 export const SCHEMA = {
   Settings: ['key', 'value', ...COMMON_COLUMNS],
-  Events: ['name', 'nameKey', 'type', 'startDate', 'endDate', 'sourceSheetId', 'sourceTab', 'columnMapJson', 'classIndex', 'styleIds', 'folderId', 'videoFolderId', 'membersSpreadsheetId', 'status', 'sourceRowCount', 'sourceLastRowHash', 'lastSyncAt', 'lastSyncError', 'memberCount', ...COMMON_COLUMNS],
+  Events: ['name', 'nameKey', 'type', 'startDate', 'endDate', 'sourceSheetId', 'sourceTab', 'columnMapJson', 'classIndex', 'styleIds', 'folderId', 'videoFolderId', 'membersSpreadsheetId', 'status', 'sourceRowCount', 'sourceLastRowHash', 'lastSyncAt', 'lastSyncError', 'memberCount', 'styleInstructorsJson', ...COMMON_COLUMNS],
   LinkHistory: ['key', 'oldValue', 'newValue', 'changedBy', 'changedAt', ...COMMON_COLUMNS],
   DanceStyles: ['name', 'aliases', 'colorKey', 'defaultWeekday', 'defaultStart', 'defaultEnd', 'defaultInstructorId', 'defaultVenue', 'attendanceFolderId', 'videoFolderId', 'videoFoldersJson', 'videoUploaderEmail', ...COMMON_COLUMNS],
-  Instructors: ['name', 'contact', 'color', 'photoUrl', 'photosJson', ...COMMON_COLUMNS],
+  Instructors: ['name', 'contact', 'color', 'photoUrl', 'photosJson', 'styleIds', ...COMMON_COLUMNS],
   ClassSessions: ['eventId', 'styleId', 'seq', 'date', 'start', 'end', 'instructorId', 'venue', 'status', 'note', ...COMMON_COLUMNS],
   MemberIndex: ['matricKey', 'nameKey', 'fullName', 'eventIds', 'lastEventEnd', 'eventStyles', ...COMMON_COLUMNS],
   AttendanceSheets: ['eventId', 'styleId', 'spreadsheetId', ...COMMON_COLUMNS],

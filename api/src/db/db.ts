@@ -119,6 +119,22 @@ function parseList(val: string): string[] {
   return String(val).split(',').map(s => s.trim()).filter(Boolean);
 }
 
+function parseStyleInstructors(raw: string): Record<string, string[]> {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    const out: Record<string, string[]> = {};
+    for (const [styleId, ids] of Object.entries(parsed)) {
+      if (!Array.isArray(ids) || !ids.every(id => typeof id === 'string')) return {};
+      out[styleId] = ids as string[];
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 const defaultCodecs = {
   settings: {
     toCells: (r: SettingRow) => ({ ...r, active: r.active ? 'TRUE' : 'FALSE' }),
@@ -133,11 +149,15 @@ const defaultCodecs = {
     })
   },
   events: {
-    toCells: (r: EventItem) => ({
-      ...r,
-      styleIds: (r.styleIds || []).join(','),
-      active: r.active ? 'TRUE' : 'FALSE'
-    }),
+    toCells: (r: EventItem) => {
+      const { styleInstructors, ...rest } = r;
+      return {
+        ...rest,
+        styleIds: (r.styleIds || []).join(','),
+        styleInstructorsJson: JSON.stringify(styleInstructors || {}),
+        active: r.active ? 'TRUE' : 'FALSE'
+      };
+    },
     fromCells: (c: Record<string, string>): EventItem => ({
       id: c.id,
       version: Number(c.version || 1),
@@ -154,6 +174,7 @@ const defaultCodecs = {
       columnMapJson: c.columnMapJson || '{}',
       classIndex: c.classIndex === '' || c.classIndex === undefined ? -1 : Number(c.classIndex),
       styleIds: parseList(c.styleIds),
+      styleInstructors: parseStyleInstructors(c.styleInstructorsJson),
       folderId: c.folderId || '',
       videoFolderId: c.videoFolderId || '',
       membersSpreadsheetId: c.membersSpreadsheetId || '',
@@ -209,7 +230,7 @@ const defaultCodecs = {
     })
   },
   instructors: {
-    toCells: (r: Instructor) => ({ ...r, active: r.active ? 'TRUE' : 'FALSE' }),
+    toCells: (r: Instructor) => ({ ...r, styleIds: (r.styleIds || []).join(','), active: r.active ? 'TRUE' : 'FALSE' }),
     fromCells: (c: Record<string, string>): Instructor => ({
       id: c.id,
       version: Number(c.version || 1),
@@ -220,7 +241,8 @@ const defaultCodecs = {
       contact: c.contact || '',
       color: c.color || '',
       photoUrl: c.photoUrl || '',
-      photosJson: c.photosJson || '[]'
+      photosJson: c.photosJson || '[]',
+      styleIds: parseList(c.styleIds)
     })
   },
   sessions: {

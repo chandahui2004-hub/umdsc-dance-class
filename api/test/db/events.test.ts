@@ -20,6 +20,7 @@ describe('Events table', () => {
         columnMapJson: '{}',
         classIndex: 5,
         styleIds: ['sty_a', 'sty_b'],
+        styleInstructors: {},
         folderId: '',
         videoFolderId: '',
         membersSpreadsheetId: '',

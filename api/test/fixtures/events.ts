@@ -54,6 +54,7 @@ export function seedEvent(
       columnMapJson: '{}',
       classIndex: -1,
       styleIds: [],
+      styleInstructors: {},
       folderId: '',
       videoFolderId: '',
       membersSpreadsheetId: membersSs.id,

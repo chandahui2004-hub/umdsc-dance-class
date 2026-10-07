@@ -46,6 +46,7 @@ const mockEvent: EventItem = {
   columnMapJson: '{}',
   classIndex: 0,
   styleIds: ['st_popping', 'st_locking'],
+  styleInstructors: {},
   folderId: '',
   videoFolderId: '',
   membersSpreadsheetId: '',

@@ -56,6 +56,7 @@ describe('Instructor Photos and ClassCard Focus Layout', () => {
       name: 'Lam Hong Woh',
       contact: '+60123456789',
       photoUrl: 'https://lh3.googleusercontent.com/d/drive-lam-123',
+      styleIds: [],
       version: 1,
       updatedBy: 'admin',
       updatedAt: '2026-10-01',

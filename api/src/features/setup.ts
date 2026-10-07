@@ -124,7 +124,8 @@ export function getSetupRoutes(): Record<string, Route> {
             contact: '',
             color: 'pink',
             photoUrl: '/instructors/lam-hong-woh.png',
-            photosJson: '[]'
+            photosJson: '[]',
+            styleIds: []
           },
           'setup',
           now
@@ -136,7 +137,8 @@ export function getSetupRoutes(): Record<string, Route> {
             contact: '',
             color: 'blue',
             photoUrl: '/instructors/carmen-loh.png',
-            photosJson: '[]'
+            photosJson: '[]',
+            styleIds: []
           },
           'setup',
           now
@@ -148,7 +150,8 @@ export function getSetupRoutes(): Record<string, Route> {
             contact: '',
             color: 'orange',
             photoUrl: '/instructors/newstyle-kelvin.png',
-            photosJson: '[]'
+            photosJson: '[]',
+            styleIds: []
           },
           'setup',
           now
