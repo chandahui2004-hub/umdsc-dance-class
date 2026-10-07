@@ -19,7 +19,8 @@ import {
   getInstructorPhotosWithDrive,
   type DrivePhotoFile
 } from '../../lib/instructorPhotos';
-import type { Instructor, InstructorPhoto } from '@umdsc/shared';
+import type { DanceStyle, Instructor, InstructorPhoto } from '@umdsc/shared';
+import { useEvents } from '../events/useCurrentEvent';
 import { useOverlayOpen } from '../../app/useOverlayOpen';
 
 export const InstructorsPage: React.FC = () => {
@@ -35,6 +36,7 @@ export const InstructorsPage: React.FC = () => {
   const [name, setName] = useState('');
   const [contact, setContact] = useState('');
   const [color, setColor] = useState('orange');
+  const [styleIds, setStyleIds] = useState<string[]>([]);
   const [photos, setPhotos] = useState<InstructorPhoto[]>([]);
   const [activePhotoUrl, setActivePhotoUrl] = useState<string>('');
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
@@ -63,6 +65,33 @@ export const InstructorsPage: React.FC = () => {
       return res.data;
     }
   });
+
+  const { data: styles = [] } = useQuery<DanceStyle[]>({
+    queryKey: ['styles'],
+    queryFn: async () => {
+      const res = await api.post<DanceStyle[]>('styles.list');
+      return res.data;
+    }
+  });
+
+  const { data: events = [] } = useEvents();
+
+  const styleName = (id: string) => styles.find((s) => s.id === id)?.name || id;
+
+  const toggleStyle = (id: string) =>
+    setStyleIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  /** Unticked styles this instructor is still assigned to in an active event, as note lines. */
+  const stillTeachingNotes: string[] = editingInstructor
+    ? styles
+        .filter((st) => !styleIds.includes(st.id))
+        .flatMap((st) => {
+          const names = events
+            .filter((ev) => ev.status === 'active' && ((ev.styleInstructors || {})[st.id] || []).includes(editingInstructor.id))
+            .map((ev) => ev.name);
+          return names.length > 0 ? [`Still teaching ${st.name} in ${names.join(', ')}.`] : [];
+        })
+    : [];
 
   // Query Google Drive folder directly for all uploaded instructor photos
   const { data: driveFiles = [] } = useQuery<DrivePhotoFile[]>({
@@ -106,6 +135,7 @@ export const InstructorsPage: React.FC = () => {
     setName('');
     setContact('');
     setColor('orange');
+    setStyleIds([]);
     setPhotos([]);
     setActivePhotoUrl('');
     setPhotoUrlInput('');
@@ -120,6 +150,7 @@ export const InstructorsPage: React.FC = () => {
     setName(instructor.name);
     setContact(instructor.contact || '');
     setColor(instructor.color || 'orange');
+    setStyleIds([...(instructor.styleIds || [])]);
 
     // Retrieve all photos including all duplicates in Google Drive
     const existingPhotos = getInstructorPhotosWithDrive(instructor, driveFiles);
@@ -298,6 +329,7 @@ export const InstructorsPage: React.FC = () => {
         name: name.trim(),
         contact: contact.trim(),
         color: color.trim(),
+        styleIds,
         photoUrl: activePhotoUrl || '',
         photosJson: JSON.stringify(photos)
       };
@@ -424,6 +456,20 @@ export const InstructorsPage: React.FC = () => {
                           {inst.contact || 'No contact specified'}
                         </span>
                       </p>
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {(inst.styleIds || []).length > 0 ? (
+                          (inst.styleIds || []).map((sid) => (
+                            <span
+                              key={sid}
+                              className="bg-[var(--night-1)] border border-[var(--outline)] px-2 py-0.5 font-mono text-[12px] text-[var(--text-1)]"
+                            >
+                              {styleName(sid)}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="font-body text-[12px] text-[var(--text-3)] italic">No dance styles yet</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -500,6 +546,41 @@ export const InstructorsPage: React.FC = () => {
                   className="px-well w-full min-h-[44px] px-3 font-mono text-[16px]"
                 />
               </Field>
+
+              {/* Dance styles taught */}
+              <div className="space-y-2">
+                <h3 className="font-display text-[12px] text-[var(--text-1)] tracking-wider">
+                  DANCE STYLES TAUGHT <span className="text-[var(--neon-red)]">*</span>
+                </h3>
+                <div role="group" aria-label="Dance styles taught" className="flex flex-wrap gap-2">
+                  {styles.filter((st) => st.active !== false).map((st) => {
+                    const on = styleIds.includes(st.id);
+                    return (
+                      <button
+                        key={st.id}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => toggleStyle(st.id)}
+                        className={`min-h-[44px] px-3 border-2 border-[var(--outline)] font-display text-[12px] cursor-pointer ${
+                          on
+                            ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] shadow-[2px_2px_0_var(--outline)]'
+                            : 'bg-[var(--night-2)] text-[var(--text-1)] hover:bg-[var(--violet-2)]'
+                        }`}
+                      >
+                        {on ? '✓ ' : ''}{st.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                {styleIds.length === 0 && (
+                  <p className="font-body text-[14px] text-[var(--text-2)]">Choose at least one dance style this instructor teaches.</p>
+                )}
+                {stillTeachingNotes.map((note) => (
+                  <p key={note} role="status" className="font-body text-[14px] text-[var(--neon-gold)] font-bold">
+                    {note}
+                  </p>
+                ))}
+              </div>
 
               {/* Signature Color Swatch Picker */}
               <ColorSwatchPicker
@@ -681,7 +762,7 @@ export const InstructorsPage: React.FC = () => {
                   size="md"
                   variant="primary"
                   className="flex-1"
-                  disabled={saveMutation.isPending || !name.trim()}
+                  disabled={saveMutation.isPending || !name.trim() || styleIds.length === 0}
                   onClick={() => saveMutation.mutate()}
                 >
                   {saveMutation.isPending ? 'SAVING...' : 'SAVE INSTRUCTOR'}
