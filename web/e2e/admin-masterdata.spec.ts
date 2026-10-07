@@ -396,6 +396,21 @@ test.describe('Style / instructor relationship', () => {
     await expect(page.getByText(/Still teaching Popping/)).toHaveCount(0);
   });
 
+  test('the still-teaching note only covers styles the instructor had on opening', async ({ page }) => {
+    await mockApi(page, {
+      'styles.list': () => STYLES,
+      'instructors.list': () => INSTRUCTORS,
+      'events.list': () => [
+        makeEvent({ styleIds: ['locking', 'waacking'], styleInstructors: { locking: ['carmen'], waacking: ['carmen'] } })
+      ]
+    });
+    await page.goto('/admin/instructors');
+    await page.locator('.px-panel', { hasText: 'Carmen' }).getByRole('button', { name: 'EDIT' }).click();
+    // Waacking is unticked and assigned in the event, but Carmen did not have it when the form opened
+    await expect(page.getByRole('group', { name: /Dance styles taught/i })).toBeVisible();
+    await expect(page.getByText(/Still teaching/)).toHaveCount(0);
+  });
+
   test('style form has no default instructor field', async ({ page }) => {
     const calls = await mockApi(page, {
       'styles.list': () => STYLES,
@@ -418,6 +433,7 @@ test.describe('Style / instructor relationship', () => {
     await expect(page.getByText('Instructors: Carmen, Kelvin')).toBeVisible();
     await expect(page.getByText('Instructors: Kelvin')).toBeVisible();
     await expect(page.getByText('No instructors yet')).toBeVisible();
+    await expect(page.getByRole('link', { name: /Add one/i })).toHaveAttribute('href', /\/admin\/instructors$/);
     await expect(page.getByText('Zed')).toHaveCount(0);
   });
 

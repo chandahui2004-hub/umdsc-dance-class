@@ -81,10 +81,10 @@ export const InstructorsPage: React.FC = () => {
   const toggleStyle = (id: string) =>
     setStyleIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
-  /** Unticked styles this instructor is still assigned to in an active event, as note lines. */
+  /** Styles this instructor had on opening that are now unticked but still assigned in an active event, as note lines. */
   const stillTeachingNotes: string[] = editingInstructor
     ? styles
-        .filter((st) => !styleIds.includes(st.id))
+        .filter((st) => (editingInstructor.styleIds || []).includes(st.id) && !styleIds.includes(st.id))
         .flatMap((st) => {
           const names = events
             .filter((ev) => ev.status === 'active' && ((ev.styleInstructors || {})[st.id] || []).includes(editingInstructor.id))

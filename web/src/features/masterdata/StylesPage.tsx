@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { api, errorMessage } from '../../lib/api';
 import { Panel } from '../../components/ui/Panel';
 import { PixelButton } from '../../components/ui/PixelButton';
@@ -247,7 +248,12 @@ export const StylesPage: React.FC = () => {
                         <span className="font-bold text-[var(--text-1)]">Instructors:</span> {teachers.map((t) => t.name).join(', ')}
                       </>
                     ) : (
-                      <span className="italic">No instructors yet</span>
+                      <>
+                        <span className="italic">No instructors yet</span>{' '}
+                        <Link to="/admin/instructors" className="text-[var(--neon-cyan)] underline font-bold">
+                          Add one
+                        </Link>
+                      </>
                     )}
                   </div>
                 </div>
