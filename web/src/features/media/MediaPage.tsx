@@ -15,8 +15,9 @@ import { ScanPanel } from './ScanPanel';
 import { MusicForm } from './MusicForm';
 import { SectionsEditor } from './SectionsEditor';
 import { ClassLeadVideoFoldersPanel } from './ClassLeadVideoFoldersPanel';
+import { SessionEditor } from '../classes/SessionEditor';
 import { EventStep, StyleStep } from '../../components/ui/EventStyleSteps';
-import type { ClassSession, DanceStyle, Video, Music } from '@umdsc/shared';
+import type { ClassSession, DanceStyle, Instructor, Video, Music } from '@umdsc/shared';
 
 export const MediaPage: React.FC = () => {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ export const MediaPage: React.FC = () => {
   const eventId = event?.id || '';
   const [styleId, setStyleId] = useState<string>(searchParams.get('style') || '');
   const [selectedSessionId, setSelectedSessionId] = useState<string>('');
+  const [editingSession, setEditingSession] = useState<ClassSession | null>(null);
 
   // Dialog states
   const [showUploadVideo, setShowUploadVideo] = useState(false);
@@ -90,6 +92,11 @@ export const MediaPage: React.FC = () => {
   const ready = Boolean(eventId && styleId);
 
   // The event's classes for this style
+  const { data: instructors = [] } = useQuery<Instructor[]>({
+    queryKey: ['instructors'],
+    queryFn: async () => (await api.post<Instructor[]>('instructors.list')).data || []
+  });
+
   const { data: rawSessions = [], isSuccess: sessionsLoaded } = useQuery<ClassSession[]>({
     queryKey: ['sessions', eventId, styleId],
     queryFn: async () => (await api.post<ClassSession[]>('sessions.list', { eventId, styleId })).data,
@@ -206,18 +213,13 @@ export const MediaPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="font-display text-lg tracking-wider text-[var(--text-1)]">
-            Media Management
-          </h1>
-          <p className="font-body text-base text-[var(--text-2)] mt-1">
-            Upload class recap videos and manage dance music tracks for each class.
-          </p>
-        </div>
-        <PixelButton size="md" variant="secondary" disabled={refreshing} onClick={refreshAll}>
-          {refreshing ? 'REFRESHING…' : '↻ REFRESH'}
-        </PixelButton>
+      <div>
+        <h1 className="font-display text-lg tracking-wider text-[var(--text-1)]">
+          Media Management
+        </h1>
+        <p className="font-body text-base text-[var(--text-2)] mt-1">
+          Upload class recap videos and manage dance music tracks for each class.
+        </p>
       </div>
 
       <div className="space-y-3">
@@ -242,7 +244,15 @@ export const MediaPage: React.FC = () => {
 
       {eventChosen && (
       <>
-      <ClassLeadVideoFoldersPanel event={event} styles={styles} />
+      <ClassLeadVideoFoldersPanel
+        event={event}
+        styles={styles}
+        headerAction={
+          <PixelButton size="sm" variant="secondary" disabled={refreshing} onClick={refreshAll}>
+            {refreshing ? 'REFRESHING…' : '↻ REFRESH'}
+          </PixelButton>
+        }
+      />
 
       {/* 4-CLASS SESSIONS SECTION (Class 1 to 4) */}
       <Panel
@@ -270,17 +280,10 @@ export const MediaPage: React.FC = () => {
           />
         ) : (
           <div className="space-y-3">
-            <div className="flex justify-between items-center pb-1">
+            <div className="pb-1">
               <span className="font-display text-xs text-[var(--text-1)] uppercase">
                 Select a class to view & upload media:
               </span>
-              <PixelButton
-                size="md"
-                variant="secondary"
-                onClick={() => navigate('/admin/calendar')}
-              >
-                EDIT SCHEDULE IN CALENDAR
-              </PixelButton>
             </div>
 
             {/* 4 Interactive Class Session Cards */}
@@ -291,8 +294,8 @@ export const MediaPage: React.FC = () => {
                 const sessMusic = musicList.filter((m) => m.sessionId === sess.id);
 
                 return (
+                  <div key={sess.id} className="flex flex-col gap-1">
                   <button
-                    key={sess.id}
                     type="button"
                     onClick={() => setSelectedSessionId(sess.id)}
                     className={`p-3 border-2 text-left cursor-pointer transition-none select-none ${
@@ -332,6 +335,16 @@ export const MediaPage: React.FC = () => {
                       </span>
                     </div>
                   </button>
+                  <PixelButton
+                    size="sm"
+                    variant="secondary"
+                    aria-label={`Edit class ${sess.seq}`}
+                    className="self-end"
+                    onClick={() => setEditingSession(sess)}
+                  >
+                    ✎ EDIT
+                  </PixelButton>
+                  </div>
                 );
               })}
             </div>
@@ -742,6 +755,24 @@ export const MediaPage: React.FC = () => {
 
       </>
       )}
+
+      <SessionEditor
+        isOpen={!!editingSession}
+        onClose={() => setEditingSession(null)}
+        session={editingSession}
+        styles={allStyles}
+        instructors={instructors}
+        allowedInstructorIds={editingSession ? ((event?.styleInstructors || {})[editingSession.styleId] ?? []) : []}
+        minDate={event?.startDate}
+        maxDate={event?.endDate}
+        onSaved={() =>
+          Promise.all(
+            [['sessions', eventId, styleId], ['videos', eventId, styleId], ['music', eventId, styleId]].map((queryKey) =>
+              queryClient.invalidateQueries({ queryKey })
+            )
+          )
+        }
+      />
 
       {/* Dialogs */}
       {showUploadVideo && activeStyle && (

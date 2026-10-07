@@ -25,11 +25,14 @@ const SWATCH_COLORS: Record<string, string> = {
 interface ClassLeadVideoFoldersPanelProps {
   event: EventItem | null;
   styles: DanceStyle[];
+  /** Extra header control beside COLLAPSE, e.g. the Media page's REFRESH. */
+  headerAction?: React.ReactNode;
 }
 
 export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProps> = ({
   event,
-  styles
+  styles,
+  headerAction
 }) => {
   const queryClient = useQueryClient();
   const currentClaims = session.get()?.claims;
@@ -173,6 +176,8 @@ export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProp
           </span>
         </div>
 
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+        {headerAction}
         <button
           type="button"
           onClick={() => setIsExpanded((prev) => !prev)}
@@ -181,6 +186,7 @@ export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProp
         >
           {isExpanded ? '▲ COLLAPSE' : '▼ EXPAND'}
         </button>
+        </div>
       </div>
 
       {/* Collapsed summary hint */}

@@ -101,4 +101,31 @@ test.describe('Event (I) and dance style (II) steps', () => {
     await expect(page.getByRole('heading').first()).toBeVisible();
     await expect(page.getByLabel('Current event')).toHaveCount(0);
   });
+
+  test('attendance: REFRESH sits in the saved-attendance bar', async ({ page }) => {
+    await mockApi(page, BASE);
+    await page.goto('/admin/attendance');
+    const bar = page.getByText('SAVED ATTENDANCE — PRESS EDIT TO CHANGE TICKS').locator('..');
+    await expect(bar.getByRole('button', { name: /REFRESH/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /REFRESH/ })).toHaveCount(1);
+  });
+
+  test('media: REFRESH sits in the class lead folders panel; each class card has its own EDIT', async ({ page }) => {
+    const calls = await mockApi(page, {
+      ...BASE,
+      'events.list': () => [{ ...EVENT, styleInstructors: { 'style-hiphop': ['inst-1'] } }],
+      'instructors.list': () => [{ id: 'inst-1', name: 'Alex Tan', contact: '', styleIds: ['style-hiphop'], version: 1, updatedBy: '', updatedAt: '', active: true }],
+      'sessions.update': p => ({ ...SESSION, ...p, version: 2 })
+    });
+    await page.goto('/admin/media');
+    await expect(page.getByTestId('toggle-folders-panel').locator('..').getByRole('button', { name: /REFRESH/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /EDIT SCHEDULE IN CALENDAR/ })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Edit class 1' }).click();
+    await expect(page.getByText(/EDIT HIP HOP SESSION 1/i)).toBeVisible();
+    await expect(page.locator('#instructor-select option', { hasText: 'Alex Tan' })).toHaveCount(1);
+    await page.locator('#instructor-select').selectOption('inst-1');
+    await page.getByRole('button', { name: /SAVE CHANGES/ }).click();
+    await expect.poll(() => calls.find(c => c.action === 'sessions.update')?.payload).toMatchObject({ id: 'ses-1', instructorId: 'inst-1' });
+  });
 });

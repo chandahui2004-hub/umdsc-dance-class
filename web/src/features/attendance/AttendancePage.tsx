@@ -253,16 +253,11 @@ export const AttendancePage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="font-display text-[24px] tracking-wider text-[var(--text-1)]">Attendance Tracker</h1>
-          <p className="font-body text-[16px] text-[var(--text-2)] mt-1">
-            {eventChosen && event ? `${event.name} · ${event.startDate} → ${event.endDate}` : 'Choose an event, then a dance style.'}
-          </p>
-        </div>
-        <PixelButton size="md" variant="secondary" disabled={refreshing || submitMutation.isPending} onClick={refreshAll}>
-          {refreshing ? 'REFRESHING…' : '↻ REFRESH'}
-        </PixelButton>
+      <div>
+        <h1 className="font-display text-[24px] tracking-wider text-[var(--text-1)]">Attendance Tracker</h1>
+        <p className="font-body text-[16px] text-[var(--text-2)] mt-1">
+          {eventChosen && event ? `${event.name} · ${event.startDate} → ${event.endDate}` : 'Choose an event, then a dance style.'}
+        </p>
       </div>
 
       <AttendanceFolderHeader />
@@ -278,49 +273,52 @@ export const AttendancePage: React.FC = () => {
         </div>
       ) : (
         <>
-          {sessions.length > 0 && members.length > 0 && (
-            <div
-              className={`px-panel p-3 border-2 border-[var(--outline)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[4px_4px_0_var(--outline)] ${
-                editing ? 'bg-[var(--violet-2)] border-[var(--neon-gold)]' : 'bg-[var(--night-2)]'
-              }`}
-            >
-              <div className="font-display text-[12px] text-[var(--text-1)]">
-                {submitMutation.isPending
-                  ? 'SAVING TO GOOGLE SHEET… PLEASE WAIT'
-                  : editing
-                  ? unsavedChanges.length === 0
-                    ? 'EDITING — TICK PRESENT DANCERS, THEN SUBMIT'
-                    : `EDITING — ${unsavedChanges.length} UNSAVED CHANGE${unsavedChanges.length === 1 ? '' : 'S'}`
-                  : 'SAVED ATTENDANCE — PRESS EDIT TO CHANGE TICKS'}
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                {pendingCount > 0 && (
-                  <span className="px-3 py-1 bg-[var(--neon-gold)] border-2 border-[var(--outline)] font-display text-[12px] text-[var(--on-neon)] font-bold px-blink shadow-[2px_2px_0_var(--outline)]">
-                    SAVING… {pendingCount}
-                  </span>
-                )}
-                {editing ? (
-                  <>
-                    <PixelButton size="md" variant="secondary" disabled={submitMutation.isPending} onClick={cancelEdit}>
-                      CANCEL
-                    </PixelButton>
-                    <PixelButton
-                      size="md"
-                      variant="primary"
-                      disabled={submitMutation.isPending || unsavedChanges.length === 0}
-                      onClick={() => submitMutation.mutate()}
-                    >
-                      {submitMutation.isPending ? 'SUBMITTING…' : 'SUBMIT'}
-                    </PixelButton>
-                  </>
-                ) : (
-                  <PixelButton size="md" variant="primary" onClick={() => setEditing(true)}>
-                    EDIT
-                  </PixelButton>
-                )}
-              </div>
+          <div
+            className={`px-panel p-3 border-2 border-[var(--outline)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[4px_4px_0_var(--outline)] ${
+              editing ? 'bg-[var(--violet-2)] border-[var(--neon-gold)]' : 'bg-[var(--night-2)]'
+            }`}
+          >
+            <div className="font-display text-[12px] text-[var(--text-1)]">
+              {submitMutation.isPending
+                ? 'SAVING TO GOOGLE SHEET… PLEASE WAIT'
+                : editing
+                ? unsavedChanges.length === 0
+                  ? 'EDITING — TICK PRESENT DANCERS, THEN SUBMIT'
+                  : `EDITING — ${unsavedChanges.length} UNSAVED CHANGE${unsavedChanges.length === 1 ? '' : 'S'}`
+                : sessions.length === 0 || members.length === 0
+                ? 'NO CLASSES OR DANCERS YET'
+                : 'SAVED ATTENDANCE — PRESS EDIT TO CHANGE TICKS'}
             </div>
-          )}
+            <div className="flex items-center gap-2 flex-wrap">
+              {pendingCount > 0 && (
+                <span className="px-3 py-1 bg-[var(--neon-gold)] border-2 border-[var(--outline)] font-display text-[12px] text-[var(--on-neon)] font-bold px-blink shadow-[2px_2px_0_var(--outline)]">
+                  SAVING… {pendingCount}
+                </span>
+              )}
+              <PixelButton size="sm" variant="secondary" disabled={refreshing || submitMutation.isPending} onClick={refreshAll}>
+                {refreshing ? 'REFRESHING…' : '↻ REFRESH'}
+              </PixelButton>
+              {editing ? (
+                <>
+                  <PixelButton size="md" variant="secondary" disabled={submitMutation.isPending} onClick={cancelEdit}>
+                    CANCEL
+                  </PixelButton>
+                  <PixelButton
+                    size="md"
+                    variant="primary"
+                    disabled={submitMutation.isPending || unsavedChanges.length === 0}
+                    onClick={() => submitMutation.mutate()}
+                  >
+                    {submitMutation.isPending ? 'SUBMITTING…' : 'SUBMIT'}
+                  </PixelButton>
+                </>
+              ) : sessions.length > 0 && members.length > 0 ? (
+                <PixelButton size="md" variant="primary" onClick={() => setEditing(true)}>
+                  EDIT
+                </PixelButton>
+              ) : null}
+            </div>
+          </div>
 
           {submitError && (
             <div role="alert" className="p-2 border-2 border-[var(--neon-red)] bg-[var(--night-1)] text-[var(--neon-red)] font-display text-[12px] font-bold">
