@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { PasswordToggle } from '../../components/ui/PasswordToggle';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { call, errorMessage } from '../../lib/api';
 import { session } from '../../lib/session';
 import { Panel } from '../../components/ui/Panel';
@@ -18,6 +18,8 @@ interface AdminLoginResponse {
 
 export const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const expired = Boolean((location.state as { expired?: boolean } | null)?.expired);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -54,7 +56,9 @@ export const AdminLogin: React.FC = () => {
         );
       }
 
-      navigate('/admin/calendar', { replace: true });
+      // Back to the page the admin was on (e.g. Attendance after an expired sign-in)
+      const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname;
+      navigate(from && from.startsWith('/admin') ? from : '/admin/calendar', { replace: true });
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -81,6 +85,16 @@ export const AdminLogin: React.FC = () => {
         <div className="w-full max-w-md">
           <Panel title="AUTHENTICATION" className="px-corners">
             <form onSubmit={handleSubmit} className="space-y-4">
+              {expired && !error && (
+                <div
+                  role="status"
+                  className="bg-[var(--night-2)] border-2 border-[var(--neon-gold)] text-[var(--neon-gold)] p-3 text-[14px] font-body font-bold"
+                >
+                  Your sign-in expired — please sign in again. Ticks you were saving are kept on this phone and will
+                  be saved after you sign in.
+                </div>
+              )}
+
               {error && (
                 <div
                   role="alert"

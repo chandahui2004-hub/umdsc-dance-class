@@ -189,6 +189,41 @@ test.describe('Admin Attendance Page', () => {
     expect(seenOps[1]).toEqual(seenOps[0]);
   });
 
+  test('an expired sign-in during SUBMIT goes to the login page, then back, and the ticks are saved', async ({ page }) => {
+    let signedInAgain = false;
+    const saved: any[] = [];
+    const calls = await mockApi(page, {
+      'events.list': () => [EVENT],
+      'styles.list': () => STYLES,
+      'attendance.get': () => GRID,
+      'auth.adminLogin': () => {
+        signedInAgain = true;
+        return { token: 'fresh-tok', claims: { sub: 'admin', role: 'admin', name: 'Club Admin', exp: Math.floor(Date.now() / 1000) + 36000, pv: 2,
+          perms: { 'attendance.edit': '*', 'attendance.view.all': '*', 'export.download': '*', 'members.view': '*', 'calendar.view': '*', 'sessions.edit': '*' } } };
+      },
+      'attendance.mark': p => {
+        if (!signedInAgain) return { __error: { code: 'UNAUTHORIZED', message: 'Session expired due to permission update, please re-login' } };
+        saved.push(...p.marks);
+        return markOk(p);
+      }
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/admin/attendance');
+    await page.getByRole('button', { name: /^EDIT$/ }).click();
+    await page.locator('[data-member-id="m-2"]').getByRole('button', { name: /ABSENT/i }).click();
+    await page.getByRole('button', { name: /^SUBMIT$/ }).click();
+
+    await page.waitForURL('**/admin/login', { timeout: 15000 });
+    await expect(page.getByText(/Your sign-in expired/)).toBeVisible();
+    await page.getByLabel(/Username/i).fill('admin');
+    await page.getByLabel('Password', { exact: true }).fill('pw');
+    await page.getByRole('button', { name: /LOGIN|ENTER/i }).click();
+
+    await page.waitForURL('**/admin/attendance', { timeout: 15000 });
+    await expect.poll(() => saved.some(m => m.memberId === 'm-2' && m.present === true), { timeout: 20000 }).toBe(true);
+    expect(calls.filter(c => c.action === 'auth.adminLogin')).toHaveLength(1);
+  });
+
   test('desktop attendance grid renders at 1440 with sticky name column', async ({ page }) => {
     await mockApi(page, { 'events.list': () => [EVENT], 'styles.list': () => STYLES, 'attendance.get': () => GRID });
     await page.setViewportSize({ width: 1440, height: 900 });
