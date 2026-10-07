@@ -63,7 +63,9 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
     ? null
     : !uploader
       ? `${style.name} has no upload account yet. On a computer, open Media › Class Lead Video Drive Folders and tap AUTHORIZE for ${style.name} while signed in with the class lead's Google account.`
-      : currentEmail && !sameAccount(currentEmail, uploader)
+      : !currentEmail
+        ? `Sign in with ${uploader} first (SIGN IN above), so the upload goes into ${style.name}'s folder with the class lead's own account.`
+        : !sameAccount(currentEmail, uploader)
         ? `${style.name} uploads with ${uploader}, but you're signed in as ${currentEmail}. Tap SWITCH ACCOUNT and choose ${uploader}.`
         : null;
 

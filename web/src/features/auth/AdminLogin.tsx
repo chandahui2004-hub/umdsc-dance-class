@@ -19,6 +19,7 @@ export const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,15 +100,27 @@ export const AdminLogin: React.FC = () => {
                 required
               />
 
-              <Field
-                label="Password"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
-                required
-              />
+              <div>
+                <Field
+                  label="Password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                  required
+                />
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    aria-pressed={showPassword}
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="min-h-[44px] px-2 font-display text-[12px] text-[var(--neon-cyan)] underline cursor-pointer"
+                  >
+                    {showPassword ? '🙈 HIDE PASSWORD' : '👁 SHOW PASSWORD'}
+                  </button>
+                </div>
+              </div>
 
               <div className="flex items-center min-h-[44px]">
                 <input

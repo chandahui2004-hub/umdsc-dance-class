@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import crypto from 'node:crypto';
 import { handleRequest } from '../../src/router';
 import { makeCtx } from '../fakes/makeCtx';
@@ -184,17 +184,66 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
     });
 
     it('a password reset makes the old password fail at once', () => {
-      expect(login('SecretAdminPass').ok).toBe(true);
+      const first = login('SecretAdminPass');
+      expect(first.ok).toBe(true);
       const admin = ctx.db.admins.find(a => a.username === 'clubadmin')[0];
-      ctx.db.admins.update(
-        admin.id,
-        admin.version,
-        { passwordHash: hashPassword('NewPass456', admin.salt, PASSWORD_ITERATIONS, nodeHmac) },
-        'system',
-        new Date()
+      const reset = handleRequest(
+        {
+          action: 'admins.resetPassword',
+          token: first.ok ? (first.data as any).token : '',
+          payload: { id: admin.id, version: admin.version, newPassword: 'NewPass456' }
+        },
+        ctx,
+        secrets
       );
+      expect(reset.ok).toBe(true);
       expect(login('SecretAdminPass').ok).toBe(false);
       expect(login('NewPass456').ok).toBe(true);
+    });
+  });
+
+  describe('admin accounts kept in the server cache', () => {
+    const login = (username: string, password: string) =>
+      handleRequest({ action: 'auth.adminLogin', payload: { username, password } }, ctx, secrets);
+    const tokenOf = (res: any) => (res.ok ? res.data.token : '');
+
+    it('a repeat login reads neither the Admins nor the RolePermissions sheet', () => {
+      expect(login('clubadmin', 'SecretAdminPass').ok).toBe(true);
+      const admins = vi.spyOn(ctx.db.admins, 'find');
+      const perms = vi.spyOn(ctx.db.rolePermissions, 'find');
+      expect(login('clubadmin', 'SecretAdminPass').ok).toBe(true);
+      expect(admins).not.toHaveBeenCalled();
+      expect(perms).not.toHaveBeenCalled();
+    });
+
+    it('editing the username and password on the website updates login at once', () => {
+      const token = tokenOf(login('clubadmin', 'SecretAdminPass'));
+      const admin = ctx.db.admins.find(a => a.username === 'clubadmin')[0];
+      const res = handleRequest(
+        { action: 'admins.update', token, payload: { id: admin.id, version: admin.version, username: 'headadmin', newPassword: 'NewPass789' } },
+        ctx,
+        secrets
+      );
+      expect(res.ok).toBe(true);
+      expect(login('clubadmin', 'SecretAdminPass').ok).toBe(false);
+      expect(login('headadmin', 'SecretAdminPass').ok).toBe(false);
+      expect(login('headadmin', 'NewPass789').ok).toBe(true);
+    });
+
+    it('a change made straight in the sheet shows after admins.refresh', () => {
+      const token = tokenOf(login('clubadmin', 'SecretAdminPass'));
+      const admin = ctx.db.admins.find(a => a.username === 'clubadmin')[0];
+      ctx.db.admins.update(admin.id, admin.version, { displayName: 'Renamed In Sheet' }, 'sheet', new Date());
+
+      const before = login('clubadmin', 'SecretAdminPass');
+      expect(before.ok && (before.data as any).claims.name).toBe('Club Administrator');
+
+      const refreshed = handleRequest({ action: 'admins.refresh', token, payload: {} }, ctx, secrets);
+      expect(refreshed.ok).toBe(true);
+      expect(JSON.stringify(refreshed.ok ? refreshed.data : '')).not.toContain('passwordHash');
+
+      const after = login('clubadmin', 'SecretAdminPass');
+      expect(after.ok && (after.data as any).claims.name).toBe('Renamed In Sheet');
     });
   });
 

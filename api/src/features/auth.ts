@@ -2,6 +2,7 @@ import { Route } from '../router';
 import { AppError } from '../errors';
 import { normalizeMatric, fullNameMatches } from '../logic/normalize';
 import { verifyPassword, passwordFingerprint } from '../security/passwords';
+import { loginDirectory } from './adminAccounts';
 import { signToken } from '../security/tokens';
 import { resolvePermissions } from '../logic/permissions';
 import { TokenClaims, PermissionCode } from '@umdsc/shared';
@@ -21,7 +22,9 @@ export function getAuthRoutes(): Record<string, Route> {
           throw new AppError('VALIDATION', 'Username and password are required');
         }
 
-        const admin = ctx.db.admins.find(a => a.username === username && a.active)[0];
+        // Accounts come from the server cache, so a login normally reads no sheet
+        const directory = loginDirectory(ctx);
+        const admin = directory.admins.find(a => a.username === username);
         const hmac = (ctx as any)._secrets?.hmac;
         const secret: string = (ctx as any)._secrets?.tokenSecret || '';
 
@@ -39,10 +42,7 @@ export function getAuthRoutes(): Record<string, Route> {
           if (fingerprint) ctx.cache.put(fastKey, fingerprint, 6 * 3600);
         }
 
-        // Fetch role permissions
-        const rolePermsList = ctx.db.rolePermissions
-          .find(rp => rp.roleId === admin.roleId && rp.active)
-          .map(rp => rp.permission);
+        const rolePermsList = directory.rolePerms[admin.roleId] || [];
 
         const perms = resolvePermissions({
           roleIds: [admin.roleId],

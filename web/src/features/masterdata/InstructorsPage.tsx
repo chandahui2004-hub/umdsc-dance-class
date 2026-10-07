@@ -8,6 +8,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ColorSwatchPicker } from '../../components/ui/ColorSwatchPicker';
 import { PixelPortraitFrame } from '../../components/ui/PixelPortraitFrame';
+import { cutOutPerson } from '../../lib/media/removeBackground';
 import {
   getInstructorPhotoUrl,
   STANDARD_PHOTO_HINT,
@@ -37,6 +38,21 @@ export const InstructorsPage: React.FC = () => {
   const [photos, setPhotos] = useState<InstructorPhoto[]>([]);
   const [activePhotoUrl, setActivePhotoUrl] = useState<string>('');
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
+  // New pictures are cut out by default, so the Drive folder gets the transparent version
+  const [removeBackground, setRemoveBackground] = useState(true);
+  const [photoStatus, setPhotoStatus] = useState('OPTIMIZING PORTRAIT IMAGE FOR CLOUD SYNC...');
+
+  /** Cuts out the person (when ticked) and shrinks to the standard portrait size, as a data URL. */
+  const preparePhoto = async (source: Blob, cutOut: boolean): Promise<string> => {
+    if (!cutOut) {
+      setPhotoStatus('OPTIMIZING PORTRAIT IMAGE FOR CLOUD SYNC...');
+      return optimizeInstructorPhoto(source);
+    }
+    setPhotoStatus('✂ REMOVING BACKGROUND… (the first time downloads about 30 MB)');
+    const cut = await cutOutPerson(source);
+    setPhotoStatus('OPTIMIZING PORTRAIT IMAGE FOR CLOUD SYNC...');
+    return optimizeInstructorPhoto(cut, { transparent: true });
+  };
   const [photoUrlInput, setPhotoUrlInput] = useState('');
   const [showUrlInput, setShowUrlInput] = useState(false);
 
@@ -142,7 +158,15 @@ export const InstructorsPage: React.FC = () => {
     setFormError(null);
 
     try {
-      const optimizedDataUrl = await optimizeInstructorPhoto(file);
+      let optimizedDataUrl: string;
+      try {
+        optimizedDataUrl = await preparePhoto(file, removeBackground);
+      } catch (cutErr: any) {
+        if (!removeBackground) throw cutErr;
+        // Keep going with the original photo rather than losing the upload
+        optimizedDataUrl = await preparePhoto(file, false);
+        setFormError(`Could not remove the background (${cutErr?.message || 'unknown error'}); the original photo was used.`);
+      }
       if (!optimizedDataUrl) {
         throw new Error('Could not optimize image');
       }
@@ -163,7 +187,6 @@ export const InstructorsPage: React.FC = () => {
 
       setPhotos(updatedPhotos);
       setActivePhotoUrl(optimizedDataUrl);
-      setFormError(null);
     } catch (err: any) {
       setFormError('Failed to process image: ' + (err?.message || 'unknown error'));
     } finally {
@@ -209,6 +232,32 @@ export const InstructorsPage: React.FC = () => {
     }));
     setPhotos(updated);
     setActivePhotoUrl(target.url);
+  };
+
+  /** Replaces a saved picture with its cut-out; on SAVE the server moves the original to the Drive trash. */
+  const handleCutOutExisting = async (photoId: string) => {
+    const target = photos.find((p) => p.id === photoId);
+    if (!target) return;
+    setIsProcessingPhoto(true);
+    setFormError(null);
+    try {
+      const res = await fetch(target.url);
+      if (!res.ok) throw new Error(`could not download the picture (${res.status})`);
+      const cutDataUrl = await preparePhoto(await res.blob(), true);
+      const wasActive = target.active || target.url === activePhotoUrl;
+      const cutPhoto: InstructorPhoto = {
+        id: 'photo_' + Date.now(),
+        url: cutDataUrl,
+        active: wasActive,
+        uploadedAt: new Date().toISOString()
+      };
+      setPhotos((prev) => prev.map((p) => (p.id === photoId ? cutPhoto : p)));
+      if (wasActive) setActivePhotoUrl(cutDataUrl);
+    } catch (err: any) {
+      setFormError('Could not remove the background: ' + (err?.message || 'unknown error'));
+    } finally {
+      setIsProcessingPhoto(false);
+    }
   };
 
   const handleDeletePhoto = async (photoId: string) => {
@@ -478,7 +527,7 @@ export const InstructorsPage: React.FC = () => {
                       disabled={isProcessingPhoto}
                       onClick={() => fileInputRef.current?.click()}
                     >
-                      {isProcessingPhoto ? 'OPTIMIZING...' : '+ UPLOAD PICTURE'}
+                      {isProcessingPhoto ? 'WORKING…' : '+ UPLOAD PICTURE'}
                     </PixelButton>
                     <PixelButton
                       size="sm"
@@ -497,6 +546,18 @@ export const InstructorsPage: React.FC = () => {
                     className="hidden"
                   />
                 </div>
+
+                <label className="flex items-center gap-2 min-h-[44px] cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={removeBackground}
+                    onChange={(e) => setRemoveBackground(e.target.checked)}
+                    className="w-5 h-5 accent-[var(--neon-gold)]"
+                  />
+                  <span className="font-display text-[12px] text-[var(--text-1)]">
+                    ✂ REMOVE BACKGROUND (save the cut-out to Google Drive)
+                  </span>
+                </label>
 
                 {showUrlInput && (
                   <div className="flex flex-col sm:flex-row gap-2 p-3 bg-[var(--night-2)] border border-[var(--outline)]">
@@ -523,7 +584,7 @@ export const InstructorsPage: React.FC = () => {
                   <div className="p-3 bg-[var(--night-2)] border border-[var(--neon-cyan)] flex items-center justify-center gap-2">
                     <Spinner />
                     <span className="font-display text-[10px] text-[var(--neon-cyan)]">
-                      OPTIMIZING PORTRAIT IMAGE FOR CLOUD SYNC...
+                      {photoStatus}
                     </span>
                   </div>
                 )}
@@ -585,8 +646,18 @@ export const InstructorsPage: React.FC = () => {
                               )}
                             </div>
 
-                            {/* Delete Button */}
-                            <div className="relative z-10 self-end">
+                            {/* Cut-out and Delete Buttons */}
+                            <div className="relative z-10 self-end flex gap-1">
+                              <button
+                                type="button"
+                                disabled={isProcessingPhoto}
+                                onClick={() => handleCutOutExisting(p.id)}
+                                title="Remove the background"
+                                aria-label="Remove the background"
+                                className="h-6 px-1 bg-[var(--night-2)] text-[var(--neon-cyan)] font-display text-[10px] flex items-center justify-center border border-[var(--outline)] shadow-[1px_1px_0_var(--outline)] hover:bg-[var(--violet-2)] cursor-pointer disabled:opacity-50"
+                              >
+                                ✂ CUT OUT
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => handleDeletePhoto(p.id)}

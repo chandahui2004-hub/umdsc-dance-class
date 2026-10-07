@@ -302,14 +302,36 @@ describe('Feature: Videos (features/videos)', () => {
       expect(ctx.db.videos.find(v => v.id === video.id && v.active)).toHaveLength(0);
     });
 
-    it('still removes the video from the website when Drive refuses, and reports driveTrashed: false', () => {
+    it('keeps the video on the website when Drive refuses, and names the uploader account to sign in with', () => {
+      const style = ctx.db.styles.find(s => s.id === 'st_popping')[0];
+      ctx.db.styles.update(style.id, style.version, { videoUploaderEmail: 'lead@gmail.com' }, 'system', ctx.now());
       const video = registerVideo('file_owned_by_lead_123456789', { ownedByOther: true });
 
       const res = deactivate(video);
 
       expect(res.ok).toBe(true);
-      expect((res as any).data).toEqual({ deactivated: true, driveTrashed: false });
+      expect((res as any).data).toEqual({ deactivated: false, driveTrashed: false, uploader: 'lead@gmail.com' });
+      expect(ctx.db.videos.find(v => v.id === video.id && v.active)).toHaveLength(1);
+    });
+
+    it('removes the video once the uploader has trashed the file in Drive', () => {
+      const video = registerVideo('file_owned_by_lead_987654321', { ownedByOther: true });
+      (ctx.drive as any).items.get('file_owned_by_lead_987654321').trashed = true; // trashed with the uploader's own account
+
+      const res = deactivate(video);
+
+      expect(res.ok).toBe(true);
+      expect((res as any).data).toEqual({ deactivated: true, driveTrashed: true });
       expect(ctx.db.videos.find(v => v.id === video.id && v.active)).toHaveLength(0);
+    });
+
+    it('removes the video when its Drive file is already gone', () => {
+      const video = registerVideo('file_deleted_already_1234567');
+      (ctx.drive as any).items.delete('file_deleted_already_1234567');
+
+      const res = deactivate(video);
+
+      expect((res as any).data).toEqual({ deactivated: true, driveTrashed: true });
     });
   });
 

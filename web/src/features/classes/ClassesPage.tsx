@@ -9,11 +9,12 @@ import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { EventStep } from '../../components/ui/EventStyleSteps';
 import { SessionEditor } from './SessionEditor';
-import { todayKL } from '../../lib/time';
+import { ClassCard } from '../calendar/ClassCard';
+import { todayKL, formatDayLabel } from '../../lib/time';
 import { getStyleColor } from '../../theme/colors';
 import { useCurrentEvent } from '../events/useCurrentEvent';
 import { resolveInstructor, getInstructorPhotoUrl, getDriveThumbnailUrl } from '../../lib/instructorPhotos';
-import type { ClassSession, DanceStyle, Instructor, ISODate, Month } from '@umdsc/shared';
+import type { ClassSession, DanceStyle, Instructor, ISODate, Month, VideoItem, MusicItem } from '@umdsc/shared';
 
 export const ClassesPage: React.FC = () => {
   const { events, current: event, isLoading: eventsLoading, isAll } = useCurrentEvent();
@@ -58,6 +59,19 @@ export const ClassesPage: React.FC = () => {
     queryKey: ['sessions', eventId],
     enabled: Boolean(eventId),
     queryFn: async () => (await call<ClassSession[]>('sessions.list', { eventId })).data || []
+  });
+
+  // Recap videos and music, shown on the selected day's class cards (as dancers see them)
+  const mediaPayload = isAll ? {} : { eventId };
+  const { data: dayVideos = [] } = useQuery<VideoItem[]>({
+    queryKey: ['videos', eventId, 'calendar'],
+    enabled: Boolean(eventId),
+    queryFn: async () => (await call<VideoItem[]>('videos.list', mediaPayload)).data || []
+  });
+  const { data: dayMusic = [] } = useQuery<MusicItem[]>({
+    queryKey: ['music', eventId, 'calendar'],
+    enabled: Boolean(eventId),
+    queryFn: async () => (await call<MusicItem[]>('music.list', mediaPayload)).data || []
   });
 
   const [filterEventId, setFilterEventId] = useState<string>('all');
@@ -234,146 +248,120 @@ export const ClassesPage: React.FC = () => {
         </div>
 
         <div className="space-y-3">
-          <Panel title={`CLASSES ON ${selectedDate}`}>
-            {isLoading ? (
-              <div className="p-4 text-center">
-                <Spinner size="md" />
-              </div>
-            ) : error ? (
-              <div role="alert" className="p-3 bg-[var(--night-1)] border-2 border-[var(--neon-red)] text-[var(--neon-red)] text-[12px] font-body font-bold">{errorMessage(error)}</div>
-            ) : (
-              <div className="space-y-2">
-                {(() => {
-                  const dateSessions = activeSessions.filter(s => s.date === selectedDate);
-                  const visibleDateSessions = isFiltered ? dateSessions.filter(matchesFilter) : dateSessions;
+          <Panel title={`ADD A CLASS ON ${selectedDate}`}>
+            {/* Add class section */}
+            <div className="space-y-2">
+              {isAll && (
+                <label className="block space-y-1">
+                  <span className="font-display text-[12px] text-[var(--text-1)]">EVENT:</span>
+                  <select
+                    aria-label="Event for new class"
+                    value={targetEventId}
+                    onChange={e => setSelectedAddEventId(e.target.value)}
+                    className="w-full min-h-[48px] px-2 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-body text-[16px] text-[var(--text-1)]"
+                  >
+                    {events.filter(e => e.status === 'active').map(e => (
+                      <option key={e.id} value={e.id}>
+                        {e.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
 
-                  return (
-                    <>
-                      {visibleDateSessions.map(s => {
-                        const style = getStyle(s.styleId);
-                        const instructor = resolveInstructor(s, style, instructors);
-                        const photoUrl = getInstructorPhotoUrl(instructor);
-                        return (
-                          <button
-                            key={s.id}
-                            type="button"
-                            onClick={() => setEditingSession(s)}
-                            className="w-full text-left p-3 bg-[var(--night-2)] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] hover:bg-[var(--violet-2)] space-y-2 transition-none cursor-pointer"
-                          >
-                            <div className="flex flex-wrap justify-between items-center gap-1">
-                              <span style={{ backgroundColor: colorOf(s.styleId) }} className="px-2 py-0.5 text-[12px] font-display text-[var(--on-neon)] font-bold border border-[var(--outline)]">
-                                {style?.name || 'Style'} Class {s.seq}
-                              </span>
-                              {isAll && (
-                                <span className="font-display text-[12px] px-1 bg-[var(--night-1)] text-[var(--neon-cyan)] border border-[var(--outline)]">
-                                  {getEvent(s.eventId)?.name || 'Event'}
-                                </span>
-                              )}
-                              <span className="font-mono text-[12px] font-bold text-[var(--text-1)]">
-                                {s.start} - {s.end}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {photoUrl ? (
-                                <img
-                                  src={photoUrl}
-                                  alt={instructor?.name || 'Instructor'}
-                                  referrerPolicy="no-referrer"
-                                  className="w-8 h-10 object-cover object-top border-2 border-[var(--outline)] flex-shrink-0"
-                                  loading="lazy"
-                                  onError={(e) => {
-                                    const thumb = getDriveThumbnailUrl(photoUrl, 200);
-                                    if (thumb && thumb !== photoUrl && e.currentTarget.src !== thumb) {
-                                      e.currentTarget.src = thumb;
-                                    }
-                                  }}
-                                />
-                              ) : (
-                                <span className="w-8 h-10 flex items-center justify-center bg-[var(--night-1)] border-2 border-[var(--outline)] font-display text-[10px] text-[var(--text-2)] flex-shrink-0">👤</span>
-                              )}
-                              <div className="font-body text-[14px] text-[var(--text-2)]">
-                                <span className="font-bold text-[var(--text-1)]">{instructor?.name || 'TBA'}</span> · {s.venue || 'TBA'}
-                              </div>
-                            </div>
-                          </button>
-                        );
-                      })}
-                      {isFiltered && visibleDateSessions.length === 0 && dateSessions.length > 0 && (
-                        <div className="p-3 bg-[var(--night-1)] border border-[var(--outline)] text-center space-y-1">
-                          <p className="font-body text-[13px] text-[var(--text-2)]">
-                            No classes match filter on this date ({dateSessions.length} other class{dateSessions.length > 1 ? 'es' : ''} scheduled).
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setFilterStyleId('all');
-                              setFilterInstructor('all');
-                              setFilterEventId('all');
-                            }}
-                            className="font-display text-[10px] text-[var(--neon-gold)] underline cursor-pointer"
-                          >
-                            RESET FILTERS
-                          </button>
-                        </div>
-                      )}
-                      {dateSessions.length === 0 && (
-                        <p className="font-body text-[14px] text-[var(--text-2)] py-2 text-center">No classes on this date.</p>
-                      )}
-                    </>
-                  );
-                })()}
-
-                {/* Add class section */}
-                <div className="pt-2 border-t-2 border-[var(--outline)] space-y-2">
-                  {isAll && (
-                    <label className="block space-y-1">
-                      <span className="font-display text-[12px] text-[var(--text-1)]">EVENT:</span>
-                      <select
-                        aria-label="Event for new class"
-                        value={targetEventId}
-                        onChange={e => setSelectedAddEventId(e.target.value)}
-                        className="w-full min-h-[48px] px-2 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-body text-[16px] text-[var(--text-1)]"
-                      >
-                        {events.filter(e => e.status === 'active').map(e => (
-                          <option key={e.id} value={e.id}>
-                            {e.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-
-                  {insideEvent && styles.length > 0 && (
-                    <>
-                      <select
-                        aria-label="Style for new class"
-                        value={addStyleId}
-                        onChange={e => setNewStyleId(e.target.value)}
-                        className="w-full min-h-[48px] px-2 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-body text-[16px] text-[var(--text-1)]"
-                      >
-                        {styles.map(s => (
-                          <option key={s.id} value={s.id}>
-                            {s.name}
-                          </option>
-                        ))}
-                      </select>
-                      <PixelButton size="md" variant="primary" className="w-full" disabled={addClass.isPending} onClick={() => addClass.mutate()}>
-                        {addClass.isPending ? 'ADDING…' : `+ ADD CLASS ON ${selectedDate}`}
-                      </PixelButton>
-                      {addError && <p role="alert" className="font-body text-[12px] font-bold text-[var(--neon-red)]">{addError}</p>}
-                    </>
-                  )}
-                  {!insideEvent && targetEvent && (
-                    <p className="font-body text-[14px] text-[var(--text-2)]">
-                      {selectedDate} is outside {targetEvent.name} ({targetEvent.startDate} to {targetEvent.endDate}).
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
+              {insideEvent && styles.length > 0 && (
+                <>
+                  <select
+                    aria-label="Style for new class"
+                    value={addStyleId}
+                    onChange={e => setNewStyleId(e.target.value)}
+                    className="w-full min-h-[48px] px-2 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-body text-[16px] text-[var(--text-1)]"
+                  >
+                    {styles.map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                  <PixelButton size="md" variant="primary" className="w-full" disabled={addClass.isPending} onClick={() => addClass.mutate()}>
+                    {addClass.isPending ? 'ADDING…' : `+ ADD CLASS ON ${selectedDate}`}
+                  </PixelButton>
+                  {addError && <p role="alert" className="font-body text-[12px] font-bold text-[var(--neon-red)]">{addError}</p>}
+                </>
+              )}
+              {!insideEvent && targetEvent && (
+                <p className="font-body text-[14px] text-[var(--text-2)]">
+                  {selectedDate} is outside {targetEvent.name} ({targetEvent.startDate} to {targetEvent.endDate}).
+                </p>
+              )}
+            </div>
           </Panel>
         </div>
       </div>
+
+      <Panel title={`CLASSES ON ${formatDayLabel(selectedDate).toUpperCase()}`}>
+        {isLoading ? (
+          <div className="p-4 text-center">
+            <Spinner size="md" />
+          </div>
+        ) : error ? (
+          <div role="alert" className="p-3 bg-[var(--night-1)] border-2 border-[var(--neon-red)] text-[var(--neon-red)] text-[12px] font-body font-bold">{errorMessage(error)}</div>
+        ) : (
+          (() => {
+            const dateSessions = activeSessions.filter(s => s.date === selectedDate);
+            const visibleDateSessions = isFiltered ? dateSessions.filter(matchesFilter) : dateSessions;
+            return (
+              <>
+                {visibleDateSessions.length > 0 && (
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                    {visibleDateSessions.map(s => {
+                      const style = getStyle(s.styleId);
+                      return (
+                        <ClassCard
+                          key={s.id}
+                          session={s}
+                          style={style}
+                          instructor={resolveInstructor(s, style, instructors)}
+                          videos={dayVideos.filter(v => v.sessionId === s.id)}
+                          music={dayMusic.filter(m => m.sessionId === s.id)}
+                          eventName={isAll ? getEvent(s.eventId)?.name : undefined}
+                          showAttendance={false}
+                          action={
+                            <PixelButton size="sm" variant="secondary" onClick={() => setEditingSession(s)}>
+                              ✎ EDIT CLASS
+                            </PixelButton>
+                          }
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+                {isFiltered && visibleDateSessions.length === 0 && dateSessions.length > 0 && (
+                  <div className="p-3 bg-[var(--night-1)] border border-[var(--outline)] text-center space-y-1">
+                    <p className="font-body text-[13px] text-[var(--text-2)]">
+                      No classes match filter on this date ({dateSessions.length} other class{dateSessions.length > 1 ? 'es' : ''} scheduled).
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterStyleId('all');
+                        setFilterInstructor('all');
+                        setFilterEventId('all');
+                      }}
+                      className="font-display text-[10px] text-[var(--neon-gold)] underline cursor-pointer"
+                    >
+                      RESET FILTERS
+                    </button>
+                  </div>
+                )}
+                {dateSessions.length === 0 && (
+                  <p className="font-body text-[14px] text-[var(--text-2)] py-2 text-center">No classes on this date.</p>
+                )}
+              </>
+            );
+          })()
+        )}
+      </Panel>
 
       <Panel title={isAll ? 'ALL CLASSES ACROSS ALL EVENTS' : `ALL CLASSES IN ${event?.name || ''}`}>
         {/* Filter Controls Bar */}

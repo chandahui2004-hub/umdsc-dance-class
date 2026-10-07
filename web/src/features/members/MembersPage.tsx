@@ -485,48 +485,15 @@ export const MembersPage: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-[24px] text-[var(--text-1)]">
-            {isAll ? 'All Registered Dancers' : 'Registered Dancers'}
-          </h1>
-          <p className="font-body text-[14px] text-[var(--text-2)]">
-            {isAll
-              ? 'Combined roster across all events (duplicates merged)'
-              : `Dancers registered for ${event?.name || 'the selected event'}`}
-          </p>
-        </div>
-
-        <div className="flex gap-2 flex-wrap">
-          <PixelButton
-            variant="secondary"
-            size="md"
-            onClick={() => refetch()}
-            disabled={isRefetching}
-            className="flex items-center gap-1.5"
-          >
-            {isRefetching ? 'REFRESHING...' : 'REFRESH'}
-          </PixelButton>
-
-          <PixelButton
-            variant="secondary"
-            size="md"
-            onClick={handleExportCsv}
-            disabled={filteredMembers.length === 0}
-            className="flex items-center gap-1.5"
-          >
-            EXPORT CSV
-          </PixelButton>
-
-          <PixelButton
-            variant="secondary"
-            size="md"
-            onClick={() => setIsFullscreen(!isFullscreen)}
-            className="flex items-center gap-1.5"
-          >
-            {isFullscreen ? '✕ EXIT FULLSCREEN' : '⛶ FULLSCREEN'}
-          </PixelButton>
-        </div>
+      <div>
+        <h1 className="font-display text-[24px] text-[var(--text-1)]">
+          {isAll ? 'All Registered Dancers' : 'Registered Dancers'}
+        </h1>
+        <p className="font-body text-[14px] text-[var(--text-2)]">
+          {isAll
+            ? 'Combined roster across all events (duplicates merged)'
+            : `Dancers registered for ${event?.name || 'the selected event'}`}
+        </p>
       </div>
 
       <div className="space-y-3">
@@ -537,6 +504,36 @@ export const MembersPage: React.FC = () => {
           onChange={setSelectedStyleId}
           allOption={`ALL CLASSES (${members.length})`}
         />
+        <div className="flex gap-2 flex-wrap" role="toolbar" aria-label="Dancer list tools">
+          <PixelButton
+            variant="secondary"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isRefetching}
+            className="flex items-center gap-1.5"
+          >
+            {isRefetching ? 'REFRESHING...' : 'REFRESH'}
+          </PixelButton>
+
+          <PixelButton
+            variant="secondary"
+            size="sm"
+            onClick={handleExportCsv}
+            disabled={filteredMembers.length === 0}
+            className="flex items-center gap-1.5"
+          >
+            EXPORT CSV
+          </PixelButton>
+
+          <PixelButton
+            variant="secondary"
+            size="sm"
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="flex items-center gap-1.5"
+          >
+            {isFullscreen ? '✕ EXIT FULLSCREEN' : '⛶ FULLSCREEN'}
+          </PixelButton>
+        </div>
       </div>
 
       <Panel title="SEARCH">

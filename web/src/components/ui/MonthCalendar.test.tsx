@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MonthCalendar } from './MonthCalendar';
+import { todayKL } from '../../lib/time';
 
 describe('MonthCalendar', () => {
   it('hides the next-month arrow when allowedMonths excludes it', () => {
@@ -48,5 +49,25 @@ describe('MonthCalendar', () => {
 
     fireEvent.click(dayBtn);
     expect(onSelect).toHaveBeenCalledWith('2026-10-07');
+  });
+  it('marks the chosen date as pressed with a pink frame, distinct from today', () => {
+    const today = todayKL();
+    const other = today.endsWith('-15') ? today.slice(0, 8) + '16' : today.slice(0, 8) + '15';
+    const { rerender } = render(
+      <MonthCalendar month={today.slice(0, 7) as any} onMonthChange={vi.fn()} selected={other as any} onSelect={vi.fn()} />
+    );
+    const chosen = document.querySelector(`[data-date="${other}"]`)!;
+    const todayBtn = document.querySelector(`[data-date="${today}"]`)!;
+    expect(chosen.getAttribute('aria-pressed')).toBe('true');
+    expect(chosen.className).toContain('--neon-pink');
+    expect(todayBtn.getAttribute('aria-pressed')).toBe('false');
+    expect(todayBtn.className).not.toContain('--neon-pink');
+    expect(todayBtn.className).toContain('px-neon');
+
+    // Choosing today keeps today's glow and adds the pressed pink frame
+    rerender(<MonthCalendar month={today.slice(0, 7) as any} onMonthChange={vi.fn()} selected={today as any} onSelect={vi.fn()} />);
+    const both = document.querySelector(`[data-date="${today}"]`)!;
+    expect(both.className).toContain('px-neon');
+    expect(both.className).toContain('--neon-pink');
   });
 });

@@ -148,12 +148,14 @@ export function getDriveThumbnailUrl(url: string, size = 1000): string {
  * - Guarantees data URL character length stays comfortably below Google Sheets' 50,000 limit (~10k-25k chars).
  */
 export async function optimizeInstructorPhoto(
-  file: File,
+  file: Blob,
   options?: {
     targetWidth?: number;
     targetHeight?: number;
     quality?: number;
     maxChars?: number;
+    /** A cut-out with a transparent background: never falls back to JPEG, which has no transparency. */
+    transparent?: boolean;
   }
 ): Promise<string> {
   const targetWidth = options?.targetWidth ?? 360;
@@ -220,6 +222,19 @@ export async function optimizeInstructorPhoto(
 
     // Try WebP first
     let dataUrl = canvas.toDataURL('image/webp', quality);
+    if (options?.transparent) {
+      // WebP and PNG keep transparency (Safari can't make WebP and gives PNG); shrink if too big
+      if (!dataUrl.startsWith('data:image/webp')) dataUrl = canvas.toDataURL('image/png');
+      if (dataUrl.length > maxChars * 4) {
+        const smallCanvas = document.createElement('canvas');
+        smallCanvas.width = 240;
+        smallCanvas.height = 300;
+        smallCanvas.getContext('2d')?.drawImage(canvas, 0, 0, 240, 300);
+        const webp = smallCanvas.toDataURL('image/webp', 0.75);
+        dataUrl = webp.startsWith('data:image/webp') ? webp : smallCanvas.toDataURL('image/png');
+      }
+      return dataUrl;
+    }
     if (!dataUrl.startsWith('data:image/webp')) {
       dataUrl = canvas.toDataURL('image/jpeg', quality);
     }
