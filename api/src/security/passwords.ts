@@ -18,6 +18,14 @@ export function hashPassword(password: string, salt: string, iterations: number,
   return bytesToHex(current);
 }
 
+/**
+ * One keyed HMAC of the stored hash and the typed password. The server caches it after a full check,
+ * so a repeat login skips the slow rounds. A new password changes the stored hash, so old ones stop matching.
+ */
+export function passwordFingerprint(password: string, storedHash: string, secret: string, hmac: Hmac): string {
+  return bytesToHex(hmac(secret, `${storedHash}|${password}`));
+}
+
 export function verifyPassword(
   password: string,
   stored: { hash?: string; passwordHash?: string; salt: string; iterations: number },

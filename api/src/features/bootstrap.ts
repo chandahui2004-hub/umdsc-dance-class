@@ -65,6 +65,23 @@ export function getAdminBootstrap(
   };
 }
 
+/** The admin starting data only if it is already cached; never reads a sheet, so login stays fast. */
+export function peekAdminBootstrap(
+  ctx: Ctx,
+  username: string,
+  displayName: string,
+  perms: PermMap
+): AdminBootstrap | null {
+  const dataVersion = Number(ctx.props.get('DATA_VERSION') || 1);
+  const cached = ctx.cache.get('boot:admin:' + dataVersion);
+  if (!cached) return null;
+  try {
+    return { profile: { username, displayName, perms }, ...JSON.parse(cached) };
+  } catch {
+    return null;
+  }
+}
+
 /** The dancer's MemberIndex row, from the 10-minute cache when present. */
 function loadDancerIndex(ctx: Ctx, matricKey: string): any {
   const miKey = 'mi:' + matricKey;

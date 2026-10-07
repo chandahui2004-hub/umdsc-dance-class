@@ -1,11 +1,11 @@
 import { Route } from '../router';
 import { AppError } from '../errors';
 import { normalizeMatric, fullNameMatches } from '../logic/normalize';
-import { verifyPassword } from '../security/passwords';
+import { verifyPassword, passwordFingerprint } from '../security/passwords';
 import { signToken } from '../security/tokens';
 import { resolvePermissions } from '../logic/permissions';
 import { TokenClaims, PermissionCode } from '@umdsc/shared';
-import { getAdminBootstrap, peekDancerBootstrap } from './bootstrap';
+import { peekAdminBootstrap, peekDancerBootstrap } from './bootstrap';
 import { createTimer, logTimings } from '../logic/timing';
 
 export function getAuthRoutes(): Record<string, Route> {
@@ -23,9 +23,20 @@ export function getAuthRoutes(): Record<string, Route> {
 
         const admin = ctx.db.admins.find(a => a.username === username && a.active)[0];
         const hmac = (ctx as any)._secrets?.hmac;
+        const secret: string = (ctx as any)._secrets?.tokenSecret || '';
 
-        if (!admin || !verifyPassword(password, admin, hmac)) {
+        if (!admin) {
           throw new AppError('UNAUTHORIZED', 'Invalid username or password');
+        }
+        // A correct password seen in the last 6 hours skips the 2,000 hashing rounds
+        const fastKey = 'pwok:' + admin.username;
+        const fingerprint = secret ? passwordFingerprint(password, admin.passwordHash, secret, hmac) : '';
+        const fast = Boolean(fingerprint) && ctx.cache.get(fastKey) === fingerprint;
+        if (!fast) {
+          if (!verifyPassword(password, admin, hmac)) {
+            throw new AppError('UNAUTHORIZED', 'Invalid username or password');
+          }
+          if (fingerprint) ctx.cache.put(fastKey, fingerprint, 6 * 3600);
         }
 
         // Fetch role permissions
@@ -53,14 +64,10 @@ export function getAuthRoutes(): Record<string, Route> {
 
         const token = signToken(claims, (ctx as any)._secrets?.tokenSecret, hmac);
 
-        const bootstrap = getAdminBootstrap(
-          ctx,
-          admin.username,
-          admin.displayName,
-          perms
-        );
+        // Token first: the starting data loads afterwards unless it is already cached
+        const bootstrap = peekAdminBootstrap(ctx, admin.username, admin.displayName, perms);
 
-        return { token, claims, bootstrap };
+        return { token, claims, ...(bootstrap ? { bootstrap } : {}) };
       }
     },
 

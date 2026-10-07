@@ -132,6 +132,72 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
     }
   });
 
+  describe('admin login speed', () => {
+    const login = (password: string, s: typeof secrets = secrets) =>
+      handleRequest({ action: 'auth.adminLogin', payload: { username: 'clubadmin', password } }, ctx, s);
+
+    function countingSecrets() {
+      const counter = { calls: 0 };
+      const hmac: Hmac = (key, message) => {
+        counter.calls++;
+        return nodeHmac(key, message);
+      };
+      return { counter, s: { ...secrets, hmac } };
+    }
+
+    it('returns the token without building the admin starting data when it is not cached', () => {
+      const res = login('SecretAdminPass');
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect((res.data as any).token).toBeTruthy();
+        expect((res.data as any).bootstrap).toBeUndefined();
+      }
+    });
+
+    it('includes the admin starting data when it is already cached', () => {
+      const first = login('SecretAdminPass');
+      const token = first.ok ? (first.data as any).token : '';
+      handleRequest({ action: 'admin.bootstrap', token }, ctx, secrets);
+
+      const res = login('SecretAdminPass');
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect((res.data as any).bootstrap?.profile?.username).toBe('clubadmin');
+      }
+    });
+
+    it('a repeat login with the same password skips the slow hashing', () => {
+      const { counter, s } = countingSecrets();
+      expect(login('SecretAdminPass', s).ok).toBe(true);
+      expect(counter.calls).toBeGreaterThanOrEqual(PASSWORD_ITERATIONS);
+
+      counter.calls = 0;
+      expect(login('SecretAdminPass', s).ok).toBe(true);
+      expect(counter.calls).toBeLessThan(10);
+    });
+
+    it('a wrong password is still rejected after a fast login', () => {
+      expect(login('SecretAdminPass').ok).toBe(true);
+      const res = login('WrongPassword');
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.error.code).toBe('UNAUTHORIZED');
+    });
+
+    it('a password reset makes the old password fail at once', () => {
+      expect(login('SecretAdminPass').ok).toBe(true);
+      const admin = ctx.db.admins.find(a => a.username === 'clubadmin')[0];
+      ctx.db.admins.update(
+        admin.id,
+        admin.version,
+        { passwordHash: hashPassword('NewPass456', admin.salt, PASSWORD_ITERATIONS, nodeHmac) },
+        'system',
+        new Date()
+      );
+      expect(login('SecretAdminPass').ok).toBe(false);
+      expect(login('NewPass456').ok).toBe(true);
+    });
+  });
+
   it('wrong password 10x → correct password still logs in', () => {
     for (let i = 0; i < 10; i++) {
       const failRes = handleRequest(
