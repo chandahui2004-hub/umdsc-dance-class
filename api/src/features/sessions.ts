@@ -5,6 +5,7 @@ import { ClassSession, EventItem, TodayClass } from '@umdsc/shared';
 import { logAudit } from '../logic/audit';
 import { todayKL } from '../logic/events';
 import { getEvent, dancerStylesInEvent } from './eventMembers';
+import { assertClassInstructor, firstInstructor } from './styleInstructors';
 
 type SessionListener = (ctx: Ctx, s: ClassSession) => void;
 const sessionListeners: SessionListener[] = [];
@@ -112,11 +113,13 @@ export function getSessionRoutes(): Record<string, Route> {
         if (!eventId || !styleId || !seq || !date || !start || !end) {
           throw new AppError('VALIDATION', 'eventId, styleId, seq, date, start, and end are required');
         }
-        assertDateInEvent(getEvent(ctx, eventId), date);
+        const event = getEvent(ctx, eventId);
+        assertDateInEvent(event, date);
 
         const actor = auth?.claims.sub || 'system';
         const style = ctx.db.styles.find(st => st.id === styleId && st.active)[0];
-        const finalInstructorId = instructorId || style?.defaultInstructorId || '';
+        const finalInstructorId = instructorId || firstInstructor(event, styleId);
+        assertClassInstructor(ctx, event, styleId, finalInstructorId);
         const finalVenue = venue || style?.defaultVenue || '';
         const inserted = ctx.db.sessions.insert(
           { eventId, styleId, seq: Number(seq), date, start, end, instructorId: finalInstructorId, venue: finalVenue, status, note },
@@ -151,6 +154,9 @@ export function getSessionRoutes(): Record<string, Route> {
 
         if (date !== undefined && date !== existing.date) {
           assertDateInEvent(getEvent(ctx, existing.eventId), date);
+        }
+        if (instructorId !== undefined) {
+          assertClassInstructor(ctx, getEvent(ctx, existing.eventId), existing.styleId, instructorId, existing.instructorId);
         }
 
         const actor = auth?.claims.sub || 'system';
@@ -237,6 +243,20 @@ export function getSessionRoutes(): Record<string, Route> {
           throw new AppError('VALIDATION', 'sessions array is required');
         }
 
+        // Classes named by id in this batch are never matched by seq for another entry
+        const claimedIds = new Set(sessions.map((s: any) => s?.id).filter(Boolean));
+        const findExisting = (s: any): ClassSession | undefined =>
+          s.id
+            ? ctx.db.sessions.find(x => x.id === s.id && x.active)[0]
+            : ctx.db.sessions.find(
+                x =>
+                  x.eventId === s.eventId &&
+                  x.styleId === s.styleId &&
+                  x.seq === Number(s.seq) &&
+                  x.active &&
+                  !claimedIds.has(x.id)
+              )[0];
+
         // Validate everything before writing anything
         const events = new Map<string, EventItem>();
         for (const s of sessions) {
@@ -244,28 +264,21 @@ export function getSessionRoutes(): Record<string, Route> {
             throw new AppError('VALIDATION', 'Each class needs eventId, styleId, seq, date, start and end');
           }
           if (!events.has(s.eventId)) events.set(s.eventId, getEvent(ctx, s.eventId));
-          assertDateInEvent(events.get(s.eventId)!, s.date);
+          const event = events.get(s.eventId)!;
+          assertDateInEvent(event, s.date);
+          if (s.instructorId !== undefined) {
+            assertClassInstructor(ctx, event, s.styleId, s.instructorId, findExisting(s)?.instructorId);
+          }
         }
 
         const actor = auth?.claims?.sub || 'system';
         const results: ClassSession[] = [];
-        // Classes named by id in this batch are never matched by seq for another entry
-        const claimedIds = new Set(sessions.map((s: any) => s.id).filter(Boolean));
         const OPTIONAL = ['instructorId', 'venue', 'status', 'note'] as const;
 
         for (const s of sessions) {
-          const { id, eventId, styleId, seq, date, start, end } = s;
+          const { eventId, styleId, seq, date, start, end } = s;
 
-          const existing = id
-            ? ctx.db.sessions.find(x => x.id === id && x.active)[0]
-            : ctx.db.sessions.find(
-                x =>
-                  x.eventId === eventId &&
-                  x.styleId === styleId &&
-                  x.seq === Number(seq) &&
-                  x.active &&
-                  !claimedIds.has(x.id)
-              )[0];
+          const existing = findExisting(s);
 
           let saved: ClassSession;
           if (existing) {
@@ -277,7 +290,7 @@ export function getSessionRoutes(): Record<string, Route> {
             saved = ctx.db.sessions.insert(
               {
                 eventId, styleId, seq: Number(seq), date, start, end,
-                instructorId: s.instructorId || '', venue: s.venue || '', status: s.status || 'scheduled', note: s.note || ''
+                instructorId: s.instructorId || firstInstructor(events.get(eventId)!, styleId), venue: s.venue || '', status: s.status || 'scheduled', note: s.note || ''
               },
               actor,
               ctx.now()

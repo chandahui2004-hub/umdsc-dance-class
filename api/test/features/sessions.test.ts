@@ -239,4 +239,89 @@ describe('Feature: Class Sessions (features/sessions)', () => {
     });
     expect(res.ok).toBe(false);
   });
+  describe('class instructor comes from the event list', () => {
+    let kelvin: string;
+    let lam: string;
+    let outsider: string;
+    let ev: EventItem;
+
+    beforeEach(() => {
+      kelvin = ctx.db.instructors.insert({ name: 'Kelvin', contact: '', styleIds: ['st_popping'] } as any, 'system', ctx.now()).id;
+      lam = ctx.db.instructors.insert({ name: 'Lam', contact: '', styleIds: ['st_popping'] } as any, 'system', ctx.now()).id;
+      outsider = ctx.db.instructors.insert({ name: 'Outsider', contact: '', styleIds: ['st_popping'] } as any, 'system', ctx.now()).id;
+      ev = seedEvent(ctx, { styleIds: ['st_popping'], styleInstructors: { st_popping: [kelvin, lam] } });
+    });
+
+    const newClass = (extra: any = {}) => ({
+      eventId: ev.id, styleId: 'st_popping', seq: 1, date: '2026-10-06', start: '20:00', end: '22:00', ...extra
+    });
+
+    it('create without an instructor uses the first instructor of the event list', () => {
+      const res = call('sessions.create', newClass());
+      expect(res.ok).toBe(true);
+      if (res.ok) expect((res.data as any).instructorId).toBe(kelvin);
+    });
+
+    it('create refuses an instructor outside the list', () => {
+      const res = call('sessions.create', newClass({ instructorId: outsider }));
+      expect(res).toMatchObject({ ok: false, error: { code: 'VALIDATION' } });
+      if (!res.ok) expect(res.error.message).toBe("VALIDATION: Outsider isn't an instructor for st_popping in this event.");
+    });
+
+    it('update refuses a new instructor outside the list', () => {
+      const cls = ctx.db.sessions.insert(
+        { eventId: ev.id, styleId: 'st_popping', seq: 1, date: '2026-10-06', start: '20:00', end: '22:00', instructorId: kelvin, venue: '', status: 'scheduled', note: '' },
+        'admin1', ctx.now()
+      );
+      const res = call('sessions.update', { id: cls.id, version: cls.version, instructorId: outsider });
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.error.message).toContain("isn't an instructor for");
+      expect(ctx.db.sessions.get(cls.id)!.instructorId).toBe(kelvin);
+    });
+
+    it('update accepts another instructor from the list', () => {
+      const cls = ctx.db.sessions.insert(
+        { eventId: ev.id, styleId: 'st_popping', seq: 1, date: '2026-10-06', start: '20:00', end: '22:00', instructorId: kelvin, venue: '', status: 'scheduled', note: '' },
+        'admin1', ctx.now()
+      );
+      const res = call('sessions.update', { id: cls.id, version: cls.version, instructorId: lam });
+      expect(res.ok).toBe(true);
+      expect(ctx.db.sessions.get(cls.id)!.instructorId).toBe(lam);
+    });
+
+    it('update keeps an unchanged out-of-list instructor', () => {
+      const cls = ctx.db.sessions.insert(
+        { eventId: ev.id, styleId: 'st_popping', seq: 1, date: '2026-10-06', start: '20:00', end: '22:00', instructorId: outsider, venue: '', status: 'scheduled', note: '' },
+        'admin1', ctx.now()
+      );
+      const res = call('sessions.update', { id: cls.id, version: cls.version, instructorId: outsider, note: 'hi' });
+      expect(res.ok).toBe(true);
+      expect(ctx.db.sessions.get(cls.id)!.instructorId).toBe(outsider);
+    });
+
+    it('batchUpsert accepts the unchanged out-of-list instructor of an existing class', () => {
+      const cls = ctx.db.sessions.insert(
+        { eventId: ev.id, styleId: 'st_popping', seq: 1, date: '2026-10-06', start: '20:00', end: '22:00', instructorId: outsider, venue: '', status: 'scheduled', note: '' },
+        'admin1', ctx.now()
+      );
+      const res = call('sessions.batchUpsert', { sessions: [newClass({ id: cls.id, instructorId: outsider })] });
+      expect(res.ok).toBe(true);
+      expect(ctx.db.sessions.get(cls.id)!.instructorId).toBe(outsider);
+    });
+
+    it('batchUpsert refuses a new class with an out-of-list instructor, writing nothing', () => {
+      const res = call('sessions.batchUpsert', {
+        sessions: [newClass({ seq: 1 }), newClass({ seq: 2, date: '2026-10-13', instructorId: outsider })]
+      });
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.error.message).toContain("isn't an instructor for");
+      expect(ctx.db.sessions.find(s => s.eventId === ev.id).length).toBe(0);
+    });
+
+    it('batchUpsert gives a new class without an instructor the first of the list', () => {
+      const res = call('sessions.batchUpsert', { sessions: [newClass()] });
+      expect(res.ok).toBe(true);
+      if (res.ok) expect((res.data as any).sessions[0].instructorId).toBe(kelvin);
+    });
+  });
 });
