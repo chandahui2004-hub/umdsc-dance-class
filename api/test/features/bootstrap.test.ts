@@ -155,6 +155,55 @@ describe('Feature: Bootstrap with Caching (features/bootstrap)', () => {
       expect(titles('music.list', token)).toEqual([]);
     });
 
+    describe('media of a deleted class', () => {
+      beforeEach(() => {
+        const gone = ctx.db.sessions.insert(
+          { eventId: event.id, styleId: 'st_popping', seq: 9, date: '2026-10-30', start: '20:00', end: '22:00', instructorId: '', venue: '', status: 'scheduled', note: '' },
+          'admin1', ctx.now()
+        );
+        ctx.db.videos.insert(
+          { styleId: 'st_popping', eventId: event.id, sessionId: gone.id, title: 'Deleted Class Video', driveFileId: 'vid_9',
+            mimeType: 'video/mp4', sizeBytes: 1, folderId: 'fld_1', uploadedBy: 'admin1', source: 'upload' },
+          'admin1', ctx.now()
+        );
+        ctx.db.music.insert(
+          { styleId: 'st_popping', eventId: event.id, sessionId: gone.id, title: 'Deleted Class Song', sourceType: 'youtube', driveFileId: '', youtubeId: 'dQw4w9WgXcQ' },
+          'admin1', ctx.now()
+        );
+        ctx.db.sessions.deactivate(gone.id, gone.version, 'admin1', ctx.now());
+      });
+
+      it('is hidden from the dancer Studio lists and calendar', () => {
+        expect(titles('videos.list', dancerToken)).toEqual(['Popping Class 1 Video']);
+        expect(titles('music.list', dancerToken)).toEqual(['Popping Song']);
+        const res = handleRequest({ action: 'dancer.bootstrap', token: dancerToken }, ctx, secrets);
+        expect(res.ok).toBe(true);
+        if (res.ok) {
+          expect((res.data as any).videos.map((v: any) => v.title)).toEqual(['Popping Class 1 Video']);
+          expect((res.data as any).music.map((m: any) => m.title)).toEqual(['Popping Song']);
+        }
+      });
+
+      it('is listed for admins only when asked (the Media page cleanup box)', () => {
+        const admin = signToken(
+          { sub: 'admin1', role: 'admin', name: 'Admin One', exp: Math.floor(ctx.now().getTime() / 1000) + 3600, pv: 1,
+            perms: { 'videos.view': '*', 'music.view': '*' } },
+          secrets.tokenSecret,
+          secrets.hmac
+        );
+        const list = (action: string, payload: any) => {
+          const res = handleRequest({ action, token: admin, payload }, ctx, secrets);
+          return res.ok ? (res.data as any[]).map(x => x.title) : [];
+        };
+        expect(list('videos.list', {})).not.toContain('Deleted Class Video');
+        expect(list('videos.list', { includeOrphans: true })).toContain('Deleted Class Video');
+        expect(list('music.list', { includeOrphans: true })).toContain('Deleted Class Song');
+        // A dancer cannot ask for them
+        const res = handleRequest({ action: 'videos.list', token: dancerToken, payload: { includeOrphans: true } }, ctx, secrets);
+        expect(res.ok && (res.data as any[]).map(x => x.title)).toEqual(['Popping Class 1 Video']);
+      });
+    });
+
     it('still show admins every style', () => {
       const admin = signToken(
         { sub: 'admin1', role: 'admin', name: 'Admin One', exp: Math.floor(ctx.now().getTime() / 1000) + 3600, pv: 1,

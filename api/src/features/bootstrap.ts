@@ -146,6 +146,15 @@ export function dancerCanSee(ctx: Ctx, auth: AuthInfo): (item: { eventId: string
   return item => Boolean(eventStylesMap.get(item.eventId)?.has(item.styleId));
 }
 
+/**
+ * True for media on a class that still exists (or on no class). Deleting a class leaves its videos and
+ * music behind; the admin Media page can't show them under any class, so nobody else sees them either.
+ */
+export function onLiveClass(ctx: Ctx): (item: { sessionId?: string }) => boolean {
+  const live = new Set(ctx.db.sessions.find(s => s.active).map(s => s.id));
+  return item => !item.sessionId || live.has(item.sessionId);
+}
+
 /** The signed-in dancer's own attendance per class. Loaded after the calendar so login never waits on it. */
 export function getDancerAttendance(
   ctx: Ctx,
@@ -255,11 +264,16 @@ export function getDancerChunk(ctx: Ctx, eventId: string, styleId: string, dataV
     }
   }
 
-  const chunkMusic = ctx.db.music.find(mus => mus.eventId === eventId && mus.styleId === styleId && mus.active);
+  const sessions = ctx.db.sessions.find(s => s.eventId === eventId && s.styleId === styleId && s.active);
+  const sessionIds = new Set(sessions.map(s => s.id));
+  const onLive = (item: { sessionId?: string }) => !item.sessionId || sessionIds.has(item.sessionId);
+  const chunkMusic = ctx.db.music.find(
+    mus => mus.eventId === eventId && mus.styleId === styleId && mus.active && onLive(mus)
+  );
   const musicIds = new Set(chunkMusic.map(mus => mus.id));
   const chunkData: DancerChunk = {
-    sessions: ctx.db.sessions.find(s => s.eventId === eventId && s.styleId === styleId && s.active),
-    videos: ctx.db.videos.find(v => v.eventId === eventId && v.styleId === styleId && v.active),
+    sessions,
+    videos: ctx.db.videos.find(v => v.eventId === eventId && v.styleId === styleId && v.active && onLive(v)),
     music: chunkMusic,
     sections: ctx.db.sections.find(sec => musicIds.has(sec.musicId) && sec.active)
   };

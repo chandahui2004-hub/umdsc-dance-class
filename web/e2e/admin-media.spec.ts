@@ -220,6 +220,32 @@ test.describe('Admin Media Page', () => {
     expect(dialogs).toHaveLength(1);
   });
 
+  test('media of a deleted class is listed separately so it can be deleted', async ({ page }) => {
+    let deleted = false;
+    const calls = await mockApi(page, {
+      ...BASE,
+      'videos.list': () =>
+        deleted
+          ? []
+          : [{ id: 'vid-old', sessionId: 'ses-gone', title: 'Test Upload.mp4', driveFileId: 'drive-old', mimeType: 'video/mp4', sizeBytes: 1000, uploadedBy: 'admin', createdAt: '2026-09-30T16:04:00Z', version: 1, active: true }],
+      'music.list': () => [{ id: 'mus-old', sessionId: 'ses-gone', title: 'HI', sourceType: 'youtube', youtubeId: 'aaaaaaaaaaa', driveFileId: '', version: 1, active: true }],
+      'videos.deactivate': () => {
+        deleted = true;
+        return { deactivated: true, driveTrashed: true };
+      }
+    });
+    page.on('dialog', d => void d.accept());
+
+    await page.goto('/admin/media');
+    await expect(page.getByText('FROM DELETED CLASSES (2)')).toBeVisible();
+    await expect(page.getByText('CLASS RECAP VIDEOS (0)')).toBeVisible();
+    expect(calls.find(c => c.action === 'videos.list')?.payload).toMatchObject({ includeOrphans: true });
+
+    await page.getByTestId('orphan-vid-old').getByRole('button', { name: 'DELETE' }).click();
+    await expect.poll(() => calls.find(c => c.action === 'videos.deactivate')?.payload).toEqual({ id: 'vid-old', version: 1 });
+    await expect(page.getByText('FROM DELETED CLASSES (1)')).toBeVisible();
+  });
+
   test('cancelling the delete question keeps the video', async ({ page }) => {
     const calls = await mockApi(page, { ...BASE, 'videos.list': () => [{ id: 'vid-9', sessionId: 'ses-1', title: 'Old Recap.mp4', driveFileId: 'drive-vid-9', mimeType: 'video/mp4', sizeBytes: 1000, uploadedBy: 'admin', createdAt: '2026-10-08T20:30:00Z', version: 3, active: true }] });
     page.on('dialog', d => void d.dismiss());

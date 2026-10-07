@@ -88,7 +88,7 @@ export const MediaPage: React.FC = () => {
   const ready = Boolean(eventId && styleId);
 
   // The event's classes for this style
-  const { data: rawSessions = [] } = useQuery<ClassSession[]>({
+  const { data: rawSessions = [], isSuccess: sessionsLoaded } = useQuery<ClassSession[]>({
     queryKey: ['sessions', eventId, styleId],
     queryFn: async () => (await api.post<ClassSession[]>('sessions.list', { eventId, styleId })).data,
     enabled: ready
@@ -116,14 +116,14 @@ export const MediaPage: React.FC = () => {
   // Fetch videos
   const { data: videos = [] } = useQuery<Video[]>({
     queryKey: ['videos', eventId, styleId],
-    queryFn: async () => (await api.post<Video[]>('videos.list', { eventId, styleId })).data,
+    queryFn: async () => (await api.post<Video[]>('videos.list', { eventId, styleId, includeOrphans: true })).data,
     enabled: ready
   });
 
   // Fetch music
   const { data: musicList = [] } = useQuery<Music[]>({
     queryKey: ['music', eventId, styleId],
-    queryFn: async () => (await api.post<Music[]>('music.list', { eventId, styleId })).data,
+    queryFn: async () => (await api.post<Music[]>('music.list', { eventId, styleId, includeOrphans: true })).data,
     enabled: ready
   });
 
@@ -172,15 +172,21 @@ export const MediaPage: React.FC = () => {
     [sessions, selectedSessionId]
   );
 
+  // Media left behind by a deleted class: dancers no longer see it, so it is listed separately for cleanup
+  const isOrphan = (item: { sessionId?: string }) =>
+    sessionsLoaded && Boolean(item.sessionId) && !sessions.some((s) => s.id === item.sessionId);
+  const orphanVideos = videos.filter(isOrphan);
+  const orphanMusic = musicList.filter(isOrphan);
+
   const filteredVideos = useMemo(() => {
-    if (!selectedSessionId) return videos;
+    if (!selectedSessionId) return videos.filter((v) => !isOrphan(v));
     return videos.filter((v) => v.sessionId === selectedSessionId);
-  }, [videos, selectedSessionId]);
+  }, [videos, selectedSessionId, sessions, sessionsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filteredMusic = useMemo(() => {
-    if (!selectedSessionId) return musicList;
+    if (!selectedSessionId) return musicList.filter((m) => !isOrphan(m));
     return musicList.filter((m) => !m.sessionId || m.sessionId === selectedSessionId);
-  }, [musicList, selectedSessionId]);
+  }, [musicList, selectedSessionId, sessions, sessionsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isAll && events.length > 0) {
     return (
@@ -384,6 +390,64 @@ export const MediaPage: React.FC = () => {
           </div>
         )}
       </Panel>
+
+      {orphanVideos.length + orphanMusic.length > 0 && (
+        <Panel
+          title={`FROM DELETED CLASSES (${orphanVideos.length + orphanMusic.length})`}
+          className="px-corners bg-[var(--night-2)] space-y-3"
+        >
+          <p className="font-body text-sm text-[var(--text-2)]">
+            These were added to a class that has since been deleted, so dancers no longer see them. Delete them to tidy up.
+          </p>
+          <ul className="space-y-2">
+            {orphanVideos.map((vid) => (
+              <li
+                key={vid.id}
+                data-testid={`orphan-${vid.id}`}
+                className="flex items-center justify-between gap-2 p-2 border-2 border-[var(--outline)] bg-[var(--night-1)]"
+              >
+                <span className="font-mono text-xs text-[var(--text-1)] break-all">VIDEO · {vid.title}</span>
+                <PixelButton
+                  size="md"
+                  variant="danger"
+                  disabled={deleteVideoMutation.isPending}
+                  onClick={() =>
+                    window.confirm(`Delete "${vid.title}"? It will also be moved to the Google Drive trash (you can restore it from there for 30 days).`) &&
+                    deleteVideoMutation.mutate({
+                      id: vid.id,
+                      version: vid.version,
+                      driveFileId: vid.driveFileId,
+                      title: vid.title
+                    })
+                  }
+                >
+                  {deleteVideoMutation.isPending && deleteVideoMutation.variables?.id === vid.id ? 'DELETING…' : 'DELETE'}
+                </PixelButton>
+              </li>
+            ))}
+            {orphanMusic.map((item) => (
+              <li
+                key={item.id}
+                data-testid={`orphan-${item.id}`}
+                className="flex items-center justify-between gap-2 p-2 border-2 border-[var(--outline)] bg-[var(--night-1)]"
+              >
+                <span className="font-mono text-xs text-[var(--text-1)] break-all">MUSIC · {item.title}</span>
+                <PixelButton
+                  size="md"
+                  variant="danger"
+                  disabled={deleteMusicMutation.isPending}
+                  onClick={() =>
+                    window.confirm(`Delete the song "${item.title}"?`) &&
+                    deleteMusicMutation.mutate({ id: item.id, version: item.version })
+                  }
+                >
+                  {deleteMusicMutation.isPending && deleteMusicMutation.variables?.id === item.id ? 'DELETING…' : 'DELETE'}
+                </PixelButton>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
 
       {/* Selected Class Media Detail View */}
       {selectedSession && (

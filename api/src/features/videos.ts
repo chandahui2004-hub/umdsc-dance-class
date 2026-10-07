@@ -4,7 +4,7 @@ import { parseDateFromName } from '../logic/filenameDate';
 import { logAudit } from '../logic/audit';
 import { can } from '../logic/permissions';
 import { getEvent } from './eventMembers';
-import { dancerCanSee } from './bootstrap';
+import { dancerCanSee, onLiveClass } from './bootstrap';
 
 export function getVideoRoutes(): Record<string, Route> {
   return {
@@ -12,9 +12,13 @@ export function getVideoRoutes(): Record<string, Route> {
       perm: 'videos.view',
       write: false,
       handler: (ctx, auth, payload: any) => {
-        const { eventId, styleId, sessionId } = payload || {};
+        const { eventId, styleId, sessionId, includeOrphans } = payload || {};
 
         let videos = ctx.db.videos.find(v => v.active);
+        // Videos of a deleted class are only listed for the admin Media page to clean up
+        if (!(includeOrphans === true && auth?.claims.role === 'admin')) {
+          videos = videos.filter(onLiveClass(ctx));
+        }
 
         if (eventId) {
           videos = videos.filter(v => v.eventId === eventId);

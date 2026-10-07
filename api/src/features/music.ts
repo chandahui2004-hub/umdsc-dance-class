@@ -5,16 +5,20 @@ import { Music, getYouTubeVideoId } from '@umdsc/shared';
 import { logAudit } from '../logic/audit';
 import { getEvent } from './eventMembers';
 import { resolveMusicLink, deriveMusicSource } from './musicLinks';
-import { dancerCanSee } from './bootstrap';
+import { dancerCanSee, onLiveClass } from './bootstrap';
 
 export function visibleMusic(
   ctx: Ctx,
   auth: AuthInfo | null,
-  filters: { eventId?: string; styleId?: string; sessionId?: string } = {}
+  filters: { eventId?: string; styleId?: string; sessionId?: string; includeOrphans?: boolean } = {}
 ): Music[] {
-  const { eventId, styleId, sessionId } = filters;
+  const { eventId, styleId, sessionId, includeOrphans } = filters;
 
   let musicList = ctx.db.music.find(m => m.active);
+  // Music of a deleted class is only listed for the admin Media page to clean up
+  if (!(includeOrphans === true && auth?.claims.role === 'admin')) {
+    musicList = musicList.filter(onLiveClass(ctx));
+  }
 
   if (eventId) {
     musicList = musicList.filter(m => m.eventId === eventId);
