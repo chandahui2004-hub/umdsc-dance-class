@@ -11,8 +11,8 @@ vi.mock('../../lib/api', () => ({
 }));
 
 const mockEvents = [
-  { id: 'evt-trial', name: 'TRIAL CLASS 2026', startDate: '2026-10-01', endDate: '2026-10-10', status: 'active', styleIds: ['st-pop', 'st-lat'] },
-  { id: 'evt-oct', name: 'OCT MONTHLY CLASS', startDate: '2026-10-11', endDate: '2026-10-31', status: 'active', styleIds: ['st-pop', 'st-hip'] }
+  { id: 'evt-trial', name: 'TRIAL CLASS 2026', startDate: '2026-10-01', endDate: '2026-10-10', status: 'active', styleIds: ['st-pop', 'st-lat'], styleInstructors: { 'st-pop': ['inst-lam'], 'st-lat': ['inst-lam', 'inst-kelvin'] } },
+  { id: 'evt-oct', name: 'OCT MONTHLY CLASS', startDate: '2026-10-11', endDate: '2026-10-31', status: 'active', styleIds: ['st-pop', 'st-hip'], styleInstructors: { 'st-pop': ['inst-carmen'], 'st-hip': ['inst-kelvin'] } }
 ];
 
 let mockCurrentEventState = {
@@ -190,5 +190,33 @@ describe('ClassesPage Filter Component', () => {
       expect(screen.getAllByText(/Hip Hop Class 1/i)[0]).toBeInTheDocument();
       expect(screen.getByTestId('classes-count-badge')).toHaveTextContent(/SHOWING 3 OF 3 CLASSES/i);
     });
+  });
+
+  it("the class editor offers only the event's instructors for the style, plus a current one outside the list", async () => {
+    renderComponent();
+    await waitFor(() => expect(screen.getAllByText(/Popping Class 1/i)[0]).toBeInTheDocument());
+
+    // s1: Popping in evt-trial, list = [Lam], current = Carmen (outside the list)
+    fireEvent.click(screen.getAllByText(/Popping Class 1/i)[0]);
+    const select = (await screen.findByLabelText(/^Instructor$/i)) as HTMLSelectElement;
+    const labels = Array.from(select.options).map(o => o.textContent);
+    expect(labels).toEqual(['Select Instructor...', 'Lam Hong Woh', "Carmen Loh (not in this event's list)"]);
+    expect(select.value).toBe('inst-carmen');
+  });
+
+  it('the class editor does not fall back to the style default instructor', async () => {
+    mockCall.mockImplementation(async (action: string) => {
+      if (action === 'styles.list') return { ok: true, data: mockStyles };
+      if (action === 'instructors.list') return { ok: true, data: mockInstructors };
+      if (action === 'sessions.list') return { ok: true, data: [{ ...mockSessions[1], instructorId: '' }] };
+      return { ok: true, data: [] };
+    });
+    renderComponent();
+    await waitFor(() => expect(screen.getAllByText(/Latin Class 1/i)[0]).toBeInTheDocument());
+    fireEvent.click(screen.getAllByText(/Latin Class 1/i)[0]);
+    const select = (await screen.findByLabelText(/^Instructor$/i)) as HTMLSelectElement;
+    expect(select.value).toBe('');
+    expect(screen.queryByText(/Default instructor for/i)).not.toBeInTheDocument();
+    expect(Array.from(select.options).map(o => o.textContent)).toEqual(['Select Instructor...', 'Lam Hong Woh', 'Newstyle Kelvin']);
   });
 });

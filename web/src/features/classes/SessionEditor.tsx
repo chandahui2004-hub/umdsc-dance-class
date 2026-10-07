@@ -13,6 +13,8 @@ export interface SessionEditorProps {
   session: ClassSession | null;
   styles: DanceStyle[];
   instructors: Instructor[];
+  /** Instructors the event lists for this class's style; the drop-down offers only these. */
+  allowedInstructorIds: string[];
   /** Event dates: the date picker only allows days inside the event. */
   minDate?: string;
   maxDate?: string;
@@ -26,6 +28,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
   session,
   styles,
   instructors,
+  allowedInstructorIds,
   minDate,
   maxDate,
   onSaved
@@ -49,8 +52,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
       setDate(session.date || '');
       setStart(session.start || '20:00');
       setEnd(session.end || '22:00');
-      const sessionStyle = styles.find((s) => s.id === session.styleId);
-      setInstructorId(session.instructorId || sessionStyle?.defaultInstructorId || '');
+      setInstructorId(session.instructorId || '');
       setVenue(session.venue || '');
       setStatus(session.status || 'scheduled');
       setNote(session.note || '');
@@ -62,6 +64,13 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
   if (!session) return null;
 
   const styleObj = styles.find((s) => s.id === session.styleId);
+  const allowedInstructors = allowedInstructorIds
+    .map((id) => instructors.find((i) => i.id === id))
+    .filter((i): i is Instructor => Boolean(i));
+  const outsideInstructor =
+    instructorId && !allowedInstructorIds.includes(instructorId)
+      ? instructors.find((i) => i.id === instructorId)
+      : undefined;
   const title = `EDIT ${styleObj?.name?.toUpperCase() || 'CLASS'} SESSION ${session.seq}`;
 
   const handleSubmit = async (overrideVersion?: number) => {
@@ -253,16 +262,18 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
               className="w-full min-h-[48px] px-3 bg-[var(--night-1)] border-2 border-[var(--outline)] px-well font-body text-[16px] text-[var(--text-1)]"
             >
               <option value="">Select Instructor...</option>
-              {instructors.map((inst) => (
+              {allowedInstructors.map((inst) => (
                 <option key={inst.id} value={inst.id}>
                   {inst.name}
                 </option>
               ))}
+              {outsideInstructor && (
+                <option value={outsideInstructor.id}>
+                  {outsideInstructor.name} (not in this event's list)
+                </option>
+              )}
             </select>
           </div>
-          {instructorId && styleObj?.defaultInstructorId && instructorId === styleObj.defaultInstructorId && (
-            <p className="font-body text-[12px] text-[var(--text-2)] mt-1">Default instructor for {styleObj.name}</p>
-          )}
         </div>
 
         {/* Venue Field */}

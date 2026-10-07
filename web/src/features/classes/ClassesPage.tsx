@@ -552,6 +552,11 @@ export const ClassesPage: React.FC = () => {
         session={editingSession}
         styles={allStyles}
         instructors={instructors}
+        allowedInstructorIds={
+          editingSession
+            ? (events.find(e => e.id === editingSession.eventId)?.styleInstructors || {})[editingSession.styleId] ?? []
+            : []
+        }
         minDate={targetEvent?.startDate}
         maxDate={targetEvent?.endDate}
         onSaved={refetch}

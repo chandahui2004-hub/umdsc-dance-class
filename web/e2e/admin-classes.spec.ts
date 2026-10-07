@@ -57,6 +57,42 @@ test.describe('Admin Classes & Calendar', () => {
     await expect(page.getByText(/EDIT HIP HOP SESSION 1/i)).toBeVisible();
   });
 
+  const inst = (id: string, name: string) => ({ id, name, contact: '', version: 1, updatedBy: 'admin', updatedAt: '2026-10-01T00:00:00.000Z', active: true });
+  const INSTRUCTORS = [inst('inst-1', 'Alex Tan'), inst('inst-2', 'Bella Lim'), inst('inst-3', 'Carl Ong')];
+
+  test('class editor lists only the event instructors for the style', async ({ page }) => {
+    await mockApi(page, {
+      ...BASE,
+      'events.list': () => [makeEvent({ styleIds: ['style-hiphop'], styleInstructors: { 'style-hiphop': ['inst-1', 'inst-2'] } })],
+      'instructors.list': () => INSTRUCTORS,
+      'videos.list': () => [],
+      'music.list': () => [],
+      'sessions.list': () => [session('ses-1')]
+    });
+    await page.goto('/admin/calendar');
+    await page.getByRole('button', { name: /Thu 08 Oct/ }).click();
+    await page.getByTestId('class-card-ses-1').getByRole('button', { name: /EDIT CLASS/ }).click();
+    const select = page.locator('#instructor-select');
+    await expect(select.locator('option')).toHaveText(['Select Instructor...', 'Alex Tan', 'Bella Lim']);
+  });
+
+  test("a current instructor outside the list is shown as \"(not in this event's list)\"", async ({ page }) => {
+    await mockApi(page, {
+      ...BASE,
+      'events.list': () => [makeEvent({ styleIds: ['style-hiphop'], styleInstructors: { 'style-hiphop': ['inst-2'] } })],
+      'instructors.list': () => INSTRUCTORS,
+      'videos.list': () => [],
+      'music.list': () => [],
+      'sessions.list': () => [session('ses-1')]
+    });
+    await page.goto('/admin/calendar');
+    await page.getByRole('button', { name: /Thu 08 Oct/ }).click();
+    await page.getByTestId('class-card-ses-1').getByRole('button', { name: /EDIT CLASS/ }).click();
+    const select = page.locator('#instructor-select');
+    await expect(select.locator('option')).toHaveText(['Select Instructor...', 'Bella Lim', "Alex Tan (not in this event's list)"]);
+    await expect(select).toHaveValue('inst-1');
+  });
+
   test('dates outside the event cannot be picked and months can be freely navigated', async ({ page }) => {
     await mockApi(page, { ...BASE, 'sessions.list': () => [session('ses-1')] });
     await page.goto('/admin/calendar');
