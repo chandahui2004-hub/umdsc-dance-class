@@ -188,13 +188,20 @@ export function getVideoRoutes(): Record<string, Route> {
           throw new AppError('VERSION_CONFLICT', 'Video modified by another user', false, existing);
         }
 
+        // The video leaves the website only once its Drive file is in the trash (recoverable for 30 days)
+        // or already gone. The club account can only trash files it owns; otherwise the uploader must
+        // sign in and trash it from the website first, so the video stays listed until then.
+        const fileId = existing.driveFileId;
+        const driveTrashed = !fileId || ctx.drive.deleteFile(fileId) || !ctx.drive.info(fileId).exists;
+        if (!driveTrashed) {
+          const style = ctx.db.styles.find(s => s.id === existing.styleId)[0];
+          return { deactivated: false, driveTrashed: false, uploader: style?.videoUploaderEmail || '' };
+        }
+
         const actor = auth?.claims.sub || 'system';
         ctx.db.videos.deactivate(id, Number(version), actor, ctx.now());
-        // Also move the file to the Drive trash (recoverable for 30 days). The club account can only
-        // trash files it owns; the website retries with the uploader's own Google account otherwise.
-        const driveTrashed = existing.driveFileId ? ctx.drive.deleteFile(existing.driveFileId) : false;
-        logAudit(ctx, actor, 'videos.deactivate', id, `Deactivated video ${id}; Drive trash: ${driveTrashed ? 'yes' : 'no'}`);
-        return { deactivated: true, driveTrashed };
+        logAudit(ctx, actor, 'videos.deactivate', id, `Deactivated video ${id}; Drive file trashed`);
+        return { deactivated: true, driveTrashed: true };
       }
     },
 

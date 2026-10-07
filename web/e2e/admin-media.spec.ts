@@ -258,11 +258,11 @@ test.describe('Admin Media Page', () => {
     expect(calls.some(c => c.action === 'videos.deactivate')).toBe(false);
   });
 
-  test('tells the admin when Drive would not delete the file', async ({ page }) => {
+  test('keeps the video and asks to switch account when Drive would not delete the file', async ({ page }) => {
     await mockApi(page, {
       ...BASE,
       'videos.list': () => [{ id: 'vid-9', sessionId: 'ses-1', title: 'Old Recap.mp4', driveFileId: 'drive-vid-9', mimeType: 'video/mp4', sizeBytes: 1000, uploadedBy: 'admin', createdAt: '2026-10-08T20:30:00Z', version: 3, active: true }],
-      'videos.deactivate': () => ({ deactivated: true, driveTrashed: false })
+      'videos.deactivate': () => ({ deactivated: false, driveTrashed: false, uploader: 'lead@gmail.com' })
     });
     const dialogs: string[] = [];
     page.on('dialog', d => {
@@ -274,7 +274,9 @@ test.describe('Admin Media Page', () => {
     await page.getByRole('button', { name: /^(DEL|DELETE)$/ }).first().click();
 
     await expect.poll(() => dialogs.length).toBe(2);
-    expect(dialogs[1]).toMatch(/Google Drive did not let this account delete the file/);
+    expect(dialogs[1]).toMatch(/stays on the website/);
+    expect(dialogs[1]).toMatch(/sign in as lead@gmail.com/);
+    await expect(page.getByText('Old Recap.mp4').first()).toBeVisible();
   });
 
   test('collapses and expands all recap videos', async ({ page }) => {

@@ -129,25 +129,22 @@ export const MediaPage: React.FC = () => {
     enabled: ready
   });
 
-  // Delete Video mutation: removes it from the website and moves the Drive file to the trash
+  // Delete Video mutation: the video leaves the website only once its Drive file is in the trash
   const deleteVideoMutation = useMutation({
     mutationFn: async ({ id, version, driveFileId, title }: { id: string; version: number; driveFileId: string; title: string }) => {
-      const res = await api.post<{ deactivated: boolean; driveTrashed?: boolean }>('videos.deactivate', { id, version });
-      // The club account can only trash files it owns; retry with the signed-in uploader's account.
-      let trashed = Boolean(res.data?.driveTrashed);
+      // A signed-in uploader can trash their own file; the club account may not be allowed to
       const token = getCachedToken();
-      if (!trashed && token) {
-        trashed = await trashDriveFile(token, driveFileId);
-      }
-      return { trashed, title };
+      if (token) await trashDriveFile(token, driveFileId);
+      const res = await api.post<{ deactivated: boolean; uploader?: string }>('videos.deactivate', { id, version });
+      return { ...res.data, title };
     },
-    onSuccess: async ({ trashed, title }) => {
+    onSuccess: async ({ deactivated, uploader, title }) => {
       await queryClient.invalidateQueries({ queryKey: ['videos'] });
-      if (!trashed) {
+      if (!deactivated) {
         alert(
-          `"${title}" was removed from the website, but Google Drive did not let this account delete the file ` +
-            `(another Google account uploaded it). Open the class folder in Google Drive and delete it there, ` +
-            `or sign in with the class lead's account before deleting next time.`
+          `"${title}" is still in Google Drive, so it stays on the website until it is deleted there. ` +
+            `Tap SWITCH ACCOUNT under Class Lead Video Drive Folders, sign in as ${uploader || "the class lead's Google account"}, ` +
+            `then press DELETE again.`
         );
       }
     },
