@@ -546,6 +546,14 @@ describe('Feature: Master Data (Styles & Instructors)', () => {
       );
     });
 
+    it('refuses an alias that matches another style alias', () => {
+      addStyle('Popping', ['pop']);
+      expectFailure(
+        call('styles.create', { name: 'Poppin', aliases: [' Pop '] }),
+        'A style named "Pop" already exists.'
+      );
+    });
+
     it('allows saving a style with its own name and aliases', () => {
       const id = addStyle('Popping', ['popping', 'pop']);
       const style = ctx.db.styles.get(id)!;

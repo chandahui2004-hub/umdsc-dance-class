@@ -96,14 +96,12 @@ export function styleKey(s: string): string {
 
 /**
  * Refuses a style whose name matches another active style's name or alias, or whose alias
- * matches another active style's name. selfId excludes the style being edited.
+ * matches another active style's name or alias. selfId excludes the style being edited.
  */
 export function assertUniqueStyle(ctx: Ctx, name: string, aliases: string[], selfId?: string): void {
   const others = ctx.db.styles.find(s => s.active && s.id !== selfId);
-  const takenNames = new Set<string>();
   const takenAny = new Set<string>();
   for (const o of others) {
-    takenNames.add(styleKey(o.name));
     takenAny.add(styleKey(o.name));
     for (const a of o.aliases || []) takenAny.add(styleKey(a));
   }
@@ -112,7 +110,7 @@ export function assertUniqueStyle(ctx: Ctx, name: string, aliases: string[], sel
     throw new AppError('VALIDATION', `A style named "${shown}" already exists.`);
   }
   for (const alias of aliases) {
-    if (takenNames.has(styleKey(alias))) {
+    if (takenAny.has(styleKey(alias))) {
       throw new AppError('VALIDATION', `A style named "${String(alias).trim()}" already exists.`);
     }
   }
