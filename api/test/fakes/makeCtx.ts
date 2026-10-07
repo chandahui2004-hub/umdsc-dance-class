@@ -17,11 +17,14 @@ export function makeCtx(opts?: {
   youtube?: FakeYouTube;
   clubEmail?: string;
   systemSpreadsheetId?: string;
+  /** false leaves the one-time style-instructor fill-in pending; default presets it as done. */
+  styleInstructorsMigrated?: boolean;
 }): Ctx & { http: FakeHttp; youtube: FakeYouTube } {
   const drive = opts?.drive || new FakeDrive();
   const cache = opts?.cache || new FakeCache();
   const lock = opts?.lock || new FakeLock();
   const props = opts?.props || new FakeProps();
+  if (opts?.styleInstructorsMigrated !== false) props.set('STYLE_INSTRUCTORS_V1', 'done');
   const http = opts?.http || new FakeHttp();
   const youtube = opts?.youtube || new FakeYouTube();
   const now = opts?.now || new Date('2026-09-28T12:00:00Z');

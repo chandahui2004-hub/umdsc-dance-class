@@ -23,6 +23,7 @@ import { getBootstrapRoutes } from './features/bootstrap';
 import { getResetRoutes } from './features/reset';
 import { getEventRoutes } from './features/events';
 import { getRetentionRoutes } from './features/retention';
+import { ensureStyleInstructors } from './features/styleInstructors';
 
 export interface AuthInfo {
   claims: TokenClaims;
@@ -92,6 +93,9 @@ export function handleRequest(
       }
 
       auth = { claims };
+
+      // One-time fill-in for "one style, many instructors"; admin-only, skipped after the first run.
+      if (claims.role === 'admin') ensureStyleInstructors(ctx);
 
       if (route.perm !== 'signedIn') {
         const styleId = route.styleOf ? route.styleOf(req.payload) : undefined;
