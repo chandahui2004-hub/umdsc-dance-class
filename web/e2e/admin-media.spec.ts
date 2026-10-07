@@ -23,6 +23,15 @@ const BASE = {
   'music.list': () => []
 };
 
+/** Uploads need the class lead's Google account signed in first (SIGN IN inside the upload dialog). */
+async function signInAsUploader(page: import('@playwright/test').Page) {
+  await page.route(/googleapis\.com\/drive\/v3\/about/, route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ user: { emailAddress: UPLOADER } }) })
+  );
+  await page.getByRole('button', { name: /^SIGN IN$/ }).last().click();
+  await expect(page.getByRole('button', { name: /SWITCH ACCOUNT/ }).last()).toBeVisible();
+}
+
 test.describe('Admin Media Page', () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);
@@ -115,6 +124,7 @@ test.describe('Admin Media Page', () => {
       mimeType: 'video/quicktime',
       buffer: Buffer.from('fake-video-content')
     });
+    await signInAsUploader(page);
     await expect(page.getByText(/QuickTime \(\.mov\) or HEVC video/i)).toHaveCount(0);
     await expect(page.getByRole('button', { name: /^START UPLOAD/i })).toBeEnabled();
   });
@@ -169,6 +179,7 @@ test.describe('Admin Media Page', () => {
       mimeType: 'video/mp4',
       buffer: Buffer.from('fake-mp4-data')
     });
+    await signInAsUploader(page);
     await page.getByRole('button', { name: /START UPLOAD/i }).click();
 
     await expect.poll(() => calls.find(c => c.action === 'videos.register')?.payload).toMatchObject({

@@ -92,7 +92,7 @@ describe('UploadDialog Gating and Video Compression', () => {
     vi.clearAllMocks();
     mockGetAccessToken.mockResolvedValue('fake-access-token');
     mockFetchAccountEmail.mockResolvedValue('lead@gmail.com');
-    mockCurrentEmail = null;
+    mockCurrentEmail = 'lead@gmail.com'; // uploads need the class lead signed in first
     mockPost.mockResolvedValue({
       data: {
         videoMasterFolderId: 'folder_locking',
@@ -302,6 +302,14 @@ describe('UploadDialog Gating and Video Compression', () => {
       renderDialog(styleWithoutUploader);
       chooseFile(videoFile());
       expect(screen.getByTestId('upload-account-alert')).toHaveTextContent(/Hip Hop has no upload account yet/);
+      expect(screen.getByRole('button', { name: /^START UPLOAD/ })).toBeDisabled();
+    });
+
+    it('disables START UPLOAD until a Google account is signed in', () => {
+      mockCurrentEmail = null;
+      renderDialog();
+      chooseFile(videoFile());
+      expect(screen.getByTestId('upload-account-alert')).toHaveTextContent(/Sign in with lead@gmail.com first/);
       expect(screen.getByRole('button', { name: /^START UPLOAD/ })).toBeDisabled();
     });
 
