@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ClassSession, EventItem } from '@umdsc/shared';
 import { call, errorMessage } from '../../../lib/api';
 import { PixelButton } from '../../../components/ui/PixelButton';
+import { formatDayLabel } from '../../../lib/time';
 import { effectiveInstructorId, flattenSchedule } from '../eventDraft';
 import { useCurrentEvent } from '../useCurrentEvent';
 import type { StepProps } from '../EventWizard';
@@ -139,6 +140,16 @@ export const ReviewStep: React.FC<StepProps> = ({ draft, onBack, isEdit, event, 
                     {' — '}
                     <span className="text-[var(--neon-cyan)]">{instructorNames(id)}</span>
                   </>
+                )}
+                {(draft.schedule[id] || []).length > 0 && (
+                  <ul className="mt-1 space-y-0.5 font-mono text-[12px] text-[var(--text-2)]">
+                    {(draft.schedule[id] || []).map(c => {
+                      const who = effectiveInstructorId(c, draft.styleInstructors[id] || []);
+                      return (
+                        <li key={c.date}>{`#${c.seq} ${formatDayLabel(c.date)} ${c.start}–${c.end}${who ? ` — ${instructors.find(i => i.id === who)?.name || who}` : ''}`}</li>
+                      );
+                    })}
+                  </ul>
                 )}
               </li>
             ))}

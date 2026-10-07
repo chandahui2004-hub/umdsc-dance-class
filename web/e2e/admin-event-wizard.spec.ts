@@ -225,6 +225,39 @@ test.describe('Event wizard', () => {
     await expect(NEXT(page)).toBeEnabled();
   });
 
+  test('a RELOAD that leaves one instructor ticks them; a deliberate untick stays', async ({ page }) => {
+    let list = MANY_INSTRUCTORS;
+    await openStylesStep(page, { 'instructors.list': () => list });
+    await page.getByRole('checkbox', { name: /Locking/ }).check();
+    await expect(page.getByRole('checkbox', { name: 'Kelvin' })).not.toBeChecked();
+
+    list = MANY_INSTRUCTORS.filter(i => i.id !== 'carmen');
+    await page.getByRole('button', { name: /RELOAD INSTRUCTORS/ }).click();
+    await expect(page.getByRole('checkbox', { name: 'Carmen' })).toHaveCount(0);
+    await expect(page.getByRole('checkbox', { name: 'Kelvin' })).toBeChecked();
+
+    // Untick on purpose, reload again: it stays unticked and NEXT stays blocked
+    await page.getByRole('checkbox', { name: 'Kelvin' }).uncheck();
+    await page.getByRole('button', { name: /RELOAD INSTRUCTORS/ }).click();
+    await expect(page.getByRole('checkbox', { name: 'Kelvin' })).not.toBeChecked();
+    await expect(NEXT(page)).toBeDisabled();
+  });
+
+  test('a saved inactive instructor is labelled (inactive)', async ({ page }) => {
+    await mockApi(page, {
+      'styles.list': () => MANY_STYLES,
+      'instructors.list': () => MANY_INSTRUCTORS,
+      'events.list': () => [makeEvent({ styleIds: ['locking'], styleInstructors: { locking: ['zed', 'kelvin'] } })],
+      'sessions.list': () => []
+    });
+    await page.goto('/admin/events/evt-oct/edit');
+    await expect(page.getByLabel('Google Sheet Link')).toBeVisible();
+    await NEXT(page).click();
+    await NEXT(page).click();
+    await expect(page.getByRole('checkbox', { name: /Zed/ })).toBeChecked();
+    await expect(page.getByText('(inactive)')).toBeVisible();
+  });
+
   test('SCHEDULE has a per-class instructor drop-down only when a style has several', async ({ page }) => {
     await openStylesStep(page);
     await page.getByRole('checkbox', { name: /Latin/ }).check();
@@ -259,6 +292,8 @@ test.describe('Event wizard', () => {
     await NEXT(page).click();
 
     await expect(page.getByText('Kelvin, Carmen')).toBeVisible();
+    await expect(page.getByText('#1 Mon 04 Jan 20:00–22:00 — Kelvin')).toBeVisible();
+    await expect(page.getByText('#2 Mon 11 Jan 20:00–22:00 — Carmen')).toBeVisible();
     await page.getByRole('button', { name: 'CREATE EVENT' }).click();
     await expect(page).toHaveURL(/\/admin\/events$/);
 

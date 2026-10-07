@@ -36,18 +36,21 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
     );
   };
 
-  // A style with exactly one instructor gets them ticked once, so the admin is never asked to choose between one.
+  // A style with exactly one instructor gets them ticked, so the admin is never asked to choose between one.
+  // Each "style:instructor" pair is auto-ticked at most once, so a deliberate untick is not undone, while a
+  // reload that narrows several instructors down to one still ticks that one.
   const autoTicked = useRef(new Set<string>());
   useEffect(() => {
-    for (const id of [...autoTicked.current]) if (!draft.styleIds.includes(id)) autoTicked.current.delete(id);
+    for (const key of [...autoTicked.current]) if (!draft.styleIds.includes(key.split(':')[0])) autoTicked.current.delete(key);
     let next = draft;
     let changed = false;
     for (const id of draft.styleIds) {
-      if (autoTicked.current.has(id)) continue;
       const candidates = instructorsForStyle(instructors, id);
-      if (candidates.length === 0) continue;
-      autoTicked.current.add(id);
-      if (candidates.length === 1 && !(draft.styleInstructors[id]?.length)) {
+      if (candidates.length !== 1) continue;
+      const key = `${id}:${candidates[0].id}`;
+      if (autoTicked.current.has(key)) continue;
+      autoTicked.current.add(key);
+      if (!(draft.styleInstructors[id]?.length)) {
         next = setStyleInstructors(next, id, [candidates[0].id]);
         changed = true;
       }
@@ -252,7 +255,10 @@ const InstructorPicker: React.FC<InstructorPickerProps> = ({ style, instructors,
       ) : (
         <div className="grid grid-cols-1 gap-1">
           {candidates.map(i => row(i.id, i.name))}
-          {others.map(id => row(id, instructors.find(i => i.id === id)?.name || id, '(not teaching this style)'))}
+          {others.map(id => {
+            const found = instructors.find(i => i.id === id);
+            return row(id, found?.name || id, found?.active ? '(not teaching this style)' : '(inactive)');
+          })}
         </div>
       )}
       <PixelButton size="md" variant="secondary" onClick={onReload}>
