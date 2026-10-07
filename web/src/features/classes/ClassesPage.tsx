@@ -7,6 +7,7 @@ import { Panel } from '../../components/ui/Panel';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { EventStep } from '../../components/ui/EventStyleSteps';
 import { SessionEditor } from './SessionEditor';
 import { todayKL } from '../../lib/time';
 import { getStyleColor } from '../../theme/colors';
@@ -198,6 +199,8 @@ export const ClassesPage: React.FC = () => {
             : 'Loading event…'}
         </p>
       </div>
+
+      <EventStep allowAll />
 
       <div className="flex items-center justify-between px-3 py-2 bg-[var(--night-2)] text-[var(--text-1)] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)]">
         <span className="font-display text-[12px] text-[var(--neon-gold)] font-bold">

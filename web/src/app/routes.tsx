@@ -22,7 +22,6 @@ import { EventWizard } from '../features/events/EventWizard';
 import { DancerHome } from '../features/calendar/DancerHome';
 import { MePage } from '../features/me/MePage';
 import { StudioPage } from '../features/music-studio/StudioPage';
-import { EventPicker } from '../components/ui/EventPicker';
 import { useEventAutoSync } from '../lib/useEventAutoSync';
 
 const CalendarIcon = () => (
@@ -139,11 +138,11 @@ export const ShellLayout: React.FC<{
   return <PhoneShell tabs={tabs} moreItems={moreItems} topBar={topBar}>{children}</PhoneShell>;
 };
 
-/** Admin shell: event picker on every page, and the 10-minute registration check. */
+/** Admin shell: the 10-minute registration check. Pages that need an event show their own Step I picker. */
 const AdminShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   useEventAutoSync();
   return (
-    <ShellLayout tabs={ADMIN_TABS} moreItems={ADMIN_MORE_ITEMS} topBar={<EventPicker />}>
+    <ShellLayout tabs={ADMIN_TABS} moreItems={ADMIN_MORE_ITEMS}>
       {children}
     </ShellLayout>
   );

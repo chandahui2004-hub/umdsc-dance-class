@@ -10,6 +10,7 @@ import { RosterList } from './RosterList';
 import { AttendanceGrid } from './AttendanceGrid';
 import { useCurrentEvent } from '../events/useCurrentEvent';
 import { AttendanceFolderHeader } from '../events/FolderLinksHeader';
+import { EventStep, StyleStep } from '../../components/ui/EventStyleSteps';
 import type { AttendanceGrid as AttendanceGridData, DanceStyle, Member } from '@umdsc/shared';
 
 function downloadXlsx(fileName: string, base64: string): void {
@@ -28,7 +29,7 @@ function downloadXlsx(fileName: string, base64: string): void {
 export const AttendancePage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const { events, current: event, setCurrentId, isLoading: eventsLoading, isAll } = useCurrentEvent();
+  const { events, current: event, isLoading: eventsLoading, isAll } = useCurrentEvent();
   const eventId = event?.id || '';
 
   // The Today page links here with styleId and sessionId
@@ -185,6 +186,21 @@ export const AttendancePage: React.FC = () => {
     onError: err => setSubmitError(errorMessage(err))
   });
 
+  // Reloads the event list, styles, dancers and ticks; ticks being edited stay on screen
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshAll = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all(
+        [['events'], ['styles'], ['attendance', eventId, styleId], ['members', eventId, styleId]].map(queryKey =>
+          queryClient.invalidateQueries({ queryKey })
+        )
+      );
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const cancelEdit = () => {
     setLocalPresent(gridData?.present || {});
     setEditing(false);
@@ -211,29 +227,7 @@ export const AttendancePage: React.FC = () => {
     }));
   }, [gridData?.members, eventMembers]);
 
-  if (!eventsLoading && isAll && events.length > 0) {
-    return (
-      <div className="space-y-6">
-        <h1 className="font-display text-[24px] tracking-wider text-[var(--text-1)]">Attendance Tracker</h1>
-        <AttendanceFolderHeader />
-        <div className="px-panel p-4 space-y-3">
-          <p className="font-display text-[12px] text-[var(--text-1)]">SELECT AN EVENT TO TAKE ATTENDANCE</p>
-          <p className="font-body text-[16px] text-[var(--text-2)]">
-            Attendance sheets are organized by event. Choose an event from the top bar or pick one below:
-          </p>
-          <div className="flex flex-wrap gap-2 pt-1">
-            {events.filter(e => e.status === 'active').map(e => (
-              <PixelButton key={e.id} size="md" variant="secondary" onClick={() => setCurrentId(e.id)}>
-                {e.name}
-              </PixelButton>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!eventsLoading && !event) {
+  if (!eventsLoading && events.length === 0) {
     return (
       <div className="space-y-6">
         <h1 className="font-display text-[24px] tracking-wider text-[var(--text-1)]">Attendance Tracker</h1>
@@ -255,73 +249,30 @@ export const AttendancePage: React.FC = () => {
     );
   }
 
+  const eventChosen = Boolean(event) && !isAll;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="font-display text-[24px] tracking-wider text-[var(--text-1)]">Attendance Tracker</h1>
           <p className="font-body text-[16px] text-[var(--text-2)] mt-1">
-            {event ? `${event.name} · ${event.startDate} → ${event.endDate}` : 'Loading event…'}
+            {eventChosen && event ? `${event.name} · ${event.startDate} → ${event.endDate}` : 'Choose an event, then a dance style.'}
           </p>
         </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          {pendingCount > 0 && (
-            <div className="px-3 py-1 bg-[var(--neon-gold)] border-2 border-[var(--outline)] font-display text-[12px] text-[var(--on-neon)] font-bold px-blink shadow-[2px_2px_0_var(--outline)]">
-              SAVING… {pendingCount}
-            </div>
-          )}
-          {gridData?.spreadsheetId && (
-            <a
-              href={`https://docs.google.com/spreadsheets/d/${gridData.spreadsheetId}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center min-h-[44px] px-3 border-2 border-[var(--outline)] bg-[var(--night-2)] hover:bg-[var(--violet-2)] text-[var(--neon-cyan)] font-display text-[12px] no-underline shadow-[2px_2px_0_var(--outline)]"
-            >
-              OPEN {activeStyle?.name.toUpperCase() || 'STYLE'} SHEET ↗
-            </a>
-          )}
-          <PixelButton
-            size="md"
-            variant="secondary"
-            disabled={exportMutation.isPending || !ready || sessions.length === 0}
-            onClick={() => exportMutation.mutate()}
-          >
-            {exportMutation.isPending ? 'EXPORTING...' : 'EXPORT XLSX'}
-          </PixelButton>
-          <PixelButton
-            size="md"
-            variant="secondary"
-            disabled={!ready || sessions.length === 0}
-            onClick={() => setIsFullscreen(prev => !prev)}
-            className="min-h-[44px]"
-          >
-            {isFullscreen ? '✕ EXIT' : '⛶ FULL SCREEN'}
-          </PixelButton>
-        </div>
+        <PixelButton size="md" variant="secondary" disabled={refreshing || submitMutation.isPending} onClick={refreshAll}>
+          {refreshing ? 'REFRESHING…' : '↻ REFRESH'}
+        </PixelButton>
       </div>
 
       <AttendanceFolderHeader />
 
-      <div className="px-panel p-3 flex gap-2 overflow-x-auto pixel-scrollbar items-center border-2 border-[var(--outline)]">
-        <span className="font-display text-[12px] text-[var(--text-1)] uppercase mr-1 whitespace-nowrap">STYLE:</span>
-        {styles.map(s => (
-          <button
-            key={s.id}
-            type="button"
-            onClick={() => setStyleId(s.id)}
-            className={`min-h-[44px] px-3 border-2 border-[var(--outline)] font-display text-[12px] cursor-pointer select-none whitespace-nowrap transition-none ${
-              styleId === s.id
-                ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--outline)]'
-                : 'px-well text-[var(--text-1)] hover:bg-[var(--violet-2)]'
-            }`}
-          >
-            {s.name}
-          </button>
-        ))}
+      <div className="space-y-3">
+        <EventStep />
+        <StyleStep styles={styles} value={styleId} onChange={setStyleId} disabled={!eventChosen} />
       </div>
 
-      {(isLoading && !gridData) || eventsLoading ? (
+      {!eventChosen ? null : (isLoading && !gridData) || eventsLoading ? (
         <div className="px-panel p-8 text-center font-display text-[12px] px-blink">
           LOADING ATTENDANCE DATA...
         </div>
@@ -342,7 +293,12 @@ export const AttendancePage: React.FC = () => {
                     : `EDITING — ${unsavedChanges.length} UNSAVED CHANGE${unsavedChanges.length === 1 ? '' : 'S'}`
                   : 'SAVED ATTENDANCE — PRESS EDIT TO CHANGE TICKS'}
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {pendingCount > 0 && (
+                  <span className="px-3 py-1 bg-[var(--neon-gold)] border-2 border-[var(--outline)] font-display text-[12px] text-[var(--on-neon)] font-bold px-blink shadow-[2px_2px_0_var(--outline)]">
+                    SAVING… {pendingCount}
+                  </span>
+                )}
                 {editing ? (
                   <>
                     <PixelButton size="md" variant="secondary" disabled={submitMutation.isPending} onClick={cancelEdit}>
@@ -372,8 +328,37 @@ export const AttendancePage: React.FC = () => {
             </div>
           )}
 
-          <div className="block lg:hidden">
-            <Panel title="SESSION ATTENDANCE ROSTER">
+          <Panel title="SESSION ATTENDANCE ROSTER" className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Roster tools">
+              <PixelButton
+                size="sm"
+                variant="secondary"
+                disabled={!ready || sessions.length === 0}
+                onClick={() => setIsFullscreen(prev => !prev)}
+              >
+                ⛶ FULL SCREEN
+              </PixelButton>
+              <PixelButton
+                size="sm"
+                variant="secondary"
+                disabled={exportMutation.isPending || !ready || sessions.length === 0}
+                onClick={() => exportMutation.mutate()}
+              >
+                {exportMutation.isPending ? 'EXPORTING…' : 'EXPORT XLSX'}
+              </PixelButton>
+              {gridData?.spreadsheetId && (
+                <a
+                  href={`https://docs.google.com/spreadsheets/d/${gridData.spreadsheetId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center min-h-[44px] px-3 border-2 border-[var(--outline)] bg-[var(--night-2)] hover:bg-[var(--violet-2)] text-[var(--neon-cyan)] font-display text-[10px] no-underline shadow-[2px_2px_0_var(--outline)]"
+                >
+                  OPEN {activeStyle?.name.toUpperCase() || 'STYLE'} SHEET ↗
+                </a>
+              )}
+            </div>
+
+            <div className="block lg:hidden">
               <RosterList
                 sessions={sessions}
                 members={members}
@@ -383,18 +368,18 @@ export const AttendancePage: React.FC = () => {
                 onToggle={handleToggle}
                 readOnly={!editing || submitMutation.isPending}
               />
-            </Panel>
-          </div>
+            </div>
 
-          <div className="hidden lg:block">
-            <AttendanceGrid
-              sessions={sessions}
-              members={members}
-              presentMap={localPresent}
-              onToggle={handleToggle}
-              readOnly={!editing || submitMutation.isPending}
-            />
-          </div>
+            <div className="hidden lg:block">
+              <AttendanceGrid
+                sessions={sessions}
+                members={members}
+                presentMap={localPresent}
+                onToggle={handleToggle}
+                readOnly={!editing || submitMutation.isPending}
+              />
+            </div>
+          </Panel>
 
           {/* Fullscreen Overlay Mode */}
           {isFullscreen && (

@@ -15,6 +15,7 @@ import { ScanPanel } from './ScanPanel';
 import { MusicForm } from './MusicForm';
 import { SectionsEditor } from './SectionsEditor';
 import { ClassLeadVideoFoldersPanel } from './ClassLeadVideoFoldersPanel';
+import { EventStep, StyleStep } from '../../components/ui/EventStyleSteps';
 import type { ClassSession, DanceStyle, Video, Music } from '@umdsc/shared';
 
 export const MediaPage: React.FC = () => {
@@ -22,7 +23,8 @@ export const MediaPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
-  const { events, current: event, setCurrentId, isAll } = useCurrentEvent();
+  const { current: event, isAll } = useCurrentEvent();
+  const [refreshing, setRefreshing] = useState(false);
   const eventId = event?.id || '';
   const [styleId, setStyleId] = useState<string>(searchParams.get('style') || '');
   const [selectedSessionId, setSelectedSessionId] = useState<string>('');
@@ -188,26 +190,21 @@ export const MediaPage: React.FC = () => {
     return musicList.filter((m) => !m.sessionId || m.sessionId === selectedSessionId);
   }, [musicList, selectedSessionId, sessions, sessionsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (isAll && events.length > 0) {
-    return (
-      <div className="space-y-6">
-        <h1 className="font-display text-lg tracking-wider text-[var(--text-1)]">Media Management</h1>
-        <div className="p-4 bg-[var(--night-2)] border-2 border-[var(--outline)] shadow-[4px_4px_0_var(--outline)] space-y-3">
-          <p className="font-display text-xs text-[var(--text-1)]">SELECT AN EVENT FOR MEDIA MANAGEMENT</p>
-          <p className="font-body text-sm text-[var(--text-2)]">
-            Class recap videos and music tracks are organized by event. Select an active event below to manage its media:
-          </p>
-          <div className="flex flex-wrap gap-2 pt-1">
-            {events.filter(e => e.status === 'active').map(e => (
-              <PixelButton key={e.id} size="md" variant="secondary" onClick={() => setCurrentId(e.id)}>
-                {e.name}
-              </PixelButton>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const eventChosen = Boolean(event) && !isAll;
+
+  // Reloads the event list, styles, classes, videos and music shown on this page
+  const refreshAll = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all(
+        [['events'], ['styles'], ['sessions', eventId, styleId], ['videos', eventId, styleId], ['music', eventId, styleId]].map(
+          (queryKey) => queryClient.invalidateQueries({ queryKey })
+        )
+      );
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -218,83 +215,37 @@ export const MediaPage: React.FC = () => {
             Media Management
           </h1>
           <p className="font-body text-base text-[var(--text-2)] mt-1">
-            Upload class recap videos, scan Google Drive folders, and manage dance music tracks for each class.
+            Upload class recap videos and manage dance music tracks for each class.
           </p>
         </div>
-
-        <div className="flex flex-col items-start sm:items-end gap-1">
-          <div className="flex flex-wrap gap-2">
-            <PixelButton
-              size="md"
-              variant="secondary"
-              onClick={() => setShowScan(true)}
-              disabled={!activeStyle || !activeStyle.videoFolderId}
-              title={!activeStyle?.videoFolderId ? 'Folder link required to scan' : undefined}
-            >
-              SCAN FOLDER
-            </PixelButton>
-            <PixelButton
-              size="md"
-              variant="secondary"
-              onClick={() => setShowAddMusic(true)}
-              disabled={!activeStyle}
-            >
-              + MUSIC LINK
-            </PixelButton>
-            <PixelButton
-              size="md"
-              variant="secondary"
-              onClick={() => setShowUploadMp3(true)}
-              disabled={!activeStyle}
-            >
-              UPLOAD MP3
-            </PixelButton>
-            <PixelButton
-              size="md"
-              variant="primary"
-              onClick={() => setShowUploadVideo(true)}
-              disabled={!activeStyle || !activeStyle.videoFolderId}
-              title={!activeStyle?.videoFolderId ? 'Folder link required to upload videos' : undefined}
-            >
-              UPLOAD VIDEO
-            </PixelButton>
-          </div>
-          {activeStyle && !activeStyle.videoFolderId && (
-            <p className="font-display text-[10px] text-[var(--neon-red)] font-bold uppercase tracking-tight">
-              ⚠ FOLDER LINK NOT INSERTED FOR {activeStyle.name.toUpperCase()} — UPLOADS BLOCKED
-            </p>
-          )}
-        </div>
+        <PixelButton size="md" variant="secondary" disabled={refreshing} onClick={refreshAll}>
+          {refreshing ? 'REFRESHING…' : '↻ REFRESH'}
+        </PixelButton>
       </div>
 
+      <div className="space-y-3">
+        <EventStep />
+        <StyleStep
+          styles={styles}
+          value={styleId}
+          onChange={(id) => {
+            setStyleId(id);
+            setSelectedSessionId('');
+          }}
+          disabled={!eventChosen}
+          note={
+            activeStyle && !activeStyle.videoFolderId ? (
+              <p className="font-display text-[10px] text-[var(--neon-red)] font-bold uppercase tracking-tight">
+                ⚠ FOLDER LINK NOT INSERTED FOR {activeStyle.name.toUpperCase()} — UPLOADS BLOCKED
+              </p>
+            ) : null
+          }
+        />
+      </div>
+
+      {eventChosen && (
+      <>
       <ClassLeadVideoFoldersPanel event={event} styles={styles} />
-
-      {/* Style chips (the event comes from the picker) */}
-      <div className="bg-[var(--night-2)] border-2 border-[var(--outline)] p-4 shadow-[2px_2px_0_var(--outline)] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        {/* Style Chips */}
-        <div className="flex gap-2 overflow-x-auto pb-1 items-center">
-          <span className="font-display text-xs text-[var(--text-1)] uppercase mr-1 whitespace-nowrap">
-            STYLE:
-          </span>
-          {styles.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => {
-                setStyleId(s.id);
-                setSelectedSessionId('');
-              }}
-              className={`min-h-[44px] px-3 border-2 border-[var(--outline)] font-display text-xs cursor-pointer select-none whitespace-nowrap transition-none ${
-                styleId === s.id
-                  ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--outline)]'
-                  : 'bg-[var(--night-1)] text-[var(--text-1)] hover:bg-[var(--violet-1)]'
-              }`}
-            >
-              {s.name}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* 4-CLASS SESSIONS SECTION (Class 1 to 4) */}
       <Panel
@@ -483,14 +434,25 @@ export const MediaPage: React.FC = () => {
                 </PixelButton>
               )}
             </div>
-            <PixelButton
-              size="md"
-              variant="secondary"
-              onClick={() => setShowUploadVideo(true)}
-              disabled={!activeStyle || !activeStyle.videoFolderId}
-            >
-              + ADD RECAP {selectedSession ? `FOR CLASS #${selectedSession.seq}` : ''}
-            </PixelButton>
+            <div className="flex flex-wrap items-center gap-2">
+              <PixelButton
+                size="sm"
+                variant="secondary"
+                onClick={() => setShowScan(true)}
+                disabled={!activeStyle || !activeStyle.videoFolderId}
+                title="Add videos already in the class lead's Drive folder"
+              >
+                SCAN DRIVE FOLDER
+              </PixelButton>
+              <PixelButton
+                size="md"
+                variant="secondary"
+                onClick={() => setShowUploadVideo(true)}
+                disabled={!activeStyle || !activeStyle.videoFolderId}
+              >
+                + ADD RECAP {selectedSession ? `FOR CLASS #${selectedSession.seq}` : ''}
+              </PixelButton>
+            </div>
           </div>
 
           {activeStyle && !activeStyle.videoFolderId && (
@@ -780,6 +742,9 @@ export const MediaPage: React.FC = () => {
           )}
         </Panel>
       </div>
+
+      </>
+      )}
 
       {/* Dialogs */}
       {showUploadVideo && activeStyle && (

@@ -109,7 +109,7 @@ test.describe('Admin Media Page', () => {
     await mockApi(page, BASE);
     await page.goto('/admin/media');
     await expect(page.getByRole('heading', { name: /Media Management/i })).toBeVisible();
-    await page.getByRole('button', { name: /UPLOAD VIDEO/i }).click();
+    await page.getByRole('button', { name: /ADD RECAP FOR CLASS/i }).click();
     await page.locator('input[type="file"][accept*="video"]').setInputFiles({
       name: 'class_recap.MOV',
       mimeType: 'video/quicktime',
@@ -163,7 +163,7 @@ test.describe('Admin Media Page', () => {
     });
 
     await page.goto('/admin/media');
-    await page.getByRole('button', { name: /UPLOAD VIDEO/i }).click();
+    await page.getByRole('button', { name: /ADD RECAP FOR CLASS/i }).click();
     await page.locator('input[type="file"][accept*="video"]').setInputFiles({
       name: 'routine_recap.mp4',
       mimeType: 'video/mp4',
@@ -188,7 +188,7 @@ test.describe('Admin Media Page', () => {
     });
 
     await page.goto('/admin/media');
-    await page.getByRole('button', { name: /SCAN FOLDER/i }).click();
+    await page.getByRole('button', { name: /SCAN DRIVE FOLDER/i }).click();
     await expect(page.getByText('2026-10-08 HipHop Recap.mp4')).toBeVisible();
     expect(calls.find(c => c.action === 'videos.scan')?.payload).toEqual({ styleId: 'style-hiphop', eventId: 'evt-oct' });
 
@@ -330,7 +330,7 @@ test.describe('Admin Media Page', () => {
   test('selects multiple video files and shows batch selection list with sizes', async ({ page }) => {
     await mockApi(page, BASE);
     await page.goto('/admin/media');
-    await page.getByRole('button', { name: /UPLOAD VIDEO/i }).click();
+    await page.getByRole('button', { name: /ADD RECAP FOR CLASS/i }).click();
 
     // Select 2 video files at once
     await page.locator('input[type="file"][accept*="video"]').setInputFiles([

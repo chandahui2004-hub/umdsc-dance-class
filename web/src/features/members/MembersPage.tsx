@@ -7,6 +7,7 @@ import { PixelButton } from '../../components/ui/PixelButton';
 import { Sheet } from '../../components/ui/Sheet';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { EventStep, StyleStep } from '../../components/ui/EventStyleSteps';
 import { getStyleColor } from '../../theme/colors';
 import { exportToCsv } from '../../lib/csv';
 import type { Member } from '@umdsc/shared';
@@ -528,95 +529,28 @@ export const MembersPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter and Search Panel */}
-      <Panel title="FILTER & SEARCH">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* Event (chosen in the picker above or ALL) */}
-          <div>
-            <span className="block font-display text-[12px] text-[var(--text-1)] mb-1 uppercase">Event Scope</span>
-            <p className="min-h-[48px] px-3 flex items-center border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-body text-[16px] text-[var(--text-1)]">
-              {isAll ? `ALL EVENTS (${events.length} events)` : event ? `${event.name} (${event.memberCount} dancers)` : 'No event yet'}
-            </p>
-          </div>
+      <div className="space-y-3">
+        <EventStep allowAll />
+        <StyleStep
+          styles={bootstrap?.styles || []}
+          value={selectedStyleId}
+          onChange={setSelectedStyleId}
+          allOption={`ALL CLASSES (${members.length})`}
+        />
+      </div>
 
-          {/* Dance Class / Style Filter */}
-          <div>
-            <label
-              htmlFor="style-select"
-              className="block font-display text-[12px] text-[var(--text-1)] mb-1 uppercase"
-            >
-              Class Style
-            </label>
-            <select
-              id="style-select"
-              value={selectedStyleId}
-              onChange={(e) => setSelectedStyleId(e.target.value)}
-              className="w-full min-h-[48px] px-3 bg-[var(--night-1)] border-2 border-[var(--outline)] px-well font-body text-[16px] text-[var(--text-1)]"
-            >
-              <option value="all">ALL CLASSES ({members.length})</option>
-              {bootstrap?.styles?.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Search Box */}
-          <div>
-            <label
-              htmlFor="dancer-search"
-              className="block font-display text-[12px] text-[var(--text-1)] mb-1 uppercase"
-            >
-              Search Dancer
-            </label>
-            <input
-              id="dancer-search"
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search name, matric, phone..."
-              className="w-full min-h-[48px] px-3 bg-[var(--night-1)] border-2 border-[var(--outline)] px-well font-body text-[16px] text-[var(--text-1)] placeholder:text-[var(--text-3)]"
-            />
-          </div>
-        </div>
-
-        {/* Quick Style Chips */}
-        {bootstrap?.styles && bootstrap.styles.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-[var(--outline)] items-center">
-            <span className="font-display text-[12px] text-[var(--text-2)] mr-1">
-              STYLES:
-            </span>
-            <button
-              type="button"
-              onClick={() => setSelectedStyleId('all')}
-              className={`px-3 py-1 text-[12px] font-display border-2 border-[var(--outline)] cursor-pointer min-h-[36px] ${
-                selectedStyleId === 'all'
-                  ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--outline)]'
-                  : 'bg-[var(--night-1)] text-[var(--text-1)] hover:bg-[var(--violet-1)]'
-              }`}
-            >
-              ALL
-            </button>
-            {bootstrap.styles.map((s) => {
-              const c = getStyleColor(s.colorKey);
-              const isSelected = selectedStyleId === s.id;
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setSelectedStyleId(s.id)}
-                  style={{ backgroundColor: c }}
-                  className={`px-3 py-1 text-[12px] font-display text-[var(--on-neon)] font-bold border-2 border-[var(--outline)] cursor-pointer min-h-[36px] ${
-                    isSelected ? 'ring-2 ring-[var(--neon-cyan)] shadow-[2px_2px_0_var(--outline)]' : 'opacity-85 hover:opacity-100'
-                  }`}
-                >
-                  {s.name}
-                </button>
-              );
-            })}
-          </div>
-        )}
+      <Panel title="SEARCH">
+        <label htmlFor="dancer-search" className="sr-only">
+          Search Dancer
+        </label>
+        <input
+          id="dancer-search"
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search name, matric, phone..."
+          className="w-full min-h-[48px] px-3 bg-[var(--night-1)] border-2 border-[var(--outline)] px-well font-body text-[16px] text-[var(--text-1)] placeholder:text-[var(--text-3)]"
+        />
       </Panel>
 
       {/* Roster Summary Bar */}
