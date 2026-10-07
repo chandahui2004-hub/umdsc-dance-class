@@ -4,6 +4,7 @@ import { handleRequest, registerRoutes } from '../../src/router';
 import { makeCtx } from '../fakes/makeCtx';
 import { Hmac, signToken } from '../../src/security/tokens';
 import { getMasterDataRoutes } from '../../src/features/masterData';
+import { seedEvent } from '../fixtures/events';
 
 const nodeHmac: Hmac = (key: string, message: string) => {
   return new Uint8Array(crypto.createHmac('sha256', key).update(message).digest());
@@ -49,6 +50,23 @@ describe('Feature: Master Data (Styles & Instructors)', () => {
       secrets.hmac
     );
   });
+
+  const call = (action: string, payload: any): any =>
+    handleRequest({ action, token: adminToken, payload }, ctx, secrets);
+  const addStyle = (name: string, aliases: string[] = []) =>
+    ctx.db.styles.insert(
+      {
+        name, aliases, colorKey: 'blue', defaultWeekday: 2, defaultStart: '20:00', defaultEnd: '22:00',
+        defaultInstructorId: '', defaultVenue: '', attendanceFolderId: '', videoFolderId: ''
+      } as any,
+      'admin1',
+      ctx.now()
+    ).id;
+  const expectFailure = (res: any, message: string) => {
+    expect(res.ok).toBe(false);
+    expect(res.error.code).toBe('VALIDATION');
+    expect(res.error.message).toBe(`VALIDATION: ${message}`); // the router prefixes the code
+  };
 
   it('styles.list returns all active styles, accessible to signedIn users', () => {
     ctx.db.styles.insert(
@@ -375,6 +393,7 @@ describe('Feature: Master Data (Styles & Instructors)', () => {
   });
 
   it('instructors CRUD: create, update, deactivate', () => {
+    const styleId = addStyle('Popping');
     // 1. Create
     const createRes = handleRequest(
       {
@@ -382,7 +401,8 @@ describe('Feature: Master Data (Styles & Instructors)', () => {
         token: adminToken,
         payload: {
           name: 'Jane Doe',
-          contact: '0123456789'
+          contact: '0123456789',
+          styleIds: [styleId]
         }
       },
       ctx,
@@ -451,6 +471,7 @@ describe('Feature: Master Data (Styles & Instructors)', () => {
   });
 
   it('instructors.create saves base64 photo to Google Drive Instructor Photos folder', () => {
+    const styleId = addStyle('Popping');
     const fakeBase64 = 'data:image/webp;base64,UklGRkAAAABXRUJQVlA4IDQAAADwAQCdASoFAAUAPxF8s1CvqaSjAABQCWUAAP74b/8AA/7+gAA/v4AAP7/AAA==';
     const res = handleRequest(
       {
@@ -458,6 +479,7 @@ describe('Feature: Master Data (Styles & Instructors)', () => {
         token: adminToken,
         payload: {
           name: 'Elf',
+          styleIds: [styleId],
           contact: '0165857601',
           color: 'pink',
           photoUrl: fakeBase64,
@@ -503,5 +525,112 @@ describe('Feature: Master Data (Styles & Instructors)', () => {
       expect(updatedInst.photoUrl).toBe('');
       expect(JSON.parse(updatedInst.photosJson)).toHaveLength(0);
     }
+  });
+
+  describe('style names are unique', () => {
+    it('refuses a second style with the same name ignoring case and spaces', () => {
+      addStyle('Hip Hop');
+      expectFailure(call('styles.create', { name: 'hip  hop ' }), 'A style named "hip  hop" already exists.');
+    });
+
+    it('refuses a name that matches another style alias', () => {
+      addStyle('Hip Hop', ['hiphop', 'hip-hop']);
+      expectFailure(call('styles.create', { name: ' HipHop' }), 'A style named "HipHop" already exists.');
+    });
+
+    it('refuses an alias that matches another style name', () => {
+      addStyle('Locking');
+      expectFailure(
+        call('styles.create', { name: 'Popping', aliases: ['pop', 'locking'] }),
+        'A style named "locking" already exists.'
+      );
+    });
+
+    it('allows saving a style with its own name and aliases', () => {
+      const id = addStyle('Popping', ['popping', 'pop']);
+      const style = ctx.db.styles.get(id)!;
+      const res = call('styles.update', { id, version: style.version, name: 'popping', aliases: ['Popping', 'pop'] });
+      expect(res.ok).toBe(true);
+    });
+
+    it('update checks the stored name when only aliases are sent', () => {
+      addStyle('Locking');
+      const id = addStyle('Popping');
+      const style = ctx.db.styles.get(id)!;
+      expectFailure(
+        call('styles.update', { id, version: style.version, aliases: ['locking'] }),
+        'A style named "locking" already exists.'
+      );
+    });
+
+    it('ignores deactivated styles', () => {
+      const old = ctx.db.styles.get(addStyle('Waacking'))!;
+      ctx.db.styles.deactivate(old.id, old.version, 'admin1', ctx.now());
+      expect(call('styles.create', { name: 'Waacking' }).ok).toBe(true);
+    });
+  });
+
+  describe('instructors teach styles', () => {
+    it('requires at least one style for an instructor', () => {
+      expectFailure(
+        call('instructors.create', { name: 'X', styleIds: [] }),
+        'Choose at least one dance style this instructor teaches.'
+      );
+      expectFailure(
+        call('instructors.create', { name: 'X' }),
+        'Choose at least one dance style this instructor teaches.'
+      );
+    });
+
+    it('rejects unknown or inactive style ids for an instructor', () => {
+      const good = addStyle('Popping');
+      const gone = ctx.db.styles.get(addStyle('Locking'))!;
+      ctx.db.styles.deactivate(gone.id, gone.version, 'admin1', ctx.now());
+      expect(call('instructors.create', { name: 'X', styleIds: [good, 'sty_nope'] }).ok).toBe(false);
+      expect(call('instructors.create', { name: 'X', styleIds: [gone.id] }).ok).toBe(false);
+    });
+
+    it('stores cleaned style ids, and update validates them only when sent', () => {
+      const a = addStyle('Popping');
+      const b = addStyle('Locking');
+      const created = call('instructors.create', { name: 'Jane', styleIds: [a, ` ${b} `, a] });
+      expect(created.ok).toBe(true);
+      expect(created.data.styleIds).toEqual([a, b]);
+
+      const edited = call('instructors.update', { id: created.data.id, version: created.data.version, contact: '012' });
+      expect(edited.ok).toBe(true);
+      expect(edited.data.styleIds).toEqual([a, b]);
+
+      const cleared = call('instructors.update', { id: created.data.id, version: edited.data.version, styleIds: [] });
+      expect(cleared.ok).toBe(false);
+      const narrowed = call('instructors.update', { id: created.data.id, version: edited.data.version, styleIds: [b] });
+      expect(narrowed.data.styleIds).toEqual([b]);
+    });
+
+    it('instructors.delete removes the instructor from every event list but keeps classes', () => {
+      const popping = addStyle('Popping');
+      const locking = addStyle('Locking');
+      const jane = call('instructors.create', { name: 'Jane', styleIds: [popping, locking] }).data;
+      const joe = call('instructors.create', { name: 'Joe', styleIds: [popping] }).data;
+      const ev1 = seedEvent(ctx, {
+        styleIds: [popping, locking],
+        styleInstructors: { [popping]: [jane.id, joe.id], [locking]: [jane.id] }
+      });
+      const ev2 = seedEvent(ctx, { styleIds: [popping], styleInstructors: { [popping]: [joe.id] } });
+      const cls = ctx.db.sessions.insert(
+        { eventId: ev1.id, styleId: popping, instructorId: jane.id, date: '2026-10-05', seq: 1 } as any,
+        'admin1',
+        ctx.now()
+      );
+
+      const res = call('instructors.delete', { id: jane.id, version: jane.version });
+      expect(res.ok).toBe(true);
+
+      expect(ctx.db.instructors.get(jane.id)?.active).toBe(false);
+      expect(ctx.db.events.get(ev1.id)!.styleInstructors).toEqual({ [popping]: [joe.id], [locking]: [] });
+      expect(ctx.db.events.get(ev2.id)!.styleInstructors).toEqual({ [popping]: [joe.id] });
+      expect(ctx.db.events.get(ev2.id)!.version).toBe(ev2.version);
+      expect(ctx.db.sessions.get(cls.id)).toMatchObject({ active: true, instructorId: jane.id });
+    });
   });
 });

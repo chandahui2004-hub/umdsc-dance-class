@@ -1,5 +1,6 @@
 import { Ctx } from '../ports';
 import { withScriptLock } from '../db/lock';
+import { AppError } from '../errors';
 
 const PROP_KEY = 'STYLE_INSTRUCTORS_V1';
 const CACHE_KEY = 'mig:si1';
@@ -86,4 +87,65 @@ export function ensureStyleInstructors(ctx: Ctx): boolean {
     }
     return wrote;
   });
+}
+
+/** Comparison key for style names and aliases: trimmed, lower-case, runs of whitespace collapsed. */
+export function styleKey(s: string): string {
+  return String(s ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/**
+ * Refuses a style whose name matches another active style's name or alias, or whose alias
+ * matches another active style's name. selfId excludes the style being edited.
+ */
+export function assertUniqueStyle(ctx: Ctx, name: string, aliases: string[], selfId?: string): void {
+  const others = ctx.db.styles.find(s => s.active && s.id !== selfId);
+  const takenNames = new Set<string>();
+  const takenAny = new Set<string>();
+  for (const o of others) {
+    takenNames.add(styleKey(o.name));
+    takenAny.add(styleKey(o.name));
+    for (const a of o.aliases || []) takenAny.add(styleKey(a));
+  }
+  const shown = String(name ?? '').trim();
+  if (takenAny.has(styleKey(shown))) {
+    throw new AppError('VALIDATION', `A style named "${shown}" already exists.`);
+  }
+  for (const alias of aliases) {
+    if (takenNames.has(styleKey(alias))) {
+      throw new AppError('VALIDATION', `A style named "${String(alias).trim()}" already exists.`);
+    }
+  }
+}
+
+/** Validates the styles an instructor teaches: at least one, each an active style. Returns the cleaned ids. */
+export function assertInstructorStyles(ctx: Ctx, styleIds: unknown): string[] {
+  const ids: string[] = [];
+  if (Array.isArray(styleIds)) {
+    for (const raw of styleIds) {
+      const id = typeof raw === 'string' ? raw.trim() : '';
+      if (id && !ids.includes(id)) ids.push(id);
+    }
+  }
+  if (ids.length === 0) {
+    throw new AppError('VALIDATION', 'Choose at least one dance style this instructor teaches.');
+  }
+  const active = new Set(ctx.db.styles.find(s => s.active).map(s => s.id));
+  const bad = ids.filter(id => !active.has(id));
+  if (bad.length) {
+    throw new AppError('VALIDATION', `Unknown or inactive dance style: ${bad.join(', ')}`);
+  }
+  return ids;
+}
+
+/** Takes a deleted instructor out of every event's per-style instructor lists. Classes are left alone. */
+export function removeInstructorFromEvents(ctx: Ctx, instructorId: string, actor: string): void {
+  const now = ctx.now();
+  for (const ev of ctx.db.events.find(e => Object.values(e.styleInstructors || {}).some(l => l.includes(instructorId)))) {
+    const lists: Record<string, string[]> = {};
+    for (const [styleId, ids] of Object.entries(ev.styleInstructors)) {
+      lists[styleId] = ids.filter(id => id !== instructorId);
+    }
+    ctx.db.events.update(ev.id, ev.version, { styleInstructors: lists }, actor, now);
+  }
 }

@@ -4,6 +4,7 @@ import { Table } from '../db/table';
 import { logAudit } from '../logic/audit';
 import { validateLink } from '../logic/linkValidation';
 import { PermissionCode, extractDriveId } from '@umdsc/shared';
+import { assertUniqueStyle, assertInstructorStyles, removeInstructorFromEvents } from './styleInstructors';
 
 export function crudRoutes<T extends { id: string; version: number; active: boolean }>(opts: {
   prefix: string;
@@ -146,6 +147,19 @@ export function getMasterDataRoutes(): Record<string, Route> {
     listPerm: 'signedIn',
     mapListRow: (row, auth) => (auth?.claims.role === 'admin' ? row : (withoutUploaderEmail(row as any) as typeof row)),
     processPayload: (ctx, payload, isUpdate, existing) => {
+      if (!isUpdate || payload.name !== undefined || payload.aliases !== undefined) {
+        const rawAliases = payload.aliases !== undefined ? payload.aliases : existing?.aliases;
+        const aliases: string[] = Array.isArray(rawAliases)
+          ? rawAliases
+          : String(rawAliases || '').split(',');
+        assertUniqueStyle(
+          ctx,
+          payload.name !== undefined ? payload.name : existing?.name || '',
+          aliases.map(a => String(a).trim()).filter(Boolean),
+          existing?.id
+        );
+      }
+
       let folders: { id: string; name: string; url: string; addedAt: string }[] = [];
       if (existing?.videoFoldersJson) {
         try {
@@ -379,6 +393,10 @@ export function getMasterDataRoutes(): Record<string, Route> {
       }
     },
     processPayload: (ctx, payload, isUpdate, existing) => {
+      if (!isUpdate || payload.styleIds !== undefined) {
+        payload.styleIds = assertInstructorStyles(ctx, payload.styleIds);
+      }
+
       const folderId = getInstructorPhotosFolder(ctx);
 
       // Handle removed photos in update: Delete removed files from Google Drive
@@ -565,6 +583,17 @@ export function getMasterDataRoutes(): Record<string, Route> {
           }))
         };
       }
+    }
+  };
+
+  // A deleted instructor must also leave every event's per-style instructor lists.
+  const generatedDelete = instructorsRoutes['instructors.delete'];
+  instructorsRoutes['instructors.delete'] = {
+    ...generatedDelete,
+    handler: (ctx, auth, payload: any) => {
+      const result = generatedDelete.handler(ctx, auth, payload);
+      removeInstructorFromEvents(ctx, payload.id, auth?.claims.sub || 'system');
+      return result;
     }
   };
 
