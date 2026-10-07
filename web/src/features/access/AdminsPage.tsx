@@ -6,6 +6,7 @@ import { PixelButton } from '../../components/ui/PixelButton';
 import { Field } from '../../components/ui/Field';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { PasswordToggle } from '../../components/ui/PasswordToggle';
 import type { AdminUser, Role } from '@umdsc/shared';
 
 export const AdminsPage: React.FC = () => {
@@ -379,14 +380,7 @@ export const AdminsPage: React.FC = () => {
                 />
               </Field>
               <div className="flex justify-end">
-                <button
-                  type="button"
-                  aria-pressed={showNewPassword}
-                  onClick={() => setShowNewPassword((v) => !v)}
-                  className="min-h-[44px] px-2 font-display text-[12px] text-[var(--neon-cyan)] underline cursor-pointer"
-                >
-                  {showNewPassword ? '🙈 HIDE PASSWORD' : '👁 SHOW PASSWORD'}
-                </button>
+                <PasswordToggle shown={showNewPassword} onToggle={() => setShowNewPassword((v) => !v)} />
               </div>
 
               <div className="flex gap-3 pt-3 border-t-2 border-[var(--outline)]">

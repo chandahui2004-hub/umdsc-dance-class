@@ -168,7 +168,7 @@ test.describe('Login, Title Screen, and Route Guards', () => {
     // 1. Admin logs in
     await page.goto('/admin/login');
     await page.getByLabel(/Username/i).fill('admin');
-    await page.getByLabel(/Password/i).fill('correctpassword');
+    await page.getByLabel('Password', { exact: true }).fill('correctpassword');
     await page.getByRole('button', { name: /LOGIN|ENTER/i }).click();
 
     await page.waitForURL('**/admin/calendar');
@@ -233,9 +233,14 @@ test.describe('Login, Title Screen, and Route Guards', () => {
     const box = page.getByLabel(/^Password/i);
     await box.fill('secret123');
     await expect(box).toHaveAttribute('type', 'password');
-    await page.getByRole('button', { name: /SHOW PASSWORD/ }).click();
+    const show = page.getByRole('button', { name: 'Show password' });
+    await expect(show.locator('svg[data-icon="eye-open"]')).toBeVisible();
+    await expect(page.getByText(/👁|🙈/)).toHaveCount(0);
+    await show.click();
     await expect(box).toHaveAttribute('type', 'text');
-    await page.getByRole('button', { name: /HIDE PASSWORD/ }).click();
+    const hide = page.getByRole('button', { name: 'Hide password' });
+    await expect(hide.locator('svg[data-icon="eye-closed"]')).toBeVisible();
+    await hide.click();
     await expect(box).toHaveAttribute('type', 'password');
   });
 });

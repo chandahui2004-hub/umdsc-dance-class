@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { call, errorMessage } from '../../lib/api';
 import { MonthCalendar, CalendarMark } from '../../components/ui/MonthCalendar';
 import { Panel } from '../../components/ui/Panel';
@@ -9,6 +9,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { EventStep } from '../../components/ui/EventStyleSteps';
 import { SessionEditor } from './SessionEditor';
+import { AddClassDialog } from './AddClassDialog';
 import { ClassCard } from '../calendar/ClassCard';
 import { todayKL, formatDayLabel } from '../../lib/time';
 import { getStyleColor } from '../../theme/colors';
@@ -23,9 +24,7 @@ export const ClassesPage: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Month>(todayKL().slice(0, 7));
   const [selectedDate, setSelectedDate] = useState<ISODate>(todayKL());
   const [editingSession, setEditingSession] = useState<ClassSession | null>(null);
-  const [selectedAddEventId, setSelectedAddEventId] = useState('');
-  const [newStyleId, setNewStyleId] = useState('');
-  const [addError, setAddError] = useState<string | null>(null);
+  const [showAddClass, setShowAddClass] = useState(false);
 
   // Open on the event's first month (or this month, if it is inside the event)
   useEffect(() => {
@@ -46,14 +45,15 @@ export const ClassesPage: React.FC = () => {
   });
 
   const targetEventId = isAll
-    ? (selectedAddEventId || events.filter(e => e.status === 'active')[0]?.id || '')
+    ? (events.filter(e => e.status === 'active')[0]?.id || '')
     : (event?.id || '');
   const targetEvent = events.find(e => e.id === targetEventId);
-
-  const styles = useMemo(
-    () => (targetEvent ? targetEvent.styleIds.map(id => allStyles.find(s => s.id === id)).filter((s): s is DanceStyle => Boolean(s)) : allStyles),
-    [targetEvent, allStyles]
+  // New classes go into an active event: just the chosen one, or any active one when ALL is chosen
+  const activeEvents = useMemo(
+    () => (isAll ? events.filter(e => e.status === 'active') : targetEvent ? [targetEvent] : []),
+    [isAll, events, targetEvent]
   );
+
 
   const { data: sessions = [], isLoading, error, refetch } = useQuery({
     queryKey: ['sessions', eventId],
@@ -152,32 +152,6 @@ export const ClassesPage: React.FC = () => {
     return marks;
   }, [filteredSessions, allStyles, isAll, events]);
 
-  const insideEvent = Boolean(targetEvent && selectedDate >= targetEvent.startDate && selectedDate <= targetEvent.endDate);
-  const addStyleId = newStyleId || styles[0]?.id || '';
-
-  const addClass = useMutation({
-    mutationFn: async () => {
-      setAddError(null);
-      const style = getStyle(addStyleId);
-      const nextSeq = activeSessions
-        .filter(s => s.eventId === targetEventId && s.styleId === addStyleId)
-        .reduce((m, s) => Math.max(m, s.seq), 0) + 1;
-      return (
-        await call<ClassSession>('sessions.create', {
-          eventId: targetEventId,
-          styleId: addStyleId,
-          seq: nextSeq,
-          date: selectedDate,
-          start: style?.defaultStart || '20:00',
-          end: style?.defaultEnd || '22:00',
-          venue: style?.defaultVenue || ''
-        })
-      ).data;
-    },
-    onSuccess: () => refetch(),
-    onError: err => setAddError(errorMessage(err))
-  });
-
   const colorOf = (styleId: string) => {
     const style = getStyle(styleId);
     return getStyleColor(style?.colorKey);
@@ -236,68 +210,20 @@ export const ClassesPage: React.FC = () => {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2">
-          <MonthCalendar
-            month={currentMonth}
-            onMonthChange={setCurrentMonth}
-            marks={calendarMarks}
-            selected={selectedDate}
-            onSelect={setSelectedDate}
-          />
-        </div>
-
-        <div className="space-y-3">
-          <Panel title={`ADD A CLASS ON ${selectedDate}`}>
-            {/* Add class section */}
-            <div className="space-y-2">
-              {isAll && (
-                <label className="block space-y-1">
-                  <span className="font-display text-[12px] text-[var(--text-1)]">EVENT:</span>
-                  <select
-                    aria-label="Event for new class"
-                    value={targetEventId}
-                    onChange={e => setSelectedAddEventId(e.target.value)}
-                    className="w-full min-h-[48px] px-2 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-body text-[16px] text-[var(--text-1)]"
-                  >
-                    {events.filter(e => e.status === 'active').map(e => (
-                      <option key={e.id} value={e.id}>
-                        {e.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-
-              {insideEvent && styles.length > 0 && (
-                <>
-                  <select
-                    aria-label="Style for new class"
-                    value={addStyleId}
-                    onChange={e => setNewStyleId(e.target.value)}
-                    className="w-full min-h-[48px] px-2 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-body text-[16px] text-[var(--text-1)]"
-                  >
-                    {styles.map(s => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                  <PixelButton size="md" variant="primary" className="w-full" disabled={addClass.isPending} onClick={() => addClass.mutate()}>
-                    {addClass.isPending ? 'ADDING…' : `+ ADD CLASS ON ${selectedDate}`}
-                  </PixelButton>
-                  {addError && <p role="alert" className="font-body text-[12px] font-bold text-[var(--neon-red)]">{addError}</p>}
-                </>
-              )}
-              {!insideEvent && targetEvent && (
-                <p className="font-body text-[14px] text-[var(--text-2)]">
-                  {selectedDate} is outside {targetEvent.name} ({targetEvent.startDate} to {targetEvent.endDate}).
-                </p>
-              )}
-            </div>
-          </Panel>
-        </div>
-      </div>
+      <MonthCalendar
+        month={currentMonth}
+        onMonthChange={setCurrentMonth}
+        marks={calendarMarks}
+        selected={selectedDate}
+        onSelect={setSelectedDate}
+        action={
+          activeEvents.length > 0 ? (
+            <PixelButton size="sm" variant="primary" onClick={() => setShowAddClass(true)}>
+              + ADD CLASS
+            </PixelButton>
+          ) : undefined
+        }
+      />
 
       <Panel title={`CLASSES ON ${formatDayLabel(selectedDate).toUpperCase()}`}>
         {isLoading ? (
@@ -545,6 +471,18 @@ export const ClassesPage: React.FC = () => {
           </div>
         )}
       </Panel>
+
+      <AddClassDialog
+        isOpen={showAddClass}
+        onClose={() => setShowAddClass(false)}
+        date={selectedDate}
+        events={activeEvents}
+        initialEventId={targetEventId}
+        styles={allStyles}
+        instructors={instructors}
+        sessions={activeSessions}
+        onAdded={refetch}
+      />
 
       <SessionEditor
         isOpen={!!editingSession}

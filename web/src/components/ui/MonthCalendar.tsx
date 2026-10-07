@@ -17,6 +17,8 @@ export interface MonthCalendarProps {
   marks?: Record<ISODate, CalendarMark[]>;
   selected?: ISODate;
   onSelect?: (d: ISODate) => void;
+  /** A small control under the month name, e.g. the admin's + ADD CLASS. */
+  action?: React.ReactNode;
 }
 
 const WEEKDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
@@ -32,7 +34,8 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
   allowedMonths,
   marks = {},
   selected,
-  onSelect
+  onSelect,
+  action
 }) => {
   const grid = monthGrid(month);
   const today = todayKL();
@@ -108,12 +111,15 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
           )}
         </div>
 
-        <h2
-          className="font-display text-[12px] md:text-[16px] text-[var(--text-1)] tracking-wider px-glow-text"
-          style={{ '--glow': 'var(--neon-cyan)' } as React.CSSProperties}
-        >
-          {monthTitle}
-        </h2>
+        <div className="flex flex-col items-center gap-2">
+          <h2
+            className="font-display text-[12px] md:text-[16px] text-[var(--text-1)] tracking-wider px-glow-text"
+            style={{ '--glow': 'var(--neon-cyan)' } as React.CSSProperties}
+          >
+            {monthTitle}
+          </h2>
+          {action}
+        </div>
 
         <div>
           {canGoNext && (

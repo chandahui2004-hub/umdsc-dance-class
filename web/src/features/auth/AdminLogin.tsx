@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { PasswordToggle } from '../../components/ui/PasswordToggle';
 import { useNavigate, Link } from 'react-router-dom';
 import { call, errorMessage } from '../../lib/api';
 import { session } from '../../lib/session';
@@ -111,14 +112,7 @@ export const AdminLogin: React.FC = () => {
                   required
                 />
                 <div className="flex justify-end">
-                  <button
-                    type="button"
-                    aria-pressed={showPassword}
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="min-h-[44px] px-2 font-display text-[12px] text-[var(--neon-cyan)] underline cursor-pointer"
-                  >
-                    {showPassword ? '🙈 HIDE PASSWORD' : '👁 SHOW PASSWORD'}
-                  </button>
+                  <PasswordToggle shown={showPassword} onToggle={() => setShowPassword((v) => !v)} />
                 </div>
               </div>
 

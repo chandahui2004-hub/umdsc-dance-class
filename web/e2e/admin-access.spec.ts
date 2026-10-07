@@ -244,7 +244,7 @@ test.describe('Admin Access Management (Admins & Roles)', () => {
     await page.getByRole('button', { name: /EDIT/ }).first().click();
     await page.getByLabel('Username').fill('headadmin');
     await page.getByLabel('New Password').fill('NewPass789');
-    await page.getByRole('button', { name: /SHOW PASSWORD/ }).click();
+    await page.getByRole('button', { name: 'Show password' }).click();
     await expect(page.getByLabel('New Password')).toHaveAttribute('type', 'text');
     await page.getByRole('button', { name: 'SAVE CHANGES' }).click();
     await expect

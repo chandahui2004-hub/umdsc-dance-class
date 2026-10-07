@@ -14,26 +14,63 @@ test.describe('Admin Classes & Calendar', () => {
     await loginAsAdmin(page);
   });
 
-  test('lists the event classes and adds a class on the selected day', async ({ page }) => {
+  test('+ ADD CLASS opens a pop-up; the class is added with style, instructor, times, venue and note', async ({ page }) => {
+    const teacher = (id: string, name: string) => ({
+      id, name, contact: '', styleIds: ['style-hiphop'], version: 1, updatedBy: 'admin', updatedAt: '', active: true
+    });
+    const INSTRUCTORS = [teacher('inst-1', 'Alex Tan'), teacher('inst-2', 'Bea Lim'), teacher('inst-3', 'Not Listed')];
     const calls = await mockApi(page, {
       ...BASE,
+      'events.list': () => [{ ...EVENT, styleInstructors: { 'style-hiphop': ['inst-1', 'inst-2'] } }],
+      'instructors.list': () => INSTRUCTORS,
       'sessions.list': () => [session('ses-1')],
+      'videos.list': () => [],
+      'music.list': () => [],
       'sessions.create': p => ({ ...session('ses-new', p.date), seq: p.seq })
     });
     await page.goto('/admin/calendar');
-    await expect(page.getByRole('heading', { name: /Calendar/i })).toBeVisible();
-    await expect.poll(() => calls.find(c => c.action === 'sessions.list')?.payload).toEqual({ eventId: 'evt-oct' });
     await expect(page.getByText('1 classes in OCT MONTHLY CLASS')).toBeVisible();
+    await expect(page.getByText(/ADD A CLASS ON/)).toHaveCount(0);
 
     await page.getByRole('button', { name: /Thu 15 Oct/ }).click();
-    await page.getByLabel('Style for new class').selectOption('style-hiphop');
-    await page.getByRole('button', { name: /ADD CLASS ON 2026-10-15/ }).click();
+    await page.getByRole('button', { name: '+ ADD CLASS' }).click();
+    await expect(page.getByRole('heading', { name: 'ADD A CLASS' })).toBeVisible();
+    await expect(page.getByLabel('Date *')).toHaveValue('2026-10-15');
+    await expect(page.getByLabel('Venue')).toHaveValue('Dance Room 1');
+
+    // Only this event's instructors for the style are offered
+    const instructor = page.getByLabel('Instructor *');
+    await expect(instructor.locator('option')).toHaveText(['Alex Tan', 'Bea Lim']);
+    await instructor.selectOption('inst-2');
+    await page.getByLabel('Note').fill('Bring water');
+    await page.getByRole('button', { name: 'ADD CLASS', exact: true }).click();
+
     await expect.poll(() => calls.find(c => c.action === 'sessions.create')?.payload).toMatchObject({
       eventId: 'evt-oct',
       styleId: 'style-hiphop',
       seq: 2,
-      date: '2026-10-15'
+      date: '2026-10-15',
+      start: '20:00',
+      end: '22:00',
+      instructorId: 'inst-2',
+      venue: 'Dance Room 1',
+      note: 'Bring water'
     });
+    await expect(page.getByRole('heading', { name: 'ADD A CLASS' })).toHaveCount(0);
+  });
+
+  test('ADD CLASS stays disabled when the style has no instructor in the event', async ({ page }) => {
+    await mockApi(page, {
+      ...BASE,
+      'events.list': () => [{ ...EVENT, styleInstructors: {} }],
+      'sessions.list': () => [session('ses-1')],
+      'videos.list': () => [],
+      'music.list': () => []
+    });
+    await page.goto('/admin/calendar');
+    await page.getByRole('button', { name: '+ ADD CLASS' }).click();
+    await expect(page.getByText(/No instructor teaches Hip Hop in this event yet/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'ADD CLASS', exact: true })).toBeDisabled();
   });
 
   test('the chosen day shows class cards with recap videos and music, and EDIT CLASS opens the editor', async ({ page }) => {
