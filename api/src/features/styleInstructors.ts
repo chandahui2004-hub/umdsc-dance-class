@@ -29,7 +29,7 @@ export function ensureStyleInstructors(ctx: Ctx): boolean {
     const now = ctx.now();
     let wrote = false;
 
-    const styles = ctx.db.styles.find(() => true);
+    const styles = ctx.db.styles.find(s => s.active);
     const defaultOf = new Map(styles.map(s => [s.id, s.defaultInstructorId]));
 
     // 1. Classes without an instructor take the style default (before the lists below read them).
@@ -62,7 +62,7 @@ export function ensureStyleInstructors(ctx: Ctx): boolean {
     }
 
     // 3. Events with no lists yet: per style, the distinct instructors of its classes in date, seq order, else the style default.
-    for (const ev of ctx.db.events.find(e => Object.keys(e.styleInstructors || {}).length === 0)) {
+    for (const ev of ctx.db.events.find(e => e.active && Object.keys(e.styleInstructors || {}).length === 0)) {
       const lists: Record<string, string[]> = {};
       for (const styleId of ev.styleIds) {
         const ids: string[] = [];

@@ -104,6 +104,40 @@ describe('Feature: one-time style-instructor fill-in (features/styleInstructors)
     expect(Number(empty.props.get('DATA_VERSION') || 1)).toBe(before);
   });
 
+  it('leaves inactive events untouched', () => {
+    const inactive = seedEvent(ctx, { name: 'EVENT OLD', styleIds: [A] });
+    ctx.db.events.update(inactive.id, 1, { active: false }, 'system', ctx.now());
+    ensureStyleInstructors(ctx);
+    expect(ctx.db.events.get(inactive.id)!.styleInstructors).toEqual({});
+  });
+
+  it('ignores the default instructor of an inactive style', () => {
+    const P = instructor('Pat');
+    const dead = style('Gamma', P);
+    ctx.db.styles.update(dead, 1, { active: false }, 'system', ctx.now());
+    const emptyClass = session(E, dead, 1, '2026-10-06', '');
+    ensureStyleInstructors(ctx);
+    expect(styleIdsOf(P)).toEqual([]);
+    expect(ctx.db.sessions.get(emptyClass)!.instructorId).toBe('');
+  });
+
+  it('a busy lock does not fail an admin request and leaves the fill-in pending', () => {
+    const exp = Math.floor(ctx.now().getTime() / 1000) + 3600;
+    const admin = signToken(
+      { sub: 'admin1', role: 'admin', name: 'Admin', exp, pv: 1, perms: { 'members.view': '*' } },
+      secrets.tokenSecret, secrets.hmac
+    );
+    ctx.lock.isLocked = true; // another request holds the lock: tryLock fails
+    const res = handleRequest({ action: 'events.list', token: admin, payload: {} } as any, ctx, secrets);
+    expect(res.ok).toBe(true);
+    expect(ctx.props.get('STYLE_INSTRUCTORS_V1')).toBeNull();
+    expect(ctx.lock.tryLockCalls).toBeGreaterThan(0);
+
+    ctx.lock.isLocked = false;
+    handleRequest({ action: 'events.list', token: admin, payload: {} } as any, ctx, secrets);
+    expect(ctx.props.get('STYLE_INSTRUCTORS_V1')).toBe('done');
+  });
+
   it('dancer requests do not trigger it; admin requests do', () => {
     const exp = Math.floor(ctx.now().getTime() / 1000) + 3600;
     const dancer = signToken(

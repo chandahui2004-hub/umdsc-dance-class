@@ -95,7 +95,14 @@ export function handleRequest(
       auth = { claims };
 
       // One-time fill-in for "one style, many instructors"; admin-only, skipped after the first run.
-      if (claims.role === 'admin') ensureStyleInstructors(ctx);
+      // A busy lock must not fail the admin's request; a later request retries.
+      if (claims.role === 'admin') {
+        try {
+          ensureStyleInstructors(ctx);
+        } catch (e) {
+          if (!(e instanceof AppError && e.code === 'BUSY')) throw e;
+        }
+      }
 
       if (route.perm !== 'signedIn') {
         const styleId = route.styleOf ? route.styleOf(req.payload) : undefined;
