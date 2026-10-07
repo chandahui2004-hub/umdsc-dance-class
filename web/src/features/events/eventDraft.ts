@@ -109,8 +109,13 @@ export function pruneSchedule(d: EventDraft): EventDraft {
 /** Active instructors who teach the style, by name. */
 export function instructorsForStyle(instructors: Instructor[], styleId: string): Instructor[] {
   return instructors
-    .filter(i => i.active && i.styleIds.includes(styleId))
+    .filter(i => i.active && (i.styleIds || []).includes(styleId))
     .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** The instructor a class is saved with: its own, else the first one listed for its style. */
+export function effectiveInstructorId(c: { instructorId?: string }, listed: string[]): string {
+  return c.instructorId || listed[0] || '';
 }
 
 /** Sets a style's instructors; classes whose instructor was removed move to the first remaining one. */

@@ -3,7 +3,7 @@ import type { ISODate } from '@umdsc/shared';
 import { PixelButton } from '../../../components/ui/PixelButton';
 import { formatDayLabel, getDatesBetween } from '../../../lib/time';
 import { getStyleColor } from '../../../theme/colors';
-import type { ScheduledClass } from '../eventDraft';
+import { effectiveInstructorId, type ScheduledClass } from '../eventDraft';
 import type { StepProps } from '../EventWizard';
 
 const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -26,7 +26,7 @@ function rangeWeeks(start: ISODate, end: ISODate): ISODate[][] {
   return weeks;
 }
 
-export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBack, styles }) => {
+export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBack, styles, instructors }) => {
   const [activeId, setActiveId] = useState(draft.styleIds[0] || '');
   const [fillDay, setFillDay] = useState(isoWeekday(draft.startDate));
   const [fillStart, setFillStart] = useState('20:00');
@@ -36,6 +36,8 @@ export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onB
   const weeks = useMemo(() => rangeWeeks(draft.startDate, draft.endDate), [draft.startDate, draft.endDate]);
   const classes = draft.schedule[activeId] || [];
   const style = styles.find(s => s.id === activeId);
+  const listed = draft.styleInstructors[activeId] || [];
+  const instructorName = (id: string) => instructors.find(i => i.id === id)?.name || id;
 
   const setClasses = (list: ScheduledClass[]) => onChange({ schedule: { ...draft.schedule, [activeId]: list } });
 
@@ -60,7 +62,14 @@ export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onB
   const copyToAll = () => {
     const schedule = { ...draft.schedule };
     for (const id of draft.styleIds) {
-      if (id !== activeId) schedule[id] = classes.map(({ id: _id, status: _status, ...c }) => ({ ...c }));
+      if (id !== activeId) {
+        const theirs = draft.styleInstructors[id] || [];
+        // An instructor only carries over to a style whose list includes them.
+        schedule[id] = classes.map(({ id: _id, status: _status, instructorId, ...c }) => ({
+          ...c,
+          ...(instructorId && theirs.includes(instructorId) ? { instructorId } : {})
+        }));
+      }
     }
     onChange({ schedule });
   };
@@ -189,6 +198,28 @@ export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onB
                   ×
                 </button>
               </div>
+              {(() => {
+                const chosen = effectiveInstructorId(c, listed);
+                const outside = Boolean(c.instructorId) && !listed.includes(c.instructorId as string);
+                if (listed.length > 1 || outside) {
+                  return (
+                    <select
+                      aria-label={`Instructor for class ${c.seq}`}
+                      value={chosen}
+                      onChange={e => updateClass(c.date, { instructorId: e.target.value })}
+                      className="w-full min-h-[44px] px-2 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-body text-[16px] text-[var(--text-1)]"
+                    >
+                      {outside && <option value={c.instructorId}>{instructorName(c.instructorId as string)} (not in this event's list)</option>}
+                      {listed.map(id => (
+                        <option key={id} value={id}>
+                          {instructorName(id)}
+                        </option>
+                      ))}
+                    </select>
+                  );
+                }
+                return chosen ? <p className="font-body text-[14px] text-[var(--text-1)]">{instructorName(chosen)}</p> : null;
+              })()}
               <div className="grid grid-cols-2 gap-1">
                 <input type="time" aria-label={`Start ${c.date}`} value={c.start} onChange={e => updateClass(c.date, { start: e.target.value })} className="min-h-[40px] px-1 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-mono text-[16px] text-[var(--text-1)]" />
                 <input type="time" aria-label={`End ${c.date}`} value={c.end} onChange={e => updateClass(c.date, { end: e.target.value })} className="min-h-[40px] px-1 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-mono text-[16px] text-[var(--text-1)]" />

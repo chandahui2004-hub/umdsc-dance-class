@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import type { ClassSession, EventItem, Instructor } from '@umdsc/shared';
 import {
   emptyDraft, draftFromEvent, pruneSchedule, localNameClash,
-  instructorsForStyle, setStyleInstructors, missingInstructorStyle
+  instructorsForStyle, setStyleInstructors, missingInstructorStyle, effectiveInstructorId
 } from './eventDraft';
 
 const cls = (seq: number, date: string) => ({ seq, date, start: '20:00', end: '22:00' });
@@ -77,6 +77,22 @@ describe('eventDraft', () => {
     ] as unknown as Instructor[];
     expect(instructorsForStyle(ins, 'pop').map(i => i.id)).toEqual(['i2', 'i1']);
     expect(instructorsForStyle(ins, 'none')).toEqual([]);
+  });
+
+  it('instructorsForStyle tolerates an instructor with no styleIds (cached pre-deploy data)', () => {
+    const ins = [
+      { id: 'old', name: 'Old', active: true },
+      { id: 'i2', name: 'Amy', active: true, styleIds: ['pop'] }
+    ] as unknown as Instructor[];
+    expect(instructorsForStyle(ins, 'pop').map(i => i.id)).toEqual(['i2']);
+  });
+
+  it('effectiveInstructorId falls back to the first listed instructor only when the class has none', () => {
+    expect(effectiveInstructorId({ instructorId: '' }, ['a', 'b'])).toBe('a');
+    expect(effectiveInstructorId({}, ['a', 'b'])).toBe('a');
+    expect(effectiveInstructorId({ instructorId: 'b' }, ['a', 'b'])).toBe('b');
+    expect(effectiveInstructorId({ instructorId: 'x' }, ['a', 'b'])).toBe('x');
+    expect(effectiveInstructorId({}, [])).toBe('');
   });
 
   it('setStyleInstructors moves classes of a removed instructor to the first remaining', () => {

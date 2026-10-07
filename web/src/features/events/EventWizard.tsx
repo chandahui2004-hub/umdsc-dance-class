@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import type { ClassSession, DanceStyle, EventListItem } from '@umdsc/shared';
+import type { ClassSession, DanceStyle, EventListItem, Instructor } from '@umdsc/shared';
 import { call } from '../../lib/api';
 import { todayKL } from '../../lib/time';
 import { Panel } from '../../components/ui/Panel';
@@ -23,6 +23,7 @@ export interface StepProps {
   event?: EventListItem;
   events: EventListItem[];
   styles: DanceStyle[];
+  instructors: Instructor[];
 }
 
 const STEPS = ['FORM LINK', 'DETAILS', 'STYLES', 'SCHEDULE', 'REVIEW'];
@@ -37,6 +38,10 @@ export const EventWizard: React.FC = () => {
   const { data: styles = [] } = useQuery<DanceStyle[]>({
     queryKey: ['styles'],
     queryFn: async () => (await call<DanceStyle[]>('styles.list')).data
+  });
+  const { data: instructors = [] } = useQuery<Instructor[]>({
+    queryKey: ['instructors'],
+    queryFn: async () => (await call<Instructor[]>('instructors.list')).data || []
   });
   const { data: sessions } = useQuery<ClassSession[]>({
     queryKey: ['sessions', id, 'all'],
@@ -66,7 +71,8 @@ export const EventWizard: React.FC = () => {
     eventId: id,
     event,
     events,
-    styles
+    styles,
+    instructors
   };
 
   return (

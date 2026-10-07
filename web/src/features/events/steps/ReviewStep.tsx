@@ -4,13 +4,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ClassSession, EventItem } from '@umdsc/shared';
 import { call, errorMessage } from '../../../lib/api';
 import { PixelButton } from '../../../components/ui/PixelButton';
-import { flattenSchedule } from '../eventDraft';
+import { effectiveInstructorId, flattenSchedule } from '../eventDraft';
 import { useCurrentEvent } from '../useCurrentEvent';
 import type { StepProps } from '../EventWizard';
 
 const TYPE_LABEL: Record<string, string> = { monthly: 'Monthly class', trial: 'Trial class', workshop: 'Workshop', other: 'Other' };
 
-export const ReviewStep: React.FC<StepProps> = ({ draft, onBack, isEdit, event, styles }) => {
+export const ReviewStep: React.FC<StepProps> = ({ draft, onBack, isEdit, event, styles, instructors }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { setCurrentId } = useCurrentEvent();
@@ -30,8 +30,14 @@ export const ReviewStep: React.FC<StepProps> = ({ draft, onBack, isEdit, event, 
     endDate: draft.endDate,
     columnMap: draft.columnMap,
     classIndex: draft.classIndex,
-    styleIds: draft.styleIds
+    styleIds: draft.styleIds,
+    styleInstructors: draft.styleInstructors
   };
+
+  // A class with no instructor of its own is saved with its style's first listed one.
+  const instructorOf = (c: (typeof classes)[number]) => effectiveInstructorId(c, draft.styleInstructors[c.styleId] || []);
+  const instructorNames = (styleId: string) =>
+    (draft.styleInstructors[styleId] || []).map(id => instructors.find(i => i.id === id)?.name || id).join(', ');
 
   // Stays in SAVING/CREATING until the lists hold the new event, so the old one never flashes.
   const finish = async (eventId: string) => {
@@ -48,7 +54,15 @@ export const ReviewStep: React.FC<StepProps> = ({ draft, onBack, isEdit, event, 
         await call<{ event: EventItem }>('events.create', {
           ...fields,
           sheetUrl: draft.sheetUrl.trim(),
-          sessions: classes.map(c => ({ styleId: c.styleId, seq: c.seq, date: c.date, start: c.start, end: c.end, venue: c.venue || '' }))
+          sessions: classes.map(c => ({
+            styleId: c.styleId,
+            seq: c.seq,
+            date: c.date,
+            start: c.start,
+            end: c.end,
+            venue: c.venue || '',
+            instructorId: instructorOf(c)
+          }))
         })
       ).data,
     onSuccess: r => finish(r.event.id),
@@ -84,6 +98,7 @@ export const ReviewStep: React.FC<StepProps> = ({ draft, onBack, isEdit, event, 
             start: c.start,
             end: c.end,
             venue: c.venue || '',
+            instructorId: instructorOf(c),
             status: c.status || 'scheduled'
           }))
         });
@@ -119,6 +134,12 @@ export const ReviewStep: React.FC<StepProps> = ({ draft, onBack, isEdit, event, 
             {draft.styleIds.map(id => (
               <li key={id}>
                 {styles.find(s => s.id === id)?.name || id}: {(draft.schedule[id] || []).length} classes
+                {instructorNames(id) && (
+                  <>
+                    {' — '}
+                    <span className="text-[var(--neon-cyan)]">{instructorNames(id)}</span>
+                  </>
+                )}
               </li>
             ))}
           </ul>

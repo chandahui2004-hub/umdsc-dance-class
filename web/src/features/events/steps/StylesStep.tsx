@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { DanceStyle } from '@umdsc/shared';
+import type { DanceStyle, Instructor } from '@umdsc/shared';
 import { call, errorMessage } from '../../../lib/api';
 import { PixelButton } from '../../../components/ui/PixelButton';
 import { getStyleColor } from '../../../theme/colors';
+import { instructorsForStyle, missingInstructorStyle, setStyleInstructors } from '../eventDraft';
 import type { StepProps } from '../EventWizard';
 
 const PALETTE = ['orange', 'blue', 'pink', 'green', 'yellow', 'lavender', 'peach', 'darkgreen', 'brown', 'darkpurple', 'red'];
 
-export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBack, styles }) => {
+export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBack, styles, instructors }) => {
   const queryClient = useQueryClient();
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState('lavender');
@@ -20,6 +22,41 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
     onChange({
       styleIds: draft.styleIds.includes(id) ? draft.styleIds.filter(s => s !== id) : [...draft.styleIds, id]
     });
+
+  const applyInstructors = (styleId: string, ids: string[]) => {
+    const next = setStyleInstructors(draft, styleId, ids);
+    onChange({ styleInstructors: next.styleInstructors, schedule: next.schedule });
+  };
+
+  const toggleInstructor = (styleId: string, instructorId: string) => {
+    const current = draft.styleInstructors[styleId] || [];
+    applyInstructors(
+      styleId,
+      current.includes(instructorId) ? current.filter(i => i !== instructorId) : [...current, instructorId]
+    );
+  };
+
+  // A style with exactly one instructor gets them ticked once, so the admin is never asked to choose between one.
+  const autoTicked = useRef(new Set<string>());
+  useEffect(() => {
+    for (const id of [...autoTicked.current]) if (!draft.styleIds.includes(id)) autoTicked.current.delete(id);
+    let next = draft;
+    let changed = false;
+    for (const id of draft.styleIds) {
+      if (autoTicked.current.has(id)) continue;
+      const candidates = instructorsForStyle(instructors, id);
+      if (candidates.length === 0) continue;
+      autoTicked.current.add(id);
+      if (candidates.length === 1 && !(draft.styleInstructors[id]?.length)) {
+        next = setStyleInstructors(next, id, [candidates[0].id]);
+        changed = true;
+      }
+    }
+    if (changed) onChange({ styleInstructors: next.styleInstructors, schedule: next.schedule });
+  }, [draft, instructors]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const missingStyleId = missingInstructorStyle(draft);
+  const missingStyleName = missingStyleId ? styles.find(s => s.id === missingStyleId)?.name || missingStyleId : '';
 
   const createStyle = useMutation({
     mutationFn: async (input: { name: string; colorKey: string; aliases: string[] }) =>
@@ -59,8 +96,8 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {styles.map(s => (
+          <div key={s.id} className="space-y-2">
           <label
-            key={s.id}
             className={`flex items-center gap-3 min-h-[48px] px-3 border-2 border-[var(--outline)] cursor-pointer select-none transition-none ${
               draft.styleIds.includes(s.id) ? 'bg-[var(--violet-2)] shadow-[2px_2px_0_var(--outline)]' : 'bg-[var(--night-2)] hover:bg-[var(--violet-1)]'
             }`}
@@ -74,6 +111,16 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
               </span>
             )}
           </label>
+          {draft.styleIds.includes(s.id) && (
+            <InstructorPicker
+              style={s}
+              instructors={instructors}
+              selected={draft.styleInstructors[s.id] || []}
+              onToggle={instructorId => toggleInstructor(s.id, instructorId)}
+              onReload={() => queryClient.invalidateQueries({ queryKey: ['instructors'] })}
+            />
+          )}
+          </div>
         ))}
       </div>
 
@@ -154,14 +201,63 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
         </p>
       )}
 
+      {missingStyleId && (
+        <p className="font-body font-bold text-[14px] text-[var(--neon-gold)]">Choose an instructor for {missingStyleName}.</p>
+      )}
+
       <div className="flex justify-between pt-3 border-t-2 border-[var(--outline)]">
         <PixelButton size="md" variant="secondary" onClick={onBack}>
           BACK
         </PixelButton>
-        <PixelButton size="md" variant="primary" disabled={draft.styleIds.length === 0} onClick={onNext}>
+        <PixelButton size="md" variant="primary" disabled={draft.styleIds.length === 0 || missingStyleId !== null} onClick={onNext}>
           NEXT
         </PixelButton>
       </div>
+    </div>
+  );
+};
+
+interface InstructorPickerProps {
+  style: DanceStyle;
+  instructors: Instructor[];
+  selected: string[];
+  onToggle(instructorId: string): void;
+  onReload(): void;
+}
+
+/** The instructors teaching one ticked style in this event. */
+const InstructorPicker: React.FC<InstructorPickerProps> = ({ style, instructors, selected, onToggle, onReload }) => {
+  const candidates = instructorsForStyle(instructors, style.id);
+  // Saved on the event but no longer active or no longer teaching this style: keep them visible so nothing changes silently.
+  const others = selected.filter(id => !candidates.some(c => c.id === id));
+  const row = (id: string, name: string, note?: string) => (
+    <label key={id} className="flex items-center gap-3 min-h-[44px] px-3 border-2 border-[var(--outline)] bg-[var(--night-2)] cursor-pointer select-none transition-none hover:bg-[var(--violet-1)]">
+      <input type="checkbox" checked={selected.includes(id)} onChange={() => onToggle(id)} className="w-5 h-5 accent-[var(--neon-gold)]" />
+      <span className="font-body text-[16px] text-[var(--text-1)]">{name}</span>
+      {note && <span className="font-mono text-[12px] text-[var(--text-2)]">{note}</span>}
+    </label>
+  );
+
+  return (
+    <div className="border-2 border-[var(--outline)] bg-[var(--night-1)] px-panel p-3 space-y-2">
+      <p className="font-display text-[12px] text-[var(--neon-cyan)]">INSTRUCTORS FOR {style.name.toUpperCase()}</p>
+      {candidates.length === 0 && others.length === 0 ? (
+        <p className="font-body text-[14px] text-[var(--neon-gold)]">
+          No instructor teaches {style.name} yet — add it on the{' '}
+          <Link to="/admin/instructors" target="_blank" rel="noreferrer" className="underline text-[var(--neon-cyan)]">
+            Instructors page
+          </Link>
+          .
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 gap-1">
+          {candidates.map(i => row(i.id, i.name))}
+          {others.map(id => row(id, instructors.find(i => i.id === id)?.name || id, '(not teaching this style)'))}
+        </div>
+      )}
+      <PixelButton size="md" variant="secondary" onClick={onReload}>
+        ↻ RELOAD INSTRUCTORS
+      </PixelButton>
     </div>
   );
 };
