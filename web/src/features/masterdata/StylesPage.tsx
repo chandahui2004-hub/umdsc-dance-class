@@ -104,10 +104,14 @@ export const StylesPage: React.FC = () => {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const aliasArray = aliases
-        .split(',')
-        .map((s) => s.trim().toLowerCase())
-        .filter(Boolean);
+      const aliasArray = Array.from(
+        new Set(
+          aliases
+            .split(',')
+            .map((s) => s.trim().toLowerCase())
+            .filter(Boolean)
+        )
+      );
 
       const payload: any = {
         name: name.trim(),
@@ -218,9 +222,9 @@ export const StylesPage: React.FC = () => {
                   </span>
                   <div className="flex flex-wrap gap-1">
                     {(style.aliases && style.aliases.length > 0) ? (
-                      style.aliases.map((al) => (
+                      style.aliases.map((al, i) => (
                         <span
-                          key={al}
+                          key={`${i}-${al}`}
                           className="bg-[var(--night-1)] border border-[var(--outline)] px-2 py-0.5 font-mono text-[12px] uppercase text-[var(--text-1)]"
                         >
                           {al}

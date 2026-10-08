@@ -198,6 +198,25 @@ describe('API Client & Session', () => {
     expect(bodies[1].opId).toBe(bodies[0].opId);
   });
 
+  it('a reply that is not a real answer (the GET health reply) is retried, never trusted', async () => {
+    vi.useFakeTimers();
+    let attempts = 0;
+    const fetchMock = vi.fn().mockImplementation(async () => {
+      attempts++;
+      return attempts === 1
+        ? { ok: true, json: async () => ({ ok: true, data: { status: 'UMDSC API active' } }) }
+        : { ok: true, json: async () => ({ ok: true, data: [{ id: 'sty_1' }], dataVersion: 3, serverTime: '' }) };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const p = call<{ id: string }[]>('styles.list');
+    await vi.advanceTimersByTimeAsync(10000);
+    const res = await p;
+
+    expect(attempts).toBe(2);
+    expect(res.data).toEqual([{ id: 'sty_1' }]);
+  });
+
   it('keeps a caller-given opId', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: true, data: {}, dataVersion: 1, serverTime: '' }) });
     vi.stubGlobal('fetch', fetchMock);

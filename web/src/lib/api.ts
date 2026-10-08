@@ -113,6 +113,12 @@ export async function call<T>(
 
       const json = (await res.json()) as ApiResponse<T>;
 
+      // Every real answer carries dataVersion. Google sometimes turns the POST into a GET, which the
+      // server answers without running the request; treat that like a lost reply and send again.
+      if (json.ok && typeof json.dataVersion !== 'number') {
+        throw new TypeError('The server did not run the request');
+      }
+
       if (json.ok) {
         return {
           data: json.data,

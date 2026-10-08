@@ -32,7 +32,12 @@ export function doGet(e?: GoogleAppsScript.Events.DoGet): GoogleAppsScript.Conte
   if (action === 'health') {
     response = { ok: true, data: { version: '0.1.0' } };
   } else {
-    response = { ok: true, data: { status: 'UMDSC API active' } };
+    // Google sometimes delivers the website's POST as a GET, so the request never ran. Answer
+    // "retry" rather than ok, or the page would take this as the real (empty) answer.
+    response = {
+      ok: false,
+      error: { code: 'BUSY', message: 'The request did not reach the server, please retry.', retryable: true }
+    };
   }
 
   return ContentService.createTextOutput(JSON.stringify(response))

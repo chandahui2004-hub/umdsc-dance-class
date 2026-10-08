@@ -18,7 +18,10 @@ export function useBootstrap<T extends 'dancer' | 'admin'>(role: T) {
     try {
       const raw = localStorage.getItem(storageKey);
       if (!raw) return null;
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      // A copy saved from a reply that wasn't a real answer would crash the page on every visit
+      if (!parsed?.data || !Array.isArray(parsed.data.styles)) return null;
+      return parsed;
     } catch {
       return null;
     }
