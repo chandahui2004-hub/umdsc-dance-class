@@ -224,6 +224,51 @@ test.describe('Admin Attendance Page', () => {
     expect(calls.filter(c => c.action === 'auth.adminLogin')).toHaveLength(1);
   });
 
+  test('full screen: event, style and date on top, tick straight away with big rows, SUBMIT and EXIT only', async ({ page }) => {
+    const saved: any[] = [];
+    let present: Record<string, string[]> = { ...GRID.present };
+    await mockApi(page, {
+      'events.list': () => [EVENT],
+      'styles.list': () => STYLES,
+      'attendance.get': () => ({ ...GRID, version: saved.length + 1, present }),
+      'attendance.mark': p => {
+        saved.push(...p.marks);
+        for (const m of p.marks) {
+          const cur = present[m.memberId] || [];
+          present = { ...present, [m.memberId]: m.present ? [...cur, m.sessionId] : cur.filter(s => s !== m.sessionId) };
+        }
+        return markOk(p);
+      }
+    });
+    await page.goto('/admin/attendance');
+    await page.getByRole('button', { name: /FULL SCREEN/ }).click();
+
+    const fs = page.getByRole('dialog', { name: 'Attendance full screen' });
+    await expect(fs.getByRole('heading', { name: 'OCT MONTHLY CLASS' })).toBeVisible();
+    await expect(fs.getByText('HIP HOP')).toBeVisible();
+    await expect(fs.getByLabel('Class date')).toBeVisible();
+    await expect(fs.locator('header').getByRole('button')).toHaveText(['SUBMIT', '✕ EXIT']);
+    await expect(page.getByTestId('mobile-nav-toggle-btn')).toBeHidden();
+
+    // No EDIT needed: tap the whole row
+    const row = fs.locator('[data-member-id="m-2"]');
+    const box = await row.boundingBox();
+    expect(box!.height).toBeGreaterThanOrEqual(72);
+    await expect(row).toContainText('ALEX TAN JIA WEI');
+    await row.click();
+    await expect(row).toHaveAttribute('aria-pressed', 'true');
+    await fs.getByRole('button', { name: 'SUBMIT (1)' }).click();
+    await expect.poll(() => saved.find(m => m.memberId === 'm-2')?.present).toBe(true);
+    await expect(fs.getByRole('button', { name: 'SUBMIT', exact: true })).toBeDisabled();
+
+    // Still ticking after the save; EXIT returns to the page
+    await row.click();
+    await expect(row).toHaveAttribute('aria-pressed', 'false');
+    await fs.getByRole('button', { name: '✕ EXIT' }).click();
+    await expect(page.getByRole('dialog', { name: 'Attendance full screen' })).toHaveCount(0);
+    await expect(page.getByText(/1 UNSAVED CHANGE/)).toBeVisible();
+  });
+
   test('desktop attendance grid renders at 1440 with sticky name column', async ({ page }) => {
     await mockApi(page, { 'events.list': () => [EVENT], 'styles.list': () => STYLES, 'attendance.get': () => GRID });
     await page.setViewportSize({ width: 1440, height: 900 });

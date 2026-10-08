@@ -8,6 +8,8 @@ import { Panel } from '../../components/ui/Panel';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { RosterList } from './RosterList';
 import { AttendanceGrid } from './AttendanceGrid';
+import { FullscreenRoster } from './FullscreenRoster';
+import { todayKL } from '../../lib/time';
 import { useCurrentEvent } from '../events/useCurrentEvent';
 import { AttendanceFolderHeader } from '../events/FolderLinksHeader';
 import { EventStep, StyleStep } from '../../components/ui/EventStyleSteps';
@@ -191,7 +193,8 @@ export const AttendancePage: React.FC = () => {
         wakeLock?.release().catch(() => undefined);
       }
     },
-    onSuccess: () => setEditing(false),
+    // In full screen ticking stays on after a save so the admin can carry on
+    onSuccess: () => setEditing(isFullscreen),
     onError: err => setSubmitError(errorMessage(err))
   });
 
@@ -208,6 +211,14 @@ export const AttendancePage: React.FC = () => {
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const openFullscreen = () => {
+    const today = todayKL();
+    const next = sessions.find(s => s.date >= today) || sessions[sessions.length - 1];
+    if (next) setActiveSessionId(next.id);
+    setEditing(true);
+    setIsFullscreen(true);
   };
 
   const cancelEdit = () => {
@@ -341,7 +352,7 @@ export const AttendancePage: React.FC = () => {
                 size="sm"
                 variant="secondary"
                 disabled={!ready || sessions.length === 0}
-                onClick={() => setIsFullscreen(prev => !prev)}
+                onClick={openFullscreen}
               >
                 ⛶ FULL SCREEN
               </PixelButton>
@@ -388,96 +399,22 @@ export const AttendancePage: React.FC = () => {
             </div>
           </Panel>
 
-          {/* Fullscreen Overlay Mode */}
+          {/* Full-screen tick mode */}
           {isFullscreen && (
-            <div className="fixed inset-0 z-50 bg-[var(--night-1)] p-4 flex flex-col overflow-hidden space-y-3">
-              {/* Header */}
-              <div className="flex justify-between items-center px-panel p-3 border-2 border-[var(--outline)] shadow-[4px_4px_0_var(--outline)] flex-wrap gap-2">
-                <div className="flex items-center gap-3">
-                  <h2 className="font-display text-[12px] text-[var(--text-1)]">
-                    ATTENDANCE · {activeStyle?.name.toUpperCase() || 'STYLE'}
-                  </h2>
-                  <span className="font-mono text-[12px] text-[var(--text-2)]">
-                    ({sessions.length} sessions, {members.length} dancers)
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {editing ? (
-                    <>
-                      <PixelButton size="md" variant="secondary" disabled={submitMutation.isPending} onClick={cancelEdit}>
-                        CANCEL
-                      </PixelButton>
-                      <PixelButton
-                        size="md"
-                        variant="primary"
-                        disabled={submitMutation.isPending || unsavedChanges.length === 0}
-                        onClick={() => submitMutation.mutate()}
-                      >
-                        {submitMutation.isPending ? 'SUBMITTING…' : 'SUBMIT'}
-                      </PixelButton>
-                    </>
-                  ) : (
-                    <PixelButton size="md" variant="primary" onClick={() => setEditing(true)}>
-                      EDIT TICKS
-                    </PixelButton>
-                  )}
-                  <PixelButton
-                    size="md"
-                    variant="secondary"
-                    onClick={() => setIsFullscreen(false)}
-                  >
-                    ✕ EXIT FULLSCREEN
-                  </PixelButton>
-                </div>
-              </div>
-
-              {/* Style selector inside fullscreen */}
-              <div className="px-panel p-2 flex gap-2 overflow-x-auto pixel-scrollbar items-center border-2 border-[var(--outline)]">
-                <span className="font-display text-[12px] text-[var(--text-1)] uppercase mr-1 whitespace-nowrap">
-                  STYLE:
-                </span>
-                {styles.map(s => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => setStyleId(s.id)}
-                    className={`min-h-[36px] px-3 border-2 border-[var(--outline)] font-display text-[12px] cursor-pointer select-none whitespace-nowrap ${
-                      styleId === s.id
-                        ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--outline)]'
-                        : 'px-well text-[var(--text-1)] hover:bg-[var(--violet-2)]'
-                    }`}
-                  >
-                    {s.name}
-                  </button>
-                ))}
-              </div>
-
-              {/* Fullscreen Grid / Roster */}
-              <div className="flex-1 min-h-0 overflow-hidden">
-                <div className="hidden lg:block h-full">
-                  <AttendanceGrid
-                    sessions={sessions}
-                    members={members}
-                    presentMap={localPresent}
-                    onToggle={handleToggle}
-                    readOnly={!editing || submitMutation.isPending}
-                    containerClassName="h-full overflow-auto pixel-scrollbar border-4 border-[var(--outline)] shadow-[4px_4px_0_var(--outline)] bg-[var(--night-2)]"
-                  />
-                </div>
-                <div className="block lg:hidden h-full">
-                  <RosterList
-                    sessions={sessions}
-                    members={members}
-                    presentMap={localPresent}
-                    activeSessionId={activeSessionId}
-                    onSelectSession={setActiveSessionId}
-                    onToggle={handleToggle}
-                    readOnly={!editing || submitMutation.isPending}
-                    listClassName="h-full overflow-y-auto pixel-scrollbar p-1 space-y-2 border-2 border-[var(--outline)] bg-[var(--night-1)]"
-                  />
-                </div>
-              </div>
-            </div>
+            <FullscreenRoster
+              eventName={event?.name || ''}
+              styleName={activeStyle?.name || ''}
+              sessions={sessions}
+              members={members}
+              presentMap={localPresent}
+              activeSessionId={activeSessionId}
+              onSelectSession={setActiveSessionId}
+              onToggle={handleToggle}
+              changes={unsavedChanges.length}
+              submitting={submitMutation.isPending}
+              onSubmit={() => submitMutation.mutate()}
+              onExit={() => setIsFullscreen(false)}
+            />
           )}
         </>
       )}
