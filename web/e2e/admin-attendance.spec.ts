@@ -269,6 +269,43 @@ test.describe('Admin Attendance Page', () => {
     await expect(page.getByText(/1 UNSAVED CHANGE/)).toBeVisible();
   });
 
+  test('full screen on a phone: a finger swipe scrolls the name list, not the page behind', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'touch swipe is a phone check');
+    const many = Array.from({ length: 40 }, (_, i) => ({ memberId: `d-${i}`, fullName: `DANCER ${i}`, matric: String(22000000 + i) }));
+    await mockApi(page, {
+      'events.list': () => [EVENT],
+      'styles.list': () => STYLES,
+      'attendance.get': () => ({ ...GRID, members: many, present: {} })
+    });
+    await page.goto('/admin/attendance');
+    await page.getByRole('button', { name: /FULL SCREEN/ }).click();
+    const fs = page.getByRole('dialog', { name: 'Attendance full screen' });
+    await expect(fs).toBeVisible();
+
+    // Lives directly on <body>, and the page behind is frozen
+    expect(await fs.evaluate(el => el.parentElement === document.body)).toBe(true);
+    expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).toBe('hidden');
+    const pageScrollBefore = await page.evaluate(() => window.scrollY);
+
+    const list = fs.locator('ul');
+    const box = (await list.boundingBox())!;
+    const x = box.x + box.width / 2;
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y: box.y + box.height - 40 }] });
+    for (let i = 1; i <= 15; i++) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: box.y + box.height - 40 - i * 20 }] });
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+
+    await expect.poll(() => list.evaluate(el => el.scrollTop)).toBeGreaterThan(100);
+    expect(await page.evaluate(() => window.scrollY)).toBe(pageScrollBefore);
+    await expect(fs.getByRole('button', { name: /DANCER 0 / })).toHaveAttribute('aria-pressed', 'false'); // a swipe is not a tick
+
+    // EXIT gives the page its scrolling back
+    await fs.getByRole('button', { name: '✕ EXIT' }).click();
+    expect(await page.evaluate(() => document.documentElement.style.overflow)).toBe('');
+  });
+
   test('desktop attendance grid renders at 1440 with sticky name column', async ({ page }) => {
     await mockApi(page, { 'events.list': () => [EVENT], 'styles.list': () => STYLES, 'attendance.get': () => GRID });
     await page.setViewportSize({ width: 1440, height: 900 });

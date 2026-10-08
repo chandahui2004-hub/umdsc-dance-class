@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { ClassSession } from '@umdsc/shared';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { formatDayLabel } from '../../lib/time';
@@ -36,9 +37,11 @@ export const FullscreenRoster: React.FC<FullscreenRosterProps> = ({
   onExit
 }) => {
   useOverlayOpen(true); // hides the floating HIDE NAV button
+  useLockPageScroll();
   const session = sessions.find(s => s.id === activeSessionId) || sessions[0] || null;
 
-  return (
+  // Drawn on <body>, outside the page's scrolling area, so phones scroll the list and not the page behind
+  return createPortal(
     <div className="fixed inset-0 z-[70] bg-[var(--night-1)] flex flex-col" role="dialog" aria-label="Attendance full screen">
       <header className="shrink-0 px-panel border-b-2 border-[var(--outline)] py-3 shadow-[0_4px_0_var(--outline)]">
         <div className="w-full max-w-[760px] mx-auto px-3 space-y-2">
@@ -81,7 +84,7 @@ export const FullscreenRoster: React.FC<FullscreenRosterProps> = ({
         </div>
       </header>
 
-      <ul className="flex-1 overflow-y-auto pixel-scrollbar p-3 space-y-2 w-full max-w-[760px] mx-auto">
+      <ul className="flex-1 min-h-0 overflow-y-auto overscroll-contain pixel-scrollbar p-3 space-y-2 w-full max-w-[760px] mx-auto">
         {session &&
           members.map(m => {
             const present = (presentMap[m.memberId] || []).includes(session.id);
@@ -94,7 +97,7 @@ export const FullscreenRoster: React.FC<FullscreenRosterProps> = ({
                   aria-label={`${m.fullName} ${present ? 'present' : 'absent'}`}
                   disabled={submitting}
                   onClick={() => onToggle(m.memberId, session.id, !present)}
-                  className={`w-full min-h-[72px] flex items-center gap-3 px-4 py-3 border-2 text-left cursor-pointer select-none shadow-[2px_2px_0_var(--outline)] ${
+                  className={`w-full min-h-[72px] flex items-center gap-3 px-4 py-3 border-2 text-left cursor-pointer select-none touch-manipulation shadow-[2px_2px_0_var(--outline)] ${
                     present
                       ? 'bg-[var(--neon-green)] border-[var(--outline)] text-[var(--on-neon)]'
                       : 'bg-[var(--night-2)] border-[var(--outline)] text-[var(--text-1)] active:bg-[var(--violet-2)]'
@@ -119,6 +122,22 @@ export const FullscreenRoster: React.FC<FullscreenRosterProps> = ({
             );
           })}
       </ul>
-    </div>
+    </div>,
+    document.body
   );
 };
+
+/** Freezes the page behind the full-screen list while it is open. */
+function useLockPageScroll() {
+  useEffect(() => {
+    const html = document.documentElement;
+    const { body } = document;
+    const before = { html: html.style.overflow, body: body.style.overflow };
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+    return () => {
+      html.style.overflow = before.html;
+      body.style.overflow = before.body;
+    };
+  }, []);
+}
