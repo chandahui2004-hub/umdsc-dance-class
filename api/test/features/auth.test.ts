@@ -132,6 +132,15 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
     }
   });
 
+  it('adminLogin ignores the capital letter a phone keyboard adds to the username', () => {
+    const res = handleRequest({ action: 'auth.adminLogin', payload: { username: 'Clubadmin', password: 'SecretAdminPass' } }, ctx, secrets);
+
+    expect(res.ok).toBe(true);
+    expect(res.ok && (res.data as any).claims.sub).toBe('clubadmin');
+    const wrong = handleRequest({ action: 'auth.adminLogin', payload: { username: 'Clubadmin', password: 'secretadminpass' } }, ctx, secrets);
+    expect(wrong.ok).toBe(false);
+  });
+
   describe('admin login speed', () => {
     const login = (password: string, s: typeof secrets = secrets) =>
       handleRequest({ action: 'auth.adminLogin', payload: { username: 'clubadmin', password } }, ctx, s);

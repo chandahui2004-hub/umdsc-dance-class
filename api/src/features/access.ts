@@ -53,7 +53,7 @@ export function getAccessRoutes(): Record<string, Route> {
           throw new AppError('VALIDATION', 'username, displayName, password, and roleId are required');
         }
 
-        const existing = ctx.db.admins.find(a => a.username === username && a.active)[0];
+        const existing = ctx.db.admins.find(a => a.username.toLowerCase() === username.toLowerCase() && a.active)[0];
         if (existing) {
           throw new AppError('VALIDATION', `Admin username "${username}" is already taken`);
         }
@@ -114,7 +114,7 @@ export function getAccessRoutes(): Record<string, Route> {
           if (!username) {
             throw new AppError('VALIDATION', 'Username cannot be empty');
           }
-          if (ctx.db.admins.find(a => a.username === username && a.active && a.id !== id)[0]) {
+          if (ctx.db.admins.find(a => a.username.toLowerCase() === username.toLowerCase() && a.active && a.id !== id)[0]) {
             throw new AppError('VALIDATION', `Admin username "${username}" is already taken`);
           }
         }

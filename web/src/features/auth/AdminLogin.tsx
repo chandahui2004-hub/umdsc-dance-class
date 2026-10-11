@@ -108,6 +108,9 @@ export const AdminLogin: React.FC = () => {
                 label="Username"
                 type="text"
                 autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="admin"

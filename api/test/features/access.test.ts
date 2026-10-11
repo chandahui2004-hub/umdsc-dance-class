@@ -176,6 +176,10 @@ describe('Feature: Access (Admins, Roles, Permissions, MemberRoles)', () => {
     const taken = update(' second ', admin.version);
     expect(taken.ok).toBe(false);
     if (!taken.ok) expect(taken.error.message).toContain('Admin username "second" is already taken');
+    // Sign-in ignores capitals, so a name differing only in capitals is taken too
+    const takenCaps = update('Second', admin.version);
+    expect(takenCaps.ok).toBe(false);
+    if (!takenCaps.ok) expect(takenCaps.error.message).toContain('is already taken');
 
     const ok = update(' chief ', admin.version);
     expect(ok.ok).toBe(true);

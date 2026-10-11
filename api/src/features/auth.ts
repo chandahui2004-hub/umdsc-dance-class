@@ -24,7 +24,9 @@ export function getAuthRoutes(): Record<string, Route> {
 
         // Accounts come from the server cache, so a login normally reads no sheet
         const directory = loginDirectory(ctx);
-        const admin = directory.admins.find(a => a.username === username);
+        // Phone keyboards capitalise the first letter, so capitals are ignored when only one account fits
+        const sameCase = directory.admins.filter(a => a.username.toLowerCase() === username.toLowerCase());
+        const admin = directory.admins.find(a => a.username === username) || (sameCase.length === 1 ? sameCase[0] : undefined);
         const hmac = (ctx as any)._secrets?.hmac;
         const secret: string = (ctx as any)._secrets?.tokenSecret || '';
 
