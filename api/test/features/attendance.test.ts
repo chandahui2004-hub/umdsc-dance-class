@@ -181,6 +181,29 @@ describe('Feature: Attendance (features/attendance)', () => {
     if (!res.ok) expect(res.error.code).toBe('VALIDATION');
   });
 
+  it('a dancer still on the sheet who switched style can be ticked, and the rest of the batch saves', () => {
+    // Popper Two re-submitted the form for Locking only; their Popping row stays (earlier classes)
+    const membersSheet = ctx.drive.openSpreadsheet(event.membersSpreadsheetId).sheet('Members')!;
+    const rows = membersSheet.getDisplayValues();
+    const styleCol = rows[0].indexOf('styleIds');
+    const twoRow = rows.findIndex(r => r.includes('M-22002222'));
+    membersSheet.setValues(twoRow + 1, styleCol + 1, [['st_locking']]);
+    ctx.cache.remove(`evt:members:${event.id}:${event.membersSpreadsheetId}`);
+
+    const res = call('attendance.mark', {
+      eventId: event.id, styleId: 'st_popping',
+      marks: [
+        { opId: 'op_one', sessionId: poppingSession1.id, memberId: 'M-22001111', present: true },
+        { opId: 'op_two', sessionId: poppingSession1.id, memberId: 'M-22002222', present: true }
+      ]
+    });
+
+    expect(res.ok && (res.data as any).applied).toEqual(['op_one', 'op_two']);
+    const grid = call('attendance.get', { eventId: event.id, styleId: 'st_popping' });
+    expect(grid.ok && (grid.data as any).present['M-22001111']).toEqual([poppingSession1.id]);
+    expect(grid.ok && (grid.data as any).present['M-22002222']).toEqual([poppingSession1.id]);
+  });
+
   it('attendance.ensureSheets builds the event sheets inside the event folder', () => {
     const master = ctx.drive.createFolder('root', 'Attendance');
     ctx.db.settings.insert({ key: 'defaultAttendanceFolderId', value: master }, 'system', ctx.now());

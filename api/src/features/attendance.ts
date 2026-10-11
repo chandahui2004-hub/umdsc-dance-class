@@ -172,17 +172,6 @@ export function getAttendanceRoutes(): Record<string, Route> {
           ...(matchedStyle ? [matchedStyle.id, matchedStyle.name] : [])
         ]);
 
-        const validMemberIds = new Set(
-          readEventMembers(ctx, event)
-            .filter(m => isMemberEnrolledInStyle(m, styleId, allStyles))
-            .map(m => m.memberId)
-        );
-        for (const m of marks) {
-          if (!validMemberIds.has(m.memberId)) {
-            throw new AppError('VALIDATION', `Member ${m.memberId} is not registered in style ${styleId}`);
-          }
-        }
-
         let rec = ctx.db.attendanceSheets.find(
           s => s.eventId === eventId && targetStyleIds.has(s.styleId) && s.active
         )[0];
@@ -209,6 +198,20 @@ export function getAttendanceRoutes(): Record<string, Route> {
         const keyRow = [...data[0]];
         const memberIdColIdx = keyRow.indexOf('memberId');
         const applied: string[] = [];
+
+        // Who the page shows: dancers registered in the style, and anyone already on its sheet
+        // (e.g. moved to another style after attending here). One refusal fails the whole batch.
+        const validMemberIds = new Set([
+          ...readEventMembers(ctx, event)
+            .filter(m => isMemberEnrolledInStyle(m, styleId, allStyles))
+            .map(m => m.memberId),
+          ...data.slice(2).map((r: string[]) => r[memberIdColIdx]).filter(Boolean)
+        ]);
+        for (const m of marks) {
+          if (!validMemberIds.has(m.memberId)) {
+            throw new AppError('VALIDATION', `Member ${m.memberId} is not registered in style ${styleId}`);
+          }
+        }
 
         for (const mark of marks) {
           if (mark.opId && ctx.cache.get('op:' + mark.opId)) {
