@@ -109,6 +109,10 @@ export function getVideoRoutes(): Record<string, Route> {
           throw new AppError('FORBIDDEN', 'Permission denied for style: ' + session.styleId);
         }
 
+        // Two scans at once, or a scan right after an upload, must not list the same file twice
+        const listed = ctx.db.videos.find(v => v.driveFileId === driveFileId && v.active)[0];
+        if (listed) return listed;
+
         const info = ctx.drive.info(driveFileId);
         if (!info.exists || !info.canEdit) {
           throw new AppError(

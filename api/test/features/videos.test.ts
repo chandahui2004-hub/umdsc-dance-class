@@ -299,6 +299,19 @@ describe('Feature: Videos (features/videos)', () => {
     }
   });
 
+  it('registering a Drive file that is already listed returns the listed video instead of a second copy', () => {
+    const fileId = 'file_dup_1234567890123456789';
+    (ctx.drive as any).items.set(fileId, { id: fileId, kind: 'file', name: 'Recap.mp4', canEdit: true, mimeType: 'video/mp4', sizeBytes: 1000 });
+    const register = () =>
+      handleRequest({ action: 'videos.register', token: adminToken, payload: { driveFileId: fileId, sessionId: session1.id, title: 'Recap' } }, ctx, secrets);
+
+    const first = register();
+    const second = register();
+
+    expect(second.ok && (second.data as any).id).toBe(first.ok && (first.data as any).id);
+    expect(ctx.db.videos.find(v => v.driveFileId === fileId && v.active)).toHaveLength(1);
+  });
+
   describe('videos.deactivate also removes the file from Google Drive', () => {
     const registerVideo = (fileId: string, extra: Record<string, unknown> = {}) => {
       (ctx.drive as any).items.set(fileId, {
