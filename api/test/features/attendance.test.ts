@@ -158,7 +158,7 @@ describe('Feature: Attendance (features/attendance)', () => {
     const res = call('attendance.ensureSheets', { eventId: event.id });
 
     expect(res.ok).toBe(true);
-    const folder = ctx.drive.findChildFolder(master, 'OCT MONTHLY CLASS');
+    const folder = ctx.drive.findChildFolder(ctx.drive.findChildFolder(master, '2026')!, 'OCT MONTHLY CLASS');
     const rec = ctx.db.attendanceSheets.find(a => a.eventId === event.id && a.styleId === 'st_popping')[0];
     expect(res.ok && (res.data as any).sheets).toEqual([{ styleId: 'st_popping', spreadsheetId: rec.spreadsheetId }]);
     expect((ctx.drive as any).parentOf(rec.spreadsheetId)).toBe(folder);

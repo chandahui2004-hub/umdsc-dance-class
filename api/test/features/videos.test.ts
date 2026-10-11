@@ -138,11 +138,24 @@ describe('Feature: Videos (features/videos)', () => {
       expect(res.data).toEqual({
         videoMasterFolderId: 'fld_popping_drive',
         eventFolderId: '',
+        yearFolderName: '2026',
         eventFolderName: 'OCT MONTHLY CLASS',
         classFolderName: '2026-10-06 Popping Class 1',
         musicFolderName: 'Music'
       });
     }
+  });
+
+  it('targetFolder finds the event folder inside its year folder before an older one straight under the style folder', () => {
+    const drive = ctx.drive as any;
+    drive.items.set('fld_popping_drive', { id: 'fld_popping_drive', kind: 'folder', name: 'Popping', canEdit: true });
+    drive.createFolder('fld_popping_drive', 'OCT MONTHLY CLASS');
+    const yearFolder = drive.createFolder('fld_popping_drive', '2026');
+    const inYear = drive.createFolder(yearFolder, 'OCT MONTHLY CLASS');
+
+    const res = handleRequest({ action: 'videos.targetFolder', token: adminToken, payload: { sessionId: session1.id } }, ctx, secrets);
+
+    expect(res.ok && (res.data as any).eventFolderId).toBe(inYear);
   });
 
   it('targetFolder throws VALIDATION when style.videoFolderId is missing', () => {

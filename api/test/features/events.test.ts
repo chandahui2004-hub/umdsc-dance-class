@@ -76,7 +76,7 @@ describe('Feature: events (features/events)', () => {
 
     expect(res.ok).toBe(true);
     const { event, sheets } = res.ok ? (res.data as any) : ({} as any);
-    const folder = drive.findChildFolder(master, 'OCT MONTHLY CLASS');
+    const folder = drive.findChildFolder(drive.findChildFolder(master, '2026')!, 'OCT MONTHLY CLASS');
     expect(event.folderId).toBe(folder);
     expect(event.status).toBe('active');
     expect(drive.parentOf(event.membersSpreadsheetId)).toBe(folder);
@@ -350,6 +350,18 @@ describe('Feature: events (features/events)', () => {
       expect(drive.nameOf(fresh().folderId)).toBe('OCT MONTHLY CLASS 2026');
     });
 
+    it('start date moved into another year moves the attendance and style video folders to that year', () => {
+      const styleFolder = drive.createFolder('root', 'Popping videos');
+      const style = ctx.db.styles.find(s => s.id === 'st_popping')[0];
+      ctx.db.styles.update(style.id, style.version, { videoFolderId: styleFolder }, 'system', ctx.now());
+      const videoFolder = drive.createFolder(drive.createFolder(styleFolder, '2026'), 'OCT MONTHLY CLASS');
+
+      expect(update({ startDate: '2025-12-15' }).ok).toBe(true);
+
+      expect(drive.parentOf(fresh().folderId)).toBe(drive.findChildFolder(master, '2025'));
+      expect(drive.parentOf(videoFolder)).toBe(drive.findChildFolder(styleFolder, '2025'));
+    });
+
     it('date change blocked by classes outside range, lists them', () => {
       const res = update({ endDate: '2026-10-10' });
       expect(res.ok).toBe(false);
@@ -404,7 +416,7 @@ describe('Feature: events (features/events)', () => {
       expect(res.ok).toBe(true);
       const folder = fresh().folderId;
       expect(folder).not.toBe(oldFolder);
-      expect(drive.parentOf(folder)).toBe(master);
+      expect(drive.parentOf(folder)).toBe(drive.findChildFolder(master, '2026'));
       expect(drive.parentOf(fresh().membersSpreadsheetId)).toBe(folder);
       for (const a of ctx.db.attendanceSheets.find(x => x.eventId === event.id)) {
         expect(drive.parentOf(a.spreadsheetId)).toBe(folder);

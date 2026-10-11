@@ -2,7 +2,7 @@ import { Route } from '../router';
 import { AppError } from '../errors';
 import { validateLink } from '../logic/linkValidation';
 import { logAudit } from '../logic/audit';
-import { moveEventFolders } from './eventSheets';
+import { moveEventFolders, moveStyleVideoFoldersIntoYears } from './eventSheets';
 
 const MASTER_FOLDER_KINDS: Record<string, 'attendance' | 'video'> = {
   defaultAttendanceFolderId: 'attendance',
@@ -83,6 +83,20 @@ export function getSettingsRoutes(): Record<string, Route> {
       handler: (ctx, auth, payload: any) => {
         const setLinkRoute = getSettingsRoutes()['settings.setLink'];
         return setLinkRoute.handler(ctx, auth, payload);
+      }
+    },
+
+    // One-off tidy-up: files event folders made before year folders existed under their year.
+    'settings.organizeFoldersByYear': {
+      perm: 'settings.edit',
+      write: true,
+      bumpsData: true,
+      handler: (ctx, auth) => {
+        const attendanceMaster = ctx.db.settings.find(s => s.key === 'defaultAttendanceFolderId' && s.active)[0]?.value;
+        const attendance = attendanceMaster ? moveEventFolders(ctx, 'attendance', attendanceMaster) : null;
+        const videos = moveStyleVideoFoldersIntoYears(ctx);
+        logAudit(ctx, auth?.claims?.sub || 'system', 'settings.organizeFoldersByYear', '', JSON.stringify({ attendance, videos }));
+        return { attendance, videos };
       }
     },
 

@@ -5,6 +5,7 @@ import { logAudit } from '../logic/audit';
 import { can } from '../logic/permissions';
 import { getEvent } from './eventMembers';
 import { dancerCanSee, onLiveClass } from './bootstrap';
+import { eventYear, findStyleEventFolder } from './eventSheets';
 
 export function getVideoRoutes(): Record<string, Route> {
   return {
@@ -74,11 +75,12 @@ export function getVideoRoutes(): Record<string, Route> {
         }
 
         const event = getEvent(ctx, session.eventId);
-        const eventFolderId = ctx.drive.findChildFolder(style.videoFolderId, event.name) || '';
+        const eventFolderId = findStyleEventFolder(ctx, style.videoFolderId, event) || '';
 
         return {
           videoMasterFolderId: style.videoFolderId,
           eventFolderId,
+          yearFolderName: eventYear(ctx, event),
           eventFolderName: event.name,
           classFolderName: `${session.date} ${style.name} Class ${session.seq}`,
           musicFolderName: 'Music'
@@ -220,11 +222,11 @@ export function getVideoRoutes(): Record<string, Route> {
           throw new AppError('NOT_FOUND', `Style not found: ${styleId}`);
         }
 
-        // Scan only under the dance style's own video folder, inside the child folder named after the event.
+        // Scan only under the dance style's own video folder, inside the event's folder (› <year> › <event>).
         if (!style.videoFolderId) {
           return [];
         }
-        const rootFolderId = ctx.drive.findChildFolder(style.videoFolderId, event.name);
+        const rootFolderId = findStyleEventFolder(ctx, style.videoFolderId, event);
         if (!rootFolderId) {
           return [];
         }

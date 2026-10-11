@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { makeCtx } from '../fakes/makeCtx';
 import { FakeDrive } from '../fakes/fakeDrive';
 import { seedEvent, seedSourceSheet } from '../fixtures/events';
-import { ensureEventSheets, moveEventFolders } from '../../src/features/eventSheets';
+import { ensureEventSheets, moveEventFolders, moveStyleVideoFoldersIntoYears } from '../../src/features/eventSheets';
 import { previewSource } from '../../src/features/eventSource';
 
 describe('event sheets and source', () => {
@@ -36,7 +36,9 @@ describe('event sheets and source', () => {
 
     const sheets = ensureEventSheets(ctx, event);
 
-    const folder = drive.findChildFolder(master, 'OCT MONTHLY CLASS');
+    const year = drive.findChildFolder(master, '2026')!;
+    expect(year).toBeTruthy();
+    const folder = drive.findChildFolder(year, 'OCT MONTHLY CLASS');
     expect(folder).toBeTruthy();
     expect(sheets).toEqual([{ styleId: 'st_popping', spreadsheetId: stray.id }]);
     expect(drive.parentOf(stray.id)).toBe(folder);
@@ -46,6 +48,7 @@ describe('event sheets and source', () => {
     let masterA: string;
     const children = (parent: string, name: string) =>
       [...(drive as any).items.values()].filter((i: any) => i.parentId === parent && i.name === name);
+    const year2026 = (master: string) => drive.findChildFolder(master, '2026');
 
     beforeEach(() => {
       masterA = drive.createFolder('root', 'Attendance A');
@@ -66,22 +69,22 @@ describe('event sheets and source', () => {
       const result = moveEventFolders(ctx, 'attendance', masterB);
 
       expect(result).toEqual({ moved: 2, created: 0, reused: 0, failed: [] });
-      expect(drive.parentOf(e1.folderId)).toBe(masterB);
-      expect(drive.parentOf(e2.folderId)).toBe(masterB);
-      expect(children(masterB, 'OCT MONTHLY CLASS').length).toBe(1);
+      expect(drive.parentOf(e1.folderId)).toBe(year2026(masterB));
+      expect(drive.parentOf(e2.folderId)).toBe(year2026(masterB));
+      expect(children(year2026(masterB)!, 'OCT MONTHLY CLASS').length).toBe(1);
       expect(ctx.db.events.get(e1.id)!.folderId).toBe(e1.folderId);
     });
 
     it('master re-pointed to a folder already holding the event folder reuses it (Review Focus 5)', () => {
       const e1 = eventWithSheets('OCT MONTHLY CLASS');
       const masterB = drive.createFolder('root', 'Attendance B');
-      const already = drive.createFolder(masterB, 'OCT MONTHLY CLASS');
+      const already = drive.createFolder(drive.createFolder(masterB, '2026'), 'OCT MONTHLY CLASS');
 
       const result = moveEventFolders(ctx, 'attendance', masterB);
 
       expect(result).toEqual({ moved: 0, created: 0, reused: 1, failed: [] });
-      expect(drive.findChildFolder(masterB, 'OCT MONTHLY CLASS')).toBe(already);
-      expect(children(masterB, 'OCT MONTHLY CLASS').length).toBe(1);
+      expect(drive.findChildFolder(year2026(masterB)!, 'OCT MONTHLY CLASS')).toBe(already);
+      expect(children(year2026(masterB)!, 'OCT MONTHLY CLASS').length).toBe(1);
       const updated = ctx.db.events.get(e1.id)!;
       expect(updated.folderId).toBe(already);
       expect(drive.parentOf(updated.membersSpreadsheetId)).toBe(already);
@@ -99,7 +102,7 @@ describe('event sheets and source', () => {
 
       expect(result).toEqual({ moved: 0, created: 1, reused: 0, failed: [] });
       const updated = ctx.db.events.get(e1.id)!;
-      expect(drive.parentOf(updated.folderId)).toBe(masterB);
+      expect(drive.parentOf(updated.folderId)).toBe(year2026(masterB));
       expect(drive.parentOf(updated.membersSpreadsheetId)).toBe(updated.folderId);
     });
 
@@ -108,12 +111,12 @@ describe('event sheets and source', () => {
       drive.trash(e1.folderId);
 
       expect(drive.info(e1.folderId).exists).toBe(false);
-      expect(drive.findChildFolder(masterA, 'OCT MONTHLY CLASS')).toBeNull();
+      expect(drive.findChildFolder(year2026(masterA)!, 'OCT MONTHLY CLASS')).toBeNull();
 
       ensureEventSheets(ctx, ctx.db.events.get(e1.id)!);
       const updated = ctx.db.events.get(e1.id)!;
       expect(updated.folderId).not.toBe(e1.folderId);
-      expect(drive.parentOf(updated.folderId)).toBe(masterA);
+      expect(drive.parentOf(updated.folderId)).toBe(year2026(masterA));
       for (const a of ctx.db.attendanceSheets.find(x => x.eventId === e1.id)) {
         expect(drive.parentOf(a.spreadsheetId)).toBe(updated.folderId);
       }
@@ -127,7 +130,67 @@ describe('event sheets and source', () => {
       const result = moveEventFolders(ctx, 'video', videoB);
 
       expect(result).toEqual({ moved: 1, created: 0, reused: 0, failed: [] });
-      expect(drive.parentOf(withVideo.videoFolderId)).toBe(videoB);
+      expect(drive.parentOf(withVideo.videoFolderId)).toBe(year2026(videoB));
+    });
+
+    it('an older event folder straight under the master is filed into its year folder', () => {
+      const e1 = eventWithSheets('OCT MONTHLY CLASS');
+      drive.moveFolder(e1.folderId, masterA);
+
+      const result = moveEventFolders(ctx, 'attendance', masterA);
+
+      expect(result).toEqual({ moved: 1, created: 0, reused: 0, failed: [] });
+      expect(drive.parentOf(e1.folderId)).toBe(year2026(masterA));
+      expect(drive.findChildFolder(masterA, 'OCT MONTHLY CLASS')).toBeNull();
+    });
+
+    it('an un-yeared folder of the same name in the new master is reused and filed into its year', () => {
+      const e1 = eventWithSheets('OCT MONTHLY CLASS');
+      const masterB = drive.createFolder('root', 'Attendance B');
+      const older = drive.createFolder(masterB, 'OCT MONTHLY CLASS');
+
+      const result = moveEventFolders(ctx, 'attendance', masterB);
+
+      expect(result).toEqual({ moved: 0, created: 0, reused: 1, failed: [] });
+      expect(drive.parentOf(older)).toBe(year2026(masterB));
+      expect(ctx.db.events.get(e1.id)!.folderId).toBe(older);
+    });
+
+    it('events are filed by the year they start in', () => {
+      const e1 = seedEvent(ctx, { name: 'DEC WORKSHOP', startDate: '2026-12-20', endDate: '2027-01-10', styleIds: ['st_popping'] });
+      const e2 = seedEvent(ctx, { name: 'FEB MONTHLY CLASS', startDate: '2027-02-01', endDate: '2027-02-28', styleIds: ['st_popping'] });
+      ensureEventSheets(ctx, e1);
+      ensureEventSheets(ctx, e2);
+
+      expect(drive.parentOf(ctx.db.events.get(e1.id)!.folderId)).toBe(drive.findChildFolder(masterA, '2026'));
+      expect(drive.parentOf(ctx.db.events.get(e2.id)!.folderId)).toBe(drive.findChildFolder(masterA, '2027'));
+      expect(children(masterA, '2027').length).toBe(1);
+    });
+  });
+
+  describe('moveStyleVideoFoldersIntoYears', () => {
+    it('moves each style event folder into its year folder and reports folders it cannot move', () => {
+      const styleFolder = drive.createFolder('root', 'Popping videos');
+      const style = ctx.db.styles.find(s => s.id === 'st_popping')[0];
+      ctx.db.styles.update(style.id, style.version, { videoFolderId: styleFolder }, 'system', ctx.now());
+      seedEvent(ctx, { name: 'OCT MONTHLY CLASS' });
+      seedEvent(ctx, { name: 'TRIAL CLASS' });
+      const oct = drive.createFolder(styleFolder, 'OCT MONTHLY CLASS');
+      const trial = drive.createFolder(styleFolder, 'TRIAL CLASS');
+      drive.failMovesFor.add(trial);
+
+      const result = moveStyleVideoFoldersIntoYears(ctx);
+
+      expect(result.moved).toBe(1);
+      expect(result.failed).toEqual([
+        { styleName: 'Popping', eventName: 'TRIAL CLASS', message: 'Access denied: cannot move this folder' }
+      ]);
+      expect(drive.parentOf(oct)).toBe(drive.findChildFolder(styleFolder, '2026'));
+      expect(drive.parentOf(trial)).toBe(styleFolder);
+
+      drive.failMovesFor.delete(trial);
+      expect(moveStyleVideoFoldersIntoYears(ctx)).toEqual({ moved: 1, failed: [] });
+      expect(drive.parentOf(trial)).toBe(drive.findChildFolder(styleFolder, '2026'));
     });
   });
 

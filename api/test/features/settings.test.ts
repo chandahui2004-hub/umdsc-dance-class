@@ -258,12 +258,12 @@ describe('Feature: Settings and Links', () => {
 
     const first = save();
     expect(first.ok && first.data).toMatchObject({ moved: 1, failed: [{ eventName: 'OCT' }] });
-    expect(drive.parentOf(f2)).toBe(newMaster);
+    expect(drive.parentOf(f2)).toBe(drive.findChildFolder(newMaster, '2026'));
 
     drive.failMovesFor.clear();
     const retry = save();
     expect(retry.ok && retry.data).toMatchObject({ moved: 1, failed: [] });
-    expect(drive.parentOf(f1)).toBe(newMaster);
+    expect(drive.parentOf(f1)).toBe(drive.findChildFolder(newMaster, '2026'));
   });
 
   it('changing the attendance master folder moves event folders and reports counts', () => {
@@ -281,6 +281,24 @@ describe('Feature: Settings and Links', () => {
 
     expect(res.ok).toBe(true);
     if (res.ok) expect(res.data).toMatchObject({ key: 'defaultAttendanceFolderId', value: newMaster, moved: 1, created: 0, reused: 0 });
-    expect(drive.parentOf(eventFolder)).toBe(newMaster);
+    expect(drive.parentOf(eventFolder)).toBe(drive.findChildFolder(newMaster, '2026'));
+  });
+
+  it('organizeFoldersByYear files older attendance and style video folders under their year', () => {
+    const drive = ctx.drive as any;
+    const master = drive.createFolder('root', 'Attendance');
+    ctx.db.settings.insert({ key: 'defaultAttendanceFolderId', value: master }, 'system', ctx.now());
+    const eventFolder = drive.createFolder(master, 'OCT MONTHLY CLASS');
+    seedEvent(ctx, { name: 'OCT MONTHLY CLASS', folderId: eventFolder });
+    const styleFolder = drive.createFolder('root', 'Popping videos');
+    ctx.db.styles.insert({ id: 'st_pop', name: 'Popping', aliases: [], colorKey: 'blue', defaultWeekday: null, defaultStart: '',
+      defaultEnd: '', defaultInstructorId: '', defaultVenue: '', attendanceFolderId: '', videoFolderId: styleFolder } as any, 'system', ctx.now());
+    const videoFolder = drive.createFolder(styleFolder, 'OCT MONTHLY CLASS');
+
+    const res = handleRequest({ action: 'settings.organizeFoldersByYear', token: adminToken, payload: {} }, ctx, secrets);
+
+    expect(res.ok && res.data).toMatchObject({ attendance: { moved: 1, failed: [] }, videos: { moved: 1, failed: [] } });
+    expect(drive.parentOf(eventFolder)).toBe(drive.findChildFolder(master, '2026'));
+    expect(drive.parentOf(videoFolder)).toBe(drive.findChildFolder(styleFolder, '2026'));
   });
 });

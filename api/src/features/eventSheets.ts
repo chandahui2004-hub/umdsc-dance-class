@@ -5,6 +5,7 @@ import { MEMBERS_COLUMNS } from '../db/schema';
 import { buildLayout, planSync, sessionLabel } from '../logic/attendanceGrid';
 import { readEventMembers } from './eventMembers';
 import { isMemberEnrolledInStyle } from '../logic/styleMatcher';
+import { todayKL } from '../logic/events';
 
 /**
  * Saves system bookkeeping on an event (sync status, counts, folder and sheet ids).
@@ -33,13 +34,34 @@ function attendanceMaster(ctx: Ctx): string {
   return master;
 }
 
-/** The event's folder: its saved folder if it still exists, else the master's child named after the event. */
+/** The year an event's folders are filed under: the year it starts in. */
+export function eventYear(ctx: Ctx, event: Pick<EventItem, 'startDate'>): string {
+  return /^\d{4}/.test(event.startDate || '') ? event.startDate.slice(0, 4) : todayKL(ctx.now()).slice(0, 4);
+}
+
+/** The year folder (for example `2026`) under a master folder, created if missing. */
+export function ensureYearFolder(ctx: Ctx, parentId: string, event: Pick<EventItem, 'startDate'>): string {
+  const year = eventYear(ctx, event);
+  return ctx.drive.findChildFolder(parentId, year) || ctx.drive.createFolder(parentId, year);
+}
+
+/**
+ * A style's video folder for this event: `style folder › <year> › <event>`, else an
+ * older one made straight under the style folder before folders were grouped by year.
+ */
+export function findStyleEventFolder(ctx: Ctx, styleFolderId: string, event: EventItem): string | null {
+  const yearId = ctx.drive.findChildFolder(styleFolderId, eventYear(ctx, event));
+  return (yearId && ctx.drive.findChildFolder(yearId, event.name)) || ctx.drive.findChildFolder(styleFolderId, event.name);
+}
+
+/** The event's folder: its saved folder if it still exists, else `master › <year> › <event name>`. */
 export function ensureEventFolder(ctx: Ctx, event: EventItem): string {
   const master = attendanceMaster(ctx);
   if (event.folderId && ctx.drive.info(event.folderId).exists) {
     return event.folderId;
   }
-  const folderId = ctx.drive.findChildFolder(master, event.name) || ctx.drive.createFolder(master, event.name);
+  const yearId = ensureYearFolder(ctx, master, event);
+  const folderId = ctx.drive.findChildFolder(yearId, event.name) || ctx.drive.createFolder(yearId, event.name);
   saveEventFields(ctx, event.id, { folderId });
   return folderId;
 }
@@ -60,8 +82,9 @@ export function ensureMembersSheet(ctx: Ctx, event: EventItem, folderId: string)
 
 /**
  * After a master folder link changes, puts every event's folder (active and archived)
- * under the new master: reuse a same-named folder already there, else move the
- * existing folder, else create one. Attendance folders also get their sheets moved in.
+ * under the new master's year folder: reuse a same-named folder already there, else
+ * move the existing folder, else create one. Attendance folders also get their sheets
+ * moved in. Saving the same link again files older event folders under their year.
  */
 export function moveEventFolders(
   ctx: Ctx,
@@ -93,17 +116,26 @@ function moveOneEventFolder(
   const currentId = kind === 'attendance' ? event.folderId : event.videoFolderId;
   if (kind === 'video' && !currentId) return;
 
-  let target = ctx.drive.findChildFolder(newMasterId, event.name);
+  const yearId = ensureYearFolder(ctx, newMasterId, event);
+  let target = ctx.drive.findChildFolder(yearId, event.name);
+  if (!target) {
+    // An event folder made straight under the master, before folders were grouped by year
+    const older = ctx.drive.findChildFolder(newMasterId, event.name);
+    if (older && older !== currentId) {
+      ctx.drive.moveFolder(older, yearId);
+      target = older;
+    }
+  }
   if (target && target !== currentId) {
     counts.reused++;
   } else if (target) {
     return; // already in place
   } else if (currentId && ctx.drive.info(currentId).exists) {
-    ctx.drive.moveFolder(currentId, newMasterId);
+    ctx.drive.moveFolder(currentId, yearId);
     target = currentId;
     counts.moved++;
   } else {
-    target = ctx.drive.createFolder(newMasterId, event.name);
+    target = ctx.drive.createFolder(yearId, event.name);
     counts.created++;
   }
 
@@ -118,6 +150,61 @@ function moveOneEventFolder(
   ];
   for (const fileId of files) {
     if (fileId && ctx.drive.info(fileId).exists) ctx.drive.moveToFolder(fileId, target);
+  }
+}
+
+/**
+ * Files every event's video folder in each dance style's video folder under its year:
+ * `style folder › <event>` moves to `style folder › <year> › <event>`. Folders the club
+ * Gmail cannot move are reported and left where they are; running again retries them.
+ */
+export function moveStyleVideoFoldersIntoYears(
+  ctx: Ctx
+): { moved: number; failed: { styleName: string; eventName: string; message: string }[] } {
+  const counts = { moved: 0, failed: [] as { styleName: string; eventName: string; message: string }[] };
+  const events = ctx.db.events.find(e => e.active);
+
+  for (const style of ctx.db.styles.find(s => s.active && Boolean(s.videoFolderId))) {
+    for (const event of events) {
+      try {
+        const old = ctx.drive.findChildFolder(style.videoFolderId, event.name);
+        if (!old) continue;
+        const yearId = ensureYearFolder(ctx, style.videoFolderId, event);
+        if (ctx.drive.findChildFolder(yearId, event.name)) {
+          throw new Error(`"${event.name}" is already in the ${eventYear(ctx, event)} folder; move the files across by hand`);
+        }
+        ctx.drive.moveFolder(old, yearId);
+        counts.moved++;
+      } catch (err) {
+        counts.failed.push({
+          styleName: style.name,
+          eventName: event.name,
+          message: err instanceof Error ? err.message : String(err)
+        });
+      }
+    }
+  }
+
+  return counts;
+}
+
+/**
+ * After an event's start date moves to another year, moves its attendance folder and
+ * each style's video folder into the new year's folder. `updated` already has the new
+ * name, so the video folders are looked up by the old event.
+ */
+export function refileEventYear(ctx: Ctx, old: EventItem, updated: EventItem): void {
+  const master = ctx.db.settings.find(s => s.key === 'defaultAttendanceFolderId' && s.active)[0]?.value;
+  if (master && updated.folderId && ctx.drive.info(updated.folderId).exists) {
+    ctx.drive.moveFolder(updated.folderId, ensureYearFolder(ctx, master, updated));
+  }
+  for (const style of ctx.db.styles.find(s => s.active && Boolean(s.videoFolderId))) {
+    try {
+      const folderId = findStyleEventFolder(ctx, style.videoFolderId, old);
+      if (folderId) ctx.drive.moveFolder(folderId, ensureYearFolder(ctx, style.videoFolderId, updated));
+    } catch {
+      // A class lead's folder the club Gmail cannot move stays put; uploads still find it.
+    }
   }
 }
 

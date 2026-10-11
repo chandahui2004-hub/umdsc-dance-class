@@ -61,13 +61,15 @@ export interface ClassFolderTarget {
   videoMasterFolderId: string;
   /** The event's saved video folder, or '' if none yet. */
   eventFolderId: string;
+  /** The year folder the event folder is filed under, for example `2026`. */
+  yearFolderName?: string;
   eventFolderName: string;
   classFolderName: string;
   musicFolderName: string;
 }
 
 /**
- * Finds or creates `Video master › <event> › <class>` (and `› Music` for audio).
+ * Finds or creates `Video master › <year> › <event> › <class>` (and `› Music` for audio).
  * The returned eventFolderId is saved on the event by videos.register.
  */
 export async function ensureClassFolder(
@@ -76,7 +78,8 @@ export async function ensureClassFolder(
   kind: 'video' | 'mp3'
 ): Promise<{ eventFolderId: string; classFolderId: string; musicFolderId?: string }> {
   const eventFolderId =
-    target.eventFolderId || (await ensureFolderPath(token, target.videoMasterFolderId, [target.eventFolderName]));
+    target.eventFolderId ||
+    (await ensureFolderPath(token, target.videoMasterFolderId, [target.yearFolderName || '', target.eventFolderName]));
   const classFolderId = await ensureFolderPath(token, eventFolderId, [target.classFolderName]);
   if (kind === 'video') {
     return { eventFolderId, classFolderId };

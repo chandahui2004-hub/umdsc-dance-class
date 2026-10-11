@@ -7,7 +7,7 @@ import { isDue } from '../logic/retention';
 import { validateLink } from '../logic/linkValidation';
 import { logAudit } from '../logic/audit';
 import { previewSource, openSourceTab } from './eventSource';
-import { ensureEventFolder, ensureMembersSheet, ensureEventSheets, saveEventFields } from './eventSheets';
+import { ensureEventFolder, ensureMembersSheet, ensureEventSheets, saveEventFields, eventYear, refileEventYear } from './eventSheets';
 import { getEvent, readEventMembers } from './eventMembers';
 import { importEventMembers, sourceUnchanged } from './eventImport';
 import { withScriptLock } from '../db/lock';
@@ -173,6 +173,9 @@ export function getEventRoutes(): Record<string, Route> {
           if (existing.videoFolderId && ctx.drive.info(existing.videoFolderId).exists) {
             ctx.drive.renameFolder(existing.videoFolderId, next.name);
           }
+        }
+        if (eventYear(ctx, updated) !== eventYear(ctx, existing)) {
+          refileEventYear(ctx, existing, updated);
         }
         if (next.endDate !== existing.endDate) {
           recalculateLastEventEnd(ctx, updated);

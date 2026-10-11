@@ -119,4 +119,14 @@ describe('ensureClassFolder', () => {
     expect(created[0].parent).toBe('video-master');
     expect(result).toEqual({ eventFolderId: 'new-1', classFolderId: 'new-2', musicFolderId: 'new-3' });
   });
+
+  it('files a new event folder under its year folder, reusing the year folder if it exists', async () => {
+    const created = fakeDrive({ 'video-master': [{ id: 'year-2026', name: '2026' }] });
+    const result = await ensureClassFolder('tok', { ...target, yearFolderName: '2026' }, 'video');
+    expect(created).toEqual([
+      { name: 'OCT MONTHLY CLASS', parent: 'year-2026' },
+      { name: '2026-10-08 Popping Class 1', parent: 'new-1' }
+    ]);
+    expect(result).toEqual({ eventFolderId: 'new-1', classFolderId: 'new-2' });
+  });
 });
