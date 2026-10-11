@@ -51,6 +51,11 @@ describe('normalize', () => {
       ['nur aisyah', 'NUR NUR AISYAH', false],
       ['nur nur aisyah', 'NUR NUR AISYAH', true],
       ['tan ah kow', 'TAN AH KOW', true], ['tan ah', 'TAN AH KOW', false], ['tan ah kaw', 'TAN AH KOW', false],
+      // A name written only in another script must be typed the same (spaces ignored)
+      ['陈伟明', '陈伟明', true], ['陈 伟明', '陈伟明', true], ['陈伟', '陈伟明', false], ['chen wei ming', '陈伟明', false],
+      ['محمد علي', 'محمد علي', true],
+      // Mixed: the Latin part is what counts, as before
+      ['tan wei ming', 'TAN WEI MING 陈伟明', true],
     ])('fullNameMatches(%j, %j) = %s', (typed, registered, expected) => {
       expect(fullNameMatches(typed, registered)).toBe(expected);
     });

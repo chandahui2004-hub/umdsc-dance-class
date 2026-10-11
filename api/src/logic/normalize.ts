@@ -83,6 +83,12 @@ export function fullNameMatches(typed: string, registered: string): boolean {
   const typedTokens = extractTokens(typed);
   const registeredTokens = extractTokens(registered);
 
+  // A name with no a-z letters (e.g. written in Chinese or Arabic) has no tokens: it must be typed the same
+  if (registeredTokens.length === 0) {
+    const plain = (s: string) => s.normalize('NFC').replace(/\s+/g, '').toLowerCase();
+    return plain(registered) !== '' && plain(typed) === plain(registered);
+  }
+
   if (typedTokens.length === 0 || registeredTokens.length === 0) return false;
 
   const usedTypedIndices = new Set<number>();
