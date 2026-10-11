@@ -152,7 +152,7 @@ describe('Feature: events (features/events)', () => {
       }));
 
       expect(res.ok).toBe(false);
-      if (!res.ok) expect(res.error.message).toBe("VALIDATION: Lam doesn't teach Locking.");
+      if (!res.ok) expect(res.error.message).toBe("Lam doesn't teach Locking.");
       expect(ctx.db.events.all().length).toBe(0);
     });
 
@@ -164,7 +164,7 @@ describe('Feature: events (features/events)', () => {
       }));
 
       expect(res.ok).toBe(false);
-      if (!res.ok) expect(res.error.message).toBe('VALIDATION: Choose at least one instructor for Locking.');
+      if (!res.ok) expect(res.error.message).toBe('Choose at least one instructor for Locking.');
       expect(ctx.db.events.all().length).toBe(0);
     });
 
@@ -172,7 +172,7 @@ describe('Feature: events (features/events)', () => {
       const gone = addInstructor('Gone', ['st_popping'], false);
       const res = call('events.create', one({ styleInstructors: { st_popping: [gone], st_hiphop: [lam] } }));
       expect(res.ok).toBe(false);
-      if (!res.ok) expect(res.error.message).toBe("VALIDATION: Gone doesn't teach Popping.");
+      if (!res.ok) expect(res.error.message).toBe("Gone doesn't teach Popping.");
 
       const unknown = call('events.create', one({ styleInstructors: { st_popping: ['ins_nope'], st_hiphop: [lam] } }));
       expect(unknown.ok).toBe(false);
@@ -197,7 +197,7 @@ describe('Feature: events (features/events)', () => {
       }));
 
       expect(res.ok).toBe(false);
-      if (!res.ok) expect(res.error.message).toBe("VALIDATION: Kelvin isn't an instructor for Latin in this event.");
+      if (!res.ok) expect(res.error.message).toBe("Kelvin isn't an instructor for Latin in this event.");
       expect(ctx.db.events.all().length).toBe(0);
     });
 
@@ -244,7 +244,7 @@ describe('Feature: events (features/events)', () => {
       it('refuses a style left with no instructors', () => {
         const res = update({ styleIds: ['st_popping', 'st_locking'], styleInstructors: { st_popping: [kelvin] } });
         expect(res.ok).toBe(false);
-        if (!res.ok) expect(res.error.message).toBe('VALIDATION: Choose at least one instructor for Locking.');
+        if (!res.ok) expect(res.error.message).toBe('Choose at least one instructor for Locking.');
         expect(fresh().styleIds).toEqual(['st_popping', 'st_hiphop']);
       });
 
@@ -269,7 +269,7 @@ describe('Feature: events (features/events)', () => {
         const other = ctx.db.instructors.find(i => i.name === 'Other')[0].id;
         const res = update({ styleInstructors: { st_popping: [kelvin, other], st_hiphop: [lam] } });
         expect(res.ok).toBe(false);
-        if (!res.ok) expect(res.error.message).toBe("VALIDATION: Other doesn't teach Popping.");
+        if (!res.ok) expect(res.error.message).toBe("Other doesn't teach Popping.");
       });
 
       it('does not require instructors for a style that has been deactivated', () => {
@@ -418,7 +418,7 @@ describe('Feature: events (features/events)', () => {
     it('date change blocked by classes outside range, lists them', () => {
       const res = update({ endDate: '2026-10-10' });
       expect(res.ok).toBe(false);
-      if (!res.ok) expect(res.error.message).toBe('VALIDATION: These classes are outside the new dates: 2026-10-13 Popping #2');
+      if (!res.ok) expect(res.error.message).toBe('These classes are outside the new dates: 2026-10-13 Popping #2');
       expect(fresh().endDate).toBe('2026-10-31');
     });
 

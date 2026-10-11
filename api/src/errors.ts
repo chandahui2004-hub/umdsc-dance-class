@@ -17,7 +17,8 @@ export function toErrorBody(err: unknown): { code: ErrorCode; message: string; r
   if (err instanceof AppError) {
     return {
       code: err.code,
-      message: err.message,
+      // The code is for the website; people read the message, so it goes without the "VALIDATION: " prefix
+      message: err.message.startsWith(`${err.code}: `) ? err.message.slice(err.code.length + 2) : err.message,
       retryable: err.retryable,
       latest: err.latest
     };

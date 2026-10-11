@@ -265,7 +265,7 @@ describe('Feature: Class Sessions (features/sessions)', () => {
     it('create refuses an instructor outside the list', () => {
       const res = call('sessions.create', newClass({ instructorId: outsider }));
       expect(res).toMatchObject({ ok: false, error: { code: 'VALIDATION' } });
-      if (!res.ok) expect(res.error.message).toBe("VALIDATION: Outsider isn't an instructor for st_popping in this event.");
+      if (!res.ok) expect(res.error.message).toBe("Outsider isn't an instructor for st_popping in this event.");
     });
 
     it('update refuses a new instructor outside the list', () => {

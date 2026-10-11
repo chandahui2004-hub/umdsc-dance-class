@@ -65,7 +65,7 @@ describe('Feature: Master Data (Styles & Instructors)', () => {
   const expectFailure = (res: any, message: string) => {
     expect(res.ok).toBe(false);
     expect(res.error.code).toBe('VALIDATION');
-    expect(res.error.message).toBe(`VALIDATION: ${message}`); // the router prefixes the code
+    expect(res.error.message).toBe(message); // shown to people, so without the code prefix
   };
 
   it('styles.list returns all active styles, accessible to signedIn users', () => {
