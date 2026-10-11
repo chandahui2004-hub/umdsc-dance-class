@@ -6,6 +6,7 @@ import { buildLayout, planSync, sessionLabel } from '../logic/attendanceGrid';
 import { readEventMembers } from './eventMembers';
 import { isMemberEnrolledInStyle } from '../logic/styleMatcher';
 import { todayKL } from '../logic/events';
+import { bumpAttendanceVersion } from '../logic/attendanceVersion';
 
 /**
  * Saves system bookkeeping on an event (sync status, counts, folder and sheet ids).
@@ -297,6 +298,9 @@ export function ensureEventSheets(ctx: Ctx, event: EventItem): { styleId: string
             })
           );
         }
+        if (appendColumns.length > 0 || appendRows.length > 0) {
+          bumpAttendanceVersion(ctx, current.id, rec.styleId);
+        }
       }
       result.push({ styleId, spreadsheetId: rec.spreadsheetId });
       continue;
@@ -316,6 +320,7 @@ export function ensureEventSheets(ctx: Ctx, event: EventItem): { styleId: string
     } else {
       ctx.db.attendanceSheets.insert({ eventId: current.id, styleId: effectiveStyleId, spreadsheetId: ss.id }, 'system', ctx.now());
     }
+    bumpAttendanceVersion(ctx, current.id, effectiveStyleId);
     result.push({ styleId: effectiveStyleId, spreadsheetId: ss.id });
   }
 

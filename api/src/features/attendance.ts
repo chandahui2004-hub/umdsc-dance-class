@@ -8,17 +8,15 @@ import { getEvent, readEventMembers } from './eventMembers';
 import { ensureEventSheets } from './eventSheets';
 import { isMemberEnrolledInStyle } from '../logic/styleMatcher';
 import { safeCachePut } from '../logic/cache';
+import { attendanceVersionKey as versionKey, bumpAttendanceVersion } from '../logic/attendanceVersion';
 
-const versionKey = (eventId: string, styleId: string) => `attv:${eventId}:${styleId}`;
+export { bumpAttendanceVersion };
+
 const gridKey = (eventId: string, styleId: string, ver: number) => `att:${eventId}:${styleId}:${ver}`;
 
-export function bumpAttendanceVersion(ctx: Ctx, eventId: string, styleId: string): number {
-  const next = Number(ctx.cache.get(versionKey(eventId, styleId)) || 1) + 1;
-  ctx.cache.put(versionKey(eventId, styleId), String(next), 86400 * 30);
-  return next;
-}
-
 export function attendanceRelabel(ctx: Ctx, session: ClassSession): void {
+  // The grid lists the style's classes, so any class change is a new version
+  bumpAttendanceVersion(ctx, session.eventId, session.styleId);
   const rec = ctx.db.attendanceSheets.find(
     s => s.eventId === session.eventId && s.styleId === session.styleId && s.active
   )[0];
@@ -32,7 +30,6 @@ export function attendanceRelabel(ctx: Ctx, session: ClassSession): void {
     const colIdx = data[0].indexOf(session.id);
     if (colIdx !== -1) {
       sheet.setValues(2, colIdx + 1, [[sessionLabel(session)]]);
-      bumpAttendanceVersion(ctx, session.eventId, session.styleId);
     }
   } catch (err) {
     console.error('Failed to relabel attendance session:', err);

@@ -117,6 +117,36 @@ describe('Feature: Attendance (features/attendance)', () => {
     }
   });
 
+  it('a class added after the page loaded: the next poll is not notModified and the grid shows it', () => {
+    const first = call('attendance.get', { eventId: event.id, styleId: 'st_popping' });
+    const ver = first.ok ? (first.data as any).version : 0;
+
+    const added = call('sessions.create', { eventId: event.id, styleId: 'st_popping', seq: 3, date: '2026-10-20', start: '20:00', end: '22:00' });
+    expect(added.ok).toBe(true);
+
+    const poll = call('attendance.get', { eventId: event.id, styleId: 'st_popping', ifVersion: ver });
+    expect(poll.ok && (poll.data as any).notModified).toBeFalsy();
+    expect(poll.ok && (poll.data as any).sessions.map((s: any) => s.seq)).toEqual([1, 2, 3]);
+  });
+
+  it('a dancer added to the sheet by a sync: the next poll is not notModified', () => {
+    const master = ctx.drive.createFolder('root', 'Attendance');
+    ctx.db.settings.insert({ key: 'defaultAttendanceFolderId', value: master }, 'system', ctx.now());
+    const first = call('attendance.get', { eventId: event.id, styleId: 'st_popping' });
+    const ver = first.ok ? (first.data as any).version : 0;
+
+    const membersSheet = ctx.drive.openSpreadsheet(ctx.db.events.get(event.id)!.membersSpreadsheetId).sheet('Members')!;
+    const header = membersSheet.getDisplayValues()[0];
+    const row = header.map(col => ({ memberId: 'M-22003333', fullName: 'Popper Three', matricRaw: '22003333', matricKey: '22003333',
+      nameKey: 'popper three', styleIds: 'st_popping', styleNames: 'Popping' } as any)[col] ?? '');
+    membersSheet.appendRows([row]);
+    expect(call('attendance.ensureSheets', { eventId: event.id }).ok).toBe(true);
+
+    const poll = call('attendance.get', { eventId: event.id, styleId: 'st_popping', ifVersion: ver });
+    expect(poll.ok && (poll.data as any).notModified).toBeFalsy();
+    expect(poll.ok && (poll.data as any).members.map((m: any) => m.fullName)).toContain('Popper Three');
+  });
+
   it('get with ifVersion equal to current → notModified', () => {
     const res1 = call('attendance.get', { eventId: event.id, styleId: 'st_popping' });
     expect(res1.ok).toBe(true);
