@@ -38,7 +38,7 @@ export function errorMessage(e: unknown): string {
       case 'VALIDATION':
         return e.message || 'Invalid data submitted.';
       case 'NOT_FOUND':
-        return 'The requested item was not found.';
+        return e.message || 'The requested item was not found.';
       case 'VERSION_CONFLICT':
         return 'Data was modified by someone else. Please refresh and try again.';
       case 'NAME_MISMATCH':

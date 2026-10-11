@@ -234,6 +234,9 @@ describe('API Client & Session', () => {
     expect(errorMessage(new ApiError('QUOTA', 'Busy', true))).toContain('Busy right now');
     expect(errorMessage(new ApiError('NAME_MISMATCH', 'Mismatch', false))).toContain("That name doesn't match");
     expect(errorMessage(new ApiError('LINK_NO_ACCESS', 'Custom folder error', false))).toBe('Custom folder error');
+    // The server says what was not found; a generic line only when it says nothing
+    expect(errorMessage(new ApiError('NOT_FOUND', 'Attendance sheet for OCT Popping not found', false))).toBe('Attendance sheet for OCT Popping not found');
+    expect(errorMessage(new ApiError('NOT_FOUND', '', false))).toBe('The requested item was not found.');
   });
 
   it('checks session token expiration against claims.exp', () => {
