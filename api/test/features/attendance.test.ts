@@ -129,6 +129,17 @@ describe('Feature: Attendance (features/attendance)', () => {
     expect(poll.ok && (poll.data as any).sessions.map((s: any) => s.seq)).toEqual([1, 2, 3]);
   });
 
+  it('a class deleted after the page loaded: the next poll drops it', () => {
+    const first = call('attendance.get', { eventId: event.id, styleId: 'st_popping' });
+    const ver = first.ok ? (first.data as any).version : 0;
+
+    expect(call('sessions.delete', { id: poppingSession2.id, version: poppingSession2.version }).ok).toBe(true);
+
+    const poll = call('attendance.get', { eventId: event.id, styleId: 'st_popping', ifVersion: ver });
+    expect(poll.ok && (poll.data as any).notModified).toBeFalsy();
+    expect(poll.ok && (poll.data as any).sessions.map((s: any) => s.seq)).toEqual([1]);
+  });
+
   it('a dancer added to the sheet by a sync: the next poll is not notModified', () => {
     const master = ctx.drive.createFolder('root', 'Attendance');
     ctx.db.settings.insert({ key: 'defaultAttendanceFolderId', value: master }, 'system', ctx.now());

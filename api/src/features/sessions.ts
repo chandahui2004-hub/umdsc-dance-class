@@ -228,6 +228,7 @@ export function getSessionRoutes(): Record<string, Route> {
 
         const actor = auth?.claims.sub || 'system';
         ctx.db.sessions.deactivate(id, Number(version), actor, ctx.now());
+        notifySessionChanged(ctx, { ...existing, active: false });
         logAudit(ctx, actor, 'sessions.delete', id, `Deleted session ${existing.date} C${existing.seq}`);
         return { deleted: true };
       }
