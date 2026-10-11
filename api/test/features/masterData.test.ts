@@ -470,6 +470,36 @@ describe('Feature: Master Data (Styles & Instructors)', () => {
     }
   });
 
+  it('instructors.list photo sync gives a Drive photo only to the instructor whose name fits it best', () => {
+    const styleId = addStyle('Popping');
+    const folder = ctx.drive.createFolder('root', 'Instructor Photos');
+    const photo = ctx.drive.createFileFromBase64(folder, 'Newstyle Kelvin - Photo 1.png', 'image/png', '');
+    const kelvin = ctx.db.instructors.insert({ name: 'Newstyle Kelvin', styleIds: [styleId], contact: '', photoUrl: '', photosJson: '[]' } as any, 'system', ctx.now());
+    const kel = ctx.db.instructors.insert({ name: 'Kel', styleIds: [styleId], contact: '', photoUrl: '', photosJson: '[]' } as any, 'system', ctx.now());
+
+    const res = handleRequest({ action: 'instructors.list', token: adminToken }, ctx, secrets);
+
+    expect(res.ok).toBe(true);
+    expect(ctx.db.instructors.get(kelvin.id)!.photoUrl).toBe(`https://lh3.googleusercontent.com/d/${photo.id}`);
+    expect(ctx.db.instructors.get(kel.id)!.photoUrl).toBe('');
+    expect((ctx.drive as any).items.get(photo.id).name).toBe('Newstyle Kelvin - Photo 1.png');
+  });
+
+  it('instructors.list scans the Drive photo folder at most once every 5 minutes', () => {
+    const styleId = addStyle('Popping');
+    const folder = ctx.drive.createFolder('root', 'Instructor Photos');
+    const elf = ctx.db.instructors.insert({ name: 'Elf', styleIds: [styleId], contact: '', photoUrl: '', photosJson: '[]' } as any, 'system', ctx.now());
+    handleRequest({ action: 'instructors.list', token: adminToken }, ctx, secrets);
+
+    const photo = ctx.drive.createFileFromBase64(folder, 'elf.png', 'image/png', '');
+    handleRequest({ action: 'instructors.list', token: adminToken }, ctx, secrets);
+    expect(ctx.db.instructors.get(elf.id)!.photoUrl).toBe('');
+
+    ctx.cache.remove('instructors:photoSync');
+    handleRequest({ action: 'instructors.list', token: adminToken }, ctx, secrets);
+    expect(ctx.db.instructors.get(elf.id)!.photoUrl).toBe(`https://lh3.googleusercontent.com/d/${photo.id}`);
+  });
+
   it('instructors.create saves base64 photo to Google Drive Instructor Photos folder', () => {
     const styleId = addStyle('Popping');
     const fakeBase64 = 'data:image/webp;base64,UklGRkAAAABXRUJQVlA4IDQAAADwAQCdASoFAAUAPxF8s1CvqaSjAABQCWUAAP74b/8AA/7+gAA/v4AAP7/AAA==';

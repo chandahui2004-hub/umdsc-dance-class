@@ -303,6 +303,10 @@ export function getMasterDataRoutes(): Record<string, Route> {
     perm: 'instructors.edit',
     listPerm: 'public',
     onList: (ctx) => {
+      // The Drive scan takes seconds and this list is public and on many pages; photos
+      // added on the website are saved directly, so only files dropped into Drive wait.
+      if (ctx.cache.get('instructors:photoSync') !== null) return;
+      ctx.cache.put('instructors:photoSync', '1', 300);
       try {
         const folderId = getInstructorPhotosFolder(ctx);
         if (!folderId) return;
@@ -311,15 +315,27 @@ export function getMasterDataRoutes(): Record<string, Route> {
         if (!files) return;
 
         const instructors = ctx.db.instructors.find(i => i.active);
+        const clean = (text: string) => text.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+        // Each file belongs to the one instructor with the longest name inside its file name,
+        // so "Kel" never takes "Newstyle Kelvin - Photo 1.png".
+        const ownerOf = new Map<string, string>();
+        for (const f of files) {
+          const fClean = clean(f.name);
+          let best: { id: string; len: number } | null = null;
+          for (const inst of instructors) {
+            const instClean = clean(inst.name);
+            if (instClean && fClean.includes(instClean) && (!best || instClean.length > best.len)) {
+              best = { id: inst.id, len: instClean.length };
+            }
+          }
+          if (best) ownerOf.set(f.id, best.id);
+        }
 
         // Group files by instructor and assign clean human-readable names:
         // "[Instructor Name] - Photo 1.png", "[Instructor Name] - Photo 2.png"
         for (const inst of instructors) {
-          const instClean = inst.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-          const matchingFiles = files.filter(f => {
-            const fClean = f.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-            return fClean.includes(instClean);
-          });
+          const matchingFiles = files.filter(f => ownerOf.get(f.id) === inst.id);
 
           if (matchingFiles.length > 0) {
             let seq = 1;
