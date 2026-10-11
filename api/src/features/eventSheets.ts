@@ -227,6 +227,24 @@ export function refileEventYear(ctx: Ctx, old: EventItem, updated: EventItem): v
   }
 }
 
+/**
+ * Renames the event's folder in every style video folder, so uploads and scans keep
+ * finding it. `old` is the event before the edit; the folder may already be in the year
+ * of `newStartDate`, or still in the old year if it could not move.
+ */
+export function renameStyleVideoFolders(ctx: Ctx, old: EventItem, newStartDate: string, newName: string): void {
+  for (const style of ctx.db.styles.find(s => s.active && Boolean(s.videoFolderId))) {
+    try {
+      const found =
+        findStyleEventFolder(ctx, style.videoFolderId, { ...old, startDate: newStartDate }) ||
+        findStyleEventFolder(ctx, style.videoFolderId, old);
+      if (found) ctx.drive.renameFolder(found.id, newName);
+    } catch {
+      // A class lead's folder the club Gmail cannot rename keeps its old name
+    }
+  }
+}
+
 /** One attendance sheet per event style, in the event folder, with every class and member. */
 export function ensureEventSheets(ctx: Ctx, event: EventItem): { styleId: string; spreadsheetId: string }[] {
   const folderId = ensureEventFolder(ctx, event);

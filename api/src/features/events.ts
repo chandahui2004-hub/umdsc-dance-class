@@ -7,7 +7,7 @@ import { isDue } from '../logic/retention';
 import { validateLink } from '../logic/linkValidation';
 import { logAudit } from '../logic/audit';
 import { previewSource, openSourceTab } from './eventSource';
-import { ensureEventFolder, ensureMembersSheet, ensureEventSheets, saveEventFields, eventYear, refileEventYear } from './eventSheets';
+import { ensureEventFolder, ensureMembersSheet, ensureEventSheets, saveEventFields, eventYear, refileEventYear, renameStyleVideoFolders } from './eventSheets';
 import { getEvent, readEventMembers } from './eventMembers';
 import { importEventMembers, sourceUnchanged } from './eventImport';
 import { withScriptLock } from '../db/lock';
@@ -166,6 +166,10 @@ export function getEventRoutes(): Record<string, Route> {
         const actor = auth?.claims.sub || 'system';
         const updated = ctx.db.events.update(existing.id, existing.version, patch, actor, ctx.now());
 
+        // Year first: it finds the style video folders by the old name
+        if (eventYear(ctx, updated) !== eventYear(ctx, existing)) {
+          refileEventYear(ctx, existing, updated);
+        }
         if (next.name !== existing.name) {
           if (existing.folderId && ctx.drive.info(existing.folderId).exists) {
             ctx.drive.renameFolder(existing.folderId, next.name);
@@ -173,9 +177,7 @@ export function getEventRoutes(): Record<string, Route> {
           if (existing.videoFolderId && ctx.drive.info(existing.videoFolderId).exists) {
             ctx.drive.renameFolder(existing.videoFolderId, next.name);
           }
-        }
-        if (eventYear(ctx, updated) !== eventYear(ctx, existing)) {
-          refileEventYear(ctx, existing, updated);
+          renameStyleVideoFolders(ctx, existing, updated.startDate, next.name);
         }
         if (next.endDate !== existing.endDate) {
           recalculateLastEventEnd(ctx, updated);

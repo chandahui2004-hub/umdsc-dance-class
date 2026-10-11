@@ -376,6 +376,45 @@ describe('Feature: events (features/events)', () => {
       expect(drive.parentOf(videoFolder)).toBe(year2026);
     });
 
+    it('rename also renames the event folder in each style video folder', () => {
+      const styleFolder = drive.createFolder('root', 'Popping videos');
+      const style = ctx.db.styles.find(s => s.id === 'st_popping')[0];
+      ctx.db.styles.update(style.id, style.version, { videoFolderId: styleFolder }, 'system', ctx.now());
+      const videoFolder = drive.createFolder(drive.createFolder(styleFolder, '2026'), 'OCT MONTHLY CLASS');
+
+      expect(update({ name: 'OCT MONTHLY CLASS 2026' }).ok).toBe(true);
+
+      expect(drive.nameOf(videoFolder)).toBe('OCT MONTHLY CLASS 2026');
+    });
+
+    it('rename and a new start year with no year folder there yet: the video folder stays but is renamed', () => {
+      const styleFolder = drive.createFolder('root', 'Popping videos');
+      const style = ctx.db.styles.find(s => s.id === 'st_popping')[0];
+      ctx.db.styles.update(style.id, style.version, { videoFolderId: styleFolder }, 'system', ctx.now());
+      const year2026 = drive.createFolder(styleFolder, '2026');
+      const videoFolder = drive.createFolder(year2026, 'OCT MONTHLY CLASS');
+
+      expect(update({ name: 'DEC-OCT CLASS', startDate: '2025-12-15' }).ok).toBe(true);
+
+      expect(drive.parentOf(videoFolder)).toBe(year2026);
+      expect(drive.nameOf(videoFolder)).toBe('DEC-OCT CLASS');
+    });
+
+    it('rename and a new start year together: video folder moves to the new year and takes the new name', () => {
+      const styleFolder = drive.createFolder('root', 'Popping videos');
+      const style = ctx.db.styles.find(s => s.id === 'st_popping')[0];
+      ctx.db.styles.update(style.id, style.version, { videoFolderId: styleFolder }, 'system', ctx.now());
+      const videoFolder = drive.createFolder(drive.createFolder(styleFolder, '2026'), 'OCT MONTHLY CLASS');
+      const year2025 = drive.createFolder(styleFolder, '2025');
+
+      expect(update({ name: 'DEC-OCT CLASS', startDate: '2025-12-15' }).ok).toBe(true);
+
+      expect(drive.parentOf(videoFolder)).toBe(year2025);
+      expect(drive.nameOf(videoFolder)).toBe('DEC-OCT CLASS');
+      expect(drive.nameOf(fresh().folderId)).toBe('DEC-OCT CLASS');
+      expect(drive.parentOf(fresh().folderId)).toBe(drive.findChildFolder(master, '2025'));
+    });
+
     it('date change blocked by classes outside range, lists them', () => {
       const res = update({ endDate: '2026-10-10' });
       expect(res.ok).toBe(false);
