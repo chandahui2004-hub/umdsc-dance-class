@@ -45,14 +45,30 @@ export const AttendancePage: React.FC = () => {
   const [localPresent, setLocalPresent] = useState<Record<string, string[]>>({});
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // Full screen has its own history step, so the phone's Back button closes it instead of
+  // leaving the page and losing unsaved ticks
+  const closeFullscreen = () => {
+    if (window.history.state?.fullscreenRoster) {
+      window.history.back(); // the popstate below closes it
+    } else {
+      setIsFullscreen(false);
+    }
+  };
+
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isFullscreen) {
-        setIsFullscreen(false);
-      }
+    if (!isFullscreen) return;
+    const onPopState = () => {
+      if (!window.history.state?.fullscreenRoster) setIsFullscreen(false);
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeFullscreen();
+    };
+    window.addEventListener('popstate', onPopState);
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isFullscreen]);
 
   useEffect(() => {
@@ -218,6 +234,9 @@ export const AttendancePage: React.FC = () => {
     const next = sessions.find(s => s.date >= today) || sessions[sessions.length - 1];
     if (next) setActiveSessionId(next.id);
     setEditing(true);
+    if (!window.history.state?.fullscreenRoster) {
+      window.history.pushState({ ...window.history.state, fullscreenRoster: true }, '');
+    }
     setIsFullscreen(true);
   };
 
@@ -413,7 +432,7 @@ export const AttendancePage: React.FC = () => {
               changes={unsavedChanges.length}
               submitting={submitMutation.isPending}
               onSubmit={() => submitMutation.mutate()}
-              onExit={() => setIsFullscreen(false)}
+              onExit={closeFullscreen}
             />
           )}
         </>

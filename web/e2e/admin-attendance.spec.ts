@@ -269,6 +269,30 @@ test.describe('Admin Attendance Page', () => {
     await expect(page.getByText(/1 UNSAVED CHANGE/)).toBeVisible();
   });
 
+  test('full screen: the phone Back button closes full screen and keeps unsaved ticks on the page', async ({ page }) => {
+    await mockApi(page, {
+      'events.list': () => [EVENT],
+      'styles.list': () => STYLES,
+      'attendance.get': () => GRID
+    });
+    await page.goto('/admin/attendance');
+    await page.getByRole('button', { name: /FULL SCREEN/ }).click();
+    const fs = page.getByRole('dialog', { name: 'Attendance full screen' });
+    await fs.locator('[data-member-id="m-2"]').click();
+
+    await page.goBack();
+
+    await expect(page.getByRole('dialog', { name: 'Attendance full screen' })).toHaveCount(0);
+    expect(new URL(page.url()).pathname).toBe('/admin/attendance');
+    await expect(page.getByText(/1 UNSAVED CHANGE/)).toBeVisible();
+
+    // EXIT leaves no extra history step behind: the next Back leaves the page as usual
+    await page.getByRole('button', { name: /FULL SCREEN/ }).click();
+    await page.getByRole('dialog', { name: 'Attendance full screen' }).getByRole('button', { name: '✕ EXIT' }).click();
+    await expect(page.getByRole('dialog', { name: 'Attendance full screen' })).toHaveCount(0);
+    await expect.poll(() => page.evaluate(() => Boolean(window.history.state?.fullscreenRoster))).toBe(false);
+  });
+
   test('full screen on a phone: a finger swipe scrolls the name list, not the page behind', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'mobile', 'touch swipe is a phone check');
     const many = Array.from({ length: 40 }, (_, i) => ({ memberId: `d-${i}`, fullName: `DANCER ${i}`, matric: String(22000000 + i) }));
