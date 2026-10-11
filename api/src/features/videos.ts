@@ -75,12 +75,14 @@ export function getVideoRoutes(): Record<string, Route> {
         }
 
         const event = getEvent(ctx, session.eventId);
-        const eventFolderId = findStyleEventFolder(ctx, style.videoFolderId, event) || '';
+        const found = findStyleEventFolder(ctx, style.videoFolderId, event);
 
         return {
           videoMasterFolderId: style.videoFolderId,
-          eventFolderId,
+          eventFolderId: found?.id || '',
           yearFolderName: eventYear(ctx, event),
+          // An older folder straight under the style folder: the website files it under the year
+          eventFolderInYear: found?.inYear ?? false,
           eventFolderName: event.name,
           classFolderName: `${session.date} ${style.name} Class ${session.seq}`,
           musicFolderName: 'Music'
@@ -226,7 +228,7 @@ export function getVideoRoutes(): Record<string, Route> {
         if (!style.videoFolderId) {
           return [];
         }
-        const rootFolderId = findStyleEventFolder(ctx, style.videoFolderId, event);
+        const rootFolderId = findStyleEventFolder(ctx, style.videoFolderId, event)?.id;
         if (!rootFolderId) {
           return [];
         }

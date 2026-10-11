@@ -75,11 +75,25 @@ describe('ensureFolderPath', () => {
 });
 
 describe('ensureClassFolder', () => {
-  /** A tiny fake of Drive's files.list / files.create, keyed by parent id. */
+  let moved: { id: string; from: string; to: string }[] = [];
+
+  /** A tiny fake of Drive's files.list / files.create / files.update (move), keyed by parent id. */
   function fakeDrive(folders: Record<string, { id: string; name: string }[]>) {
     let n = 1;
     const created: { name: string; parent: string }[] = [];
+    moved = [];
     globalThis.fetch = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'PATCH') {
+        const u = new URL(url);
+        const id = u.pathname.split('/').pop()!;
+        const from = u.searchParams.get('removeParents')!;
+        const to = u.searchParams.get('addParents')!;
+        const item = (folders[from] || []).find(f => f.id === id)!;
+        folders[from] = folders[from].filter(f => f.id !== id);
+        (folders[to] ||= []).push(item);
+        moved.push({ id, from, to });
+        return { ok: true, status: 200, json: async () => ({ id }) } as unknown as Response;
+      }
       if (init?.method === 'POST') {
         const body = JSON.parse(init.body as string);
         const id = `new-${n++}`;
@@ -128,5 +142,40 @@ describe('ensureClassFolder', () => {
       { name: '2026-10-08 Popping Class 1', parent: 'new-1' }
     ]);
     expect(result).toEqual({ eventFolderId: 'new-1', classFolderId: 'new-2' });
+  });
+
+  it('moves an older event folder straight under the style folder into the year folder it makes', async () => {
+    const created = fakeDrive({ 'video-master': [{ id: 'old-evt', name: 'OCT MONTHLY CLASS' }], 'old-evt': [] });
+    const result = await ensureClassFolder(
+      'tok',
+      { ...target, eventFolderId: 'old-evt', eventFolderInYear: false, yearFolderName: '2026' },
+      'video'
+    );
+    expect(created[0]).toEqual({ name: '2026', parent: 'video-master' });
+    expect(moved).toEqual([{ id: 'old-evt', from: 'video-master', to: 'new-1' }]);
+    expect(result.eventFolderId).toBe('old-evt');
+  });
+
+  it('still uploads into the older event folder when Drive refuses the move', async () => {
+    fakeDrive({ 'video-master': [{ id: 'old-evt', name: 'OCT MONTHLY CLASS' }], 'old-evt': [] });
+    const realFetch = globalThis.fetch as any;
+    globalThis.fetch = vi.fn().mockImplementation(async (url: string, init?: RequestInit) =>
+      init?.method === 'PATCH'
+        ? ({ ok: false, status: 403, text: async () => 'forbidden' } as unknown as Response)
+        : realFetch(url, init)
+    ) as any;
+    const result = await ensureClassFolder(
+      'tok',
+      { ...target, eventFolderId: 'old-evt', eventFolderInYear: false, yearFolderName: '2026' },
+      'video'
+    );
+    expect(result.eventFolderId).toBe('old-evt');
+    expect(result.classFolderId).toBeTruthy();
+  });
+
+  it('leaves an event folder that is already in its year folder alone', async () => {
+    fakeDrive({ 'evt-folder': [] });
+    await ensureClassFolder('tok', { ...target, eventFolderId: 'evt-folder', eventFolderInYear: true, yearFolderName: '2026' }, 'video');
+    expect(moved).toEqual([]);
   });
 });

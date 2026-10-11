@@ -169,10 +169,15 @@ describe('event sheets and source', () => {
   });
 
   describe('moveStyleVideoFoldersIntoYears', () => {
-    it('moves each style event folder into its year folder and reports folders it cannot move', () => {
-      const styleFolder = drive.createFolder('root', 'Popping videos');
+    let styleFolder: string;
+    beforeEach(() => {
+      styleFolder = drive.createFolder('root', 'Popping videos');
       const style = ctx.db.styles.find(s => s.id === 'st_popping')[0];
       ctx.db.styles.update(style.id, style.version, { videoFolderId: styleFolder }, 'system', ctx.now());
+    });
+
+    it('moves each style event folder into its existing year folder and reports folders it cannot move', () => {
+      const year = drive.createFolder(styleFolder, '2026');
       seedEvent(ctx, { name: 'OCT MONTHLY CLASS' });
       seedEvent(ctx, { name: 'TRIAL CLASS' });
       const oct = drive.createFolder(styleFolder, 'OCT MONTHLY CLASS');
@@ -185,12 +190,21 @@ describe('event sheets and source', () => {
       expect(result.failed).toEqual([
         { styleName: 'Popping', eventName: 'TRIAL CLASS', message: 'Access denied: cannot move this folder' }
       ]);
-      expect(drive.parentOf(oct)).toBe(drive.findChildFolder(styleFolder, '2026'));
+      expect(drive.parentOf(oct)).toBe(year);
       expect(drive.parentOf(trial)).toBe(styleFolder);
 
       drive.failMovesFor.delete(trial);
-      expect(moveStyleVideoFoldersIntoYears(ctx)).toEqual({ moved: 1, failed: [] });
-      expect(drive.parentOf(trial)).toBe(drive.findChildFolder(styleFolder, '2026'));
+      expect(moveStyleVideoFoldersIntoYears(ctx)).toEqual({ moved: 1, waiting: 0, failed: [] });
+      expect(drive.parentOf(trial)).toBe(year);
+    });
+
+    it('never creates a year folder in a class lead folder: the website must, or its uploads cannot see it', () => {
+      seedEvent(ctx, { name: 'OCT MONTHLY CLASS' });
+      const oct = drive.createFolder(styleFolder, 'OCT MONTHLY CLASS');
+
+      expect(moveStyleVideoFoldersIntoYears(ctx)).toEqual({ moved: 0, waiting: 1, failed: [] });
+      expect(drive.findChildFolder(styleFolder, '2026')).toBeNull();
+      expect(drive.parentOf(oct)).toBe(styleFolder);
     });
   });
 

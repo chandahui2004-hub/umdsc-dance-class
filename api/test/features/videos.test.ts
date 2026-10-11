@@ -139,6 +139,7 @@ describe('Feature: Videos (features/videos)', () => {
         videoMasterFolderId: 'fld_popping_drive',
         eventFolderId: '',
         yearFolderName: '2026',
+        eventFolderInYear: false,
         eventFolderName: 'OCT MONTHLY CLASS',
         classFolderName: '2026-10-06 Popping Class 1',
         musicFolderName: 'Music'
@@ -155,7 +156,17 @@ describe('Feature: Videos (features/videos)', () => {
 
     const res = handleRequest({ action: 'videos.targetFolder', token: adminToken, payload: { sessionId: session1.id } }, ctx, secrets);
 
-    expect(res.ok && (res.data as any).eventFolderId).toBe(inYear);
+    expect(res.ok && res.data).toMatchObject({ eventFolderId: inYear, eventFolderInYear: true });
+  });
+
+  it('targetFolder flags an older event folder straight under the style folder so the website files it under its year', () => {
+    const drive = ctx.drive as any;
+    drive.items.set('fld_popping_drive', { id: 'fld_popping_drive', kind: 'folder', name: 'Popping', canEdit: true });
+    const older = drive.createFolder('fld_popping_drive', 'OCT MONTHLY CLASS');
+
+    const res = handleRequest({ action: 'videos.targetFolder', token: adminToken, payload: { sessionId: session1.id } }, ctx, secrets);
+
+    expect(res.ok && res.data).toMatchObject({ eventFolderId: older, eventFolderInYear: false, yearFolderName: '2026' });
   });
 
   it('targetFolder throws VALIDATION when style.videoFolderId is missing', () => {

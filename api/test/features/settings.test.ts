@@ -294,6 +294,7 @@ describe('Feature: Settings and Links', () => {
     ctx.db.styles.insert({ id: 'st_pop', name: 'Popping', aliases: [], colorKey: 'blue', defaultWeekday: null, defaultStart: '',
       defaultEnd: '', defaultInstructorId: '', defaultVenue: '', attendanceFolderId: '', videoFolderId: styleFolder } as any, 'system', ctx.now());
     const videoFolder = drive.createFolder(styleFolder, 'OCT MONTHLY CLASS');
+    drive.createFolder(styleFolder, '2026');
 
     const res = handleRequest({ action: 'settings.organizeFoldersByYear', token: adminToken, payload: {} }, ctx, secrets);
 

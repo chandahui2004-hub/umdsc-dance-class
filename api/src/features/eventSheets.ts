@@ -48,10 +48,21 @@ export function ensureYearFolder(ctx: Ctx, parentId: string, event: Pick<EventIt
 /**
  * A style's video folder for this event: `style folder › <year> › <event>`, else an
  * older one made straight under the style folder before folders were grouped by year.
+ *
+ * Only the website makes folders inside a class lead's style folder. It uploads with the
+ * drive.file scope, which cannot see a folder the club Gmail made there, so it would
+ * make a second year folder next to it. The server only finds and moves.
  */
-export function findStyleEventFolder(ctx: Ctx, styleFolderId: string, event: EventItem): string | null {
+export function findStyleEventFolder(
+  ctx: Ctx,
+  styleFolderId: string,
+  event: EventItem
+): { id: string; inYear: boolean } | null {
   const yearId = ctx.drive.findChildFolder(styleFolderId, eventYear(ctx, event));
-  return (yearId && ctx.drive.findChildFolder(yearId, event.name)) || ctx.drive.findChildFolder(styleFolderId, event.name);
+  const inYear = yearId && ctx.drive.findChildFolder(yearId, event.name);
+  if (inYear) return { id: inYear, inYear: true };
+  const older = ctx.drive.findChildFolder(styleFolderId, event.name);
+  return older ? { id: older, inYear: false } : null;
 }
 
 /** The event's folder: its saved folder if it still exists, else `master › <year> › <event name>`. */
@@ -155,13 +166,15 @@ function moveOneEventFolder(
 
 /**
  * Files every event's video folder in each dance style's video folder under its year:
- * `style folder › <event>` moves to `style folder › <year> › <event>`. Folders the club
- * Gmail cannot move are reported and left where they are; running again retries them.
+ * `style folder › <event>` moves to `style folder › <year> › <event>`, but only once the
+ * website has made that year folder (see findStyleEventFolder); until then it is
+ * counted as waiting. Folders the club Gmail cannot move are reported and left where
+ * they are; running again retries them.
  */
 export function moveStyleVideoFoldersIntoYears(
   ctx: Ctx
-): { moved: number; failed: { styleName: string; eventName: string; message: string }[] } {
-  const counts = { moved: 0, failed: [] as { styleName: string; eventName: string; message: string }[] };
+): { moved: number; waiting: number; failed: { styleName: string; eventName: string; message: string }[] } {
+  const counts = { moved: 0, waiting: 0, failed: [] as { styleName: string; eventName: string; message: string }[] };
   const events = ctx.db.events.find(e => e.active);
 
   for (const style of ctx.db.styles.find(s => s.active && Boolean(s.videoFolderId))) {
@@ -169,7 +182,11 @@ export function moveStyleVideoFoldersIntoYears(
       try {
         const old = ctx.drive.findChildFolder(style.videoFolderId, event.name);
         if (!old) continue;
-        const yearId = ensureYearFolder(ctx, style.videoFolderId, event);
+        const yearId = ctx.drive.findChildFolder(style.videoFolderId, eventYear(ctx, event));
+        if (!yearId) {
+          counts.waiting++;
+          continue;
+        }
         if (ctx.drive.findChildFolder(yearId, event.name)) {
           throw new Error(`"${event.name}" is already in the ${eventYear(ctx, event)} folder; move the files across by hand`);
         }
@@ -191,7 +208,8 @@ export function moveStyleVideoFoldersIntoYears(
 /**
  * After an event's start date moves to another year, moves its attendance folder and
  * each style's video folder into the new year's folder. `updated` already has the new
- * name, so the video folders are looked up by the old event.
+ * name, so the video folders are looked up by the old event. A video folder stays put
+ * when the style folder has no folder for the new year yet: only the website makes those.
  */
 export function refileEventYear(ctx: Ctx, old: EventItem, updated: EventItem): void {
   const master = ctx.db.settings.find(s => s.key === 'defaultAttendanceFolderId' && s.active)[0]?.value;
@@ -200,8 +218,9 @@ export function refileEventYear(ctx: Ctx, old: EventItem, updated: EventItem): v
   }
   for (const style of ctx.db.styles.find(s => s.active && Boolean(s.videoFolderId))) {
     try {
-      const folderId = findStyleEventFolder(ctx, style.videoFolderId, old);
-      if (folderId) ctx.drive.moveFolder(folderId, ensureYearFolder(ctx, style.videoFolderId, updated));
+      const found = findStyleEventFolder(ctx, style.videoFolderId, old);
+      const yearId = ctx.drive.findChildFolder(style.videoFolderId, eventYear(ctx, updated));
+      if (found && yearId) ctx.drive.moveFolder(found.id, yearId);
     } catch {
       // A class lead's folder the club Gmail cannot move stays put; uploads still find it.
     }

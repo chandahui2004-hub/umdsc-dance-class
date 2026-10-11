@@ -63,6 +63,8 @@ export interface ClassFolderTarget {
   eventFolderId: string;
   /** The year folder the event folder is filed under, for example `2026`. */
   yearFolderName?: string;
+  /** False when eventFolderId is an older folder straight under the style folder, not in its year folder. */
+  eventFolderInYear?: boolean;
   eventFolderName: string;
   classFolderName: string;
   musicFolderName: string;
@@ -77,6 +79,9 @@ export async function ensureClassFolder(
   target: ClassFolderTarget,
   kind: 'video' | 'mp3'
 ): Promise<{ eventFolderId: string; classFolderId: string; musicFolderId?: string }> {
+  if (target.eventFolderId && target.eventFolderInYear === false && target.yearFolderName) {
+    await fileUnderYear(token, target);
+  }
   const eventFolderId =
     target.eventFolderId ||
     (await ensureFolderPath(token, target.videoMasterFolderId, [target.yearFolderName || '', target.eventFolderName]));
@@ -86,4 +91,27 @@ export async function ensureClassFolder(
   }
   const musicFolderId = await ensureFolderPath(token, classFolderId, [target.musicFolderName]);
   return { eventFolderId, classFolderId, musicFolderId };
+}
+
+/**
+ * Moves an event folder made before year folders existed into `style folder › <year>`.
+ * The year folder is made here, not by the server: with the drive.file scope this app
+ * cannot see a folder the club Gmail made. A refused move is not an error; the upload
+ * still goes into the event folder where it is.
+ */
+async function fileUnderYear(token: string, target: ClassFolderTarget): Promise<void> {
+  try {
+    const yearId = await ensureFolderPath(token, target.videoMasterFolderId, [target.yearFolderName || '']);
+    const url =
+      `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(target.eventFolderId)}` +
+      `?addParents=${encodeURIComponent(yearId)}&removeParents=${encodeURIComponent(target.videoMasterFolderId)}` +
+      `&fields=id&supportsAllDrives=true`;
+    await fetch(url, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: '{}'
+    });
+  } catch {
+    // Left where it is; the next upload tries again
+  }
 }
