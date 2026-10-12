@@ -140,7 +140,7 @@ requests.
 
 ### 6.2 Adding a video (class lead / admin)
 
-**Add video** on a class (class card admin view and Media page) opens a new dialog in place of `UploadDialog`:
+**Add video** on a class (on the Media page, where uploads happen today) opens a new dialog in place of `UploadDialog`:
 
 1. Calls `videos.startYouTube`, shows the suggested title with **Copy**.
 2. **Open YouTube upload** (`https://www.youtube.com/upload`), plus short steps: sign in as UMDSC, upload, paste
