@@ -68,40 +68,157 @@ describe('Feature: event auto-sync and sync now', () => {
     ctx.db.settings.insert({ key: 'defaultAttendanceFolderId', value: master }, 'system', ctx.now());
   });
 
-  describe('a name corrected on the dancer list', () => {
-    const names = (eventId: string) => {
-      const res = call('members.list', { eventId });
-      return res.ok ? (res.data as any[]).map(m => m.fullName) : [];
-    };
+  const names = (eventId: string) => {
+    const res = call('members.list', { eventId });
+    return res.ok ? (res.data as any[]).map(m => m.fullName) : [];
+  };
+  const memberIds = (eventId: string) => {
+    const res = call('members.list', { eventId });
+    return res.ok ? (res.data as any[]).map(m => m.memberId) : [];
+  };
+  const attendance = (eventId: string) => {
+    const rec = ctx.db.attendanceSheets.find(a => a.eventId === eventId && a.active)[0];
+    return drive.openSpreadsheet(rec.spreadsheetId).sheet('Attendance') as FakeSheet;
+  };
+  /** Adds a class column to the attendance sheet and ticks it for the given dancers. */
+  const addTicks = (eventId: string, sessionId: string, ticked: string[]) => {
+    const sheet = attendance(eventId);
+    const data = sheet.getDisplayValues();
+    const col = data[0].length + 1;
+    sheet.setValues(1, col, [[sessionId]]);
+    sheet.setValues(2, col, [['Class']]);
+    data.slice(2).forEach((row, i) => {
+      sheet.setValues(i + 3, col, [[ticked.includes(row[0]) ? 'TRUE' : '']]);
+    });
+  };
+  const attendanceRow = (eventId: string, memberId: string) => {
+    const data = attendance(eventId).getDisplayValues();
+    const key = data[0];
+    const row = data.find(r => r[0] === memberId);
+    return row ? Object.fromEntries(key.map((k, i) => [k, row[i] ?? ''])) : null;
+  };
+  const indexEvents = (matricKey: string) =>
+    ctx.db.memberIndex.find(m => m.matricKey === matricKey && m.active)[0]?.eventIds || [];
 
-    it('shows at once, even right after the list was read', () => {
+  describe('a correction made in the form response sheet', () => {
+    it('is found by the automatic check even when it is not the last response', () => {
+      const e = createEvent('OCT');
+      sourceTab(e.sourceId).appendRows([['2026-10-02', 'Siti', '22002222', '', '', 'Popping']]);
+      call('events.autoSync', {});
+      ctx.cache.remove(`sync:check:${e.id}`);
+
+      sourceTab(e.sourceId).setValues(2, 2, [['Ali Bin Abu']]);
+      const res = call('events.autoSync', {});
+
+      expect(res.ok && res.data).toMatchObject({ changed: [e.id] });
+      expect(names(e.id)).toEqual(['Ali Bin Abu', 'Siti']);
+    });
+
+    it('moves a dancer whose matric was corrected, keeping her attendance ticks and sign-in', () => {
+      const e = createEvent('OCT');
+      addTicks(e.id, 'ses_1', ['M-22001111']);
+
+      sourceTab(e.sourceId).setValues(2, 3, [['22001112']]);
+      const res = call('events.sync', { id: e.id });
+
+      expect(res.ok).toBe(true);
+      expect(memberIds(e.id)).toEqual(['M-22001112']);
+      expect(attendanceRow(e.id, 'M-22001111')).toBeNull();
+      expect(attendanceRow(e.id, 'M-22001112')).toMatchObject({ matric: '22001112', fullName: 'Ali', ses_1: 'TRUE' });
+      expect(indexEvents('22001111')).not.toContain(e.id);
+      expect(indexEvents('22001112')).toContain(e.id);
+      expect(ctx.db.events.get(e.id)!.memberCount).toBe(1);
+    });
+
+    it('merges a corrected response into the same dancer\'s other response, keeping both ticks', () => {
+      const e = createEvent('OCT');
+      sourceTab(e.sourceId).appendRows([['2026-10-03', 'Ali', '22001112', '', '', 'Popping']]);
+      call('events.sync', { id: e.id });
+      ctx.cache.remove(`sync:force:${e.id}`);
+      addTicks(e.id, 'ses_1', ['M-22001111']);
+      addTicks(e.id, 'ses_2', ['M-22001112']);
+
+      sourceTab(e.sourceId).setValues(2, 3, [['22001112']]);
+      call('events.sync', { id: e.id });
+
+      expect(memberIds(e.id)).toEqual(['M-22001112']);
+      expect(attendanceRow(e.id, 'M-22001111')).toBeNull();
+      expect(attendanceRow(e.id, 'M-22001112')).toMatchObject({ ses_1: 'TRUE', ses_2: 'TRUE' });
+      expect(indexEvents('22001111')).not.toContain(e.id);
+    });
+
+    it('follows a dancer who sent a new response with the right matric after hers was deleted', () => {
+      const e = createEvent('OCT');
+      addTicks(e.id, 'ses_1', ['M-22001111']);
+
+      sourceTab(e.sourceId).setValues(2, 1, [['', '', '', '', '', '']]);
+      sourceTab(e.sourceId).appendRows([['2026-10-05', 'Ali', '22001112', '', '', 'Popping']]);
+      call('events.sync', { id: e.id });
+
+      expect(memberIds(e.id)).toEqual(['M-22001112']);
+      expect(attendanceRow(e.id, 'M-22001112')).toMatchObject({ ses_1: 'TRUE' });
+    });
+
+    it('never merges a removed dancer into another dancer who only shares the name', () => {
+      const e = createEvent('OCT');
+      sourceTab(e.sourceId).appendRows([['2026-10-02', 'Ali', '22003333', '', '', 'Popping']]);
+      call('events.sync', { id: e.id });
+      ctx.cache.remove(`sync:force:${e.id}`);
+      addTicks(e.id, 'ses_1', ['M-22001111']);
+
+      sourceTab(e.sourceId).setValues(2, 1, [['', '', '', '', '', '']]);
+      call('events.sync', { id: e.id });
+
+      expect(memberIds(e.id)).toEqual(['M-22001111', 'M-22003333']);
+      expect(attendanceRow(e.id, 'M-22001111')).toMatchObject({ ses_1: 'TRUE' });
+      expect(attendanceRow(e.id, 'M-22003333')).toMatchObject({ ses_1: '' });
+    });
+  });
+
+  describe('editing a dancer on the website', () => {
+    it('writes the name into the form response sheet and shows it at once', () => {
       const e = createEvent('OCT');
       expect(names(e.id)).toEqual(['Ali']);
 
-      expect(call('members.update', { eventId: e.id, memberId: 'M-22001111', fullName: 'Ali Bin Abu' }).ok).toBe(true);
+      const res = call('members.edit', { eventId: e.id, memberId: 'M-22001111', fullName: 'Ali Bin Abu' });
 
+      expect(res.ok).toBe(true);
+      expect(sourceTab(e.sourceId).getDisplayValues()[1][1]).toBe('Ali Bin Abu');
       expect(names(e.id)).toEqual(['Ali Bin Abu']);
-    });
-
-    it('is kept by the next sync, in the dancer list, attendance sheet and sign-in name', () => {
-      const e = createEvent('OCT');
-      expect(call('members.update', { eventId: e.id, memberId: 'M-22001111', fullName: 'Ali Bin Abu' }).ok).toBe(true);
-
-      sourceTab(e.sourceId).appendRows([['2026-10-02', 'Siti', '22002222', '', '', 'Popping']]);
-      expect(call('events.sync', { id: e.id }).ok).toBe(true);
-
-      expect(names(e.id)).toEqual(['Ali Bin Abu', 'Siti']);
       expect(ctx.db.memberIndex.find(m => m.matricKey === '22001111' && m.active)[0].fullName).toBe('Ali Bin Abu');
-      const rec = ctx.db.attendanceSheets.find(a => a.eventId === e.id && a.active)[0];
-      const rows = drive.openSpreadsheet(rec.spreadsheetId).sheet('Attendance')!.getDisplayValues();
-      expect(rows.find(r => r[0] === 'M-22001111')![1]).toBe('Ali Bin Abu');
+      expect(attendanceRow(e.id, 'M-22001111')).toMatchObject({ fullName: 'Ali Bin Abu' });
     });
 
-    it('a matric number cannot be changed here: it comes from the form', () => {
+    it('writes a corrected matric into every response of the dancer and moves her', () => {
       const e = createEvent('OCT');
-      const res = call('members.update', { eventId: e.id, memberId: 'M-22001111', matricRaw: '22009999' });
+      sourceTab(e.sourceId).appendRows([['2026-10-04', 'Ali', '22001111', '', '', 'Popping']]);
+      call('events.sync', { id: e.id });
+      addTicks(e.id, 'ses_1', ['M-22001111']);
+
+      const res = call('members.edit', { eventId: e.id, memberId: 'M-22001111', matricRaw: '22001112', contact: '0123456789' });
+
+      expect(res.ok && res.data).toMatchObject({ memberId: 'M-22001112' });
+      const rows = sourceTab(e.sourceId).getDisplayValues();
+      expect(rows.slice(1).map(r => r[2])).toEqual(['22001112', '22001112']);
+      expect(rows.slice(1).map(r => r[3])).toEqual(['0123456789', '0123456789']);
+      expect(memberIds(e.id)).toEqual(['M-22001112']);
+      expect(attendanceRow(e.id, 'M-22001112')).toMatchObject({ ses_1: 'TRUE' });
+    });
+
+    it('refuses an empty name or a matric without digits or letters', () => {
+      const e = createEvent('OCT');
+      const blankName = call('members.edit', { eventId: e.id, memberId: 'M-22001111', fullName: '  ' });
+      const badMatric = call('members.edit', { eventId: e.id, memberId: 'M-22001111', matricRaw: ' - ' });
+      expect(blankName.ok).toBe(false);
+      expect(badMatric.ok).toBe(false);
+      expect(sourceTab(e.sourceId).getDisplayValues()[1][1]).toBe('Ali');
+    });
+
+    it('refuses a detail the form does not ask for', () => {
+      const e = createEvent('OCT');
+      const res = call('members.edit', { eventId: e.id, memberId: 'M-22001111', gender: 'Male' });
       expect(res.ok).toBe(false);
-      if (!res.ok) expect(res.error.message).toContain('response sheet');
+      if (!res.ok) expect(res.error.message).toContain('gender');
     });
   });
 

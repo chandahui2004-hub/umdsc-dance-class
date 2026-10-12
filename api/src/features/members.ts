@@ -1,10 +1,23 @@
+import { Member } from '@umdsc/shared';
 import { Route } from '../router';
 import { AppError } from '../errors';
 import { logAudit } from '../logic/audit';
-import { normalizeMatric, nameKey } from '../logic/normalize';
-import { getEvent, readEventMembers, membersCacheKey, NAME_EDITED_FLAG } from './eventMembers';
-import { refreshAttendanceFixedColumns } from './eventImport';
+import { normalizeMatric } from '../logic/normalize';
+import { Field } from '../logic/headerMatch';
+import { getEvent, readEventMembers } from './eventMembers';
+import { importEventMembers, parseColumnMap } from './eventImport';
+import { openSourceTab } from './eventSource';
 import { isMemberEnrolledInStyle } from '../logic/styleMatcher';
+
+/** Dancer details an admin may correct: payload key, form question, the name used in messages. */
+const EDITABLE: [keyof Member, Field, string][] = [
+  ['fullName', 'fullName', 'name'],
+  ['matricRaw', 'matric', 'matric number'],
+  ['contact', 'contact', 'phone number'],
+  ['email', 'email', 'email'],
+  ['gender', 'gender', 'gender'],
+  ['nationality', 'nationality', 'nationality']
+];
 
 export function getMemberRoutes(): Record<string, Route> {
   return {
@@ -23,78 +36,84 @@ export function getMemberRoutes(): Record<string, Route> {
       }
     },
 
-    'members.update': {
+    // The registration form's response sheet stays the one source of a dancer's details: an edit is
+    // written into every response of that dancer, then the event syncs at once (a corrected matric
+    // moves the dancer, her attendance ticks and her sign-in, like a correction made in the sheet).
+    'members.edit': {
       perm: 'members.import',
       write: true,
       bumpsData: true,
       handler: (ctx, auth, payload: any) => {
-        const { eventId, memberId, fullName, matricRaw } = payload || {};
+        const { eventId, memberId } = payload || {};
         if (!eventId || !memberId) {
           throw new AppError('VALIDATION', 'eventId and memberId are required');
         }
-
         const event = getEvent(ctx, eventId);
-        const sheet = event.membersSpreadsheetId
-          ? ctx.drive.openSpreadsheet(event.membersSpreadsheetId).sheet('Members')
-          : null;
-        if (!sheet) {
-          throw new AppError('NOT_FOUND', 'Members sheet not found');
+        if (event.status === 'archived') {
+          throw new AppError('VALIDATION', 'Archived events cannot be edited');
+        }
+        const member = readEventMembers(ctx, event).find(m => m.memberId === memberId);
+        if (!member) {
+          throw new AppError('NOT_FOUND', `Dancer ${memberId} not found in ${event.name}`);
         }
 
-        const rows = sheet.getDisplayValues();
-        const headers = rows[0] || [];
-        const idCol = headers.indexOf('memberId');
-        const nameCol = headers.indexOf('fullName');
-        const keyCol = headers.indexOf('matricKey');
-        const nameKeyCol = headers.indexOf('nameKey');
-
-        const rowIndex = rows.findIndex((r, idx) => idx >= 1 && r[idCol] === memberId);
-        if (rowIndex === -1) {
-          throw new AppError('NOT_FOUND', `Member ${memberId} not found`);
+        const changes: { field: Field; value: string; label: string; current: string }[] = [];
+        for (const [key, field, label] of EDITABLE) {
+          if (payload[key] === undefined) continue;
+          const value = String(payload[key] ?? '').trim();
+          if (field === 'fullName' && !value) throw new AppError('VALIDATION', 'Name cannot be empty');
+          if (field === 'matric' && !normalizeMatric(value)) throw new AppError('VALIDATION', 'Enter a valid matric number');
+          changes.push({ field, value, label, current: String(member[key] ?? '') });
         }
 
-        const row = [...rows[rowIndex]];
-        // The matric number is the dancer's id (memberId, sign-in, attendance rows), so it is only
-        // ever taken from the form
-        if (matricRaw !== undefined && normalizeMatric(matricRaw) !== row[keyCol]) {
-          throw new AppError(
-            'VALIDATION',
-            "A matric number can't be changed here. Correct it in the registration form's response sheet, then press Sync now."
-          );
+        const { sheet } = openSourceTab(ctx, event.sourceSheetId, event.sourceTab);
+        const data = sheet.getDisplayValues();
+        const map = parseColumnMap(event.columnMapJson, data[0] || []);
+        const matricCol = map.matric;
+        if (matricCol === null || matricCol === undefined) {
+          throw new AppError('VALIDATION', 'The registration form has no matric number question');
         }
-        const name = String(fullName ?? '').trim();
-        if (fullName !== undefined && !name) {
-          throw new AppError('VALIDATION', 'Name cannot be empty');
+        const responseRows = data
+          .map((row, i) => ({ row, i }))
+          .filter(({ row, i }) => i >= 1 && normalizeMatric(row[matricCol] ?? '') === member.matricKey);
+        if (responseRows.length === 0) {
+          throw new AppError('NOT_FOUND', "This dancer's response is no longer in the registration form's response sheet");
         }
-        if (name) {
-          row[nameCol] = name;
-          row[nameKeyCol] = nameKey(name);
-          const flagsCol = headers.indexOf('flags');
-          const flags = String(row[flagsCol] || '').split(',').filter(Boolean);
-          if (flagsCol >= 0 && !flags.includes(NAME_EDITED_FLAG)) row[flagsCol] = [...flags, NAME_EDITED_FLAG].join(',');
-        }
-        sheet.setValues(rowIndex + 1, 1, [row]);
-        ctx.cache.remove(membersCacheKey(event));
 
-        const changed = readEventMembers(ctx, event).find(m => m.memberId === memberId);
-        if (changed) refreshAttendanceFixedColumns(ctx, event, new Map([[memberId, changed]]));
-
-        const oldMatricKey = rows[rowIndex][keyCol];
-        const actor = auth?.claims.sub || 'system';
-        const mi = ctx.db.memberIndex.find(idx => idx.matricKey === oldMatricKey && idx.active)[0];
-        if (mi) {
-          ctx.db.memberIndex.update(
-            mi.id,
-            mi.version,
-            { fullName: row[nameCol], nameKey: row[nameKeyCol] },
-            actor,
-            ctx.now()
-          );
+        for (const change of changes) {
+          const c = map[change.field];
+          if (c === null || c === undefined) {
+            if (change.value !== change.current) {
+              throw new AppError('VALIDATION', `The registration form has no ${change.label} question, so it can't be changed here`);
+            }
+            continue;
+          }
+          for (const { row, i } of responseRows) {
+            if ((row[c] ?? '') === change.value) continue;
+            try {
+              sheet.setValues(i + 1, c + 1, [[change.value]]);
+            } catch {
+              throw new AppError(
+                'LINK_NO_ACCESS',
+                `Give ${ctx.clubEmail} Editor access to the registration form's response sheet, then try again.`
+              );
+            }
+          }
         }
-        ctx.cache.remove('mi:' + oldMatricKey);
 
-        logAudit(ctx, actor, 'members.update', memberId, `Updated member ${memberId} in ${event.name}`);
-        return { updated: true };
+        const result = importEventMembers(ctx, ctx.db.events.get(event.id) || event, { full: true });
+        ctx.cache.remove(`sync:force:${event.id}`);
+
+        const matric = changes.find(c => c.field === 'matric');
+        const newMemberId = matric ? 'M-' + normalizeMatric(matric.value) : memberId;
+        logAudit(
+          ctx,
+          auth?.claims.sub || 'system',
+          'members.edit',
+          newMemberId,
+          `${changes.map(c => c.label).join(', ') || 'nothing'} edited for ${memberId} in ${event.name}`
+        );
+        return { memberId: newMemberId, result };
       }
     }
   };

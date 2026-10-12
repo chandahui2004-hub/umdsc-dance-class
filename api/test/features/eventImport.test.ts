@@ -117,17 +117,17 @@ describe('importEventMembers', () => {
     expect(rows[2][6]).toBe('/');
   });
 
-  it('sync now picks up an edited older response (Review Focus 2)', () => {
+  it('the automatic check picks up an edited older response (Review Focus 2)', () => {
     const { event, sourceId } = makeEvent([row('Ali', '22001111', 'Popping'), row('Bala', '22002222', 'Popping')]);
     importEventMembers(ctx, event, { full: false });
     const pop = attendanceSheet(event, 'st_popping');
     pop.setValues(1, 7, [['ses_x']]);
     pop.setValues(3, 7, [['/']]);
+    expect(importEventMembers(ctx, fresh(event), { full: false }).changed).toBe(false);
 
     source(sourceId).setValues(2, 2, [['Ali Bin Abu']]);
 
-    expect(importEventMembers(ctx, fresh(event), { full: false }).changed).toBe(false);
-    const result = importEventMembers(ctx, fresh(event), { full: true });
+    const result = importEventMembers(ctx, fresh(event), { full: false });
 
     expect(result.updated).toBe(1);
     expect(readEventMembers(ctx, fresh(event))[0].fullName).toBe('Ali Bin Abu');

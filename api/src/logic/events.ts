@@ -37,6 +37,11 @@ export function classesOutsideRange(sessions: ClassSession[], startDate: ISODate
 }
 
 /** djb2 hash of a sheet row, used to notice a changed last form response cheaply. */
+/** Fingerprint of a whole sheet, so an edit to any response (not only the newest) is noticed. */
+export function hashSheet(rows: string[][]): string {
+  return hashRow(rows.map(r => r.join('\u001e')));
+}
+
 export function hashRow(values: string[]): string {
   const text = values.join('\u001f');
   let hash = 5381;

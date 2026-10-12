@@ -269,7 +269,7 @@ export function getEventRoutes(): Record<string, Route> {
 
         const result = importEventMembers(ctx, event, { full: true });
         ctx.cache.put(forceKey, JSON.stringify(result), SYNC_NOW_SECONDS);
-        if (result.added > 0 || result.updated > 0 || result.flaggedRemoved > 0) {
+        if (result.added > 0 || result.updated > 0 || result.flaggedRemoved > 0 || result.corrected > 0) {
           ctx.props.set('DATA_VERSION', String(Number(ctx.props.get('DATA_VERSION') || 1) + 1));
         }
         logAudit(ctx, auth?.claims.sub || 'system', 'events.sync', event.id, `+${result.added} ~${result.updated}`);
