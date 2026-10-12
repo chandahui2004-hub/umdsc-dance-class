@@ -165,7 +165,7 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
                       href={`https://drive.google.com/drive/folders/${folder.id}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-[var(--neon-cyan)] font-bold underline hover:text-[var(--text-1)]"
+                      className="inline-flex items-center min-h-[44px] text-[var(--neon-cyan)] font-bold underline hover:text-[var(--text-1)]"
                     >
                       Open in Drive ↗ ({folder.id.slice(0, 10)}…)
                     </a>

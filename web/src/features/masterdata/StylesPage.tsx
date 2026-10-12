@@ -254,7 +254,7 @@ export const StylesPage: React.FC = () => {
                     ) : (
                       <>
                         <span className="italic">No instructors yet</span>{' '}
-                        <Link to="/admin/instructors" className="text-[var(--neon-cyan)] underline font-bold">
+                        <Link to="/admin/instructors" className="inline-flex items-center min-h-[44px] text-[var(--neon-cyan)] underline font-bold">
                           Add one
                         </Link>
                       </>

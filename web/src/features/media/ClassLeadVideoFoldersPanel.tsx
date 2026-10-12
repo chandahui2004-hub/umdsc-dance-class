@@ -250,7 +250,7 @@ export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProp
                                 href={openInDriveUrl(s.videoFolderId)}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="font-mono text-[11px] text-[var(--neon-cyan)] hover:underline flex items-center gap-1"
+                                className="min-h-[44px] font-mono text-[11px] text-[var(--neon-cyan)] hover:underline flex items-center gap-1"
                               >
                                 <span>DRIVE FOLDER ↗</span>
                               </a>

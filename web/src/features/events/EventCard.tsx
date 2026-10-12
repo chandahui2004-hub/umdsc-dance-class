@@ -105,7 +105,7 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
             href={`https://docs.google.com/spreadsheets/d/${event.sourceSheetId}`}
             target="_blank"
             rel="noreferrer"
-            className="underline text-[var(--neon-cyan)]"
+            className="inline-flex items-center min-h-[44px] underline text-[var(--neon-cyan)]"
           >
             open response sheet ↗
           </a>
