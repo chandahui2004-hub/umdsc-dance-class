@@ -6,6 +6,7 @@ import { buildMembers } from '../logic/buildMembers';
 import { hashRow } from '../logic/events';
 import { openSourceTab, timestampColumn, countUnknownClasses } from './eventSource';
 import { ensureEventFolder, ensureMembersSheet, ensureEventSheets, saveEventFields } from './eventSheets';
+import { NAME_EDITED_FLAG } from './eventMembers';
 
 export interface ImportResult {
   changed: boolean;
@@ -72,7 +73,7 @@ function buildEventMembers(ctx: Ctx, event: EventItem, data: string[][]) {
   return { members, unknownClasses: countUnknownClasses(rows, event.classIndex, styles) };
 }
 
-function refreshAttendanceFixedColumns(ctx: Ctx, event: EventItem, changed: Map<string, Member>): void {
+export function refreshAttendanceFixedColumns(ctx: Ctx, event: EventItem, changed: Map<string, Member>): void {
   for (const rec of ctx.db.attendanceSheets.find(a => a.eventId === event.id && a.active)) {
     const sheet = ctx.drive.openSpreadsheet(rec.spreadsheetId).sheet('Attendance');
     if (!sheet) continue;
@@ -142,6 +143,12 @@ export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boo
     known.add(id);
     const flags = String(row[col('flags')] || '').split(',').filter(Boolean);
     const m = incoming.get(id);
+    if (m && flags.includes(NAME_EDITED_FLAG)) {
+      // An admin corrected this name: keep it (and the mark) over the form's spelling
+      m.fullName = row[col('fullName')];
+      m.nameKey = row[col('nameKey')];
+      if (!m.flags.includes(NAME_EDITED_FLAG)) m.flags.push(NAME_EDITED_FLAG);
+    }
     if (!m) {
       if (!flags.includes(REMOVED_FLAG)) {
         body[i][col('flags')] = [...flags, REMOVED_FLAG].join(',');

@@ -11,6 +11,15 @@ export function getEvent(ctx: Ctx, eventId: string): EventItem {
   return event;
 }
 
+/**
+ * Marks a Members row whose name an admin corrected: syncs keep that name instead of the form's.
+ * Bookkeeping only, so it is not listed among the member's flags (the dancer list shows those as FLAGGED).
+ */
+export const NAME_EDITED_FLAG = 'name-edited';
+
+/** The Members sheet cache key of an event; remove it after writing that sheet. */
+export const membersCacheKey = (event: EventItem) => `evt:members:${event.id}:${event.membersSpreadsheetId}`;
+
 function list(value: string): string[] {
   return String(value || '').split(',').map(s => s.trim()).filter(Boolean);
 }
@@ -19,7 +28,7 @@ function list(value: string): string[] {
 export function readEventMembers(ctx: Ctx, event: EventItem): Member[] {
   if (!event.membersSpreadsheetId) return [];
 
-  const cacheKey = `evt:members:${event.id}:${event.membersSpreadsheetId}`;
+  const cacheKey = membersCacheKey(event);
   const cached = ctx.cache.get(cacheKey);
   if (cached) {
     try {
@@ -54,7 +63,7 @@ export function readEventMembers(ctx: Ctx, event: EventItem): Member[] {
       styleIds: list(get(r, 'styleIds')),
       styleNames: list(get(r, 'styleNames')),
       sourceTimestamp: get(r, 'sourceTimestamp'),
-      flags: list(get(r, 'flags'))
+      flags: list(get(r, 'flags')).filter(f => f !== NAME_EDITED_FLAG)
     });
   }
 

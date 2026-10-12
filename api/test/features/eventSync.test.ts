@@ -8,6 +8,7 @@ import { FakeLock } from '../fakes/fakeLock';
 import { FakeSheet } from '../fakes/fakeSheets';
 import { Hmac, signToken } from '../../src/security/tokens';
 import { getEventRoutes } from '../../src/features/events';
+import { getMemberRoutes } from '../../src/features/members';
 import { seedSourceSheet } from '../fixtures/events';
 import { openDb } from '../../src/db/db';
 
@@ -50,6 +51,7 @@ describe('Feature: event auto-sync and sync now', () => {
     props.set('SYSTEM_SPREADSHEET_ID', 'test_system_ss');
     ctx = makeCtx({ drive, lock, props });
     registerRoutes(getEventRoutes());
+    registerRoutes(getMemberRoutes());
     token = signToken(
       { sub: 'admin', role: 'admin', name: 'Admin', exp: Math.floor(ctx.now().getTime() / 1000) + 3600, pv: 1,
         perms: { 'members.import': '*', 'members.view': '*' } },
@@ -64,6 +66,43 @@ describe('Feature: event auto-sync and sync now', () => {
     );
     const master = drive.createFolder('root', 'Attendance');
     ctx.db.settings.insert({ key: 'defaultAttendanceFolderId', value: master }, 'system', ctx.now());
+  });
+
+  describe('a name corrected on the dancer list', () => {
+    const names = (eventId: string) => {
+      const res = call('members.list', { eventId });
+      return res.ok ? (res.data as any[]).map(m => m.fullName) : [];
+    };
+
+    it('shows at once, even right after the list was read', () => {
+      const e = createEvent('OCT');
+      expect(names(e.id)).toEqual(['Ali']);
+
+      expect(call('members.update', { eventId: e.id, memberId: 'M-22001111', fullName: 'Ali Bin Abu' }).ok).toBe(true);
+
+      expect(names(e.id)).toEqual(['Ali Bin Abu']);
+    });
+
+    it('is kept by the next sync, in the dancer list, attendance sheet and sign-in name', () => {
+      const e = createEvent('OCT');
+      expect(call('members.update', { eventId: e.id, memberId: 'M-22001111', fullName: 'Ali Bin Abu' }).ok).toBe(true);
+
+      sourceTab(e.sourceId).appendRows([['2026-10-02', 'Siti', '22002222', '', '', 'Popping']]);
+      expect(call('events.sync', { id: e.id }).ok).toBe(true);
+
+      expect(names(e.id)).toEqual(['Ali Bin Abu', 'Siti']);
+      expect(ctx.db.memberIndex.find(m => m.matricKey === '22001111' && m.active)[0].fullName).toBe('Ali Bin Abu');
+      const rec = ctx.db.attendanceSheets.find(a => a.eventId === e.id && a.active)[0];
+      const rows = drive.openSpreadsheet(rec.spreadsheetId).sheet('Attendance')!.getDisplayValues();
+      expect(rows.find(r => r[0] === 'M-22001111')![1]).toBe('Ali Bin Abu');
+    });
+
+    it('a matric number cannot be changed here: it comes from the form', () => {
+      const e = createEvent('OCT');
+      const res = call('members.update', { eventId: e.id, memberId: 'M-22001111', matricRaw: '22009999' });
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.error.message).toContain('response sheet');
+    });
   });
 
   it('quiet round: no lock, no writes', () => {
