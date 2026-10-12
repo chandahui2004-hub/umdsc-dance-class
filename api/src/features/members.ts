@@ -77,6 +77,11 @@ export function getMemberRoutes(): Record<string, Route> {
             if (owner) {
               throw new AppError('VALIDATION', `Matric ${value} already belongs to ${owner.fullName} in ${event.name}`);
             }
+            // Signed up elsewhere under another name: a different dancer, whose sign-in this would break
+            const signIn = ctx.db.memberIndex.find(m => m.matricKey === newKey && m.active)[0];
+            if (signIn && signIn.eventIds.length > 0 && signIn.nameKey !== member.nameKey) {
+              throw new AppError('VALIDATION', `Matric ${value} already belongs to ${signIn.fullName}`);
+            }
           }
           changes.push({ field, value, label, current: String(member[key] ?? '') });
         }

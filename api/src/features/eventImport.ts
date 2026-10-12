@@ -399,7 +399,7 @@ export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boo
     memberCount,
     lastSyncAt: ctx.now().toISOString(),
     lastSyncError: correctionsHeld
-      ? 'Many matric numbers changed at once, so no dancer was moved. Check that the form columns did not move, then press Sync now.'
+      ? 'Many matric numbers changed at once, so no dancer was moved. Check that the columns of the form did not move.'
       : unknownClasses.length
         ? `Unknown class in form: ${unknownClasses.map(u => u.token).join(', ')}`
         : ''

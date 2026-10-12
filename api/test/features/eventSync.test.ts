@@ -273,6 +273,21 @@ describe('Feature: event auto-sync and sync now', () => {
       expect(sourceTab(e.sourceId).getDisplayValues()[1].slice(1, 3)).toEqual(['Ali', '22001111']);
     });
 
+    it('refuses a matric that signs in another dancer (other name) in another event', () => {
+      const e = createEvent('OCT');
+      ctx.db.memberIndex.insert(
+        { matricKey: '22007777', nameKey: 'siti', fullName: 'Siti', eventIds: ['evt_nov'], lastEventEnd: '2026-11-30' } as any,
+        'system',
+        ctx.now()
+      );
+
+      const res = call('members.edit', { eventId: e.id, memberId: 'M-22001111', matricRaw: '22007777' });
+
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.error.message).toContain('already belongs to Siti');
+      expect(sourceTab(e.sourceId).getDisplayValues()[1][2]).toBe('22001111');
+    });
+
     it('refuses an event past the 3-year retention, so its wiped dancers stay wiped', () => {
       const sourceId = seedSourceSheet(ctx, [HEADERS, ['2023-09-01', 'Ali', '22001111', '', '', 'Popping']]);
       const created = call('events.create', {
