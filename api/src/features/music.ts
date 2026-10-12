@@ -42,6 +42,10 @@ export function visibleMusic(
   return musicList;
 }
 
+const musicStyle = (ctx: Ctx, id: unknown) => ctx.db.music.find(m => m.id === id && m.active)[0]?.styleId;
+const sectionStyle = (ctx: Ctx, id: unknown) =>
+  musicStyle(ctx, ctx.db.sections.find(s => s.id === id && s.active)[0]?.musicId);
+
 export function getMusicRoutes(): Record<string, Route> {
   return {
     'music.list': {
@@ -61,6 +65,7 @@ export function getMusicRoutes(): Record<string, Route> {
     'music.create': {
       perm: 'music.edit',
       write: true,
+      styleOf: (p: any) => p?.styleId,
       bumpsData: true,
       handler: (ctx, auth, payload: any) => {
         const {
@@ -140,6 +145,7 @@ export function getMusicRoutes(): Record<string, Route> {
     'music.update': {
       perm: 'music.edit',
       write: true,
+      styleOf: (p: any, ctx) => musicStyle(ctx, p?.id),
       bumpsData: true,
       handler: (ctx, auth, payload: any) => {
         const { id, version, title, sessionId, sourceType, driveFileId, youtubeUrl } = payload || {};
@@ -200,6 +206,7 @@ export function getMusicRoutes(): Record<string, Route> {
     'music.deactivate': {
       perm: 'music.edit',
       write: true,
+      styleOf: (p: any, ctx) => musicStyle(ctx, p?.id),
       bumpsData: true,
       handler: (ctx, auth, payload: any) => {
         const { id, version } = payload || {};
@@ -249,6 +256,7 @@ export function getMusicRoutes(): Record<string, Route> {
     'sections.create': {
       perm: 'sections.edit',
       write: true,
+      styleOf: (p: any, ctx) => musicStyle(ctx, p?.musicId),
       bumpsData: true,
       handler: (ctx, auth, payload: any) => {
         const { musicId, name, startSec, endSec, videoId = '', videoStartSec = null } = payload || {};
@@ -285,6 +293,7 @@ export function getMusicRoutes(): Record<string, Route> {
     'sections.update': {
       perm: 'sections.edit',
       write: true,
+      styleOf: (p: any, ctx) => sectionStyle(ctx, p?.id),
       bumpsData: true,
       handler: (ctx, auth, payload: any) => {
         const { id, version, name, startSec, endSec, videoId, videoStartSec } = payload || {};
@@ -327,6 +336,7 @@ export function getMusicRoutes(): Record<string, Route> {
     'sections.deactivate': {
       perm: 'sections.edit',
       write: true,
+      styleOf: (p: any, ctx) => sectionStyle(ctx, p?.id),
       bumpsData: true,
       handler: (ctx, auth, payload: any) => {
         const { id, version } = payload || {};

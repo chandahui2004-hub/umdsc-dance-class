@@ -34,7 +34,8 @@ export interface Route<P = any, R = any> {
   perm: PermissionCode | 'public' | 'signedIn';
   write: boolean;
   bumpsData?: boolean;
-  styleOf?: (p: P) => string | undefined;
+  /** The style a request acts on, for permissions limited to some styles; may look it up from the record. */
+  styleOf?: (p: P, ctx: Ctx) => string | undefined;
   handler: (ctx: Ctx, auth: AuthInfo | null, payload: P) => R;
 }
 
@@ -107,7 +108,7 @@ export function handleRequest(
       }
 
       if (route.perm !== 'signedIn') {
-        const styleId = route.styleOf ? route.styleOf(req.payload) : undefined;
+        const styleId = route.styleOf ? route.styleOf(req.payload, ctx) : undefined;
         if (!can(claims.perms, route.perm, styleId)) {
           throw new AppError('FORBIDDEN', `Permission denied for action: ${req.action}`);
         }

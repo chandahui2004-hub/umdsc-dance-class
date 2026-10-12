@@ -1,4 +1,5 @@
 import { Route } from '../router';
+import { Ctx } from '../ports';
 import { AppError } from '../errors';
 import { parseDateFromName } from '../logic/filenameDate';
 import { logAudit } from '../logic/audit';
@@ -6,6 +7,9 @@ import { can } from '../logic/permissions';
 import { getEvent } from './eventMembers';
 import { dancerCanSee, onLiveClass } from './bootstrap';
 import { eventYear, findStyleEventFolder } from './eventSheets';
+
+const sessionStyle = (ctx: Ctx, id: unknown) => ctx.db.sessions.find(s => s.id === id && s.active)[0]?.styleId;
+const videoStyle = (ctx: Ctx, id: unknown) => ctx.db.videos.find(v => v.id === id && v.active)[0]?.styleId;
 
 export function getVideoRoutes(): Record<string, Route> {
   return {
@@ -47,6 +51,7 @@ export function getVideoRoutes(): Record<string, Route> {
     'videos.targetFolder': {
       perm: 'videos.upload',
       write: false,
+      styleOf: (p: any, ctx) => sessionStyle(ctx, p?.sessionId),
       handler: (ctx, auth, payload: any) => {
         const sessionId = String(payload?.sessionId || '').trim();
         if (!sessionId) {
@@ -93,6 +98,7 @@ export function getVideoRoutes(): Record<string, Route> {
     'videos.register': {
       perm: 'videos.upload',
       write: true,
+      styleOf: (p: any, ctx) => sessionStyle(ctx, p?.sessionId),
       bumpsData: true,
       handler: (ctx, auth, payload: any) => {
         const { driveFileId, sessionId, title, eventFolderId } = payload || {};
@@ -150,6 +156,7 @@ export function getVideoRoutes(): Record<string, Route> {
     'videos.update': {
       perm: 'videos.edit',
       write: true,
+      styleOf: (p: any, ctx) => videoStyle(ctx, p?.id),
       bumpsData: true,
       handler: (ctx, auth, payload: any) => {
         const { id, version, title, sessionId } = payload || {};
@@ -180,6 +187,7 @@ export function getVideoRoutes(): Record<string, Route> {
     'videos.deactivate': {
       perm: 'videos.edit',
       write: true,
+      styleOf: (p: any, ctx) => videoStyle(ctx, p?.id),
       bumpsData: true,
       handler: (ctx, auth, payload: any) => {
         const { id, version } = payload || {};
@@ -216,6 +224,7 @@ export function getVideoRoutes(): Record<string, Route> {
     'videos.scan': {
       perm: 'videos.edit',
       write: false,
+      styleOf: (p: any) => p?.styleId,
       handler: (ctx, auth, payload: any) => {
         const { styleId, eventId } = payload || {};
         if (!styleId || !eventId) {
