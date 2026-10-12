@@ -8,6 +8,8 @@ import { getEvent, readEventMembers } from './eventMembers';
 import { importEventMembers, parseColumnMap } from './eventImport';
 import { openSourceTab } from './eventSource';
 import { isMemberEnrolledInStyle } from '../logic/styleMatcher';
+import { todayKL } from '../logic/events';
+import { pastRetention, RETENTION_NO_SYNC } from './events';
 
 /** Dancer details an admin may correct: payload key, form question, the name used in messages. */
 const EDITABLE: [keyof Member, Field, string][] = [
@@ -52,7 +54,12 @@ export function getMemberRoutes(): Record<string, Route> {
         if (event.status === 'archived') {
           throw new AppError('VALIDATION', 'Archived events cannot be edited');
         }
-        const member = readEventMembers(ctx, event).find(m => m.memberId === memberId);
+        // Re-reading an old form would undo the retention wipe of its dancers
+        if (pastRetention(event, todayKL(ctx.now()))) {
+          throw new AppError('VALIDATION', RETENTION_NO_SYNC);
+        }
+        const everyone = readEventMembers(ctx, event);
+        const member = everyone.find(m => m.memberId === memberId);
         if (!member) {
           throw new AppError('NOT_FOUND', `Dancer ${memberId} not found in ${event.name}`);
         }
@@ -62,7 +69,15 @@ export function getMemberRoutes(): Record<string, Route> {
           if (payload[key] === undefined) continue;
           const value = String(payload[key] ?? '').trim();
           if (field === 'fullName' && !value) throw new AppError('VALIDATION', 'Name cannot be empty');
-          if (field === 'matric' && !normalizeMatric(value)) throw new AppError('VALIDATION', 'Enter a valid matric number');
+          if (field === 'matric') {
+            const newKey = normalizeMatric(value);
+            if (!newKey) throw new AppError('VALIDATION', 'Enter a valid matric number');
+            // Typing someone else's matric would join two dancers, and that cannot be undone here
+            const owner = everyone.find(m => m.matricKey === newKey && m.memberId !== memberId);
+            if (owner) {
+              throw new AppError('VALIDATION', `Matric ${value} already belongs to ${owner.fullName} in ${event.name}`);
+            }
+          }
           changes.push({ field, value, label, current: String(member[key] ?? '') });
         }
 
@@ -80,6 +95,8 @@ export function getMemberRoutes(): Record<string, Route> {
           throw new AppError('NOT_FOUND', "This dancer's response is no longer in the registration form's response sheet");
         }
 
+        // Check every field before writing any, so a refused edit leaves the sheet untouched
+        const writes: { col: number; value: string; plainText: boolean }[] = [];
         for (const change of changes) {
           const c = map[change.field];
           if (c === null || c === undefined) {
@@ -88,17 +105,22 @@ export function getMemberRoutes(): Record<string, Route> {
             }
             continue;
           }
-          for (const { row, i } of responseRows) {
-            if ((row[c] ?? '') === change.value) continue;
-            try {
-              sheet.setValues(i + 1, c + 1, [[change.value]]);
-            } catch {
-              throw new AppError(
-                'LINK_NO_ACCESS',
-                `Give ${ctx.clubEmail} Editor access to the registration form's response sheet, then try again.`
-              );
-            }
+          // Matric and phone numbers stay text, so Sheets keeps leading zeros and a leading +
+          writes.push({ col: c, value: change.value, plainText: change.field === 'matric' || change.field === 'contact' });
+        }
+
+        try {
+          for (const w of writes) {
+            const rowsToWrite = responseRows.filter(({ row }) => (row[w.col] ?? '') !== w.value);
+            if (rowsToWrite.length === 0) continue;
+            if (w.plainText) sheet.setPlainTextColumns([w.col + 1]);
+            for (const { i } of rowsToWrite) sheet.setValues(i + 1, w.col + 1, [[w.value]]);
           }
+        } catch {
+          throw new AppError(
+            'LINK_NO_ACCESS',
+            `Give ${ctx.clubEmail} Editor access to the registration form's response sheet, then try again.`
+          );
         }
 
         const result = importEventMembers(ctx, ctx.db.events.get(event.id) || event, { full: true });

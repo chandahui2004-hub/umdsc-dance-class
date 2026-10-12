@@ -92,12 +92,16 @@ export const MembersPage: React.FC = () => {
     }
   });
 
+  // Archived events no longer sync, so their forms are neither re-read nor edited
+  const openEventIds = events.filter((e) => e.status !== 'archived').map((e) => e.id);
+  const editableEventIds = (m: AugmentedMember) => (m.eventIds || []).filter((id) => openEventIds.includes(id));
+
   // A correction made straight in a form's response sheet shows after REFRESH: sync, then reload
   const refreshFromForms = async () => {
     setSyncing(true);
     try {
       if (canImport) {
-        for (const id of isAll ? events.map((e) => e.id) : eventId ? [eventId] : []) {
+        for (const id of isAll ? openEventIds : eventId ? [eventId] : []) {
           try {
             await call('events.sync', { id });
           } catch {
@@ -411,7 +415,7 @@ export const MembersPage: React.FC = () => {
         >
           {selectedMember && (
             <div className="space-y-4 font-body text-[16px]">
-              {canImport && (
+              {canImport && selectedMember && editableEventIds(selectedMember).length > 0 && (
                 <PixelButton
                   variant="secondary"
                   size="sm"
@@ -638,7 +642,7 @@ export const MembersPage: React.FC = () => {
       {editing && (
         <EditDancerDialog
           member={editing}
-          eventIds={editing.eventIds || []}
+          eventIds={editableEventIds(editing)}
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null);
@@ -655,7 +659,7 @@ export const MembersPage: React.FC = () => {
       >
         {selectedMember && (
           <div className="space-y-4 font-body text-[16px]">
-              {canImport && (
+              {canImport && selectedMember && editableEventIds(selectedMember).length > 0 && (
                 <PixelButton
                   variant="secondary"
                   size="sm"

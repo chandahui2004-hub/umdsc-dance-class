@@ -159,6 +159,51 @@ describe('Feature: event auto-sync and sync now', () => {
       expect(attendanceRow(e.id, 'M-22001112')).toMatchObject({ ses_1: 'TRUE' });
     });
 
+    it('heals a dancer split by an earlier sync: old row marked removed, corrected row added with the same response', () => {
+      const e = createEvent('OCT');
+      addTicks(e.id, 'ses_1', ['M-22001111']);
+      // What a Sync now before this fix left behind
+      const ev = ctx.db.events.get(e.id)!;
+      const members = drive.openSpreadsheet(ev.membersSpreadsheetId).sheet('Members') as FakeSheet;
+      members.setValues(2, 13, [['removed-from-form']]);
+      members.appendRows([['M-22001112', 'Ali', '22001112', '22001112', 'ali', '', '', '', '', 'st_popping', 'Popping', '2026-10-01', '']]);
+      sourceTab(e.sourceId).setValues(2, 3, [['22001112']]);
+      call('events.sync', { id: e.id });
+      ctx.cache.remove(`sync:force:${e.id}`);
+
+      call('events.sync', { id: e.id });
+
+      expect(memberIds(e.id)).toEqual(['M-22001112']);
+      expect(attendanceRow(e.id, 'M-22001111')).toBeNull();
+      expect(attendanceRow(e.id, 'M-22001112')).toMatchObject({ ses_1: 'TRUE' });
+    });
+
+    it('does not move a response that now belongs to a different person (same timestamp, new name and matric)', () => {
+      const e = createEvent('OCT');
+      addTicks(e.id, 'ses_1', ['M-22001111']);
+
+      sourceTab(e.sourceId).setValues(2, 2, [['Siti', '22005555']]);
+      call('events.sync', { id: e.id });
+
+      expect(memberIds(e.id)).toEqual(['M-22001111', 'M-22005555']);
+      expect(attendanceRow(e.id, 'M-22001111')).toMatchObject({ ses_1: 'TRUE' });
+      expect(attendanceRow(e.id, 'M-22005555')).toMatchObject({ ses_1: '' });
+    });
+
+    it('moves nobody when many matrics change at once (a moved form column), and says so', () => {
+      const e = createEvent('OCT');
+      const src = sourceTab(e.sourceId);
+      src.appendRows([2, 3, 4, 5].map(n => [`2026-10-0${n}`, `D${n}`, `2200${n}${n}${n}${n}`, '', '', 'Popping']));
+      call('events.sync', { id: e.id });
+      ctx.cache.remove(`sync:force:${e.id}`);
+
+      src.getDisplayValues().slice(1).forEach((row, i) => src.setValues(i + 2, 3, [[row[2] + '9']]));
+      call('events.sync', { id: e.id });
+
+      expect(indexEvents('22001111')).toContain(e.id);
+      expect(ctx.db.events.get(e.id)!.lastSyncError).toContain('Many matric numbers changed at once');
+    });
+
     it('never merges a removed dancer into another dancer who only shares the name', () => {
       const e = createEvent('OCT');
       sourceTab(e.sourceId).appendRows([['2026-10-02', 'Ali', '22003333', '', '', 'Popping']]);
@@ -203,6 +248,45 @@ describe('Feature: event auto-sync and sync now', () => {
       expect(rows.slice(1).map(r => r[3])).toEqual(['0123456789', '0123456789']);
       expect(memberIds(e.id)).toEqual(['M-22001112']);
       expect(attendanceRow(e.id, 'M-22001112')).toMatchObject({ ses_1: 'TRUE' });
+    });
+
+    it('a matric changed and changed back leaves both sign-ins working', () => {
+      const e = createEvent('OCT');
+      call('members.edit', { eventId: e.id, memberId: 'M-22001111', matricRaw: '22001112' });
+      const back = call('members.edit', { eventId: e.id, memberId: 'M-22001112', matricRaw: '22001111' });
+
+      expect(back.ok).toBe(true);
+      expect(memberIds(e.id)).toEqual(['M-22001111']);
+      expect(indexEvents('22001111')).toContain(e.id);
+      expect(ctx.db.memberIndex.find(m => m.matricKey === '22001112')[0].active).toBe(true);
+    });
+
+    it('refuses a matric that already belongs to another dancer in the event, writing nothing', () => {
+      const e = createEvent('OCT');
+      sourceTab(e.sourceId).appendRows([['2026-10-02', 'Siti', '22002222', '', '', 'Popping']]);
+      call('events.sync', { id: e.id });
+
+      const res = call('members.edit', { eventId: e.id, memberId: 'M-22001111', fullName: 'Ali Bin Abu', matricRaw: '22002222' });
+
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.error.message).toContain('already belongs to Siti');
+      expect(sourceTab(e.sourceId).getDisplayValues()[1].slice(1, 3)).toEqual(['Ali', '22001111']);
+    });
+
+    it('refuses an event past the 3-year retention, so its wiped dancers stay wiped', () => {
+      const sourceId = seedSourceSheet(ctx, [HEADERS, ['2023-09-01', 'Ali', '22001111', '', '', 'Popping']]);
+      const created = call('events.create', {
+        name: 'SEP 2023', type: 'monthly', startDate: '2023-09-01', endDate: '2023-09-20',
+        sheetUrl: `https://docs.google.com/spreadsheets/d/${sourceId}/edit`,
+        columnMap: { fullName: 1, matric: 2, contact: 3, email: 4, gender: null, nationality: null },
+        classIndex: 5, styleIds: ['st_popping'], sessions: []
+      });
+      const id = created.ok ? (created.data as any).event.id : '';
+
+      const res = call('members.edit', { eventId: id, memberId: 'M-22001111', fullName: 'Ali Bin Abu' });
+
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.error.message).toContain('ended more than 3 years ago');
     });
 
     it('refuses an empty name or a matric without digits or letters', () => {
