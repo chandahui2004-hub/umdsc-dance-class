@@ -67,6 +67,16 @@ function promptText(query) {
   });
 }
 
+/** True when the token's exp (seconds) has passed; a token that cannot be read counts as expired. */
+function tokenExpired(token) {
+  try {
+    const claims = JSON.parse(Buffer.from(token.split('.')[0].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'));
+    return !claims.exp || claims.exp * 1000 <= Date.now();
+  } catch {
+    return true;
+  }
+}
+
 async function main() {
   const action = process.argv[2];
   if (!action) {
@@ -112,6 +122,11 @@ async function main() {
     try {
       token = fs.readFileSync(tokenFilePath, 'utf8').trim();
     } catch {}
+    // A saved sign-in lasts 12 hours; once expired, ask for the password again instead of failing
+    if (token && tokenExpired(token)) {
+      console.log('Saved admin sign-in has expired.');
+      token = undefined;
+    }
   }
 
   if (action === 'auth.adminLogin' && !payload) {
