@@ -17,8 +17,21 @@ export function getEvent(ctx: Ctx, eventId: string): EventItem {
  */
 export const NAME_EDITED_FLAG = 'name-edited';
 
-/** The Members sheet cache key of an event; remove it after writing that sheet. */
-export const membersCacheKey = (event: EventItem) => `evt:members:${event.id}:${event.membersSpreadsheetId}`;
+const membersVersionKey = (eventId: string) => 'MEMBERS_V_' + eventId;
+
+/**
+ * The Members sheet cache key of an event. It carries a version that every write to that sheet moves
+ * on (membersChanged), so a list read that started before a write can only cache its old copy under
+ * a key nobody reads any more; removing the key instead let such a late read put old dancers back.
+ */
+export const membersCacheKey = (ctx: Ctx, event: EventItem) =>
+  `evt:members:${event.id}:${event.membersSpreadsheetId}:${ctx.props.get(membersVersionKey(event.id)) || '0'}`;
+
+/** Call after writing an event's Members sheet. */
+export function membersChanged(ctx: Ctx, event: EventItem): void {
+  const key = membersVersionKey(event.id);
+  ctx.props.set(key, String(Number(ctx.props.get(key) || 0) + 1));
+}
 
 function list(value: string): string[] {
   return String(value || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -28,7 +41,7 @@ function list(value: string): string[] {
 export function readEventMembers(ctx: Ctx, event: EventItem): Member[] {
   if (!event.membersSpreadsheetId) return [];
 
-  const cacheKey = membersCacheKey(event);
+  const cacheKey = membersCacheKey(ctx, event);
   const cached = ctx.cache.get(cacheKey);
   if (cached) {
     try {

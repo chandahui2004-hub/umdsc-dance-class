@@ -94,6 +94,39 @@ export function getEventRoutes(): Record<string, Route> {
       }
     },
 
+    // Read-only check of where a dancer's data really is: every tab of the form's spreadsheet, the tab a
+    // sync opens, and the rows mentioning `find` there, in the event's Members sheet and in sign-in.
+    'events.inspectSource': {
+      perm: 'settings.edit',
+      write: false,
+      handler: (ctx, auth, payload: any) => {
+        const event = getEvent(ctx, String(payload?.id || ''));
+        const find = String(payload?.find || '').trim().toLowerCase();
+        if (!find) throw new AppError('VALIDATION', 'find is required');
+        const hits = (rows: string[][], skipHeader: boolean) =>
+          rows
+            .map((r, i) => ({ row: i + 1, cells: r }))
+            .filter(({ row, cells }) => !(skipHeader && row === 1) && cells.some(c => String(c).toLowerCase().includes(find)))
+            .map(({ row, cells }) => ({ row, cells: cells.slice(0, 13) }));
+
+        const source = ctx.drive.openSpreadsheet(event.sourceSheetId);
+        const { tab, sheet } = openSourceTab(ctx, event.sourceSheetId, event.sourceTab);
+        const members = event.membersSpreadsheetId
+          ? ctx.drive.openSpreadsheet(event.membersSpreadsheetId).sheet('Members')
+          : null;
+        return {
+          sourceTab: event.sourceTab,
+          openedTab: { asked: tab, actualName: sheet.name },
+          sheets: source.listSheets ? source.listSheets() : [],
+          sourceMatches: hits(sheet.getDisplayValues(), true),
+          membersMatches: members ? hits(members.getDisplayValues(), true) : [],
+          signIn: ctx.db.memberIndex
+            .find(m => m.fullName.toLowerCase().includes(find) || m.matricKey.toLowerCase().includes(find))
+            .map(m => ({ matricKey: m.matricKey, fullName: m.fullName, active: m.active, eventIds: m.eventIds, eventStyles: m.eventStyles }))
+        };
+      }
+    },
+
     'events.previewSource': {
       perm: 'members.import',
       write: false,

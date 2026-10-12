@@ -11,6 +11,7 @@ import { getEventRoutes } from '../../src/features/events';
 import { getMemberRoutes } from '../../src/features/members';
 import { seedSourceSheet } from '../fixtures/events';
 import { openDb } from '../../src/db/db';
+import { membersCacheKey } from '../../src/features/eventMembers';
 
 const nodeHmac: Hmac = (key: string, message: string) => new Uint8Array(crypto.createHmac('sha256', key).update(message).digest());
 const secrets = { tokenSecret: 'test_secret_key_123456789012345678901234567890', hmac: nodeHmac };
@@ -157,6 +158,39 @@ describe('Feature: event auto-sync and sync now', () => {
 
       expect(memberIds(e.id)).toEqual(['M-22001112']);
       expect(attendanceRow(e.id, 'M-22001112')).toMatchObject({ ses_1: 'TRUE' });
+    });
+
+    it('a dancer-list read that began before the sync cannot bring the old matric back', () => {
+      const e = createEvent('OCT');
+      const before = ctx.db.events.get(e.id)!;
+      const lateKey = membersCacheKey(ctx, before);
+      const oldList = (call('members.list', { eventId: e.id }) as any).data;
+
+      sourceTab(e.sourceId).setValues(2, 3, [['22001112']]);
+      call('events.sync', { id: e.id });
+      // the late read finishes now and caches what it read before the sync
+      ctx.cache.put(lateKey, JSON.stringify(oldList), 600);
+      ctx.cache.remove(`sync:force:${e.id}`);
+      call('events.sync', { id: e.id });
+
+      expect(memberIds(e.id)).toEqual(['M-22001112']);
+      expect(attendanceRow(e.id, 'M-22001111')).toBeNull();
+    });
+
+    it('empties a leftover attendance row of someone not on the dancer list, unless it has ticks', () => {
+      const e = createEvent('OCT');
+      addTicks(e.id, 'ses_1', []);
+      const sheet = attendance(e.id);
+      sheet.appendRows([
+        ['M-29999999', 'Ghost', '29999999', '', '', '', ''],
+        ['M-28888888', 'Ticked Ghost', '28888888', '', '', '', '/']
+      ]);
+
+      call('events.sync', { id: e.id });
+
+      expect(attendanceRow(e.id, 'M-29999999')).toBeNull();
+      expect(attendanceRow(e.id, 'M-28888888')).toMatchObject({ ses_1: '/' });
+      expect(attendanceRow(e.id, 'M-22001111')).not.toBeNull();
     });
 
     it('heals a dancer split by an earlier sync: old row marked removed, corrected row added with the same response', () => {

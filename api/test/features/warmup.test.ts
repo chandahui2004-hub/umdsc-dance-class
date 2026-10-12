@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { makeCtx } from '../fakes/makeCtx';
 import { seedEvent } from '../fixtures/events';
+import { membersCacheKey } from '../../src/features/eventMembers';
 import { warmCaches } from '../../src/features/warmup';
 import { EventItem } from '@umdsc/shared';
 
@@ -31,7 +32,7 @@ describe('warmCaches', () => {
     warmCaches(ctx);
 
     const dv = Number(ctx.props.get('DATA_VERSION') || 1);
-    expect(ctx.cache.get(`evt:members:${event.id}:${event.membersSpreadsheetId}`)).toBeTruthy();
+    expect(ctx.cache.get(membersCacheKey(ctx, event))).toBeTruthy();
     expect(ctx.cache.get(`boot:chunk:${event.id}:st_popping:${dv}`)).toBeTruthy();
     expect(ctx.cache.get(`boot:chunk:${event.id}:st_hiphop:${dv}`)).toBeTruthy();
   });

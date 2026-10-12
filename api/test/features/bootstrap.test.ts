@@ -9,6 +9,7 @@ import { getVideoRoutes } from '../../src/features/videos';
 import { getMusicRoutes } from '../../src/features/music';
 import { buildLayout } from '../../src/logic/attendanceGrid';
 import { seedEvent } from '../fixtures/events';
+import { membersCacheKey } from '../../src/features/eventMembers';
 import { ClassSession, EventItem, Member } from '@umdsc/shared';
 
 const nodeHmac: Hmac = (key: string, message: string) => {
@@ -292,7 +293,7 @@ describe('Feature: Bootstrap with Caching (features/bootstrap)', () => {
 
   it('caches event members sheet across bootstrap calls', () => {
     handleRequest({ action: 'dancer.bootstrap', token: dancerToken }, ctx, secrets);
-    const cachedMembers = ctx.cache.get(`evt:members:${event.id}:${event.membersSpreadsheetId}`);
+    const cachedMembers = ctx.cache.get(membersCacheKey(ctx, event));
     expect(cachedMembers).toBeTruthy();
     expect(JSON.parse(cachedMembers!).length).toBe(2);
   });

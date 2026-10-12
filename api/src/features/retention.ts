@@ -4,7 +4,7 @@ import { EventItem } from '@umdsc/shared';
 import { isDue, anonymizedMemberId } from '../logic/retention';
 import { todayKL } from '../logic/events';
 import { logAudit } from '../logic/audit';
-import { readEventMembers } from './eventMembers';
+import { readEventMembers, membersChanged } from './eventMembers';
 
 const REMOVED_NAME = 'Removed dancer';
 /** Personal columns blanked in a Members sheet (fullName becomes REMOVED_NAME). */
@@ -44,6 +44,7 @@ function wipeInEvent(ctx: Ctx, event: EventItem, anonIdByMatric: Map<string, str
       for (const col of MEMBER_PERSONAL) if (header.indexOf(col) >= 0) row[header.indexOf(col)] = '';
       return true;
     });
+    membersChanged(ctx, event);
   }
 
   for (const rec of ctx.db.attendanceSheets.find(a => a.eventId === event.id)) {

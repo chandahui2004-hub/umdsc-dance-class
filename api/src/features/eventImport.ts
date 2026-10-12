@@ -7,6 +7,7 @@ import { hashSheet } from '../logic/events';
 import { bumpAttendanceVersion } from '../logic/attendanceVersion';
 import { logAudit } from '../logic/audit';
 import { openSourceTab, timestampColumn, countUnknownClasses } from './eventSource';
+import { membersChanged } from './eventMembers';
 import { ensureEventFolder, ensureMembersSheet, ensureEventSheets, saveEventFields } from './eventSheets';
 
 export interface ImportResult {
@@ -338,8 +339,7 @@ export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boo
   if (added.length > 0) membersSheet.appendRows(added.map(cellsOf));
 
   if (bodyChanged || added.length > 0) {
-    ctx.cache.remove(`evt:members:${event.id}:${membersId}`);
-    ctx.cache.remove(`evt:members:${event.id}:${event.membersSpreadsheetId}`);
+    membersChanged(ctx, event);
   }
 
   // Corrected matrics: move attendance rows (keeping ticks) and the sign-in link before new rows are added

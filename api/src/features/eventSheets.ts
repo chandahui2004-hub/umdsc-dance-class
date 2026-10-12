@@ -276,6 +276,20 @@ export function ensureEventSheets(ctx: Ctx, event: EventItem): { styleId: string
         const data = sheet.getDisplayValues();
         const keyRow = [...(data[0] || [])];
         const idCol = keyRow.indexOf('memberId');
+
+        // A row for someone not on the dancer list at all, with no class ticked, is a leftover (e.g. a
+        // matric that was corrected); it is emptied. A row with any tick always stays.
+        let emptied = false;
+        if (idCol >= 0 && members.length > 0) {
+          const listed = new Set(members.map(m => m.memberId));
+          const classCols = keyRow.map((key, c) => (key.startsWith('ses_') ? c : -1)).filter(c => c >= 0);
+          data.forEach((row, i) => {
+            if (i < 2 || !row[idCol] || listed.has(row[idCol]) || classCols.some(c => row[c])) return;
+            sheet.setValues(i + 1, 1, [keyRow.map(() => '')]);
+            row[idCol] = '';
+            emptied = true;
+          });
+        }
         const existingIds = idCol === -1 ? [] : data.slice(2).map(r => r[idCol]).filter(Boolean);
         const { appendColumns, appendRows } = planSync(keyRow, existingIds, styleMembers, sessions);
 
@@ -298,7 +312,7 @@ export function ensureEventSheets(ctx: Ctx, event: EventItem): { styleId: string
             })
           );
         }
-        if (appendColumns.length > 0 || appendRows.length > 0) {
+        if (emptied || appendColumns.length > 0 || appendRows.length > 0) {
           bumpAttendanceVersion(ctx, current.id, rec.styleId);
         }
       }

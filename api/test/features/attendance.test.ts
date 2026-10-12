@@ -8,6 +8,7 @@ import { getAttendanceRoutes } from '../../src/features/attendance';
 import { getSessionRoutes } from '../../src/features/sessions';
 import { buildLayout } from '../../src/logic/attendanceGrid';
 import { seedEvent } from '../fixtures/events';
+import { membersChanged } from '../../src/features/eventMembers';
 import { ClassSession, EventItem, Member } from '@umdsc/shared';
 
 const nodeHmac: Hmac = (key: string, message: string) => {
@@ -199,7 +200,7 @@ describe('Feature: Attendance (features/attendance)', () => {
     const styleCol = rows[0].indexOf('styleIds');
     const twoRow = rows.findIndex(r => r.includes('M-22002222'));
     membersSheet.setValues(twoRow + 1, styleCol + 1, [['st_locking']]);
-    ctx.cache.remove(`evt:members:${event.id}:${event.membersSpreadsheetId}`);
+    membersChanged(ctx, event);
 
     const res = call('attendance.mark', {
       eventId: event.id, styleId: 'st_popping',

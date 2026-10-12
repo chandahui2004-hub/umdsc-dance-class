@@ -29,6 +29,8 @@ export interface SpreadsheetPort {
   setName(name: string): void;
   firstSheet?(): SheetPort | null;
   removeSheet(name: string): void;
+  /** Every tab, hidden ones included (for diagnosing which tab holds the data). */
+  listSheets?(): { name: string; hidden: boolean; lastRow: number }[];
 }
 
 /** `exists` is false for items that are missing, unshared, or in the Drive bin. */

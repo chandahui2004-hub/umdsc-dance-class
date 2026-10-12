@@ -142,6 +142,10 @@ export class GasSpreadsheetAdapter implements SpreadsheetPort {
     return sheets.length > 0 ? new GasSheetAdapter(sheets[0]) : null;
   }
 
+  listSheets(): { name: string; hidden: boolean; lastRow: number }[] {
+    return this.ss.getSheets().map(s => ({ name: s.getName(), hidden: s.isSheetHidden(), lastRow: s.getLastRow() }));
+  }
+
   removeSheet(name: string): void {
     const s = this.ss.getSheetByName(name);
     if (s) this.ss.deleteSheet(s);
