@@ -70,18 +70,8 @@ describe('Feature: Members (features/members)', () => {
     if (!res.ok) expect(res.error.code).toBe('NOT_FOUND');
   });
 
-  it('members.update renames in the event Members sheet and in MemberIndex', () => {
-    const res = call('members.update', { eventId: event.id, memberId: 'M-22001111', fullName: 'Popper One Bin Ali' });
-    expect(res.ok).toBe(true);
-
-    const list = call('members.list', { eventId: event.id });
-    expect(list.ok && (list.data as any[])[0].fullName).toBe('Popper One Bin Ali');
-    const mi = ctx.db.memberIndex.find(m => m.matricKey === '22001111')[0];
-    expect(mi.fullName).toBe('Popper One Bin Ali');
-  });
-
-  it('old month-based import actions no longer exist', () => {
-    for (const action of ['members.previewImport', 'members.confirmImport', 'members.resync', 'members.autoSync', 'members.importedMonths']) {
+  it('old import and edit actions no longer exist (edits go through the form sheet: members.edit)', () => {
+    for (const action of ['members.previewImport', 'members.confirmImport', 'members.resync', 'members.autoSync', 'members.importedMonths', 'members.update']) {
       const res = call(action, { month: '2026-10' });
       expect(res.ok).toBe(false);
       if (!res.ok) expect(res.error.message).toContain('Unknown action');

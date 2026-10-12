@@ -17,11 +17,11 @@ import { cleanStyleInstructors, firstInstructor, assertClassInstructor } from '.
 const AUTO_SYNC_SECONDS = 600;
 const SYNC_NOW_SECONDS = 60;
 
-const RETENTION_NO_SYNC =
+export const RETENTION_NO_SYNC =
   'This event ended more than 3 years ago, so it no longer syncs (data retention). Archive it when you are done.';
 
 /** Old events stop syncing, so re-reading their form can never undo a retention wipe. */
-function pastRetention(event: EventItem, today: string): boolean {
+export function pastRetention(event: EventItem, today: string): boolean {
   return isDue(event.endDate, today);
 }
 
@@ -269,7 +269,7 @@ export function getEventRoutes(): Record<string, Route> {
 
         const result = importEventMembers(ctx, event, { full: true });
         ctx.cache.put(forceKey, JSON.stringify(result), SYNC_NOW_SECONDS);
-        if (result.added > 0 || result.updated > 0 || result.flaggedRemoved > 0) {
+        if (result.added > 0 || result.updated > 0 || result.flaggedRemoved > 0 || result.corrected > 0) {
           ctx.props.set('DATA_VERSION', String(Number(ctx.props.get('DATA_VERSION') || 1) + 1));
         }
         logAudit(ctx, auth?.claims.sub || 'system', 'events.sync', event.id, `+${result.added} ~${result.updated}`);

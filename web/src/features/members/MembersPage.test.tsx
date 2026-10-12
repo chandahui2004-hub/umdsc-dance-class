@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MembersPage } from './MembersPage';
@@ -103,5 +103,76 @@ describe('MembersPage Component', () => {
     // Clicking fullscreen toggles fullscreen class/state
     fireEvent.click(fullscreenBtn);
     expect(screen.getByText(/exit fullscreen/i)).toBeInTheDocument();
+  });
+
+  describe('for a user who may import dancers', () => {
+    const renderPage = () =>
+      render(
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter>
+            <MembersPage />
+          </MemoryRouter>
+        </QueryClientProvider>
+      );
+
+    beforeEach(() => {
+      localStorage.setItem(
+        'umdsc:session',
+        JSON.stringify({
+          token: 't',
+          claims: { sub: 'lead', role: 'admin', name: 'Lead', exp: 9999999999, pv: 1, perms: { 'members.view': '*', 'members.import': '*' } }
+        })
+      );
+      mockUseCurrentEventState = {
+        events: [
+          { id: 'evt1', name: 'OCT CLASS', status: 'active', styleIds: ['st_popping'] },
+          { id: 'evt2', name: 'NOV CLASS', status: 'active', styleIds: ['st_hiphop'] }
+        ],
+        current: null,
+        setCurrentId: vi.fn(),
+        isAll: true
+      };
+      mockCall.mockImplementation((action: string, payload: any) => {
+        if (action === 'members.list' && payload?.eventId === 'evt1') {
+          return Promise.resolve({
+            data: [{ memberId: 'M-26006146', matricKey: '26006146', matricRaw: '26006146', fullName: 'Deepa S', styleNames: ['Popping'], contact: '011', email: 'd@test.com', gender: '', nationality: '', flags: [] }]
+          });
+        }
+        if (action === 'members.edit') return Promise.resolve({ data: { memberId: 'M-26006145' } });
+        return Promise.resolve({ data: [] });
+      });
+    });
+
+    afterEach(() => localStorage.clear());
+
+    it('REFRESH syncs every shown event from its form before reloading the list', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getAllByText('Deepa S').length).toBeGreaterThan(0));
+      mockCall.mockClear();
+
+      fireEvent.click(screen.getByRole('button', { name: 'REFRESH' }));
+
+      await waitFor(() => {
+        const actions = mockCall.mock.calls.map(c => [c[0], c[1]?.id ?? c[1]?.eventId]);
+        expect(actions).toEqual(expect.arrayContaining([['events.sync', 'evt1'], ['events.sync', 'evt2'], ['members.list', 'evt1']]));
+      });
+      const order = mockCall.mock.calls.map(c => c[0]);
+      expect(order.lastIndexOf('events.sync')).toBeLessThan(order.indexOf('members.list'));
+    });
+
+    it('EDIT saves a corrected matric through members.edit for the dancer\'s event', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getAllByText('Deepa S').length).toBeGreaterThan(0));
+      fireEvent.click(within(screen.getByRole('table')).getByRole('button', { name: 'DETAILS' }));
+
+      fireEvent.click(await screen.findByRole('button', { name: 'EDIT DETAILS' }));
+      const matric = screen.getByLabelText('Matric number');
+      fireEvent.change(matric, { target: { value: '26006145' } });
+      fireEvent.click(screen.getByRole('button', { name: 'SAVE TO FORM SHEET' }));
+
+      await waitFor(() =>
+        expect(mockCall).toHaveBeenCalledWith('members.edit', { eventId: 'evt1', memberId: 'M-26006146', matricRaw: '26006145' })
+      );
+    });
   });
 });

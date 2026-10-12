@@ -20,6 +20,8 @@ export function buildMembers(input: {
   members: Member[];
   warnings: ImportWarning[];
   countsByStyle: Record<string, number>;
+  /** Every response timestamp behind each member (a dancer may have answered more than once). */
+  timestampsByMember: Record<string, string[]>;
 } {
   const { rows, map, classIndex, styles, timestampIndex } = input;
   const warnings: ImportWarning[] = [];
@@ -42,6 +44,7 @@ export function buildMembers(input: {
       rowNum: number;
     }
   >();
+  const timestampsByMember: Record<string, string[]> = {};
 
   for (let r = 0; r < rows.length; r++) {
     const row = rows[r];
@@ -119,6 +122,7 @@ export function buildMembers(input: {
     const styleNames = styleIds.map(id => styleNameById.get(id) || id);
     const memberId = 'M-' + matricKey;
     const nk = nameKey(fullNameRaw);
+    if (sourceTimestamp) (timestampsByMember[memberId] ||= []).push(sourceTimestamp);
 
     const currentTimestampValue = sourceTimestamp ? Date.parse(sourceTimestamp) || 0 : 0;
 
@@ -191,6 +195,7 @@ export function buildMembers(input: {
   return {
     members,
     warnings,
-    countsByStyle
+    countsByStyle,
+    timestampsByMember
   };
 }

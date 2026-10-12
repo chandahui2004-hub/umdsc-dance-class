@@ -12,8 +12,11 @@ import { getStyleColor } from '../../theme/colors';
 import { exportToCsv } from '../../lib/csv';
 import type { Member } from '@umdsc/shared';
 import { useCurrentEvent } from '../events/useCurrentEvent';
+import { session } from '../../lib/session';
+import { can } from '../../lib/permissions';
+import { EditDancerDialog } from './EditDancerDialog';
 
-type AugmentedMember = Member & { eventNames?: string[] };
+type AugmentedMember = Member & { eventNames?: string[]; eventIds?: string[] };
 
 export const MembersPage: React.FC = () => {
   const { data: bootstrap } = useBootstrap('admin');
@@ -23,6 +26,9 @@ export const MembersPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMember, setSelectedMember] = useState<AugmentedMember | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [editing, setEditing] = useState<AugmentedMember | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const canImport = can(session.get()?.claims.perms, 'members.import');
 
   // Members of the event chosen in the picker, or all events combined
   const {
@@ -40,7 +46,7 @@ export const MembersPage: React.FC = () => {
           events.map(async (ev) => {
             try {
               const res = await call<Member[]>('members.list', { eventId: ev.id });
-              return (res.data || []).map((m) => ({ ...m, _eventName: ev.name }));
+              return (res.data || []).map((m) => ({ ...m, _eventName: ev.name, _eventId: ev.id }));
             } catch {
               return [];
             }
@@ -53,12 +59,14 @@ export const MembersPage: React.FC = () => {
           const key = (m.matricKey || m.matricRaw || m.fullName).trim().toLowerCase();
           const existing = dedupedMap.get(key);
           const evName = (m as any)._eventName;
+          const evId = (m as any)._eventId as string;
           if (!existing) {
             dedupedMap.set(key, {
               ...m,
               styleNames: Array.from(new Set(m.styleNames || [])),
               styleIds: Array.from(new Set(m.styleIds || [])),
-              eventNames: evName ? [evName] : []
+              eventNames: evName ? [evName] : [],
+              eventIds: [evId]
             });
           } else {
             const combinedStyles = Array.from(new Set([...(existing.styleNames || []), ...(m.styleNames || [])]));
@@ -71,6 +79,7 @@ export const MembersPage: React.FC = () => {
               styleNames: combinedStyles,
               styleIds: combinedStyleIds,
               eventNames: combinedEvents,
+              eventIds: Array.from(new Set([...(existing.eventIds || []), evId])),
               flags: Array.from(new Set([...(existing.flags || []), ...(m.flags || [])]))
             });
           }
@@ -79,9 +88,32 @@ export const MembersPage: React.FC = () => {
       }
 
       const res = await call<Member[]>('members.list', { eventId });
-      return (res.data || []) as AugmentedMember[];
+      return (res.data || []).map((m) => ({ ...m, eventIds: [eventId] }));
     }
   });
+
+  // Archived events no longer sync, so their forms are neither re-read nor edited
+  const openEventIds = events.filter((e) => e.status !== 'archived').map((e) => e.id);
+  const editableEventIds = (m: AugmentedMember) => (m.eventIds || []).filter((id) => openEventIds.includes(id));
+
+  // A correction made straight in a form's response sheet shows after REFRESH: sync, then reload
+  const refreshFromForms = async () => {
+    setSyncing(true);
+    try {
+      if (canImport) {
+        for (const id of isAll ? openEventIds : eventId ? [eventId] : []) {
+          try {
+            await call('events.sync', { id });
+          } catch {
+            // an archived or retired event does not sync; its list still reloads
+          }
+        }
+      }
+      await refetch();
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   // Filter members by style and search query
   const filteredMembers = useMemo(() => {
@@ -383,6 +415,18 @@ export const MembersPage: React.FC = () => {
         >
           {selectedMember && (
             <div className="space-y-4 font-body text-[16px]">
+              {canImport && selectedMember && editableEventIds(selectedMember).length > 0 && (
+                <PixelButton
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setEditing(selectedMember);
+                    setSelectedMember(null);
+                  }}
+                >
+                  EDIT DETAILS
+                </PixelButton>
+              )}
               <div className="grid grid-cols-2 gap-3 bg-[var(--night-1)] p-3 border-2 border-[var(--outline)] px-panel">
                 <div>
                   <span className="block font-display text-[12px] text-[var(--text-2)]">
@@ -508,11 +552,11 @@ export const MembersPage: React.FC = () => {
           <PixelButton
             variant="secondary"
             size="sm"
-            onClick={() => refetch()}
-            disabled={isRefetching}
+            onClick={() => void refreshFromForms()}
+            disabled={isRefetching || syncing}
             className="flex items-center gap-1.5"
           >
-            {isRefetching ? 'REFRESHING...' : 'REFRESH'}
+            {isRefetching || syncing ? 'REFRESHING...' : 'REFRESH'}
           </PixelButton>
 
           <PixelButton
@@ -595,6 +639,18 @@ export const MembersPage: React.FC = () => {
         renderRosterList()
       )}
 
+      {editing && (
+        <EditDancerDialog
+          member={editing}
+          eventIds={editableEventIds(editing)}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            void refetch();
+          }}
+        />
+      )}
+
       {/* Member Details Bottom Sheet */}
       <Sheet
         isOpen={!!selectedMember}
@@ -603,6 +659,18 @@ export const MembersPage: React.FC = () => {
       >
         {selectedMember && (
           <div className="space-y-4 font-body text-[16px]">
+              {canImport && selectedMember && editableEventIds(selectedMember).length > 0 && (
+                <PixelButton
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setEditing(selectedMember);
+                    setSelectedMember(null);
+                  }}
+                >
+                  EDIT DETAILS
+                </PixelButton>
+              )}
             <div className="grid grid-cols-2 gap-3 bg-[var(--night-1)] p-3 border-2 border-[var(--outline)] px-panel">
               <div>
                 <span className="block font-display text-[12px] text-[var(--text-2)]">
