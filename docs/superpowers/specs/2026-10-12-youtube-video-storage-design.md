@@ -229,10 +229,28 @@ On `umdancesportc@gmail.com`:
    YouTube app instead of replacing their own; change the password whenever a class lead leaves.
 5. Run `authorizeOnce` after the new manifest is pushed (§5.4).
 
-## 10. Out of scope
+## 10. Applying for Google's audit (so uploads can later happen on the website)
 
-- Uploading to YouTube from the website (blocked by the private lock; could be added later if Google audits the
-  project — only §6.2 step 2 would change).
+The owner chose to apply for the YouTube API audit in parallel. Approval is not guaranteed and can take weeks, so
+nothing in §4–§9 waits for it.
+
+**In this plan:**
+- A public **Privacy policy** page on the website (what the app stores, that videos go to the club's YouTube
+  channel, who can see them, how to ask for removal), linked from the login page. Google requires one.
+- A ready-to-submit **audit checklist** in `docs/` for the owner: the YouTube API Services audit form
+  (https://support.google.com/youtube/contact/yt_api_form), the Google Cloud project id, the website URL and
+  privacy policy URL, a short description of how the app uses YouTube (club class videos, unlisted, viewed only by
+  registered dancers inside the website), and a short screen recording of the upload and playback flow made during
+  the trial.
+- 🧑 OWNER ACTION: submit the form from the club account and answer Google's follow-up emails.
+
+**Only after approval (a separate small spec and plan, not this one):** §6.2 step 2 becomes "pick the file here".
+The website uploads straight to the club channel with the `youtube.upload` scope while signed in as UMDSC, sets the
+tagged title and Unlisted itself, and the matching in §5 stays exactly as it is.
+
+## 11. Out of scope
+
+- Building the in-website upload before Google approves the audit (§10).
 - Deleting or renaming the old Drive videos (the owner keeps them).
 - Moving old MP3s anywhere (they keep playing from Drive).
 - Attendance and instructor-photo folders (unchanged).
