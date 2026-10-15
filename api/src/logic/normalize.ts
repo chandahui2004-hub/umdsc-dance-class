@@ -177,3 +177,12 @@ export function nameSimilarity(a: string, b: string): number {
 
   return Math.max(levSim, sortedLevSim, tokenSetSim);
 }
+
+export function maskMatric(raw: string): string {
+  if (!raw) return '';
+  const s = String(raw).trim();
+  if (s.length <= 2) return '•'.repeat(s.length);
+  if (s.length <= 4) return s[0] + '••' + s[s.length - 1];
+  return s.slice(0, 2) + '••••' + s.slice(-2);
+}
+

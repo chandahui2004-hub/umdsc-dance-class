@@ -496,4 +496,87 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
       expect(claims.perms['calendar.view']).toBe('*');
     }
   });
+
+  describe('auth.suggestDancers (Autocomplete with masked matric)', () => {
+    it('suggests by name when query length >= 2 and returns masked matric', () => {
+      const res = handleRequest(
+        {
+          action: 'auth.suggestDancers',
+          payload: { query: 'Ahmad', type: 'name' }
+        },
+        ctx,
+        secrets
+      );
+
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        const data = res.data as { suggestions: { fullName: string; matricMasked: string }[] };
+        expect(data.suggestions.length).toBeGreaterThanOrEqual(1);
+        expect(data.suggestions[0].fullName).toBe('Ahmad Fiqri Bin Mohd Zamri');
+        expect(data.suggestions[0].matricMasked).not.toBe('22004591');
+        expect(data.suggestions[0].matricMasked).toMatch(/^22.*91$/);
+        expect(data.suggestions[0].matricMasked).toContain('•');
+      }
+    });
+
+    it('returns at least 1 closest dancer if no close match found', () => {
+      const res = handleRequest(
+        {
+          action: 'auth.suggestDancers',
+          payload: { query: 'Zzzzz Nonexistent', type: 'name' }
+        },
+        ctx,
+        secrets
+      );
+
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        const data = res.data as { suggestions: { fullName: string; matricMasked: string }[] };
+        expect(data.suggestions.length).toBe(1);
+        expect(data.suggestions[0].matricMasked).toContain('•');
+      }
+    });
+
+    it('suggests by matric when query length >= 3', () => {
+      const res = handleRequest(
+        {
+          action: 'auth.suggestDancers',
+          payload: { query: '220', type: 'matric' }
+        },
+        ctx,
+        secrets
+      );
+
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        const data = res.data as { suggestions: { fullName: string; matricMasked: string }[] };
+        expect(data.suggestions.length).toBeGreaterThanOrEqual(1);
+        expect(data.suggestions[0].fullName).toBe('Ahmad Fiqri Bin Mohd Zamri');
+      }
+    });
+
+    it('returns empty suggestions when query is too short', () => {
+      const shortName = handleRequest(
+        {
+          action: 'auth.suggestDancers',
+          payload: { query: 'A', type: 'name' }
+        },
+        ctx,
+        secrets
+      );
+      expect(shortName.ok).toBe(true);
+      expect(shortName.ok && (shortName.data as any).suggestions).toEqual([]);
+
+      const shortMatric = handleRequest(
+        {
+          action: 'auth.suggestDancers',
+          payload: { query: '22', type: 'matric' }
+        },
+        ctx,
+        secrets
+      );
+      expect(shortMatric.ok).toBe(true);
+      expect(shortMatric.ok && (shortMatric.data as any).suggestions).toEqual([]);
+    });
+  });
 });

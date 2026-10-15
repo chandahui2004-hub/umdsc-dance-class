@@ -1,6 +1,6 @@
 import { Route } from '../router';
 import { AppError } from '../errors';
-import { normalizeMatric, fullNameMatches } from '../logic/normalize';
+import { normalizeMatric, fullNameMatches, maskMatric, nameSimilarity, levenshtein } from '../logic/normalize';
 import { verifyPassword, passwordFingerprint } from '../security/passwords';
 import { loginDirectory } from './adminAccounts';
 import { signToken } from '../security/tokens';
@@ -164,6 +164,67 @@ export function getAuthRoutes(): Record<string, Route> {
           ...(bootstrap ? { bootstrap } : {}),
           ...(payload?.debugTimings === true ? { timings } : {})
         };
+      }
+    },
+
+    'auth.suggestDancers': {
+      perm: 'public',
+      write: false,
+      handler: (ctx, auth, payload: any) => {
+        const query = payload?.query ? String(payload.query).trim() : '';
+        const type = payload?.type === 'matric' ? 'matric' : 'name';
+
+        if (type === 'name' && query.length < 2) {
+          return { suggestions: [] };
+        }
+        if (type === 'matric' && query.length < 3) {
+          return { suggestions: [] };
+        }
+
+        const members = ctx.db.memberIndex.find(m => m.active && m.fullName && m.matricKey);
+        if (members.length === 0) return { suggestions: [] };
+
+        let scored: { member: typeof members[0]; score: number }[] = [];
+
+        if (type === 'name') {
+          const qLower = query.toLowerCase();
+          scored = members.map(m => {
+            const mName = m.fullName.toLowerCase();
+            let score = nameSimilarity(query, m.fullName);
+            if (mName.startsWith(qLower)) score += 1.0;
+            else if (mName.includes(qLower)) score += 0.5;
+            return { member: m, score };
+          });
+        } else {
+          const normQ = normalizeMatric(query);
+          scored = members.map(m => {
+            let score = 0;
+            const normM = m.matricKey;
+            if (normM.startsWith(normQ)) score = 2.0;
+            else if (normM.includes(normQ)) score = 1.0;
+            else {
+              const dist = levenshtein(normQ, normM);
+              score = Math.max(0, 1 - dist / Math.max(normQ.length, normM.length));
+            }
+            return { member: m, score };
+          });
+        }
+
+        scored.sort((a, b) => b.score - a.score);
+
+        // Filter top scoring above threshold, or fallback to top 1 closest if none match well
+        const MATCH_THRESHOLD = 0.25;
+        let top = scored.filter(s => s.score >= MATCH_THRESHOLD).slice(0, 3);
+        if (top.length === 0 && scored.length > 0) {
+          top = [scored[0]];
+        }
+
+        const suggestions = top.map(s => ({
+          fullName: s.member.fullName,
+          matricMasked: maskMatric(s.member.matricKey)
+        }));
+
+        return { suggestions };
       }
     },
 
