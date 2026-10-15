@@ -61,7 +61,13 @@ export interface Instructor extends RowMeta {
   styleIds: string[];
 }
 export interface ClassSession extends RowMeta { eventId: string; styleId: string; seq: number; date: ISODate; start: HHmm; end: HHmm;
-  instructorId: string; venue: string; status: 'scheduled'|'replacement'|'cancelled'; note: string }
+  instructorId: string; venue: string; status: 'scheduled'|'replacement'|'cancelled'; note: string; walkInCode?: string }
+export interface SuggestionItem { fullName: string; matricMasked: string }
+export interface SuggestDancersPayload { query: string; type: 'name' | 'matric' }
+export interface SuggestDancersResponse { suggestions: SuggestionItem[] }
+export interface SelfEditPayload { fullName?: string; matric?: string }
+export interface SelfEditResponse { token: string; claims: TokenClaims; bootstrap: DancerBootstrap }
+export interface WalkInLoginPayload { code: string; name: string }
 export interface Member { memberId: string; fullName: string; matricRaw: string; matricKey: string; nameKey: string; contact: string;
   email: string; gender: string; nationality: string; styleIds: string[]; styleNames: string[]; sourceTimestamp: string; flags: string[] }
 export interface VideoItem extends RowMeta { styleId: string; eventId: string; sessionId: string; title: string; driveFileId: string;
