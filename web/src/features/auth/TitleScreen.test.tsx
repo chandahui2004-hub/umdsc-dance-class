@@ -100,5 +100,53 @@ describe('TitleScreen Autocomplete', () => {
       expect(screen.getByText('S2••••47')).toBeInTheDocument();
     });
   });
+
+  it('switches to Walk-In mode and authenticates via auth.walkInLogin', async () => {
+    vi.mocked(api.call).mockImplementation(async (action: string) => {
+      if (action === 'auth.walkInLogin') {
+        return {
+          ok: true,
+          data: {
+            token: 'walkin-token-123',
+            claims: { sub: 'W-s1-alex', name: 'Alex Tan (Walk-In)', role: 'dancer' },
+            bootstrap: {
+              profile: { fullName: 'Alex Tan (Walk-In)', matricKey: 'WALK-IN' },
+              sessions: [{ id: 's1' }]
+            }
+          },
+          dataVersion: 1,
+          serverTime: ''
+        };
+      }
+      return { ok: true, data: {}, dataVersion: 1, serverTime: '' };
+    });
+
+    render(
+      <MemoryRouter>
+        <TitleScreen />
+      </MemoryRouter>
+    );
+
+    // Click Walk-In toggle
+    const walkInTab = screen.getByRole('button', { name: /WALK-IN PASS/i });
+    fireEvent.click(walkInTab);
+
+    // Should see Class Code and Your Name fields
+    const codeInput = screen.getByLabelText(/Class Code/i);
+    const nameInput = screen.getByLabelText(/Your Name/i);
+
+    fireEvent.change(codeInput, { target: { value: 'lck-7x9' } });
+    fireEvent.change(nameInput, { target: { value: 'Alex Tan' } });
+
+    const submitBtn = screen.getByRole('button', { name: /ENTER CLASS/i });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(api.call).toHaveBeenCalledWith('auth.walkInLogin', {
+        code: 'LCK-7X9',
+        name: 'Alex Tan'
+      });
+    });
+  });
 });
 

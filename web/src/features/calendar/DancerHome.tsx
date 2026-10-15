@@ -12,6 +12,7 @@ export const DancerHome: React.FC = () => {
   const { data: bootstrap, isLoading } = useBootstrap('dancer');
 
   const dancerName = bootstrap?.profile?.fullName || session.get()?.claims.name || '';
+  const isWalkIn = session.get()?.claims?.sub?.startsWith('W-');
 
   const rawEvents = bootstrap?.events || [];
   const styles = bootstrap?.styles || [];
@@ -209,6 +210,22 @@ export const DancerHome: React.FC = () => {
           </select>
         </div>
       </div>
+
+      {isWalkIn && (
+        <div className="p-3 bg-[var(--night-2)] border-2 border-[var(--neon-cyan)] shadow-[3px_3px_0_var(--outline)] flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="font-display text-[10px] px-2 py-0.5 bg-[var(--neon-cyan)] text-[var(--on-neon)] border border-[var(--outline)] font-bold">
+              WALK-IN PASS
+            </span>
+            <span className="font-display text-[12px] text-[var(--text-1)] font-bold">
+              {styles[0]?.name ? `${styles[0].name.toUpperCase()} CLASS` : 'SINGLE CLASS PASS'}
+            </span>
+          </div>
+          <span className="font-mono text-[11px] text-[var(--neon-gold)] font-bold">
+            ⚡ PERMANENT CLASS ACCESS
+          </span>
+        </div>
+      )}
 
       {/* Event Details Banner */}
       {currentEvent ? (

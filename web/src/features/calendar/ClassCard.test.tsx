@@ -123,4 +123,16 @@ describe('ClassCard attendance badge while attendance loads', () => {
     expect(screen.queryByText(/ABSENT/)).toBeNull();
     expect(screen.getByRole('button', { name: 'EDIT CLASS' })).toBeInTheDocument();
   });
+
+  it('displays walk-in code and copy button when walkInCode is present', () => {
+    const sessionWithCode = { ...session, walkInCode: 'LCK-7X9' };
+    render(
+      <MemoryRouter>
+        <ClassCard session={sessionWithCode} videos={[]} music={[]} />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('LCK-7X9')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /COPY CODE/i })).toBeInTheDocument();
+  });
 });

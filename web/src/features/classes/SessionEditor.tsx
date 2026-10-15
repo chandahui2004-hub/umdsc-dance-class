@@ -40,6 +40,8 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
   const [venue, setVenue] = useState('');
   const [status, setStatus] = useState<'scheduled' | 'replacement' | 'cancelled'>('scheduled');
   const [note, setNote] = useState('');
+  const [currentWalkInCode, setCurrentWalkInCode] = useState(session?.walkInCode || '');
+  const [regenerating, setRegenerating] = useState(false);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,10 +58,29 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
       setVenue(session.venue || '');
       setStatus(session.status || 'scheduled');
       setNote(session.note || '');
+      setCurrentWalkInCode(session.walkInCode || '');
       setError(null);
       setConflictData(null);
     }
   }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleRegenerateCode = async () => {
+    if (!session) return;
+    try {
+      setRegenerating(true);
+      setError(null);
+      const res = await call<ClassSession>('sessions.regenerateWalkInCode', {
+        id: session.id,
+        version: session.version
+      });
+      setCurrentWalkInCode(res.data.walkInCode || '');
+      await onSaved();
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setRegenerating(false);
+    }
+  };
 
   if (!session) return null;
 
@@ -321,6 +342,43 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
           placeholder="Optional notes or details"
           disabled={loading}
         />
+
+        {/* Walk-In Class Code */}
+        <div className="p-3 bg-[var(--night-2)] border-2 border-[var(--outline)] space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="font-display text-[10px] text-[var(--neon-cyan)] uppercase tracking-wider font-bold">
+              Walk-In Class Code
+            </span>
+            <PixelButton
+              variant="secondary"
+              size="sm"
+              type="button"
+              onClick={handleRegenerateCode}
+              disabled={loading || regenerating}
+            >
+              {regenerating ? 'GENERATING…' : 'REGENERATE CODE'}
+            </PixelButton>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[18px] text-[var(--neon-gold)] font-bold tracking-wider">
+              {currentWalkInCode || 'N/A'}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && navigator.clipboard && currentWalkInCode) {
+                  navigator.clipboard.writeText(currentWalkInCode);
+                }
+              }}
+              className="text-[10px] font-display text-[var(--text-2)] hover:text-[var(--text-1)] border border-[var(--outline)] px-1.5 py-0.5 cursor-pointer"
+            >
+              COPY
+            </button>
+          </div>
+          <p className="font-body text-[12px] text-[var(--text-2)]">
+            Dancers attending as walk-ins use this code to log in and get full class videos and music.
+          </p>
+        </div>
 
         <div className="pt-2 flex gap-2">
           <PixelButton

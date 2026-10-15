@@ -21,8 +21,11 @@ export const TitleScreen: React.FC = () => {
   const location = useLocation();
   const matricInputRef = React.useRef<HTMLInputElement>(null);
 
+  const [loginMode, setLoginMode] = useState<'member' | 'walkin'>('member');
   const [fullName, setFullName] = useState('');
   const [matricRaw, setMatricRaw] = useState('');
+  const [walkInCode, setWalkInCode] = useState('');
+  const [walkInName, setWalkInName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +36,7 @@ export const TitleScreen: React.FC = () => {
 
   // Debounced suggestion query
   React.useEffect(() => {
-    if (!activeField) {
+    if (loginMode !== 'member' || !activeField) {
       setSuggestions([]);
       return;
     }
@@ -63,7 +66,7 @@ export const TitleScreen: React.FC = () => {
     }, 200);
 
     return () => clearTimeout(timer);
-  }, [fullName, matricRaw, activeField]);
+  }, [fullName, matricRaw, activeField, loginMode]);
 
   const selectSuggestion = (item: SuggestionItem) => {
     setFullName(item.fullName);
@@ -90,6 +93,44 @@ export const TitleScreen: React.FC = () => {
         fullName: fullName.trim(),
         matric: matricRaw.trim(),
         matricRaw: matricRaw.trim()
+      });
+
+      const { token, claims, bootstrap } = res.data;
+      session.set(token, claims, true);
+
+      if (bootstrap) {
+        localStorage.setItem(
+          `boot:dancer:${claims.sub}`,
+          JSON.stringify({
+            data: bootstrap,
+            dataVersion: res.dataVersion
+          })
+        );
+      }
+
+      const target = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
+      navigate(target, { replace: true });
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleWalkInSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!walkInCode.trim() || !walkInName.trim()) {
+      setError('Please enter both Class Code and Your Name.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await call<DancerLoginResponse>('auth.walkInLogin', {
+        code: walkInCode.trim().toUpperCase(),
+        name: walkInName.trim()
       });
 
       const { token, claims, bootstrap } = res.data;
@@ -154,112 +195,185 @@ export const TitleScreen: React.FC = () => {
         {/* Player Select Panel */}
         <div className="w-full max-w-md">
           <Panel title="PLAYER SELECT" className="px-corners">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div
-                  role="alert"
-                  className="bg-[var(--night-2)] border-2 border-[var(--neon-red)] text-[var(--neon-red)] p-3 text-[14px] font-body font-bold"
-                >
-                  {error}
-                </div>
-              )}
+            {/* Login Mode Toggle */}
+            <div className="grid grid-cols-2 gap-2 mb-4 p-1 bg-[var(--night-1)] border-2 border-[var(--outline)]">
+              <button
+                type="button"
+                onClick={() => { setLoginMode('member'); setError(null); }}
+                className={`py-2 px-1 font-display text-[11px] tracking-wider text-center cursor-pointer transition-none ${
+                  loginMode === 'member'
+                    ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--outline)]'
+                    : 'text-[var(--text-2)] hover:text-[var(--text-1)]'
+                }`}
+              >
+                ★ MEMBER PASS
+              </button>
+              <button
+                type="button"
+                onClick={() => { setLoginMode('walkin'); setError(null); }}
+                className={`py-2 px-1 font-display text-[11px] tracking-wider text-center cursor-pointer transition-none ${
+                  loginMode === 'walkin'
+                    ? 'bg-[var(--neon-cyan)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--outline)]'
+                    : 'text-[var(--text-2)] hover:text-[var(--text-1)]'
+                }`}
+              >
+                ⚡ WALK-IN PASS
+              </button>
+            </div>
 
-              <div className="relative">
-                <Field
-                  label="Full Name"
-                  type="text"
-                  autoComplete="name"
-                  value={fullName}
-                  onFocus={() => {
-                    setActiveField('name');
-                    if (suggestions.length > 0) setShowSuggestions(true);
-                  }}
-                  onChange={(e) => {
-                    setFullName(e.target.value);
-                    setActiveField('name');
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape') setShowSuggestions(false);
-                  }}
-                  placeholder="e.g. SARAH BINTI AHMAD"
-                  disabled={loading}
-                  required
-                />
-              </div>
-
-              <div className="relative">
-                <Field
-                  label="Matric Number"
-                  type="text"
-                  autoComplete="username"
-                  ref={matricInputRef}
-                  value={matricRaw}
-                  onFocus={() => {
-                    setActiveField('matric');
-                    if (suggestions.length > 0) setShowSuggestions(true);
-                  }}
-                  onChange={(e) => {
-                    setMatricRaw(e.target.value);
-                    setActiveField('matric');
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape') setShowSuggestions(false);
-                  }}
-                  placeholder="e.g. 17201234"
-                  disabled={loading}
-                  helper="e.g. 17201234 or U2000000"
-                  required
-                />
-              </div>
-
-              {showSuggestions && suggestions.length > 0 && (
-                <div
-                  className="px-panel p-2 space-y-1 bg-[var(--night-2)] border-2 border-[var(--neon-gold)] shadow-[3px_3px_0_var(--outline)]"
-                  role="listbox"
-                  aria-label="Dancer suggestions"
-                >
-                  <div className="flex items-center justify-between pb-1 border-b border-[var(--outline)] text-[10px] font-display text-[var(--neon-gold)]">
-                    <span>★ TOP MATCHING DANCERS:</span>
-                    <button
-                      type="button"
-                      onClick={() => setShowSuggestions(false)}
-                      className="text-[var(--text-3)] hover:text-[var(--text-1)] uppercase"
-                    >
-                      [CLOSE]
-                    </button>
+            {loginMode === 'member' ? (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {error && (
+                  <div
+                    role="alert"
+                    className="bg-[var(--night-2)] border-2 border-[var(--neon-red)] text-[var(--neon-red)] p-3 text-[14px] font-body font-bold"
+                  >
+                    {error}
                   </div>
-                  <div className="space-y-1 pt-1">
-                    {suggestions.map((s, idx) => (
+                )}
+
+                <div className="relative">
+                  <Field
+                    label="Full Name"
+                    type="text"
+                    autoComplete="name"
+                    value={fullName}
+                    onFocus={() => {
+                      setActiveField('name');
+                      if (suggestions.length > 0) setShowSuggestions(true);
+                    }}
+                    onChange={(e) => {
+                      setFullName(e.target.value);
+                      setActiveField('name');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') setShowSuggestions(false);
+                    }}
+                    placeholder="e.g. SARAH BINTI AHMAD"
+                    disabled={loading}
+                    required
+                  />
+                </div>
+
+                <div className="relative">
+                  <Field
+                    label="Matric Number"
+                    type="text"
+                    autoComplete="username"
+                    ref={matricInputRef}
+                    value={matricRaw}
+                    onFocus={() => {
+                      setActiveField('matric');
+                      if (suggestions.length > 0) setShowSuggestions(true);
+                    }}
+                    onChange={(e) => {
+                      setMatricRaw(e.target.value);
+                      setActiveField('matric');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') setShowSuggestions(false);
+                    }}
+                    placeholder="e.g. 17201234"
+                    disabled={loading}
+                    helper="e.g. 17201234 or U2000000"
+                    required
+                  />
+                </div>
+
+                {showSuggestions && suggestions.length > 0 && (
+                  <div
+                    className="px-panel p-2 space-y-1 bg-[var(--night-2)] border-2 border-[var(--neon-gold)] shadow-[3px_3px_0_var(--outline)]"
+                    role="listbox"
+                    aria-label="Dancer suggestions"
+                  >
+                    <div className="flex items-center justify-between pb-1 border-b border-[var(--outline)] text-[10px] font-display text-[var(--neon-gold)]">
+                      <span>★ TOP MATCHING DANCERS:</span>
                       <button
-                        key={idx}
                         type="button"
-                        onClick={() => selectSuggestion(s)}
-                        className="w-full text-left p-2 px-well hover:border-[var(--neon-cyan)] hover:bg-[var(--night-1)] flex items-center justify-between gap-2 transition-none cursor-pointer"
+                        onClick={() => setShowSuggestions(false)}
+                        className="text-[var(--text-3)] hover:text-[var(--text-1)] uppercase cursor-pointer"
                       >
-                        <span className="font-display text-[12px] text-[var(--text-1)] font-bold truncate">
-                          {s.fullName}
-                        </span>
-                        <span className="font-mono text-[11px] text-[var(--neon-cyan)] bg-[var(--night-2)] px-1.5 py-0.5 border border-[var(--outline)] flex-shrink-0">
-                          {s.matricMasked}
-                        </span>
+                        [CLOSE]
                       </button>
-                    ))}
+                    </div>
+                    <div className="space-y-1 pt-1">
+                      {suggestions.map((s, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => selectSuggestion(s)}
+                          className="w-full text-left p-2 px-well hover:border-[var(--neon-cyan)] hover:bg-[var(--night-1)] flex items-center justify-between gap-2 transition-none cursor-pointer"
+                        >
+                          <span className="font-display text-[12px] text-[var(--text-1)] font-bold truncate">
+                            {s.fullName}
+                          </span>
+                          <span className="font-mono text-[11px] text-[var(--neon-cyan)] bg-[var(--night-2)] px-1.5 py-0.5 border border-[var(--outline)] flex-shrink-0">
+                            {s.matricMasked}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              <div className="pt-2">
-                <PixelButton
-                  variant="primary"
-                  size="lg"
-                  type="submit"
+                <div className="pt-2">
+                  <PixelButton
+                    variant="primary"
+                    size="lg"
+                    type="submit"
+                    disabled={loading}
+                    className="w-full"
+                  >
+                    {loading ? 'LOADING...' : 'ENTER'}
+                  </PixelButton>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleWalkInSubmit} className="space-y-4">
+                {error && (
+                  <div
+                    role="alert"
+                    className="bg-[var(--night-2)] border-2 border-[var(--neon-red)] text-[var(--neon-red)] p-3 text-[14px] font-body font-bold"
+                  >
+                    {error}
+                  </div>
+                )}
+
+                <Field
+                  label="Class Code"
+                  type="text"
+                  value={walkInCode}
+                  onChange={(e) => setWalkInCode(e.target.value.toUpperCase())}
+                  placeholder="e.g. LCK-7X9"
                   disabled={loading}
-                  className="w-full"
-                >
-                  {loading ? 'LOADING...' : 'ENTER'}
-                </PixelButton>
-              </div>
-            </form>
+                  helper="Enter the 6-character code provided by your instructor"
+                  required
+                />
+
+                <Field
+                  label="Your Name"
+                  type="text"
+                  value={walkInName}
+                  onChange={(e) => setWalkInName(e.target.value)}
+                  placeholder="e.g. ALEX TAN"
+                  disabled={loading}
+                  helper="Your name for today's attendance record"
+                  required
+                />
+
+                <div className="pt-2">
+                  <PixelButton
+                    variant="primary"
+                    size="lg"
+                    type="submit"
+                    disabled={loading}
+                    className="w-full"
+                  >
+                    {loading ? 'CHECKING CODE...' : 'ENTER CLASS'}
+                  </PixelButton>
+                </div>
+              </form>
+            )}
 
             <div className="mt-6 pt-4 border-t-2 border-[var(--outline)] text-center">
               <Link

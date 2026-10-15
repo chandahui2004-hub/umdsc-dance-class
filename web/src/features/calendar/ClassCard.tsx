@@ -51,6 +51,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
   // Video collapse state
   const [allVideosCollapsed, setAllVideosCollapsed] = useState(false);
   const [collapsedVideoIds, setCollapsedVideoIds] = useState<Record<string, boolean>>({});
+  const [copiedCode, setCopiedCode] = useState(false);
 
   const handleToggleAllVideos = () => {
     const next = !allVideosCollapsed;
@@ -173,6 +174,33 @@ export const ClassCard: React.FC<ClassCardProps> = ({
           </div>
         );
       })()}
+
+      {/* Walk-In Code Display */}
+      {session.walkInCode && (
+        <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-[var(--night-2)] border-2 border-[var(--outline)]">
+          <div className="flex items-center gap-2">
+            <span className="font-display text-[10px] px-1.5 py-0.5 bg-[var(--neon-cyan)] text-[var(--on-neon)] border border-[var(--outline)] font-bold">
+              WALK-IN PASS
+            </span>
+            <span className="font-mono text-[14px] text-[var(--neon-gold)] font-bold tracking-wider">
+              {session.walkInCode}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                navigator.clipboard.writeText(session.walkInCode!);
+              }
+              setCopiedCode(true);
+              setTimeout(() => setCopiedCode(false), 2000);
+            }}
+            className="font-display text-[10px] px-2 py-1 bg-[var(--night-1)] text-[var(--text-1)] border border-[var(--outline)] hover:border-[var(--neon-gold)] cursor-pointer"
+          >
+            {copiedCode ? '✓ COPIED!' : 'COPY CODE'}
+          </button>
+        </div>
+      )}
 
       {/* Videos Section */}
       <div className="space-y-2">
