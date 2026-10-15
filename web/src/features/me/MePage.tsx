@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBootstrap } from '../auth/useBootstrap';
 import { useDancerAttendance } from '../auth/useDancerAttendance';
@@ -7,9 +7,11 @@ import { PixelButton } from '../../components/ui/PixelButton';
 import { HeartsBar } from '../../components/ui/HeartsBar';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { STYLE_COLOR } from '../../theme/colors';
+import { EditProfileDialog } from './EditProfileDialog';
 
 export const MePage: React.FC = () => {
   const navigate = useNavigate();
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const { data: bootstrap, isLoading } = useBootstrap('dancer');
 
   const profile = bootstrap?.profile;
@@ -63,9 +65,18 @@ export const MePage: React.FC = () => {
       {/* Profile Card */}
       <div className="px-panel p-4 space-y-3">
         <div className="flex items-center justify-between pb-2 border-b-2 border-[var(--outline)]">
-          <span className="font-display text-[12px] text-[var(--text-2)]">
-            MEMBER CARD
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-display text-[12px] text-[var(--text-2)]">
+              MEMBER CARD
+            </span>
+            <PixelButton
+              size="sm"
+              variant="secondary"
+              onClick={() => setIsEditOpen(true)}
+            >
+              EDIT INFO
+            </PixelButton>
+          </div>
           <span className="font-display text-[10px] px-2 py-0.5 bg-[var(--neon-green)] text-[var(--on-neon)] border border-[var(--outline)] font-bold">
             ACTIVE DANCER
           </span>
@@ -186,6 +197,13 @@ export const MePage: React.FC = () => {
           </div>
         )}
       </div>
+
+      <EditProfileDialog
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        currentFullName={profile?.fullName || session.get()?.claims.name || ''}
+        currentMatric={profile?.matricKey || ''}
+      />
     </div>
   );
 };
