@@ -27,6 +27,19 @@ export const AdminLogin: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Auto-resume active admin session (Proposal 2)
+  React.useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('switch') === '1' || params.get('switch') === 'true') {
+      return;
+    }
+    const currentSession = session.get();
+    if (currentSession && currentSession.claims?.role === 'admin' && !expired) {
+      const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname;
+      navigate(from && from.startsWith('/admin') ? from : '/admin/calendar', { replace: true });
+    }
+  }, [navigate, location, expired]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !password) {

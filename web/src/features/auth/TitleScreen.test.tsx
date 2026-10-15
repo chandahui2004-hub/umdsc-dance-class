@@ -10,15 +10,20 @@ vi.mock('../../lib/api', () => ({
 }));
 
 vi.mock('../../lib/session', () => ({
-  session: { set: vi.fn() }
+  session: {
+    get: vi.fn().mockReturnValue(null),
+    set: vi.fn(),
+    clear: vi.fn()
+  }
 }));
 
-describe('TitleScreen Autocomplete', () => {
+describe('TitleScreen Autocomplete & Smart Features', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
-  it('queries auth.suggestDancers when typing >= 2 chars in name field, shows suggestions, and directly logs in on select', async () => {
+  it('queries auth.suggestDancers when typing >= 2 chars in name field, shows suggestions, and 1-tap directly logs in on select', async () => {
     vi.mocked(api.call).mockImplementation(async (action: string) => {
       if (action === 'auth.suggestDancers') {
         return {
@@ -67,18 +72,8 @@ describe('TitleScreen Autocomplete', () => {
       expect(screen.getByText('22004591')).toBeInTheDocument();
     });
 
-    const matricInput = screen.getByLabelText(/Matric Number/i);
-
-    // Clicking suggestion autofills BOTH Full Name and Matric Number
+    // Clicking suggestion executes Proposal 1: 1-Tap Instant Login!
     fireEvent.click(screen.getByText('Ahmad Fiqri Bin Mohd Zamri'));
-
-    expect((nameInput as HTMLInputElement).value).toBe('Ahmad Fiqri Bin Mohd Zamri');
-    expect((matricInput as HTMLInputElement).value).toBe('22004591');
-    expect(screen.queryByText('★ TOP MATCHING DANCERS:')).toBeNull();
-
-    // Clicking ENTER signs the dancer in with auto-filled credentials
-    const enterBtn = screen.getByRole('button', { name: /ENTER/i });
-    fireEvent.click(enterBtn);
 
     await waitFor(() => {
       expect(api.call).toHaveBeenCalledWith('auth.dancerLogin', {
@@ -89,7 +84,7 @@ describe('TitleScreen Autocomplete', () => {
     });
   });
 
-  it('queries auth.suggestDancers when typing >= 3 chars in matric field', async () => {
+  it('queries auth.suggestDancers when typing >= 3 chars in matric field and logs in on select', async () => {
     vi.mocked(api.call).mockImplementation(async (action: string) => {
       if (action === 'auth.suggestDancers') {
         return {
@@ -98,6 +93,17 @@ describe('TitleScreen Autocomplete', () => {
             suggestions: [
               { fullName: 'Tan Wei Jie', matric: 'S2100047' }
             ]
+          },
+          dataVersion: 1,
+          serverTime: ''
+        };
+      }
+      if (action === 'auth.dancerLogin') {
+        return {
+          ok: true,
+          data: {
+            token: 'mock-token-2',
+            claims: { sub: 'M-S2100047', role: 'dancer', name: 'Tan Wei Jie', exp: 123456, pv: 1, perms: {} }
           },
           dataVersion: 1,
           serverTime: ''
@@ -127,14 +133,53 @@ describe('TitleScreen Autocomplete', () => {
       expect(screen.getByText('S2100047')).toBeInTheDocument();
     });
 
-    const nameInput = screen.getByLabelText(/Full Name/i);
-
-    // Clicking suggestion autofills BOTH Full Name and Matric Number
+    // Clicking suggestion 1-tap logs in
     fireEvent.click(screen.getByText('Tan Wei Jie'));
 
-    expect((nameInput as HTMLInputElement).value).toBe('Tan Wei Jie');
-    expect((matricInput as HTMLInputElement).value).toBe('S2100047');
-    expect(screen.queryByText('★ TOP MATCHING DANCERS:')).toBeNull();
+    await waitFor(() => {
+      expect(api.call).toHaveBeenCalledWith('auth.dancerLogin', {
+        fullName: 'Tan Wei Jie',
+        matric: 'S2100047',
+        matricRaw: 'S2100047'
+      });
+    });
+  });
+
+  it('shows returning dancer quick chip when saved in localStorage and logs in with 1-tap (Proposal 4)', async () => {
+    localStorage.setItem(
+      'umdsc_last_dancer',
+      JSON.stringify({ fullName: 'Sarah Binti Ahmad', matric: '17201234' })
+    );
+
+    vi.mocked(api.call).mockResolvedValue({
+      data: {
+        token: 'sarah-token',
+        claims: { sub: 'M-17201234', role: 'dancer', name: 'Sarah Binti Ahmad', exp: 123456, pv: 1, perms: {} }
+      },
+      dataVersion: 1,
+      serverTime: ''
+    } as any);
+
+    render(
+      <MemoryRouter>
+        <TitleScreen />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText(/RETURNING DANCER/i)).toBeInTheDocument();
+    expect(screen.getByText('Sarah Binti Ahmad')).toBeInTheDocument();
+    expect(screen.getByText('17201234')).toBeInTheDocument();
+
+    const quickInBtn = screen.getByRole('button', { name: /1-TAP IN ►/i });
+    fireEvent.click(quickInBtn);
+
+    await waitFor(() => {
+      expect(api.call).toHaveBeenCalledWith('auth.dancerLogin', {
+        fullName: 'Sarah Binti Ahmad',
+        matric: '17201234',
+        matricRaw: '17201234'
+      });
+    });
   });
 
   it('switches to Walk-In mode and authenticates via auth.walkInLogin', async () => {

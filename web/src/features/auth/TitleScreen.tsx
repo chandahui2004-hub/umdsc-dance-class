@@ -16,6 +16,9 @@ interface DancerLoginResponse {
   bootstrap?: DancerBootstrap;
 }
 
+// Autocomplete query cache for instant 0ms typing responses (Proposal 3)
+const suggestionCache = new Map<string, SuggestionItem[]>();
+
 export const TitleScreen: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -29,12 +32,35 @@ export const TitleScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Returning dancer quick 1-tap info (Proposal 4)
+  const [lastDancer, setLastDancer] = useState<{ fullName: string; matric: string } | null>(() => {
+    try {
+      const raw = localStorage.getItem('umdsc_last_dancer');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Auto-resume active dancer session (Proposal 2)
+  React.useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('switch') === '1' || params.get('switch') === 'true') {
+      return;
+    }
+    const currentSession = session.get();
+    if (currentSession && currentSession.claims?.role === 'dancer') {
+      const target = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
+      navigate(target, { replace: true });
+    }
+  }, [navigate, location]);
+
   // Autocomplete state
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [activeField, setActiveField] = useState<'name' | 'matric' | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // Debounced suggestion query
+  // Debounced suggestion query with 0ms in-memory cache (Proposal 3)
   React.useEffect(() => {
     if (loginMode !== 'member' || !activeField) {
       setSuggestions([]);
@@ -50,6 +76,14 @@ export const TitleScreen: React.FC = () => {
       return;
     }
 
+    const cacheKey = `${activeField}:${query.toLowerCase()}`;
+    const cached = suggestionCache.get(cacheKey);
+    if (cached) {
+      setSuggestions(cached);
+      setShowSuggestions(cached.length > 0);
+      return;
+    }
+
     let cancelled = false;
     const timer = setTimeout(async () => {
       try {
@@ -58,6 +92,7 @@ export const TitleScreen: React.FC = () => {
           type: activeField
         });
         if (!cancelled && res.data?.suggestions) {
+          suggestionCache.set(cacheKey, res.data.suggestions);
           setSuggestions(res.data.suggestions);
           setShowSuggestions(res.data.suggestions.length > 0);
         }
@@ -92,6 +127,19 @@ export const TitleScreen: React.FC = () => {
       const { token, claims, bootstrap } = res.data;
       session.set(token, claims, true);
 
+      // Save last dancer info for returning dancer quick chip (Proposal 4)
+      try {
+        localStorage.setItem(
+          'umdsc_last_dancer',
+          JSON.stringify({
+            fullName: targetName.trim(),
+            matric: targetMatric.trim()
+          })
+        );
+      } catch {
+        // Ignore storage errors
+      }
+
       if (bootstrap) {
         localStorage.setItem(
           `boot:dancer:${claims.sub}`,
@@ -118,6 +166,10 @@ export const TitleScreen: React.FC = () => {
     setShowSuggestions(false);
     setActiveField(null);
     setError(null);
+    // 1-Tap Instant Sign In (Proposal 1)
+    if (chosenMatric) {
+      doLogin(item.fullName, chosenMatric);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -240,6 +292,52 @@ export const TitleScreen: React.FC = () => {
                   </div>
                 )}
 
+                {/* Returning Dancer Quick 1-Tap Sign-In Chip (Proposal 4) */}
+                {lastDancer && (
+                  <div className="p-2.5 bg-[var(--night-2)] border-2 border-[var(--neon-gold)] shadow-[3px_3px_0_var(--outline)]">
+                    <div className="flex items-center justify-between pb-1 border-b border-[var(--outline)] mb-2">
+                      <span className="font-display text-[10px] text-[var(--neon-gold)] tracking-wider">
+                        ★ RETURNING DANCER
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          localStorage.removeItem('umdsc_last_dancer');
+                          setLastDancer(null);
+                        }}
+                        className="text-[var(--text-3)] hover:text-[var(--text-1)] text-[10px] font-mono uppercase cursor-pointer"
+                        title="Forget this dancer"
+                      >
+                        [SWITCH]
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-display text-[12px] md:text-[13px] text-[var(--text-1)] font-bold truncate">
+                          {lastDancer.fullName}
+                        </div>
+                        <div className="font-mono text-[11px] text-[var(--neon-cyan)]">
+                          {lastDancer.matric}
+                        </div>
+                      </div>
+                      <PixelButton
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        disabled={loading}
+                        onClick={() => {
+                          setFullName(lastDancer.fullName);
+                          setMatricRaw(lastDancer.matric);
+                          doLogin(lastDancer.fullName, lastDancer.matric);
+                        }}
+                        className="flex-shrink-0"
+                      >
+                        {loading && fullName === lastDancer.fullName ? 'IN...' : '1-TAP IN ►'}
+                      </PixelButton>
+                    </div>
+                  </div>
+                )}
+
                 <div className="relative">
                   <Field
                     label="Full Name"
@@ -310,13 +408,18 @@ export const TitleScreen: React.FC = () => {
                           key={idx}
                           type="button"
                           onClick={() => selectSuggestion(s)}
-                          className="w-full text-left p-2 px-well hover:border-[var(--neon-cyan)] hover:bg-[var(--night-1)] flex items-center justify-between gap-2 transition-none cursor-pointer"
+                          className="w-full text-left p-2 px-well hover:border-[var(--neon-cyan)] hover:bg-[var(--night-1)] flex items-center justify-between gap-2 transition-none cursor-pointer group"
                         >
-                          <span className="font-display text-[12px] text-[var(--text-1)] font-bold truncate">
-                            {s.fullName}
-                          </span>
-                          <span className="font-mono text-[11px] text-[var(--neon-cyan)] bg-[var(--night-2)] px-1.5 py-0.5 border border-[var(--outline)] flex-shrink-0">
-                            {s.matric || s.matricMasked}
+                          <div className="min-w-0 flex-1">
+                            <span className="font-display text-[12px] text-[var(--text-1)] font-bold truncate block">
+                              {s.fullName}
+                            </span>
+                            <span className="font-mono text-[11px] text-[var(--neon-cyan)]">
+                              {s.matric || s.matricMasked}
+                            </span>
+                          </div>
+                          <span className="font-display text-[9px] text-[var(--neon-gold)] bg-[var(--night-2)] px-1.5 py-0.5 border border-[var(--outline)] flex-shrink-0 group-hover:border-[var(--neon-gold)]">
+                            1-TAP IN ►
                           </span>
                         </button>
                       ))}
