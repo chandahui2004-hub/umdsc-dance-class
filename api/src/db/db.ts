@@ -246,7 +246,7 @@ const defaultCodecs = {
     })
   },
   sessions: {
-    toCells: (r: ClassSession) => ({ ...r, seq: r.seq, active: r.active ? 'TRUE' : 'FALSE' }),
+    toCells: (r: ClassSession) => ({ ...r, seq: r.seq, walkInCode: r.walkInCode || '', active: r.active ? 'TRUE' : 'FALSE' }),
     fromCells: (c: Record<string, string>): ClassSession => ({
       id: c.id,
       version: Number(c.version || 1),
@@ -262,7 +262,8 @@ const defaultCodecs = {
       instructorId: c.instructorId || '',
       venue: c.venue || '',
       status: (c.status || 'scheduled') as any,
-      note: c.note || ''
+      note: c.note || '',
+      walkInCode: c.walkInCode || undefined
     })
   },
   memberIndex: {

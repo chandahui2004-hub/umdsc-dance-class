@@ -579,4 +579,124 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
       expect(shortMatric.ok && (shortMatric.data as any).suggestions).toEqual([]);
     });
   });
+
+  describe('Walk-In Pass Authentication (auth.walkInLogin)', () => {
+    it('authenticates walk-in dancer, appends to Walk-ins tab, and returns scoped bootstrap', () => {
+      // Create event, style, and session
+      const event = ctx.db.events.insert(
+        {
+          name: 'OCT 2026',
+          type: 'monthly',
+          startDate: '2026-10-01',
+          endDate: '2026-10-31',
+          status: 'active',
+          styleIds: ['st_locking'],
+          sourceSheetId: 'src_ss',
+          sourceTab: 'Responses'
+        },
+        'admin1',
+        ctx.now()
+      );
+
+      const style = ctx.db.styles.insert(
+        {
+          id: 'st_locking',
+          name: 'Locking',
+          colorKey: 'orange',
+          defaultVenue: 'Studio A'
+        },
+        'admin1',
+        ctx.now()
+      );
+
+      const session = ctx.db.sessions.insert(
+        {
+          eventId: event.id,
+          styleId: 'st_locking',
+          seq: 1,
+          date: '2026-10-15',
+          start: '20:00',
+          end: '22:00',
+          venue: 'Studio A',
+          status: 'scheduled',
+          walkInCode: 'LCK-7X9'
+        },
+        'admin1',
+        ctx.now()
+      );
+
+      // Create attendance spreadsheet
+      const ss = ctx.drive.createSpreadsheet('Locking Attendance', 'folder_1');
+      ss.addSheet('Attendance', ['memberId', 'name', session.id]);
+      ctx.db.attendanceSheets.insert(
+        {
+          eventId: event.id,
+          styleId: 'st_locking',
+          spreadsheetId: ss.id
+        },
+        'admin1',
+        ctx.now()
+      );
+
+      const res = handleRequest(
+        {
+          action: 'auth.walkInLogin',
+          payload: { code: 'lck-7x9', name: 'Alex Tan' }
+        },
+        ctx,
+        secrets
+      );
+
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        const data = res.data as any;
+        expect(data.token).toBeDefined();
+        expect(data.claims.name).toBe('Alex Tan (Walk-In)');
+        expect(data.claims.sub).toContain(session.id);
+        expect(data.claims.sub).toContain('alex%20tan');
+        // ~10 years
+        const tenYearsSec = 9 * 365 * 24 * 3600;
+        const nowSec = Math.floor(ctx.now().getTime() / 1000);
+        expect(data.claims.exp - nowSec).toBeGreaterThan(tenYearsSec);
+
+        // Bootstrap verification
+        expect(data.bootstrap).toBeDefined();
+        expect(data.bootstrap.sessions.length).toBe(1);
+        expect(data.bootstrap.sessions[0].id).toBe(session.id);
+        expect(data.bootstrap.attendance).toEqual([{ sessionId: session.id, present: true }]);
+
+        // Check that Walk-ins tab in spreadsheet exists and has attendee row
+        const walkInSheet = ss.sheet('Walk-ins');
+        expect(walkInSheet).not.toBeNull();
+        const displayVals = walkInSheet!.getDisplayValues();
+        expect(displayVals.length).toBe(2); // Header + 1 row
+        expect(displayVals[1][1]).toBe('Alex Tan');
+        expect(displayVals[1][4]).toBe('LCK-7X9');
+      }
+    });
+
+    it('rejects invalid or missing walk-in code', () => {
+      const missing = handleRequest(
+        {
+          action: 'auth.walkInLogin',
+          payload: { code: '', name: 'Alex Tan' }
+        },
+        ctx,
+        secrets
+      );
+      expect(missing.ok).toBe(false);
+      if (!missing.ok) expect(missing.error.code).toBe('VALIDATION');
+
+      const notFound = handleRequest(
+        {
+          action: 'auth.walkInLogin',
+          payload: { code: 'NONEXISTENT', name: 'Alex Tan' }
+        },
+        ctx,
+        secrets
+      );
+      expect(notFound.ok).toBe(false);
+      if (!notFound.ok) expect(notFound.error.code).toBe('NOT_FOUND');
+    });
+  });
 });

@@ -24,6 +24,33 @@ function notifySessionChanged(ctx: Ctx, s: ClassSession): void {
   }
 }
 
+const WALK_IN_CHARS = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+export function generateWalkInCode(styleId?: string): string {
+  let prefix = '';
+  if (styleId) {
+    prefix = styleId.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
+  }
+  while (prefix.length < 3) {
+    prefix += WALK_IN_CHARS[Math.floor(Math.random() * WALK_IN_CHARS.length)];
+  }
+  let suffix = '';
+  for (let i = 0; i < 3; i++) {
+    suffix += WALK_IN_CHARS[Math.floor(Math.random() * WALK_IN_CHARS.length)];
+  }
+  return `${prefix}-${suffix}`;
+}
+
+export function createUniqueWalkInCode(ctx: Ctx, styleId?: string): string {
+  const existingCodes = new Set(
+    ctx.db.sessions.find(s => s.active && s.walkInCode).map(s => s.walkInCode!.toUpperCase())
+  );
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const code = generateWalkInCode(styleId);
+    if (!existingCodes.has(code)) return code;
+  }
+  return generateWalkInCode() + Math.floor(Math.random() * 10);
+}
+
 function assertDateInEvent(event: EventItem, date: string): void {
   if (!date || date < event.startDate || date > event.endDate) {
     throw new AppError(
@@ -48,32 +75,45 @@ export function getSessionRoutes(): Record<string, Route> {
         );
 
         if (auth?.claims.role === 'dancer') {
-          const matricKey = auth.claims.sub.replace(/^M-/, '');
-          const mi = ctx.db.memberIndex.find(m => m.matricKey === matricKey && m.active)[0];
-          if (!mi) return [];
-          const targetEventIds = isAll ? mi.eventIds : (mi.eventIds.includes(eventId) ? [eventId] : []);
-          if (targetEventIds.length === 0) return [];
+          if (auth.claims.sub.startsWith('W-')) {
+            const withoutPrefix = auth.claims.sub.replace(/^W-/, '');
+            const allowedSession = ctx.db.sessions.find(s => s.active && withoutPrefix.startsWith(s.id + '-'))[0];
+            if (!allowedSession) return [];
+            sessions = sessions.filter(s => s.id === allowedSession.id);
+          } else {
+            const matricKey = auth.claims.sub.replace(/^M-/, '');
+            const mi = ctx.db.memberIndex.find(m => m.matricKey === matricKey && m.active)[0];
+            if (!mi) return [];
+            const targetEventIds = isAll ? mi.eventIds : (mi.eventIds.includes(eventId) ? [eventId] : []);
+            if (targetEventIds.length === 0) return [];
 
-          sessions = sessions.filter(s => targetEventIds.includes(s.eventId));
+            sessions = sessions.filter(s => targetEventIds.includes(s.eventId));
 
-          const eventMap = new Map<string, string[]>();
-          const calPerm = auth.claims.perms['calendar.view'];
+            const eventMap = new Map<string, string[]>();
+            const calPerm = auth.claims.perms['calendar.view'];
 
-          sessions = sessions.filter(s => {
-            let allowed = eventMap.get(s.eventId);
-            if (!allowed) {
-              const ev = ctx.db.events.find(e => e.id === s.eventId && e.active)[0];
-              allowed = ev ? dancerStylesInEvent(ctx, ev, matricKey) : [];
-              if (Array.isArray(calPerm)) {
-                allowed = allowed.filter(id => calPerm.includes(id));
+            sessions = sessions.filter(s => {
+              let allowed = eventMap.get(s.eventId);
+              if (!allowed) {
+                const ev = ctx.db.events.find(e => e.id === s.eventId && e.active)[0];
+                allowed = ev ? dancerStylesInEvent(ctx, ev, matricKey) : [];
+                if (Array.isArray(calPerm)) {
+                  allowed = allowed.filter(id => calPerm.includes(id));
+                }
+                eventMap.set(s.eventId, allowed);
               }
-              eventMap.set(s.eventId, allowed);
-            }
-            return allowed.includes(s.styleId);
-          });
+              return allowed.includes(s.styleId);
+            });
+          }
         }
 
-        return sessions;
+        return sessions.map(s => {
+          if (!s.walkInCode) {
+            const fallback = (s.styleId.replace(/[^A-Za-z]/g, '').slice(0, 3) + '-' + s.id.replace(/[^A-Za-z0-9]/g, '').slice(-3)).toUpperCase();
+            return { ...s, walkInCode: fallback };
+          }
+          return s;
+        });
       }
     },
 
@@ -107,7 +147,8 @@ export function getSessionRoutes(): Record<string, Route> {
           instructorId = '',
           venue = '',
           status = 'scheduled',
-          note = ''
+          note = '',
+          walkInCode
         } = payload || {};
 
         if (!eventId || !styleId || !seq || !date || !start || !end) {
@@ -121,8 +162,9 @@ export function getSessionRoutes(): Record<string, Route> {
         const finalInstructorId = instructorId || firstInstructor(event, styleId);
         assertClassInstructor(ctx, event, styleId, finalInstructorId);
         const finalVenue = venue || style?.defaultVenue || '';
+        const finalWalkInCode = walkInCode || createUniqueWalkInCode(ctx, styleId);
         const inserted = ctx.db.sessions.insert(
-          { eventId, styleId, seq: Number(seq), date, start, end, instructorId: finalInstructorId, venue: finalVenue, status, note },
+          { eventId, styleId, seq: Number(seq), date, start, end, instructorId: finalInstructorId, venue: finalVenue, status, note, walkInCode: finalWalkInCode },
           actor,
           ctx.now()
         );
@@ -286,12 +328,14 @@ export function getSessionRoutes(): Record<string, Route> {
             // Only the fields the caller sent change; instructor, note etc. are kept otherwise
             const patch: any = { seq: Number(seq), date, start, end };
             for (const key of OPTIONAL) if (s[key] !== undefined) patch[key] = s[key];
+            if (s.walkInCode !== undefined) patch.walkInCode = s.walkInCode;
             saved = ctx.db.sessions.update(existing.id, existing.version, patch, actor, ctx.now());
           } else {
             saved = ctx.db.sessions.insert(
               {
                 eventId, styleId, seq: Number(seq), date, start, end,
-                instructorId: s.instructorId || firstInstructor(events.get(eventId)!, styleId), venue: s.venue || '', status: s.status || 'scheduled', note: s.note || ''
+                instructorId: s.instructorId || firstInstructor(events.get(eventId)!, styleId), venue: s.venue || '', status: s.status || 'scheduled', note: s.note || '',
+                walkInCode: s.walkInCode || createUniqueWalkInCode(ctx, styleId)
               },
               actor,
               ctx.now()
@@ -303,6 +347,34 @@ export function getSessionRoutes(): Record<string, Route> {
 
         logAudit(ctx, actor, 'sessions.batchUpsert', '', `Upserted ${results.length} sessions`);
         return { sessions: results };
+      }
+    },
+
+    'sessions.regenerateWalkInCode': {
+      perm: 'sessions.edit',
+      write: true,
+      bumpsData: true,
+      handler: (ctx, auth, payload: any) => {
+        const { id, version } = payload || {};
+        if (!id || version === undefined) {
+          throw new AppError('VALIDATION', 'id and version are required');
+        }
+
+        const existing = ctx.db.sessions.find(s => s.id === id && s.active)[0];
+        if (!existing) {
+          throw new AppError('NOT_FOUND', `Session not found: ${id}`);
+        }
+
+        if (existing.version !== Number(version)) {
+          throw new AppError('VERSION_CONFLICT', 'Session has been modified by another user', false, existing);
+        }
+
+        const actor = auth?.claims.sub || 'system';
+        const newCode = createUniqueWalkInCode(ctx, existing.styleId);
+        const updated = ctx.db.sessions.update(id, version, { walkInCode: newCode }, actor, ctx.now());
+        notifySessionChanged(ctx, updated);
+        logAudit(ctx, actor, 'sessions.regenerateWalkInCode', id, `Regenerated walk-in code to ${newCode}`);
+        return updated;
       }
     }
   };

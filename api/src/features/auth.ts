@@ -5,8 +5,8 @@ import { verifyPassword, passwordFingerprint } from '../security/passwords';
 import { loginDirectory } from './adminAccounts';
 import { signToken } from '../security/tokens';
 import { resolvePermissions } from '../logic/permissions';
-import { TokenClaims, PermissionCode } from '@umdsc/shared';
-import { peekAdminBootstrap, peekDancerBootstrap } from './bootstrap';
+import { TokenClaims, PermissionCode, DancerBootstrap } from '@umdsc/shared';
+import { peekAdminBootstrap, peekDancerBootstrap, getWalkInBootstrap } from './bootstrap';
 import { createTimer, logTimings } from '../logic/timing';
 
 export function getAuthRoutes(): Record<string, Route> {
@@ -225,6 +225,76 @@ export function getAuthRoutes(): Record<string, Route> {
         }));
 
         return { suggestions };
+      }
+    },
+
+    'auth.walkInLogin': {
+      perm: 'public',
+      write: true,
+      bumpsData: false,
+      handler: (ctx, auth, payload: any) => {
+        const code = String(payload?.code || '').trim().toUpperCase();
+        const name = String(payload?.name || '').trim();
+
+        if (!code || !name) {
+          throw new AppError('VALIDATION', 'Class code and name are required');
+        }
+
+        // Find session by walkInCode or deterministic fallback
+        const session = ctx.db.sessions.find(s => {
+          if (!s.active) return false;
+          if (s.walkInCode && s.walkInCode.toUpperCase() === code) return true;
+          const fallbackCode = (s.styleId.replace(/[^A-Za-z]/g, '').slice(0, 3) + '-' + s.id.replace(/[^A-Za-z0-9]/g, '').slice(-3)).toUpperCase();
+          return fallbackCode === code;
+        })[0];
+
+        if (!session) {
+          throw new AppError('NOT_FOUND', 'Invalid or inactive class code');
+        }
+
+        // Log into Attendance spreadsheet Walk-ins tab
+        const attRec = ctx.db.attendanceSheets.find(
+          a => a.eventId === session.eventId && a.styleId === session.styleId && a.active
+        )[0];
+        if (attRec && attRec.spreadsheetId) {
+          try {
+            const ss = ctx.drive.openSpreadsheet(attRec.spreadsheetId);
+            let walkInSheet = ss.sheet('Walk-ins');
+            if (!walkInSheet) {
+              walkInSheet = ss.addSheet('Walk-ins', ['Timestamp', 'Dancer Name', 'Class Date', 'Session Seq', 'Class Code']);
+            }
+            walkInSheet.appendRows([[ctx.now().toISOString(), name, session.date, session.seq, code]]);
+          } catch (err) {
+            console.error('Failed to log walk-in attendance:', err);
+          }
+        }
+
+        const sub = 'W-' + session.id + '-' + encodeURIComponent(name.toLowerCase());
+        const perms = {
+          'calendar.view': [session.styleId],
+          'videos.view': [session.styleId],
+          'music.view': [session.styleId]
+        };
+
+        const claims: TokenClaims = {
+          sub,
+          role: 'dancer',
+          name: `${name} (Walk-In)`,
+          exp: Math.floor(ctx.now().getTime() / 1000) + 10 * 365 * 24 * 3600,
+          perms
+        };
+
+        const hmac = (ctx as any)._secrets?.hmac;
+        const secret: string = (ctx as any)._secrets?.tokenSecret || '';
+        const token = signToken(claims, secret, hmac);
+
+        const bootstrap = getWalkInBootstrap(ctx, claims) as DancerBootstrap;
+
+        return {
+          token,
+          claims,
+          bootstrap
+        };
       }
     },
 

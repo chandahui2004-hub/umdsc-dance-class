@@ -9,7 +9,8 @@ import {
   VideoItem,
   MusicItem,
   Section,
-  EventItem
+  EventItem,
+  TokenClaims
 } from '@umdsc/shared';
 import { withoutUploaderEmail } from './masterData';
 import { dancerStylesInEvent } from './eventMembers';
@@ -390,6 +391,50 @@ export function getDancerBootstrap(
   return result;
 }
 
+export function getWalkInBootstrap(
+  ctx: Ctx,
+  claims: TokenClaims,
+  sinceVersion?: number
+): DancerBootstrap | { notModified: true } {
+  const dataVersion = Number(ctx.props.get('DATA_VERSION') || 1);
+  if (sinceVersion !== undefined && Number(sinceVersion) === dataVersion) {
+    return { notModified: true };
+  }
+
+  const withoutPrefix = claims.sub.replace(/^W-/, '');
+  const session = ctx.db.sessions.find(s => s.active && withoutPrefix.startsWith(s.id + '-'))[0]
+    || ctx.db.sessions.find(s => s.active)[0];
+
+  if (!session) {
+    throw new AppError('NOT_FOUND', 'Walk-in session not found or inactive');
+  }
+
+  const event = ctx.db.events.find(e => e.id === session.eventId && e.active)[0];
+  const style = ctx.db.styles.find(st => st.id === session.styleId && st.active)[0];
+  const instructor = session.instructorId ? ctx.db.instructors.find(i => i.id === session.instructorId && i.active)[0] : undefined;
+  const videos = ctx.db.videos.find(v => v.sessionId === session.id && v.active);
+  const music = ctx.db.music.find(m => m.sessionId === session.id && m.active);
+  const musicIds = new Set(music.map(m => m.id));
+  const sections = ctx.db.sections.find(sec => musicIds.has(sec.musicId) && sec.active);
+
+  return {
+    profile: {
+      matricKey: 'WALK-IN',
+      fullName: claims.name,
+      eventIds: event ? [event.id] : [],
+      perms: claims.perms
+    },
+    events: event ? [event] : [],
+    styles: style ? [style] : [],
+    instructors: instructor ? [instructor] : [],
+    sessions: [session],
+    videos,
+    music,
+    sections,
+    attendance: [{ sessionId: session.id, present: true }]
+  };
+}
+
 export function getBootstrapRoutes(): Record<string, Route> {
   return {
     'admin.bootstrap': {
@@ -416,6 +461,9 @@ export function getBootstrapRoutes(): Record<string, Route> {
         if (!auth || auth.claims.role !== 'dancer') {
           throw new AppError('FORBIDDEN', 'Dancer access required');
         }
+        if (auth.claims.sub.startsWith('W-')) {
+          return getWalkInBootstrap(ctx, auth.claims, payload?.sinceVersion);
+        }
         const timer = createTimer();
         const result = getDancerBootstrap(
           ctx,
@@ -435,6 +483,11 @@ export function getBootstrapRoutes(): Record<string, Route> {
       handler: (ctx, auth) => {
         if (!auth || auth.claims.role !== 'dancer') {
           throw new AppError('FORBIDDEN', 'Dancer access required');
+        }
+        if (auth.claims.sub.startsWith('W-')) {
+          const withoutPrefix = auth.claims.sub.replace(/^W-/, '');
+          const session = ctx.db.sessions.find(s => s.active && withoutPrefix.startsWith(s.id + '-'))[0];
+          return session ? [{ sessionId: session.id, present: true }] : [];
         }
         const timer = createTimer();
         const result = getDancerAttendance(ctx, auth.claims.sub.replace(/^M-/, ''), auth.claims.perms, timer);

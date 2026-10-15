@@ -336,4 +336,46 @@ describe('Feature: Class Sessions (features/sessions)', () => {
       if (res.ok) expect((res.data as any).sessions[0].instructorId).toBe(kelvin);
     });
   });
+
+  describe('Walk-In Codes', () => {
+    it('sessions.create auto-generates a walkInCode', () => {
+      const res = call('sessions.create', {
+        eventId: event.id,
+        styleId: 'st_popping',
+        seq: 5,
+        date: '2026-10-15',
+        start: '20:00',
+        end: '22:00'
+      });
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        const s = res.data as ClassSession;
+        expect(s.walkInCode).toBeDefined();
+        expect(s.walkInCode!.length).toBeGreaterThanOrEqual(6);
+      }
+    });
+
+    it('sessions.regenerateWalkInCode generates a new code and updates the session', () => {
+      const createRes = call('sessions.create', {
+        eventId: event.id,
+        styleId: 'st_popping',
+        seq: 6,
+        date: '2026-10-16',
+        start: '20:00',
+        end: '22:00'
+      });
+      const initial = (createRes as any).data as ClassSession;
+
+      const regenRes = call('sessions.regenerateWalkInCode', {
+        id: initial.id,
+        version: initial.version
+      });
+      expect(regenRes.ok).toBe(true);
+      if (regenRes.ok) {
+        const updated = regenRes.data as ClassSession;
+        expect(updated.walkInCode).toBeDefined();
+        expect(updated.walkInCode).not.toBe(initial.walkInCode);
+      }
+    });
+  });
 });
