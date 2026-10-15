@@ -4,7 +4,7 @@ import { useBootstrap } from '../auth/useBootstrap';
 import { useDancerAttendance } from '../auth/useDancerAttendance';
 import { MonthCalendar, type CalendarMark } from '../../components/ui/MonthCalendar';
 import { DaySheet } from './DaySheet';
-import { todayKL } from '../../lib/time';
+import { todayKL, addMonths } from '../../lib/time';
 import { STYLE_COLOR } from '../../theme/colors';
 import { session } from '../../lib/session';
 
@@ -73,10 +73,17 @@ export const DancerHome: React.FC = () => {
   // Allowed months: restricted when single event is selected; free navigation when 'all'
   const allowedMonths = useMemo(() => {
     if (!currentEvent) return undefined;
-    const startM = currentEvent.startDate.slice(0, 7);
-    const endM = currentEvent.endDate.slice(0, 7);
-    if (startM === endM) return [startM];
-    return [startM, endM];
+    const startM = currentEvent.startDate.slice(0, 7) as Month;
+    const endM = currentEvent.endDate.slice(0, 7) as Month;
+    if (!startM || !endM) return undefined;
+    if (startM > endM) return [startM];
+    const months: Month[] = [];
+    let cur = startM;
+    while (cur <= endM) {
+      months.push(cur);
+      cur = addMonths(cur, 1);
+    }
+    return months;
   }, [currentEvent]);
 
   // Filter sessions by active event

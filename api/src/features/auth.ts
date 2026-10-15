@@ -7,6 +7,7 @@ import { signToken } from '../security/tokens';
 import { resolvePermissions } from '../logic/permissions';
 import { TokenClaims, PermissionCode, DancerBootstrap } from '@umdsc/shared';
 import { peekAdminBootstrap, peekDancerBootstrap, getWalkInBootstrap } from './bootstrap';
+import { ensureEventSheets } from './eventSheets';
 import { createTimer, logTimings } from '../logic/timing';
 
 export function getAuthRoutes(): Record<string, Route> {
@@ -181,10 +182,20 @@ export function getAuthRoutes(): Record<string, Route> {
           return { suggestions: [] };
         }
 
-        const members = ctx.db.memberIndex.find(
+        const rawMembers = ctx.db.memberIndex.find(
           m => m.active && m.fullName && m.matricKey && m.eventIds && m.eventIds.length > 0
         );
-        if (members.length === 0) return { suggestions: [] };
+        if (rawMembers.length === 0) return { suggestions: [] };
+
+        const seenMatric = new Set<string>();
+        const members: typeof rawMembers = [];
+        for (const m of rawMembers) {
+          const normKey = normalizeMatric(m.matricKey);
+          if (!seenMatric.has(normKey)) {
+            seenMatric.add(normKey);
+            members.push(m);
+          }
+        }
 
         let scored: { member: typeof members[0]; score: number }[] = [];
 
@@ -256,9 +267,22 @@ export function getAuthRoutes(): Record<string, Route> {
         }
 
         // Log into Attendance spreadsheet Walk-ins tab
-        const attRec = ctx.db.attendanceSheets.find(
+        let attRec = ctx.db.attendanceSheets.find(
           a => a.eventId === session.eventId && a.styleId === session.styleId && a.active
         )[0];
+        if (!attRec) {
+          try {
+            const ev = ctx.db.events.get(session.eventId);
+            if (ev) {
+              ensureEventSheets(ctx, ev);
+              attRec = ctx.db.attendanceSheets.find(
+                a => a.eventId === session.eventId && a.styleId === session.styleId && a.active
+              )[0];
+            }
+          } catch {
+            // ignore
+          }
+        }
         if (attRec && attRec.spreadsheetId) {
           try {
             const ss = ctx.drive.openSpreadsheet(attRec.spreadsheetId);

@@ -218,6 +218,11 @@ export function getMemberRoutes(): Record<string, Route> {
             }
           } catch (err) {
             console.error(`Error updating event ${event.name} for dancer ${oldMatricKey}:`, err);
+            if (err instanceof AppError) throw err;
+            throw new AppError(
+              'LINK_NO_ACCESS',
+              `Give ${ctx.clubEmail} Editor access to the registration form's response sheet, then try again.`
+            );
           }
         }
 

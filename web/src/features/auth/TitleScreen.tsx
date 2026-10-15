@@ -50,13 +50,14 @@ export const TitleScreen: React.FC = () => {
       return;
     }
 
+    let cancelled = false;
     const timer = setTimeout(async () => {
       try {
         const res = await call<{ suggestions: SuggestionItem[] }>('auth.suggestDancers', {
           query,
           type: activeField
         });
-        if (res.data?.suggestions) {
+        if (!cancelled && res.data?.suggestions) {
           setSuggestions(res.data.suggestions);
           setShowSuggestions(res.data.suggestions.length > 0);
         }
@@ -65,7 +66,10 @@ export const TitleScreen: React.FC = () => {
       }
     }, 200);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [fullName, matricRaw, activeField, loginMode]);
 
   const doLogin = async (targetName: string, targetMatric: string) => {

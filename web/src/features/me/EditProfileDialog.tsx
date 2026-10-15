@@ -58,7 +58,9 @@ export const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
       const sub = res.data.claims.sub;
       if (oldSub && oldSub !== sub) {
         localStorage.removeItem(`boot:dancer:${oldSub}`);
+        localStorage.removeItem(`att:dancer:${oldSub}`);
         queryClient.removeQueries({ queryKey: ['bootstrap', 'dancer', oldSub] });
+        queryClient.removeQueries({ queryKey: ['dancerAttendance', oldSub] });
       }
 
       if (sub) {
@@ -72,6 +74,7 @@ export const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
       }
       queryClient.setQueryData(['bootstrap', 'dancer', sub], res.data.bootstrap);
       await queryClient.invalidateQueries({ queryKey: ['bootstrap'] });
+      await queryClient.invalidateQueries({ queryKey: ['dancerAttendance'] });
 
       onClose();
     } catch (err) {

@@ -201,6 +201,39 @@ describe('Feature: Members (features/members)', () => {
         expect(res.error.message).toContain('Name cannot be empty');
       }
     });
+
+    it('refuses with LINK_NO_ACCESS and changes nothing when the form sheet cannot be written', () => {
+      const formSheet = ctx.drive.openSpreadsheet(event.sourceSheetId!).sheet('Form Responses 1')!;
+      formSheet.setValues = () => {
+        throw new Error('You do not have permission to edit this sheet');
+      };
+
+      const dancerToken = signToken(
+        {
+          sub: 'M-22001111', role: 'dancer', name: 'Popper One', exp: Math.floor(ctx.now().getTime() / 1000) + 3600, pv: 1,
+          perms: { 'calendar.view': '*' }
+        },
+        secrets.tokenSecret,
+        secrets.hmac
+      );
+
+      const res = handleRequest(
+        { action: 'members.selfEdit', token: dancerToken, payload: { fullName: 'Popper Master', matric: '22008888' } },
+        ctx,
+        secrets
+      );
+
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error.code).toBe('LINK_NO_ACCESS');
+        expect(res.error.message).toContain(ctx.clubEmail);
+      }
+      // No second sign-in entry was created, and the original one is untouched
+      expect(ctx.db.memberIndex.find(m => m.matricKey === '22008888' && m.active)).toHaveLength(0);
+      const original = ctx.db.memberIndex.find(m => m.matricKey === '22001111' && m.active)[0];
+      expect(original.fullName).toBe('Popper One');
+      expect(original.eventIds).toContain(event.id);
+    });
   });
 });
 

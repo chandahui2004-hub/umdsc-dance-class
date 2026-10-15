@@ -36,6 +36,8 @@ export const MePage: React.FC = () => {
   }
 
   // Calculate overall stats
+  const isWalkIn = Boolean(session.get()?.claims?.sub?.startsWith('W-') || profile?.matricKey === 'WALK-IN');
+  const fallbackMatric = session.get()?.claims?.sub?.replace(/^M-/, '') || '';
   const attMap = new Set(attendance.filter((a) => a.present).map((a) => a.sessionId));
   const totalAttended = sessions.filter((s) => attMap.has(s.id)).length;
   const totalClasses = sessions.length;
@@ -49,7 +51,7 @@ export const MePage: React.FC = () => {
             My Profile
           </h1>
           <p className="font-display text-[12px] text-[var(--neon-orange)]">
-            DANCER PASS
+            {isWalkIn ? 'WALK-IN PASS' : 'DANCER PASS'}
           </p>
         </div>
 
@@ -69,16 +71,24 @@ export const MePage: React.FC = () => {
             <span className="font-display text-[12px] text-[var(--text-2)]">
               MEMBER CARD
             </span>
-            <PixelButton
-              size="sm"
-              variant="secondary"
-              onClick={() => setIsEditOpen(true)}
-            >
-              EDIT INFO
-            </PixelButton>
+            {!isWalkIn && (
+              <PixelButton
+                size="sm"
+                variant="secondary"
+                onClick={() => setIsEditOpen(true)}
+              >
+                EDIT INFO
+              </PixelButton>
+            )}
           </div>
-          <span className="font-display text-[10px] px-2 py-0.5 bg-[var(--neon-green)] text-[var(--on-neon)] border border-[var(--outline)] font-bold">
-            ACTIVE DANCER
+          <span
+            className={`font-display text-[10px] px-2 py-0.5 border border-[var(--outline)] font-bold ${
+              isWalkIn
+                ? 'bg-[var(--neon-cyan)] text-[var(--on-neon)]'
+                : 'bg-[var(--neon-green)] text-[var(--on-neon)]'
+            }`}
+          >
+            {isWalkIn ? 'WALK-IN PASS' : 'ACTIVE DANCER'}
           </span>
         </div>
 
@@ -93,7 +103,7 @@ export const MePage: React.FC = () => {
           <div>
             <span className="font-display text-[10px] text-[var(--text-2)] block">MATRIC NUMBER:</span>
             <span className="font-bold text-[var(--text-1)]">
-              {profile?.matricKey || 'N/A'}
+              {profile?.matricKey || fallbackMatric || (isWalkIn ? 'WALK-IN' : 'N/A')}
             </span>
           </div>
 
