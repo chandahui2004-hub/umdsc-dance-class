@@ -181,7 +181,9 @@ export function getAuthRoutes(): Record<string, Route> {
           return { suggestions: [] };
         }
 
-        const members = ctx.db.memberIndex.find(m => m.active && m.fullName && m.matricKey);
+        const members = ctx.db.memberIndex.find(
+          m => m.active && m.fullName && m.matricKey && m.eventIds && m.eventIds.length > 0
+        );
         if (members.length === 0) return { suggestions: [] };
 
         let scored: { member: typeof members[0]; score: number }[] = [];
@@ -221,7 +223,8 @@ export function getAuthRoutes(): Record<string, Route> {
 
         const suggestions = top.map(s => ({
           fullName: s.member.fullName,
-          matricMasked: maskMatric(s.member.matricKey)
+          matric: s.member.matricKey,
+          matricMasked: s.member.matricKey
         }));
 
         return { suggestions };

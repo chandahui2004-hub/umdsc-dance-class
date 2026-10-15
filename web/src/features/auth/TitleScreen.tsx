@@ -68,19 +68,9 @@ export const TitleScreen: React.FC = () => {
     return () => clearTimeout(timer);
   }, [fullName, matricRaw, activeField, loginMode]);
 
-  const selectSuggestion = (item: SuggestionItem) => {
-    setFullName(item.fullName);
+  const doLogin = async (targetName: string, targetMatric: string) => {
     setShowSuggestions(false);
-    setActiveField(null);
-    if (matricInputRef.current) {
-      matricInputRef.current.focus();
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setShowSuggestions(false);
-    if (!fullName.trim() || !matricRaw.trim()) {
+    if (!targetName.trim() || !targetMatric.trim()) {
       setError('Please enter both Full Name and Matric Number.');
       return;
     }
@@ -90,9 +80,9 @@ export const TitleScreen: React.FC = () => {
 
     try {
       const res = await call<DancerLoginResponse>('auth.dancerLogin', {
-        fullName: fullName.trim(),
-        matric: matricRaw.trim(),
-        matricRaw: matricRaw.trim()
+        fullName: targetName.trim(),
+        matric: targetMatric.trim(),
+        matricRaw: targetMatric.trim()
       });
 
       const { token, claims, bootstrap } = res.data;
@@ -115,6 +105,21 @@ export const TitleScreen: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const selectSuggestion = (item: SuggestionItem) => {
+    const chosenMatric = item.matric || item.matricMasked || '';
+    setFullName(item.fullName);
+    setMatricRaw(chosenMatric);
+    setShowSuggestions(false);
+    setActiveField(null);
+    // Directly sign in when clicking a suggestion
+    doLogin(item.fullName, chosenMatric);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    doLogin(fullName, matricRaw);
   };
 
   const handleWalkInSubmit = async (e: React.FormEvent) => {
@@ -308,7 +313,7 @@ export const TitleScreen: React.FC = () => {
                             {s.fullName}
                           </span>
                           <span className="font-mono text-[11px] text-[var(--neon-cyan)] bg-[var(--night-2)] px-1.5 py-0.5 border border-[var(--outline)] flex-shrink-0">
-                            {s.matricMasked}
+                            {s.matric || s.matricMasked}
                           </span>
                         </button>
                       ))}

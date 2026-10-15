@@ -4,7 +4,7 @@ import { AppError } from '../errors';
 import { signToken } from '../security/tokens';
 import { getDancerBootstrap } from './bootstrap';
 import { logAudit } from '../logic/audit';
-import { normalizeMatric } from '../logic/normalize';
+import { normalizeMatric, nameKey } from '../logic/normalize';
 import { Field } from '../logic/headerMatch';
 import { getEvent, readEventMembers } from './eventMembers';
 import { importEventMembers, parseColumnMap } from './eventImport';
@@ -223,7 +223,7 @@ export function getMemberRoutes(): Record<string, Route> {
           ctx.db.memberIndex.update(
             dancer.id,
             dancer.version,
-            { matricKey: newMatricKey, fullName: newFullName, nameKey: newFullName.toLowerCase() },
+            { matricKey: newMatricKey, fullName: newFullName, nameKey: nameKey(newFullName) },
             'selfEdit',
             ctx.now()
           );
@@ -231,7 +231,7 @@ export function getMemberRoutes(): Record<string, Route> {
           ctx.db.memberIndex.update(
             updatedDancer.id,
             updatedDancer.version,
-            { fullName: newFullName, nameKey: newFullName.toLowerCase() },
+            { fullName: newFullName, nameKey: nameKey(newFullName) },
             'selfEdit',
             ctx.now()
           );
@@ -247,6 +247,12 @@ export function getMemberRoutes(): Record<string, Route> {
         );
 
         if (newMatricKey !== oldMatricKey) {
+          // Migrate any custom dancer roles to the new matricKey
+          const roles = ctx.db.memberRoles.find(mr => mr.matricKey === oldMatricKey && mr.active);
+          for (const mr of roles) {
+            ctx.db.memberRoles.update(mr.id, mr.version, { matricKey: newMatricKey }, 'selfEdit', ctx.now());
+          }
+
           ctx.cache.remove('mi:' + oldMatricKey);
           const oldEntry = ctx.db.memberIndex.find(m => m.matricKey === oldMatricKey && m.active)[0];
           if (oldEntry) {

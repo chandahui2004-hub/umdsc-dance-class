@@ -48,7 +48,7 @@ describe('Feature: Members (features/members)', () => {
       sourceTab: 'Form Responses 1',
       styleIds: ['st_popping', 'st_hiphop'],
       members: [
-        { matricKey: '22001111', fullName: 'Popper One', contact: '0123456789', styleIds: ['st_popping'] },
+        { matricKey: '22001111', fullName: 'Popper One', contact: '0123456789', styleIds: ['st_popping'], sourceTimestamp: '2026-10-01 10:00:00' },
         { matricKey: '22002222', fullName: 'Hopper Two', styleIds: ['st_hiphop'] }
       ]
     });
@@ -123,6 +123,22 @@ describe('Feature: Members (features/members)', () => {
         // Verify old index entry no longer maps to this event or is moved
         const oldIndex = ctx.db.memberIndex.find(m => m.matricKey === '22001111')[0];
         expect(oldIndex?.eventIds.includes(event.id)).toBeFalsy();
+
+        // Verify admin mode (members.list) sees the updated dancer name and matric
+        const adminList = handleRequest(
+          { action: 'members.list', token: adminToken, payload: { eventId: event.id } },
+          ctx,
+          secrets
+        );
+        expect(adminList.ok).toBe(true);
+        if (adminList.ok) {
+          const members = adminList.data as any[];
+          const newMember = members.find(m => m.matricKey === '22008888');
+          expect(newMember).toBeTruthy();
+          expect(newMember.fullName).toBe('Popper Master');
+          const oldMember = members.find(m => m.matricKey === '22001111');
+          expect(oldMember).toBeFalsy();
+        }
       }
     });
 

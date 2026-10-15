@@ -497,8 +497,8 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
     }
   });
 
-  describe('auth.suggestDancers (Autocomplete with masked matric)', () => {
-    it('suggests by name when query length >= 2 and returns masked matric', () => {
+  describe('auth.suggestDancers (Autocomplete with unmasked matric)', () => {
+    it('suggests by name when query length >= 2 and returns matric', () => {
       const res = handleRequest(
         {
           action: 'auth.suggestDancers',
@@ -510,12 +510,10 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
 
       expect(res.ok).toBe(true);
       if (res.ok) {
-        const data = res.data as { suggestions: { fullName: string; matricMasked: string }[] };
+        const data = res.data as { suggestions: { fullName: string; matric: string }[] };
         expect(data.suggestions.length).toBeGreaterThanOrEqual(1);
         expect(data.suggestions[0].fullName).toBe('Ahmad Fiqri Bin Mohd Zamri');
-        expect(data.suggestions[0].matricMasked).not.toBe('22004591');
-        expect(data.suggestions[0].matricMasked).toMatch(/^22.*91$/);
-        expect(data.suggestions[0].matricMasked).toContain('•');
+        expect(data.suggestions[0].matric).toBe('22004591');
       }
     });
 
@@ -531,9 +529,9 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
 
       expect(res.ok).toBe(true);
       if (res.ok) {
-        const data = res.data as { suggestions: { fullName: string; matricMasked: string }[] };
+        const data = res.data as { suggestions: { fullName: string; matric: string }[] };
         expect(data.suggestions.length).toBe(1);
-        expect(data.suggestions[0].matricMasked).toContain('•');
+        expect(data.suggestions[0].matric).toBeTruthy();
       }
     });
 

@@ -62,7 +62,7 @@ export interface Instructor extends RowMeta {
 }
 export interface ClassSession extends RowMeta { eventId: string; styleId: string; seq: number; date: ISODate; start: HHmm; end: HHmm;
   instructorId: string; venue: string; status: 'scheduled'|'replacement'|'cancelled'; note: string; walkInCode?: string }
-export interface SuggestionItem { fullName: string; matricMasked: string }
+export interface SuggestionItem { fullName: string; matric: string; matricMasked?: string }
 export interface SuggestDancersPayload { query: string; type: 'name' | 'matric' }
 export interface SuggestDancersResponse { suggestions: SuggestionItem[] }
 export interface SelfEditPayload { fullName?: string; matric?: string }

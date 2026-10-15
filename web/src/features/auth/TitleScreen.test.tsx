@@ -18,15 +18,26 @@ describe('TitleScreen Autocomplete', () => {
     vi.clearAllMocks();
   });
 
-  it('queries auth.suggestDancers when typing >= 2 chars in name field and shows suggestions', async () => {
+  it('queries auth.suggestDancers when typing >= 2 chars in name field, shows suggestions, and directly logs in on select', async () => {
     vi.mocked(api.call).mockImplementation(async (action: string) => {
       if (action === 'auth.suggestDancers') {
         return {
           ok: true,
           data: {
             suggestions: [
-              { fullName: 'Ahmad Fiqri Bin Mohd Zamri', matricMasked: '22••••91' }
+              { fullName: 'Ahmad Fiqri Bin Mohd Zamri', matric: '22004591' }
             ]
+          },
+          dataVersion: 1,
+          serverTime: ''
+        };
+      }
+      if (action === 'auth.dancerLogin') {
+        return {
+          ok: true,
+          data: {
+            token: 'mock-token',
+            claims: { sub: 'M-22004591', role: 'dancer', name: 'Ahmad Fiqri Bin Mohd Zamri', exp: 123456, pv: 1, perms: {} }
           },
           dataVersion: 1,
           serverTime: ''
@@ -53,13 +64,19 @@ describe('TitleScreen Autocomplete', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Ahmad Fiqri Bin Mohd Zamri')).toBeInTheDocument();
-      expect(screen.getByText('22••••91')).toBeInTheDocument();
+      expect(screen.getByText('22004591')).toBeInTheDocument();
     });
 
-    // Clicking suggestion autofills name
+    // Clicking suggestion directly signs the dancer in
     fireEvent.click(screen.getByText('Ahmad Fiqri Bin Mohd Zamri'));
-    expect((nameInput as HTMLInputElement).value).toBe('Ahmad Fiqri Bin Mohd Zamri');
-    expect(screen.queryByText('22••••91')).toBeNull();
+
+    await waitFor(() => {
+      expect(api.call).toHaveBeenCalledWith('auth.dancerLogin', {
+        fullName: 'Ahmad Fiqri Bin Mohd Zamri',
+        matric: '22004591',
+        matricRaw: '22004591'
+      });
+    });
   });
 
   it('queries auth.suggestDancers when typing >= 3 chars in matric field', async () => {
@@ -69,7 +86,7 @@ describe('TitleScreen Autocomplete', () => {
           ok: true,
           data: {
             suggestions: [
-              { fullName: 'Tan Wei Jie', matricMasked: 'S2••••47' }
+              { fullName: 'Tan Wei Jie', matric: 'S2100047' }
             ]
           },
           dataVersion: 1,
@@ -97,7 +114,7 @@ describe('TitleScreen Autocomplete', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Tan Wei Jie')).toBeInTheDocument();
-      expect(screen.getByText('S2••••47')).toBeInTheDocument();
+      expect(screen.getByText('S2100047')).toBeInTheDocument();
     });
   });
 
