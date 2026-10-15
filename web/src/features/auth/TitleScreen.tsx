@@ -8,7 +8,7 @@ import { Field } from '../../components/ui/Field';
 import { CityBackdrop } from '../../components/art/CityBackdrop';
 import { Boombox } from '../../components/art/Boombox';
 import { LogoBadge } from '../../components/ui/LogoBadge';
-import type { TokenClaims, DancerBootstrap } from '@umdsc/shared';
+import type { TokenClaims, DancerBootstrap, SuggestionItem } from '@umdsc/shared';
 
 interface DancerLoginResponse {
   token: string;
@@ -19,13 +19,64 @@ interface DancerLoginResponse {
 export const TitleScreen: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const matricInputRef = React.useRef<HTMLInputElement>(null);
+
   const [fullName, setFullName] = useState('');
   const [matricRaw, setMatricRaw] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Autocomplete state
+  const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
+  const [activeField, setActiveField] = useState<'name' | 'matric' | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Debounced suggestion query
+  React.useEffect(() => {
+    if (!activeField) {
+      setSuggestions([]);
+      return;
+    }
+
+    const query = activeField === 'name' ? fullName.trim() : matricRaw.trim();
+    const minLen = activeField === 'name' ? 2 : 3;
+
+    if (query.length < minLen) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await call<{ suggestions: SuggestionItem[] }>('auth.suggestDancers', {
+          query,
+          type: activeField
+        });
+        if (res.data?.suggestions) {
+          setSuggestions(res.data.suggestions);
+          setShowSuggestions(res.data.suggestions.length > 0);
+        }
+      } catch {
+        // Silently ignore autocomplete network issues
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [fullName, matricRaw, activeField]);
+
+  const selectSuggestion = (item: SuggestionItem) => {
+    setFullName(item.fullName);
+    setShowSuggestions(false);
+    setActiveField(null);
+    if (matricInputRef.current) {
+      matricInputRef.current.focus();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setShowSuggestions(false);
     if (!fullName.trim() || !matricRaw.trim()) {
       setError('Please enter both Full Name and Matric Number.');
       return;
@@ -113,28 +164,89 @@ export const TitleScreen: React.FC = () => {
                 </div>
               )}
 
-              <Field
-                label="Full Name"
-                type="text"
-                autoComplete="name"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="e.g. SARAH BINTI AHMAD"
-                disabled={loading}
-                required
-              />
+              <div className="relative">
+                <Field
+                  label="Full Name"
+                  type="text"
+                  autoComplete="name"
+                  value={fullName}
+                  onFocus={() => {
+                    setActiveField('name');
+                    if (suggestions.length > 0) setShowSuggestions(true);
+                  }}
+                  onChange={(e) => {
+                    setFullName(e.target.value);
+                    setActiveField('name');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') setShowSuggestions(false);
+                  }}
+                  placeholder="e.g. SARAH BINTI AHMAD"
+                  disabled={loading}
+                  required
+                />
+              </div>
 
-              <Field
-                label="Matric Number"
-                type="text"
-                autoComplete="username"
-                value={matricRaw}
-                onChange={(e) => setMatricRaw(e.target.value)}
-                placeholder="e.g. 17201234"
-                disabled={loading}
-                helper="e.g. 17201234 or U2000000"
-                required
-              />
+              <div className="relative">
+                <Field
+                  label="Matric Number"
+                  type="text"
+                  autoComplete="username"
+                  ref={matricInputRef}
+                  value={matricRaw}
+                  onFocus={() => {
+                    setActiveField('matric');
+                    if (suggestions.length > 0) setShowSuggestions(true);
+                  }}
+                  onChange={(e) => {
+                    setMatricRaw(e.target.value);
+                    setActiveField('matric');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') setShowSuggestions(false);
+                  }}
+                  placeholder="e.g. 17201234"
+                  disabled={loading}
+                  helper="e.g. 17201234 or U2000000"
+                  required
+                />
+              </div>
+
+              {showSuggestions && suggestions.length > 0 && (
+                <div
+                  className="px-panel p-2 space-y-1 bg-[var(--night-2)] border-2 border-[var(--neon-gold)] shadow-[3px_3px_0_var(--outline)]"
+                  role="listbox"
+                  aria-label="Dancer suggestions"
+                >
+                  <div className="flex items-center justify-between pb-1 border-b border-[var(--outline)] text-[10px] font-display text-[var(--neon-gold)]">
+                    <span>★ TOP MATCHING DANCERS:</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowSuggestions(false)}
+                      className="text-[var(--text-3)] hover:text-[var(--text-1)] uppercase"
+                    >
+                      [CLOSE]
+                    </button>
+                  </div>
+                  <div className="space-y-1 pt-1">
+                    {suggestions.map((s, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => selectSuggestion(s)}
+                        className="w-full text-left p-2 px-well hover:border-[var(--neon-cyan)] hover:bg-[var(--night-1)] flex items-center justify-between gap-2 transition-none cursor-pointer"
+                      >
+                        <span className="font-display text-[12px] text-[var(--text-1)] font-bold truncate">
+                          {s.fullName}
+                        </span>
+                        <span className="font-mono text-[11px] text-[var(--neon-cyan)] bg-[var(--night-2)] px-1.5 py-0.5 border border-[var(--outline)] flex-shrink-0">
+                          {s.matricMasked}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="pt-2">
                 <PixelButton

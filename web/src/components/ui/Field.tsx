@@ -8,7 +8,7 @@ export interface FieldProps extends React.InputHTMLAttributes<HTMLInputElement> 
   children?: React.ReactNode;
 }
 
-export const Field: React.FC<FieldProps> = ({
+export const Field = React.forwardRef<HTMLInputElement, FieldProps>(({
   label,
   error,
   helper,
@@ -17,7 +17,7 @@ export const Field: React.FC<FieldProps> = ({
   className = '',
   children,
   ...props
-}) => {
+}, ref) => {
   const inputId = id || label.toLowerCase().replace(/\s+/g, '-');
   const helpText = helper || hint;
 
@@ -33,6 +33,7 @@ export const Field: React.FC<FieldProps> = ({
         children
       ) : (
         <input
+          ref={ref}
           id={inputId}
           className={`w-full min-h-[44px] px-3 py-2 px-well text-[16px] font-body text-[var(--text-1)] placeholder:text-[var(--text-3)] disabled:opacity-50 ${
             error ? 'border-[var(--neon-red)]' : ''
@@ -52,4 +53,6 @@ export const Field: React.FC<FieldProps> = ({
       )}
     </div>
   );
-};
+});
+Field.displayName = 'Field';
+

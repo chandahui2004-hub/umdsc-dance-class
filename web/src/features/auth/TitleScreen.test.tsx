@@ -1,0 +1,104 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { TitleScreen } from './TitleScreen';
+import * as api from '../../lib/api';
+
+vi.mock('../../lib/api', () => ({
+  call: vi.fn(),
+  errorMessage: (e: any) => e?.message || 'Error'
+}));
+
+vi.mock('../../lib/session', () => ({
+  session: { set: vi.fn() }
+}));
+
+describe('TitleScreen Autocomplete', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('queries auth.suggestDancers when typing >= 2 chars in name field and shows suggestions', async () => {
+    vi.mocked(api.call).mockImplementation(async (action: string) => {
+      if (action === 'auth.suggestDancers') {
+        return {
+          ok: true,
+          data: {
+            suggestions: [
+              { fullName: 'Ahmad Fiqri Bin Mohd Zamri', matricMasked: '22••••91' }
+            ]
+          },
+          dataVersion: 1,
+          serverTime: ''
+        };
+      }
+      return { ok: true, data: {}, dataVersion: 1, serverTime: '' };
+    });
+
+    render(
+      <MemoryRouter>
+        <TitleScreen />
+      </MemoryRouter>
+    );
+
+    const nameInput = screen.getByLabelText(/Full Name/i);
+    fireEvent.change(nameInput, { target: { value: 'Ah' } });
+
+    await waitFor(() => {
+      expect(api.call).toHaveBeenCalledWith('auth.suggestDancers', {
+        query: 'Ah',
+        type: 'name'
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Ahmad Fiqri Bin Mohd Zamri')).toBeInTheDocument();
+      expect(screen.getByText('22••••91')).toBeInTheDocument();
+    });
+
+    // Clicking suggestion autofills name
+    fireEvent.click(screen.getByText('Ahmad Fiqri Bin Mohd Zamri'));
+    expect((nameInput as HTMLInputElement).value).toBe('Ahmad Fiqri Bin Mohd Zamri');
+    expect(screen.queryByText('22••••91')).toBeNull();
+  });
+
+  it('queries auth.suggestDancers when typing >= 3 chars in matric field', async () => {
+    vi.mocked(api.call).mockImplementation(async (action: string) => {
+      if (action === 'auth.suggestDancers') {
+        return {
+          ok: true,
+          data: {
+            suggestions: [
+              { fullName: 'Tan Wei Jie', matricMasked: 'S2••••47' }
+            ]
+          },
+          dataVersion: 1,
+          serverTime: ''
+        };
+      }
+      return { ok: true, data: {}, dataVersion: 1, serverTime: '' };
+    });
+
+    render(
+      <MemoryRouter>
+        <TitleScreen />
+      </MemoryRouter>
+    );
+
+    const matricInput = screen.getByLabelText(/Matric Number/i);
+    fireEvent.change(matricInput, { target: { value: 'S21' } });
+
+    await waitFor(() => {
+      expect(api.call).toHaveBeenCalledWith('auth.suggestDancers', {
+        query: 'S21',
+        type: 'matric'
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Tan Wei Jie')).toBeInTheDocument();
+      expect(screen.getByText('S2••••47')).toBeInTheDocument();
+    });
+  });
+});
+
