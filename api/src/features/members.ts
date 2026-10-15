@@ -1,6 +1,8 @@
-import { Member } from '@umdsc/shared';
+import { Member, TokenClaims } from '@umdsc/shared';
 import { Route } from '../router';
 import { AppError } from '../errors';
+import { signToken } from '../security/tokens';
+import { getDancerBootstrap } from './bootstrap';
 import { logAudit } from '../logic/audit';
 import { normalizeMatric } from '../logic/normalize';
 import { Field } from '../logic/headerMatch';
@@ -141,6 +143,143 @@ export function getMemberRoutes(): Record<string, Route> {
           `${changes.map(c => c.label).join(', ') || 'nothing'} edited for ${memberId} in ${event.name}`
         );
         return { memberId: newMemberId, result };
+      }
+    },
+
+    'members.selfEdit': {
+      perm: 'signedIn',
+      write: true,
+      bumpsData: true,
+      handler: (ctx, auth, payload: any) => {
+        if (!auth || auth.claims.role !== 'dancer') {
+          throw new AppError('FORBIDDEN', 'Dancer login required');
+        }
+
+        const oldMatricKey = auth.claims.sub.replace(/^M-/, '');
+        const dancer = ctx.db.memberIndex.find(m => m.matricKey === oldMatricKey && m.active)[0];
+        if (!dancer) {
+          throw new AppError('NOT_FOUND', 'Dancer record not found');
+        }
+
+        const newFullName = payload?.fullName !== undefined ? String(payload.fullName).trim() : dancer.fullName;
+        const rawMatric = payload?.matric !== undefined ? String(payload.matric).trim() : dancer.matricKey;
+
+        if (!newFullName) {
+          throw new AppError('VALIDATION', 'Name cannot be empty');
+        }
+
+        const newMatricKey = normalizeMatric(rawMatric);
+        if (!newMatricKey) {
+          throw new AppError('VALIDATION', 'Enter a valid matric number');
+        }
+
+        if (newMatricKey !== oldMatricKey) {
+          const owner = ctx.db.memberIndex.find(m => m.matricKey === newMatricKey && m.active)[0];
+          if (owner && owner.id !== dancer.id) {
+            throw new AppError('VALIDATION', `Matric ${rawMatric} already belongs to ${owner.fullName}`);
+          }
+        }
+
+        const eventIds = dancer.eventIds || [];
+        const activeEvents = ctx.db.events.find(
+          e => eventIds.includes(e.id) && e.active && e.status !== 'archived'
+        );
+
+        for (const event of activeEvents) {
+          if (!event.sourceSheetId || pastRetention(event, todayKL(ctx.now()))) continue;
+
+          try {
+            const { sheet } = openSourceTab(ctx, event.sourceSheetId, event.sourceTab);
+            const data = sheet.getDisplayValues();
+            const map = parseColumnMap(event.columnMapJson, data[0] || []);
+            const matricCol = map.matric;
+            const nameCol = map.fullName;
+
+            if (matricCol !== null && matricCol !== undefined) {
+              const responseRows = data
+                .map((row, i) => ({ row, i }))
+                .filter(({ row, i }) => i >= 1 && normalizeMatric(row[matricCol] ?? '') === oldMatricKey);
+
+              for (const { i, row } of responseRows) {
+                if (newMatricKey !== oldMatricKey && (row[matricCol] ?? '') !== rawMatric) {
+                  sheet.setPlainTextColumns([matricCol + 1]);
+                  sheet.setValues(i + 1, matricCol + 1, [[rawMatric]]);
+                }
+                if (nameCol !== null && nameCol !== undefined && (row[nameCol] ?? '') !== newFullName) {
+                  sheet.setValues(i + 1, nameCol + 1, [[newFullName]]);
+                }
+              }
+
+              importEventMembers(ctx, ctx.db.events.get(event.id) || event, { full: true });
+              ctx.cache.remove(`sync:force:${event.id}`);
+            }
+          } catch (err) {
+            console.error(`Error updating event ${event.name} for dancer ${oldMatricKey}:`, err);
+          }
+        }
+
+        const updatedDancer = ctx.db.memberIndex.find(m => m.matricKey === newMatricKey && m.active)[0];
+        if (!updatedDancer) {
+          ctx.db.memberIndex.update(
+            dancer.id,
+            dancer.version,
+            { matricKey: newMatricKey, fullName: newFullName, nameKey: newFullName.toLowerCase() },
+            'selfEdit',
+            ctx.now()
+          );
+        } else if (updatedDancer.fullName !== newFullName) {
+          ctx.db.memberIndex.update(
+            updatedDancer.id,
+            updatedDancer.version,
+            { fullName: newFullName, nameKey: newFullName.toLowerCase() },
+            'selfEdit',
+            ctx.now()
+          );
+        }
+
+        // Audit log
+        logAudit(
+          ctx,
+          auth.claims.sub,
+          'members.selfEdit',
+          'M-' + newMatricKey,
+          `Dancer self-edited profile: "${dancer.fullName}" -> "${newFullName}", "${oldMatricKey}" -> "${newMatricKey}"`
+        );
+
+        if (newMatricKey !== oldMatricKey) {
+          ctx.cache.remove('mi:' + oldMatricKey);
+          const oldEntry = ctx.db.memberIndex.find(m => m.matricKey === oldMatricKey && m.active)[0];
+          if (oldEntry) {
+            const remainingEventIds = (oldEntry.eventIds || []).filter(id => !eventIds.includes(id));
+            const remainingEventStyles = { ...(oldEntry.eventStyles || {}) };
+            for (const evId of eventIds) delete remainingEventStyles[evId];
+            if (remainingEventIds.length === 0) {
+              ctx.db.memberIndex.update(oldEntry.id, oldEntry.version, { active: false, eventIds: [] }, 'selfEdit', ctx.now());
+            } else {
+              ctx.db.memberIndex.update(oldEntry.id, oldEntry.version, { eventIds: remainingEventIds, eventStyles: remainingEventStyles }, 'selfEdit', ctx.now());
+            }
+          }
+        }
+
+        // Issue refreshed token for the dancer
+        const pv = Number(ctx.props.get('PERM_VERSION') || 1);
+        const exp = Math.floor(ctx.now().getTime() / 1000) + 30 * 24 * 3600;
+        const claims: TokenClaims = {
+          sub: 'M-' + newMatricKey,
+          role: 'dancer',
+          name: newFullName,
+          exp,
+          pv,
+          perms: auth.claims.perms
+        };
+
+        const hmac = (ctx as any)._secrets?.hmac;
+        const token = signToken(claims, (ctx as any)._secrets?.tokenSecret, hmac);
+
+        // Fetch fresh bootstrap
+        const bootstrap = getDancerBootstrap(ctx, newMatricKey, claims.perms);
+
+        return { token, claims, bootstrap };
       }
     }
   };

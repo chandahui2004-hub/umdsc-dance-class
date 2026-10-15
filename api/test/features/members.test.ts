@@ -4,7 +4,7 @@ import { handleRequest, registerRoutes } from '../../src/router';
 import { makeCtx } from '../fakes/makeCtx';
 import { Hmac, signToken } from '../../src/security/tokens';
 import { getMemberRoutes } from '../../src/features/members';
-import { seedEvent } from '../fixtures/events';
+import { seedEvent, seedSourceSheet } from '../fixtures/events';
 import { EventItem } from '@umdsc/shared';
 
 const nodeHmac: Hmac = (key: string, message: string) => {
@@ -36,7 +36,16 @@ describe('Feature: Members (features/members)', () => {
       secrets.tokenSecret,
       secrets.hmac
     );
+    ctx.props.set('ATTENDANCE_MASTER_FOLDER_ID', 'fld_att_master');
+    ctx.db.settings.insert({ key: 'defaultAttendanceFolderId', value: 'fld_att_master' }, 'seed', ctx.now());
+    const sourceSheetId = seedSourceSheet(ctx, [
+      ['Timestamp', 'Full Name', 'Matric', 'Phone', 'Class'],
+      ['2026-10-01 10:00:00', 'Popper One', '22001111', '0123456789', 'Popping'],
+      ['2026-10-01 10:05:00', 'Hopper Two', '22002222', '0123456788', 'Hip Hop']
+    ]);
     event = seedEvent(ctx, {
+      sourceSheetId,
+      sourceTab: 'Form Responses 1',
       styleIds: ['st_popping', 'st_hiphop'],
       members: [
         { matricKey: '22001111', fullName: 'Popper One', contact: '0123456789', styleIds: ['st_popping'] },
@@ -77,4 +86,105 @@ describe('Feature: Members (features/members)', () => {
       if (!res.ok) expect(res.error.message).toContain('Unknown action');
     }
   });
+
+  describe('members.selfEdit', () => {
+    it('allows a dancer to update their own name and matric, updating form, index, and token', () => {
+      const dancerToken = signToken(
+        {
+          sub: 'M-22001111', role: 'dancer', name: 'Popper One', exp: Math.floor(ctx.now().getTime() / 1000) + 3600, pv: 1,
+          perms: { 'calendar.view': '*' }
+        },
+        secrets.tokenSecret,
+        secrets.hmac
+      );
+
+      const res = handleRequest(
+        {
+          action: 'members.selfEdit',
+          token: dancerToken,
+          payload: { fullName: 'Popper Master', matric: '22008888' }
+        },
+        ctx,
+        secrets
+      );
+
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        const data = res.data as any;
+        expect(data.token).toBeTruthy();
+        expect(data.claims.sub).toBe('M-22008888');
+        expect(data.claims.name).toBe('Popper Master');
+
+        // Verify MemberIndex updated
+        const updatedIndex = ctx.db.memberIndex.find(m => m.matricKey === '22008888')[0];
+        expect(updatedIndex).toBeTruthy();
+        expect(updatedIndex.fullName).toBe('Popper Master');
+
+        // Verify old index entry no longer maps to this event or is moved
+        const oldIndex = ctx.db.memberIndex.find(m => m.matricKey === '22001111')[0];
+        expect(oldIndex?.eventIds.includes(event.id)).toBeFalsy();
+      }
+    });
+
+    it('rejects taking a matric number already belonging to another dancer', () => {
+      ctx.db.memberIndex.insert(
+        { matricKey: '22002222', nameKey: 'hopper two', fullName: 'Hopper Two', eventIds: [event.id], lastEventEnd: '2026-10-31' },
+        'system',
+        ctx.now()
+      );
+
+      const dancerToken = signToken(
+        {
+          sub: 'M-22001111', role: 'dancer', name: 'Popper One', exp: Math.floor(ctx.now().getTime() / 1000) + 3600, pv: 1,
+          perms: { 'calendar.view': '*' }
+        },
+        secrets.tokenSecret,
+        secrets.hmac
+      );
+
+      const res = handleRequest(
+        {
+          action: 'members.selfEdit',
+          token: dancerToken,
+          payload: { matric: '22002222' }
+        },
+        ctx,
+        secrets
+      );
+
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error.code).toBe('VALIDATION');
+        expect(res.error.message).toContain('already belongs to');
+      }
+    });
+
+    it('rejects empty name', () => {
+      const dancerToken = signToken(
+        {
+          sub: 'M-22001111', role: 'dancer', name: 'Popper One', exp: Math.floor(ctx.now().getTime() / 1000) + 3600, pv: 1,
+          perms: { 'calendar.view': '*' }
+        },
+        secrets.tokenSecret,
+        secrets.hmac
+      );
+
+      const res = handleRequest(
+        {
+          action: 'members.selfEdit',
+          token: dancerToken,
+          payload: { fullName: '   ' }
+        },
+        ctx,
+        secrets
+      );
+
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error.code).toBe('VALIDATION');
+        expect(res.error.message).toContain('Name cannot be empty');
+      }
+    });
+  });
 });
+
