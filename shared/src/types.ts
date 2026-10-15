@@ -65,7 +65,7 @@ export interface ClassSession extends RowMeta { eventId: string; styleId: string
 export interface SuggestionItem { fullName: string; matric: string; matricMasked?: string }
 export interface SuggestDancersPayload { query: string; type: 'name' | 'matric' }
 export interface SuggestDancersResponse { suggestions: SuggestionItem[] }
-export interface SelfEditPayload { fullName?: string; matric?: string }
+export interface SelfEditPayload { fullName?: string; matric?: string; newFullName?: string; newMatric?: string }
 export interface SelfEditResponse { token: string; claims: TokenClaims; bootstrap: DancerBootstrap }
 export interface WalkInLoginPayload { code: string; name: string }
 export interface Member { memberId: string; fullName: string; matricRaw: string; matricKey: string; nameKey: string; contact: string;

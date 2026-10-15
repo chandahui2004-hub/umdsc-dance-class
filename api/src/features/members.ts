@@ -161,8 +161,11 @@ export function getMemberRoutes(): Record<string, Route> {
           throw new AppError('NOT_FOUND', 'Dancer record not found');
         }
 
-        const newFullName = payload?.fullName !== undefined ? String(payload.fullName).trim() : dancer.fullName;
-        const rawMatric = payload?.matric !== undefined ? String(payload.matric).trim() : dancer.matricKey;
+        const nameVal = payload?.fullName !== undefined ? payload.fullName : payload?.newFullName;
+        const newFullName = nameVal !== undefined ? String(nameVal).trim() : dancer.fullName;
+
+        const matricVal = payload?.matric !== undefined ? payload.matric : payload?.newMatric;
+        const rawMatric = matricVal !== undefined ? String(matricVal).trim() : dancer.matricKey;
 
         if (!newFullName) {
           throw new AppError('VALIDATION', 'Name cannot be empty');
@@ -246,6 +249,13 @@ export function getMemberRoutes(): Record<string, Route> {
           `Dancer self-edited profile: "${dancer.fullName}" -> "${newFullName}", "${oldMatricKey}" -> "${newMatricKey}"`
         );
 
+        // Invalidate member index and bootstrap caches for both old and new keys
+        ctx.cache.remove('mi:' + oldMatricKey);
+        ctx.cache.remove('mi:' + newMatricKey);
+        const dv = Number(ctx.props.get('DATA_VERSION') || 1);
+        ctx.cache.remove(`boot:dancer:${oldMatricKey}:${dv}`);
+        ctx.cache.remove(`boot:dancer:${newMatricKey}:${dv}`);
+
         if (newMatricKey !== oldMatricKey) {
           // Migrate any custom dancer roles to the new matricKey
           const roles = ctx.db.memberRoles.find(mr => mr.matricKey === oldMatricKey && mr.active);
@@ -253,7 +263,6 @@ export function getMemberRoutes(): Record<string, Route> {
             ctx.db.memberRoles.update(mr.id, mr.version, { matricKey: newMatricKey }, 'selfEdit', ctx.now());
           }
 
-          ctx.cache.remove('mi:' + oldMatricKey);
           const oldEntry = ctx.db.memberIndex.find(m => m.matricKey === oldMatricKey && m.active)[0];
           if (oldEntry) {
             const remainingEventIds = (oldEntry.eventIds || []).filter(id => !eventIds.includes(id));

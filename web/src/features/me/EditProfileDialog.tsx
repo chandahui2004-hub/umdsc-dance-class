@@ -46,13 +46,21 @@ export const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
       setError(null);
 
       const res = await call<SelfEditResponse>('members.selfEdit', {
+        fullName: fullName.trim(),
+        matric: matric.trim(),
         newFullName: fullName.trim(),
         newMatric: matric.trim()
       } as SelfEditPayload);
 
       session.set(res.data.token, res.data.claims, true);
 
+      const oldSub = currentMatric ? `M-${currentMatric}` : '';
       const sub = res.data.claims.sub;
+      if (oldSub && oldSub !== sub) {
+        localStorage.removeItem(`boot:dancer:${oldSub}`);
+        queryClient.removeQueries({ queryKey: ['bootstrap', 'dancer', oldSub] });
+      }
+
       if (sub) {
         localStorage.setItem(
           `boot:dancer:${sub}`,

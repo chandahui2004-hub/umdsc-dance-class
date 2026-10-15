@@ -93,10 +93,12 @@ describe('MePage attendance totals and profile editing', () => {
     fireEvent.click(saveBtn);
 
     await waitFor(() => {
-      expect(mockCall).toHaveBeenCalledWith('members.selfEdit', {
+      expect(mockCall).toHaveBeenCalledWith('members.selfEdit', expect.objectContaining({
+        fullName: 'Renamed Dancer',
+        matric: '22001122',
         newFullName: 'Renamed Dancer',
         newMatric: '22001122'
-      });
+      }));
     });
 
     expect(session.set).toHaveBeenCalledWith(
