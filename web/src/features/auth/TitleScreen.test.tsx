@@ -67,8 +67,18 @@ describe('TitleScreen Autocomplete', () => {
       expect(screen.getByText('22004591')).toBeInTheDocument();
     });
 
-    // Clicking suggestion directly signs the dancer in
+    const matricInput = screen.getByLabelText(/Matric Number/i);
+
+    // Clicking suggestion autofills BOTH Full Name and Matric Number
     fireEvent.click(screen.getByText('Ahmad Fiqri Bin Mohd Zamri'));
+
+    expect((nameInput as HTMLInputElement).value).toBe('Ahmad Fiqri Bin Mohd Zamri');
+    expect((matricInput as HTMLInputElement).value).toBe('22004591');
+    expect(screen.queryByText('★ TOP MATCHING DANCERS:')).toBeNull();
+
+    // Clicking ENTER signs the dancer in with auto-filled credentials
+    const enterBtn = screen.getByRole('button', { name: /ENTER/i });
+    fireEvent.click(enterBtn);
 
     await waitFor(() => {
       expect(api.call).toHaveBeenCalledWith('auth.dancerLogin', {
@@ -116,6 +126,15 @@ describe('TitleScreen Autocomplete', () => {
       expect(screen.getByText('Tan Wei Jie')).toBeInTheDocument();
       expect(screen.getByText('S2100047')).toBeInTheDocument();
     });
+
+    const nameInput = screen.getByLabelText(/Full Name/i);
+
+    // Clicking suggestion autofills BOTH Full Name and Matric Number
+    fireEvent.click(screen.getByText('Tan Wei Jie'));
+
+    expect((nameInput as HTMLInputElement).value).toBe('Tan Wei Jie');
+    expect((matricInput as HTMLInputElement).value).toBe('S2100047');
+    expect(screen.queryByText('★ TOP MATCHING DANCERS:')).toBeNull();
   });
 
   it('switches to Walk-In mode and authenticates via auth.walkInLogin', async () => {

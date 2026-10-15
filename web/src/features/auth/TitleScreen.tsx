@@ -113,8 +113,7 @@ export const TitleScreen: React.FC = () => {
     setMatricRaw(chosenMatric);
     setShowSuggestions(false);
     setActiveField(null);
-    // Directly sign in when clicking a suggestion
-    doLogin(item.fullName, chosenMatric);
+    setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
