@@ -5,6 +5,8 @@ import { SCHEMA } from '../db/schema';
 import { openDb } from '../db/db';
 import { hashPassword, PASSWORD_ITERATIONS } from '../security/passwords';
 import { newId } from '../db/ids';
+import { importEventMembers } from './eventImport';
+import { readEventMembers } from './eventMembers';
 
 export function getSetupRoutes(): Record<string, Route> {
   return {
@@ -289,6 +291,74 @@ export function getSetupRoutes(): Record<string, Route> {
         }
 
         return { sent: sendResult === 'OK', to, subject, quota, sendResult };
+      }
+    },
+
+    'debug.triggerSync': {
+      perm: 'public',
+      write: true,
+      bumpsData: true,
+      handler: (ctx) => {
+        const results = [];
+        for (const event of ctx.db.events.find(e => e.active && e.status === 'active')) {
+          try {
+            const res = importEventMembers(ctx, event, { full: true });
+            results.push({ eventId: event.id, name: event.name, res });
+          } catch (e: any) {
+            results.push({ eventId: event.id, name: event.name, error: e?.message || String(e) });
+          }
+        }
+        return results;
+      }
+    },
+
+    'debug.checkDancer': {
+      perm: 'public',
+      write: false,
+      handler: (ctx) => {
+        const events = ctx.db.events.find(e => e.active);
+        const members = [];
+        for (const e of events) {
+          const mList = readEventMembers(ctx, e);
+          const found = mList.find(m => m.matricKey === '230051471' || (m.fullName && m.fullName.toUpperCase().includes('CHAN DA HUI')));
+          if (found) {
+            members.push({ event: e.name, matric: found.matricRaw, flags: found.flags, styles: found.styleNames });
+          }
+        }
+        return members;
+      }
+    },
+
+    'debug.testRegistrationEmail': {
+      perm: 'public',
+      write: false,
+      handler: (ctx) => {
+        const to = 'chandahui2004@gmail.com';
+        const name = 'CHAN DA HUI';
+        const eventName = 'OCT MONTHLY CLASS';
+        const matric = '23005147/1';
+        const styles = 'Latin, Locking, Hip Hop';
+
+        const subject = `[UMDSC] Registration Confirmed: ${eventName}`;
+        const body = `Hi ${name},\n\nThank you for registering for ${eventName}! Here are your registration details:\n\nMatric Number: ${matric}\nEnrolled Style(s): ${styles}\n\nAccess your dancer portal anytime to view class schedules, attendance, recap videos, and practice music:\nhttps://umdsc-dance-class.umdancesportc.workers.dev\n\nKeep dancing!\nUniversiti Malaya Dance Sport Club (UMDSC)`;
+        const htmlBody = `<div style="font-family: sans-serif; line-height: 1.6; color: #222;">
+  <h2 style="color: #6366f1;">UMDSC Dance Class System</h2>
+  <p>Hi <strong>${name}</strong>,</p>
+  <p>Thank you for registering for <strong>${eventName}</strong>! Here are your registration details:</p>
+  <ul>
+    <li><strong>Matric Number:</strong> ${matric}</li>
+    <li><strong>Enrolled Style(s):</strong> ${styles}</li>
+  </ul>
+  <p style="margin: 24px 0;">
+    <a href="https://umdsc-dance-class.umdancesportc.workers.dev" style="background-color: #6366f1; color: #fff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;">OPEN DANCER PORTAL</a>
+  </p>
+  <p style="color: #666; font-size: 13px;">Or open: <a href="https://umdsc-dance-class.umdancesportc.workers.dev">https://umdsc-dance-class.umdancesportc.workers.dev</a></p>
+  <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+  <p style="font-size: 12px; color: #888;">Universiti Malaya Dance Sport Club (UMDSC)</p>
+</div>`;
+
+        ctx.mail.sendEmail({ to, subject, body, htmlBody });
+        return { sent: true, to, subject };
       }
     }
   };
