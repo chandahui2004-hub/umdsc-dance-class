@@ -31,6 +31,7 @@ export const ScanPanel: React.FC<ScanPanelProps> = ({
   onClose,
   onSuccess
 }) => {
+  const queryClient = useQueryClient();
   const [selectedSessions, setSelectedSessions] = useState<Record<string, string>>({});
   const [notifyDancers, setNotifyDancers] = useState<boolean>(true);
 
