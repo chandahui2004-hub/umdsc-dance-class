@@ -28,6 +28,7 @@ export class GasMailAdapter implements MailPort {
         }
       } catch (err) {
         console.warn(`[GasMailAdapter] Failed to send email to ${email}:`, err);
+        throw err;
       }
     }
   }

@@ -272,8 +272,23 @@ export function getSetupRoutes(): Record<string, Route> {
   <p style="font-size: 12px; color: #888;">Universiti Malaya Dance Sport Club (UMDSC)</p>
 </div>`;
 
-        ctx.mail.sendEmail({ to, subject, body, htmlBody });
-        return { sent: true, to, subject };
+        let quota: any = 'N/A';
+        try {
+          if (typeof MailApp !== 'undefined') {
+            quota = MailApp.getRemainingDailyQuota();
+          }
+        } catch (e: any) {
+          quota = 'Error checking quota: ' + (e?.message || e);
+        }
+
+        let sendResult = 'OK';
+        try {
+          ctx.mail.sendEmail({ to, subject, body, htmlBody });
+        } catch (err: any) {
+          sendResult = 'Error: ' + (err?.message || err);
+        }
+
+        return { sent: sendResult === 'OK', to, subject, quota, sendResult };
       }
     }
   };
