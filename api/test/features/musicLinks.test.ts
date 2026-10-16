@@ -55,7 +55,9 @@ describe('resolveMusicLink', () => {
     it('rejects a video that does not exist (oEmbed 404)', () => {
       ctx.http.respond('https://www.youtube.com/oembed', { status: 404 });
 
-      expect(() => resolveMusicLink(ctx, `https://youtu.be/${YT}`)).toThrow(/was not found/);
+      expect(() => resolveMusicLink(ctx, `https://youtu.be/${YT}`)).toThrow(
+        /That YouTube video was not found\. Please check that the link or video ID is correct\./
+      );
     });
   });
 

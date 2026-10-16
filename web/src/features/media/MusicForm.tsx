@@ -143,6 +143,8 @@ export const MusicForm: React.FC<MusicFormProps> = ({
               value={link}
               onChange={e => setLink(e.target.value)}
               placeholder="Paste a YouTube, Spotify, SoundCloud or Drive MP3 link"
+              spellCheck={false}
+              autoCapitalize="off"
               className="w-full min-h-[44px] px-3 border-2 border-[var(--outline)] font-mono text-base bg-[var(--night-1)] text-[var(--text-1)]"
             />
           </Field>

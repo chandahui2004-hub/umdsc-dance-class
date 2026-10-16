@@ -65,7 +65,7 @@ function resolveYouTube(ctx: Ctx, youtubeId: string): ResolvedLink {
   const watchUrl = `https://www.youtube.com/watch?v=${youtubeId}`;
   const res = ctx.http.fetch(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(watchUrl)}`);
   if (res.status === 404) {
-    throw new AppError('LINK_INVALID', 'That YouTube video was not found.');
+    throw new AppError('LINK_INVALID', 'That YouTube video was not found. Please check that the link or video ID is correct.');
   }
   if (res.status === 401 || res.status === 403) {
     // The owner has switched off playback on other websites.

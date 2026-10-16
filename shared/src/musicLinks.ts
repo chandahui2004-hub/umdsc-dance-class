@@ -21,7 +21,7 @@ const SPOTIFY_ID = /^[A-Za-z0-9]{16,32}$/;
 
 /** Recognises what an admin or dancer pasted. Shared so the form and the server apply the same rules. */
 export function parseMusicLink(input: string): ParsedMusicLink {
-  const text = (input || '').trim();
+  let text = (input || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
   if (!text) return rejected(UNSUPPORTED);
 
   const uri = text.match(/^spotify:([a-z]+):([A-Za-z0-9]+)$/);
@@ -31,6 +31,10 @@ export function parseMusicLink(input: string): ParsedMusicLink {
   }
 
   if (/^[a-zA-Z0-9_-]{11}$/.test(text)) return { kind: 'youtube', id: text }; // a bare video id
+
+  if (/^(?:www\.|youtube\.com\/|youtu\.be\/|music\.youtube\.com\/|open\.spotify\.com\/|soundcloud\.com\/|m\.soundcloud\.com\/|on\.soundcloud\.com\/|drive\.google\.com\/|docs\.google\.com\/)/i.test(text)) {
+    text = `https://${text}`;
+  }
 
   let url: URL;
   try {

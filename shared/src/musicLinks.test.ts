@@ -15,7 +15,11 @@ describe('parseMusicLink', () => {
     [`https://music.youtube.com/watch?v=${YT}`],
     [`https://www.youtube.com/shorts/${YT}`],
     [`https://www.youtube.com/embed/${YT}`],
-    [YT]
+    [YT],
+    ['www.youtube.com/watch?v=' + YT],
+    ['youtube.com/watch?v=' + YT],
+    [`https://www.youtube.com/watch?v=${YT}&list=RD${YT}&start_radio=1`],
+    [`  https://youtu.be/${YT}\u200B  `]
   ])('reads YouTube link %s', input => {
     expect(parseMusicLink(input)).toEqual({ kind: 'youtube', id: YT });
   });
