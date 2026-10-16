@@ -5,6 +5,7 @@ import { FakeDrive } from './fakeDrive';
 import { FakeCache } from './fakeCache';
 import { FakeLock } from './fakeLock';
 import { FakeProps } from './fakeProps';
+import { FakeMailAdapter } from './mail';
 import { openDb } from '../../src/db/db';
 
 export function makeCtx(opts?: {
@@ -15,11 +16,12 @@ export function makeCtx(opts?: {
   props?: FakeProps;
   http?: FakeHttp;
   youtube?: FakeYouTube;
+  mail?: FakeMailAdapter;
   clubEmail?: string;
   systemSpreadsheetId?: string;
   /** false leaves the one-time style-instructor fill-in pending; default presets it as done. */
   styleInstructorsMigrated?: boolean;
-}): Ctx & { http: FakeHttp; youtube: FakeYouTube } {
+}): Ctx & { http: FakeHttp; youtube: FakeYouTube; mail: FakeMailAdapter } {
   const drive = opts?.drive || new FakeDrive();
   const cache = opts?.cache || new FakeCache();
   const lock = opts?.lock || new FakeLock();
@@ -27,6 +29,7 @@ export function makeCtx(opts?: {
   if (opts?.styleInstructorsMigrated !== false) props.set('STYLE_INSTRUCTORS_V1', 'done');
   const http = opts?.http || new FakeHttp();
   const youtube = opts?.youtube || new FakeYouTube();
+  const mail = opts?.mail || new FakeMailAdapter();
   const now = opts?.now || new Date('2026-09-28T12:00:00Z');
   const clubEmail = opts?.clubEmail || 'umdancesportc@gmail.com';
   const systemSpreadsheetId = opts?.systemSpreadsheetId || 'test_system_ss';
@@ -42,6 +45,7 @@ export function makeCtx(opts?: {
     db,
     clubEmail,
     http,
-    youtube
+    youtube,
+    mail
   };
 }

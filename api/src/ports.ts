@@ -120,6 +120,17 @@ export interface YouTubePort {
   videos(ids: string[]): YouTubeVideoInfo[];
 }
 
+export interface SendEmailOptions {
+  to: string | string[];
+  subject: string;
+  body: string;
+  htmlBody?: string;
+}
+
+export interface MailPort {
+  sendEmail(options: SendEmailOptions): void;
+}
+
 export interface Ctx {
   now(): Date;
   drive: DrivePort;
@@ -130,4 +141,5 @@ export interface Ctx {
   clubEmail: string;
   http: HttpPort;
   youtube: YouTubePort;
+  mail: MailPort;
 }
