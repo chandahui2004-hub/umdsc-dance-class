@@ -7,6 +7,7 @@ import { hashPassword, PASSWORD_ITERATIONS } from '../security/passwords';
 import { newId } from '../db/ids';
 import { importEventMembers } from './eventImport';
 import { readEventMembers } from './eventMembers';
+import { resolveMusicLink } from './musicLinks';
 
 export function getSetupRoutes(): Record<string, Route> {
   return {
@@ -359,6 +360,20 @@ export function getSetupRoutes(): Record<string, Route> {
 
         ctx.mail.sendEmail({ to, subject, body, htmlBody });
         return { sent: true, to, subject };
+      }
+    },
+
+    'debug.testResolveLink': {
+      perm: 'public',
+      write: false,
+      handler: (ctx, auth, payload: any) => {
+        const url = payload?.url || 'https://www.youtube.com/watch?v=kbHG94Z73yY&list=RDkbHG94Z73yY';
+        try {
+          const res = resolveMusicLink(ctx, url);
+          return { ok: true, res };
+        } catch (e: any) {
+          return { ok: false, error: e?.message || String(e), code: e?.code };
+        }
       }
     }
   };

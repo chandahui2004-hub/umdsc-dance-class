@@ -36,14 +36,25 @@ export function parseMusicLink(input: string): ParsedMusicLink {
     text = `https://${text}`;
   }
 
-  let url: URL;
-  try {
-    url = new URL(text);
-  } catch {
-    return rejected(UNSUPPORTED);
+  let host = '';
+  let parts: string[] = [];
+
+  if (typeof URL !== 'undefined') {
+    try {
+      const parsedUrl = new URL(text);
+      host = parsedUrl.hostname.toLowerCase().replace(/^www\./, '');
+      parts = parsedUrl.pathname.split('/').filter(Boolean);
+    } catch {
+      return rejected(UNSUPPORTED);
+    }
+  } else {
+    // Robust fallback for Google Apps Script where global URL does not exist
+    const match = text.match(/^(?:https?:\/\/)?([^/?#]+)(?:(\/[^?#]*))?/i);
+    if (!match) return rejected(UNSUPPORTED);
+    host = match[1].toLowerCase().replace(/^www\./, '');
+    const pathname = match[2] || '/';
+    parts = pathname.split('/').filter(Boolean);
   }
-  const host = url.hostname.toLowerCase().replace(/^www\./, '');
-  const parts = url.pathname.split('/').filter(Boolean);
 
   if (host === 'youtu.be' || host === 'youtube.com' || host.endsWith('.youtube.com')) {
     const id = getYouTubeVideoId(text);
