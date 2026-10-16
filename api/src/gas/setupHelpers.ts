@@ -20,6 +20,7 @@ export function initSecrets(): string {
 
 export function authorizeOnce(): string {
   const rootName = DriveApp.getRootFolder().getName();
-  Logger.log('Authorized Drive root: ' + rootName);
-  return 'Authorized: ' + rootName;
+  const mailQuota = typeof MailApp !== 'undefined' ? MailApp.getRemainingDailyQuota() : 'N/A';
+  Logger.log('Authorized Drive root: ' + rootName + ', Mail quota: ' + mailQuota);
+  return 'Authorized: ' + rootName + ', Mail quota: ' + mailQuota;
 }
