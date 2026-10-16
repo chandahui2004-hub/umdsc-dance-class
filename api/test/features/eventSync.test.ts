@@ -492,4 +492,84 @@ describe('Feature: event auto-sync and sync now', () => {
     expect(res.ok && res.data).toMatchObject({ skipped: [e.id], changed: [] });
     expect(ctx.cache.get(`sync:check:${e.id}`)).toBeNull();
   });
+
+  describe('registration confirmation email', () => {
+    it('automatically sends confirmation email to newly detected members in added', () => {
+      ctx.mail.sent = [];
+      const sourceId = seedSourceSheet(ctx, [
+        HEADERS,
+        ['2026-10-01', 'Alice Tan', '22001111', '0123456789', 'alice@example.com', 'Popping']
+      ]);
+
+      const created = call('events.create', {
+        name: 'OCT INTENSIVE',
+        type: 'monthly',
+        startDate: '2026-10-01',
+        endDate: '2026-10-31',
+        sheetUrl: `https://docs.google.com/spreadsheets/d/${sourceId}/edit`,
+        columnMap: { fullName: 1, matric: 2, contact: 3, email: 4, gender: null, nationality: null },
+        classIndex: 5,
+        styleIds: ['st_popping'],
+        sessions: []
+      });
+      expect(created.ok).toBe(true);
+      const eventId = (created.data as any).event.id;
+
+      // 1 email should have been sent to Alice
+      expect(ctx.mail.sent.length).toBe(1);
+      const email = ctx.mail.sent[0];
+      expect(email.to).toBe('alice@example.com');
+      expect(email.subject).toBe('[UMDSC] Registration Confirmed - OCT INTENSIVE');
+      expect(email.body).toContain('Hi Alice Tan,');
+      expect(email.body).toContain('Welcome to UMDSC! Your registration for OCT INTENSIVE has been confirmed.');
+      expect(email.body).toContain('Enrolled Style(s): Popping');
+      expect(email.body).toContain('Matric Number: 22001111');
+      expect(email.body).toContain('https://umdsc-dance-class.umdancesportc.workers.dev');
+      expect(email.htmlBody).toContain('Alice Tan');
+      expect(email.htmlBody).toContain('OCT INTENSIVE');
+
+      // Append new member Bob, and sync
+      sourceTab(sourceId).appendRows([
+        ['2026-10-02', 'Bob Lee', '22002222', '0123456788', 'bob@example.com', 'Popping']
+      ]);
+      const syncRes = call('events.sync', { id: eventId });
+      expect(syncRes.ok).toBe(true);
+
+      // Now 2 total emails sent (1 new email for Bob)
+      expect(ctx.mail.sent.length).toBe(2);
+      const email2 = ctx.mail.sent[1];
+      expect(email2.to).toBe('bob@example.com');
+      expect(email2.subject).toBe('[UMDSC] Registration Confirmed - OCT INTENSIVE');
+      expect(email2.body).toContain('Hi Bob Lee,');
+      expect(email2.body).toContain('Matric Number: 22002222');
+
+      // Syncing again without new members does not send any more emails
+      const syncAgain = call('events.sync', { id: eventId });
+      expect(syncAgain.ok).toBe(true);
+      expect(ctx.mail.sent.length).toBe(2);
+    });
+
+    it('skips dancers without valid email addresses', () => {
+      ctx.mail.sent = [];
+      const sourceId = seedSourceSheet(ctx, [
+        HEADERS,
+        ['2026-10-01', 'No Email Dancer', '22003333', '', '', 'Popping'],
+        ['2026-10-01', 'Bad Email Dancer', '22004444', '', 'notanemail', 'Popping']
+      ]);
+
+      const created = call('events.create', {
+        name: 'OCT WORKSHOP',
+        type: 'monthly',
+        startDate: '2026-10-01',
+        endDate: '2026-10-31',
+        sheetUrl: `https://docs.google.com/spreadsheets/d/${sourceId}/edit`,
+        columnMap: { fullName: 1, matric: 2, contact: 3, email: 4, gender: null, nationality: null },
+        classIndex: 5,
+        styleIds: ['st_popping'],
+        sessions: []
+      });
+      expect(created.ok).toBe(true);
+      expect(ctx.mail.sent.length).toBe(0);
+    });
+  });
 });

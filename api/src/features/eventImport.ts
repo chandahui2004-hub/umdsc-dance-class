@@ -243,6 +243,44 @@ function dropEventFromIndex(ctx: Ctx, event: EventItem, matricKey: string): void
   ctx.cache.remove('mi:' + matricKey);
 }
 
+export function sendRegistrationConfirmationEmail(ctx: Ctx, event: EventItem, member: Member): void {
+  const to = String(member.email || '').trim().toLowerCase();
+  if (!to || !to.includes('@')) return;
+
+  const name = member.fullName || 'Dancer';
+  const eventName = event.name || 'UMDSC Dance Class';
+  const stylesList = (member.styleNames && member.styleNames.length > 0)
+    ? member.styleNames.join(', ')
+    : 'All Styles';
+  const matric = member.matricRaw || member.matricKey || '-';
+
+  const subject = `[UMDSC] Registration Confirmed - ${eventName}`;
+  const body = `Hi ${name},\n\nWelcome to UMDSC! Your registration for ${eventName} has been confirmed.\n\nEnrolled Style(s): ${stylesList}\nMatric Number: ${matric}\n\nYou can access your class schedules, practice music, and recap videos here:\nhttps://umdsc-dance-class.umdancesportc.workers.dev\n\nKeep dancing!\nUniversiti Malaya Dance Sport Club (UMDSC)`;
+
+  const htmlBody = `<div style="font-family: sans-serif; line-height: 1.6; color: #222;">
+  <h2 style="color: #6366f1;">UMDSC Dance Class System</h2>
+  <p>Hi <strong>${name}</strong>,</p>
+  <p>Welcome to UMDSC! Your registration for <strong>${eventName}</strong> has been confirmed.</p>
+  <div style="background-color: #f3f4f6; border-left: 4px solid #6366f1; padding: 12px 16px; margin: 16px 0;">
+    <p style="margin: 4px 0;"><strong>Enrolled Style(s):</strong> ${stylesList}</p>
+    <p style="margin: 4px 0;"><strong>Matric Number:</strong> ${matric}</p>
+  </div>
+  <p>You can access your class schedules, practice music, and recap videos here:</p>
+  <p style="margin: 24px 0;">
+    <a href="https://umdsc-dance-class.umdancesportc.workers.dev" style="background-color: #6366f1; color: #fff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;">GO TO DANCE CLASS PORTAL</a>
+  </p>
+  <p style="color: #666; font-size: 13px;">Or open: <a href="https://umdsc-dance-class.umdancesportc.workers.dev">https://umdsc-dance-class.umdancesportc.workers.dev</a></p>
+  <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+  <p style="font-size: 12px; color: #888;">Universiti Malaya Dance Sport Club (UMDSC)</p>
+</div>`;
+
+  try {
+    ctx.mail.sendEmail({ to, subject, body, htmlBody });
+  } catch (err) {
+    console.warn(`[eventImport] Failed to send registration confirmation email to ${to}:`, err);
+  }
+}
+
 /**
  * Brings an event's Members sheet, attendance sheets and MemberIndex up to date
  * with its form. Call with the script lock held. Without `full`, returns early
@@ -336,7 +374,16 @@ export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boo
 
   if (bodyChanged) membersSheet.setValues(2, 1, body);
   const added = members.filter(m => !known.has(m.memberId) && !placed.has(m.memberId));
-  if (added.length > 0) membersSheet.appendRows(added.map(cellsOf));
+  if (added.length > 0) {
+    membersSheet.appendRows(added.map(cellsOf));
+    const sentEmails = new Set<string>();
+    for (const m of added) {
+      const to = String(m.email || '').trim().toLowerCase();
+      if (!to || !to.includes('@') || sentEmails.has(to)) continue;
+      sentEmails.add(to);
+      sendRegistrationConfirmationEmail(ctx, event, m);
+    }
+  }
 
   if (bodyChanged || added.length > 0) {
     membersChanged(ctx, event);
