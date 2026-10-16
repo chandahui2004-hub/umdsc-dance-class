@@ -246,6 +246,35 @@ export function getSetupRoutes(): Record<string, Route> {
 
         return { initialized: true };
       }
+    },
+
+    'debug.testRecapEmail': {
+      perm: 'public',
+      write: false,
+      handler: (ctx, auth, payload: any) => {
+        const to = payload?.to || 'chandahui2004@gmail.com';
+        const name = payload?.name || 'CHAN DA HUI';
+        const styleName = payload?.styleName || 'Hip Hop';
+        const seq = payload?.seq || 1;
+        const date = payload?.date || '2026-10-16';
+
+        const subject = `[UMDSC] Class Recap Video Uploaded - ${styleName} (Class #${seq} - ${date})`;
+        const body = `Hi ${name},\n\nThe class recap video for ${styleName} Class #${seq} (${date}) has been uploaded and is now available to watch!\n\nAccess your class recap and practice music here:\nhttps://umdsc-dance-class.umdancesportc.workers.dev\n\nKeep dancing!\nUniversiti Malaya Dance Sport Club (UMDSC)`;
+        const htmlBody = `<div style="font-family: sans-serif; line-height: 1.6; color: #222;">
+  <h2 style="color: #6366f1;">UMDSC Dance Class System</h2>
+  <p>Hi <strong>${name}</strong>,</p>
+  <p>The class recap video for <strong>${styleName} Class #${seq} (${date})</strong> has been uploaded and is now available to watch!</p>
+  <p style="margin: 24px 0;">
+    <a href="https://umdsc-dance-class.umdancesportc.workers.dev" style="background-color: #6366f1; color: #fff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;">WATCH CLASS RECAP</a>
+  </p>
+  <p style="color: #666; font-size: 13px;">Or open: <a href="https://umdsc-dance-class.umdancesportc.workers.dev">https://umdsc-dance-class.umdancesportc.workers.dev</a></p>
+  <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+  <p style="font-size: 12px; color: #888;">Universiti Malaya Dance Sport Club (UMDSC)</p>
+</div>`;
+
+        ctx.mail.sendEmail({ to, subject, body, htmlBody });
+        return { sent: true, to, subject };
+      }
     }
   };
 }
