@@ -66,7 +66,7 @@ describe('Build Members from Rows (logic/buildMembers)', () => {
     expect(m.email).toBe('tan_new@test.com');
     expect(m.sourceTimestamp).toBe('2026-10-02 14:00:00');
     expect(m.styleIds.sort()).toEqual(['hh', 'pp'].sort());
-    expect(m.flags).toContain('duplicate');
+    expect(m.flags).not.toContain('duplicate');
 
     const dupWarnings = result.warnings.filter(w => w.kind === 'duplicate');
     expect(dupWarnings.length).toBe(1);

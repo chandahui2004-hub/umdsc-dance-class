@@ -10,6 +10,6 @@
     "dev": "npm run dev -w web",
     "start": "npm run dev -w web -- --open",
     "test": "npm test -ws --if-present",
-    "build": "npm run build -ws --if-present"
+    "build": "npm run build -w shared && npm run build -w web"
   }
 }

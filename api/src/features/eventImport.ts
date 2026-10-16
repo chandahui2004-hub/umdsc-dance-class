@@ -333,6 +333,8 @@ export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boo
   if (correctionsHeld) corrections.clear();
   const placed = new Set<string>();
 
+  const stylesAddedMembers: Member[] = [];
+
   body.forEach((row, i) => {
     const id = row[col('memberId')];
     if (!id) return;
@@ -360,29 +362,34 @@ export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boo
     }
     // The whole form was read, so refresh known members too (e.g. a second
     // submission adding a style); this writes only when something differs.
+    const prevStyles = String(row[col('styleIds')] || '').split(',').filter(Boolean);
     const next = cellsOf(m);
     const differs = REFRESHED_FIELDS.some(f => next[col(f)] !== row[col(f)]);
-    if (differs || flags.includes(REMOVED_FLAG)) {
+    const hadDuplicateFlag = flags.includes('duplicate');
+    if (differs || flags.includes(REMOVED_FLAG) || hadDuplicateFlag) {
       body[i] = next;
       bodyChanged = true;
       if (differs) {
         updated++;
         refreshed.set(id, m);
+        const hasNewStyles = m.styleIds.some(s => !prevStyles.includes(s));
+        if (hasNewStyles) {
+          stylesAddedMembers.push(m);
+        }
       }
     }
   });
 
   if (bodyChanged) membersSheet.setValues(2, 1, body);
   const added = members.filter(m => !known.has(m.memberId) && !placed.has(m.memberId));
-  if (added.length > 0) {
-    membersSheet.appendRows(added.map(cellsOf));
-    const sentEmails = new Set<string>();
-    for (const m of added) {
-      const to = String(m.email || '').trim().toLowerCase();
-      if (!to || !to.includes('@') || sentEmails.has(to)) continue;
-      sentEmails.add(to);
-      sendRegistrationConfirmationEmail(ctx, event, m);
-    }
+  if (added.length > 0) membersSheet.appendRows(added.map(cellsOf));
+
+  const sentEmails = new Set<string>();
+  for (const m of [...added, ...stylesAddedMembers]) {
+    const to = String(m.email || '').trim().toLowerCase();
+    if (!to || !to.includes('@') || sentEmails.has(to)) continue;
+    sentEmails.add(to);
+    sendRegistrationConfirmationEmail(ctx, event, m);
   }
 
   if (bodyChanged || added.length > 0) {

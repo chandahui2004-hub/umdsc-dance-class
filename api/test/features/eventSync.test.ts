@@ -571,5 +571,60 @@ describe('Feature: event auto-sync and sync now', () => {
       expect(created.ok).toBe(true);
       expect(ctx.mail.sent.length).toBe(0);
     });
+
+    it('sends confirmation email and does not flag duplicate when an existing member adds a new class via a second submission', () => {
+      ctx.mail.sent = [];
+      const sourceId = seedSourceSheet(ctx, [
+        HEADERS,
+        ['2026-10-01', 'Chan Da Hui', '23005147/1', '0128178863', 'chandahui2004@gmail.com', 'Popping']
+      ]);
+
+      ctx.db.styles.insert(
+        { id: 'st_hiphop', name: 'Hip Hop', aliases: ['hip hop'], colorKey: 'green', defaultWeekday: null, defaultStart: '20:00',
+          defaultEnd: '22:00', defaultInstructorId: '', defaultVenue: '', attendanceFolderId: '', videoFolderId: '' } as any,
+        'system',
+        ctx.now()
+      );
+
+      const created = call('events.create', {
+        name: 'OCT SPECIAL',
+        type: 'monthly',
+        startDate: '2026-10-01',
+        endDate: '2026-10-31',
+        sheetUrl: `https://docs.google.com/spreadsheets/d/${sourceId}/edit`,
+        columnMap: { fullName: 1, matric: 2, contact: 3, email: 4, gender: null, nationality: null },
+        classIndex: 5,
+        styleIds: ['st_popping', 'st_hiphop'],
+        sessions: []
+      });
+      expect(created.ok).toBe(true);
+      const eventId = (created.data as any).event.id;
+
+      expect(ctx.mail.sent.length).toBe(1);
+      ctx.mail.sent = [];
+
+      // Add a second submission for Chan Da Hui adding Hip Hop
+      sourceTab(sourceId).appendRows([
+        ['2026-10-16 03:59:22', 'Chan Da Hui', '23005147/1', '0128178863', 'chandahui2004@gmail.com', 'Hip Hop']
+      ]);
+
+      const syncRes = call('events.sync', { id: eventId });
+      expect(syncRes.ok).toBe(true);
+
+      // Verify email sent with updated classes
+      expect(ctx.mail.sent.length).toBe(1);
+      const email = ctx.mail.sent[0];
+      expect(email.to).toBe('chandahui2004@gmail.com');
+      expect(email.body).toContain('Enrolled Style(s): Popping, Hip Hop');
+      expect(email.body).toContain('Matric Number: 23005147/1');
+
+      // Verify member is NOT flagged as duplicate
+      const membersRes = call('members.list', { eventId });
+      expect(membersRes.ok).toBe(true);
+      const member = (membersRes.data as any[]).find(m => m.matricKey === '230051471' || m.matricRaw === '23005147/1');
+      expect(member).toBeDefined();
+      expect(member.flags || []).not.toContain('duplicate');
+      expect(member.styleNames).toEqual(expect.arrayContaining(['Popping', 'Hip Hop']));
+    });
   });
 });

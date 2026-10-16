@@ -154,7 +154,7 @@ export function buildMembers(input: {
       const unionStyleIds = Array.from(unionStylesSet);
       const unionStyleNames = unionStyleIds.map(id => styleNameById.get(id) || id);
 
-      const unionFlagsSet = new Set([...existing.member.flags, ...flags, 'duplicate']);
+      const unionFlagsSet = new Set([...existing.member.flags, ...flags].filter(f => f !== 'duplicate'));
       if (unionStyleIds.length > 0) {
         unionFlagsSet.delete('noStyle');
       }
