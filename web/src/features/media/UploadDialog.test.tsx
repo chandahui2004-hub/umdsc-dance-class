@@ -342,6 +342,39 @@ describe('UploadDialog Gating and Video Compression', () => {
       fireEvent.click(screen.getByRole('button', { name: /^START UPLOAD/ }));
       await waitFor(() => expect(mockUploadResumable).toHaveBeenCalled());
     });
+
+    it('includes notifyDancers: true by default when registering video', async () => {
+      renderDialog();
+      chooseFile(videoFile());
+      const checkbox = screen.getByRole('checkbox', {
+        name: /Send email notification to registered class dancers/i
+      });
+      expect(checkbox).toBeChecked();
+      fireEvent.click(screen.getByRole('button', { name: /^START UPLOAD/ }));
+      await waitFor(() =>
+        expect(mockPost).toHaveBeenCalledWith(
+          'videos.register',
+          expect.objectContaining({ notifyDancers: true })
+        )
+      );
+    });
+
+    it('includes notifyDancers: false when user unchecks notification checkbox', async () => {
+      renderDialog();
+      chooseFile(videoFile());
+      const checkbox = screen.getByRole('checkbox', {
+        name: /Send email notification to registered class dancers/i
+      });
+      fireEvent.click(checkbox);
+      expect(checkbox).not.toBeChecked();
+      fireEvent.click(screen.getByRole('button', { name: /^START UPLOAD/ }));
+      await waitFor(() =>
+        expect(mockPost).toHaveBeenCalledWith(
+          'videos.register',
+          expect.objectContaining({ notifyDancers: false })
+        )
+      );
+    });
   });
 
   describe('Fast (original) or Smaller (compress) switch', () => {

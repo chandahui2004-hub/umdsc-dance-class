@@ -312,6 +312,142 @@ describe('Feature: Videos (features/videos)', () => {
     expect(ctx.db.videos.find(v => v.driveFileId === fileId && v.active)).toHaveLength(1);
   });
 
+  describe('recap video email notifications on videos.register', () => {
+    it('notifies dancers enrolled in the class style by email with portal link', () => {
+      // Re-seed event with dancers
+      const poppingDancer = {
+        memberId: 'm_pop',
+        fullName: 'Ali Popping',
+        email: 'ali@example.com',
+        styleIds: ['st_popping'],
+        styleNames: ['Popping']
+      };
+      const hipHopDancer = {
+        memberId: 'm_hip',
+        fullName: 'Bala HipHop',
+        email: 'bala@example.com',
+        styleIds: ['st_hiphop'],
+        styleNames: ['Hip Hop']
+      };
+      const noEmailDancer = {
+        memberId: 'm_no_email',
+        fullName: 'Charlie NoEmail',
+        email: '',
+        styleIds: ['st_popping'],
+        styleNames: ['Popping']
+      };
+
+      const customEvent = seedEvent(ctx, {
+        name: 'OCT DANCE',
+        styleIds: ['st_popping', 'st_hiphop'],
+        members: [poppingDancer, hipHopDancer, noEmailDancer]
+      });
+
+      const popSession = ctx.db.sessions.insert(
+        {
+          eventId: customEvent.id,
+          styleId: 'st_popping',
+          seq: 1,
+          date: '2026-10-06',
+          start: '20:00',
+          end: '22:00',
+          instructorId: '',
+          venue: 'Studio A',
+          status: 'scheduled',
+          note: ''
+        },
+        'system',
+        ctx.now()
+      );
+
+      const fileId = 'file_recap_email_test_1';
+      (ctx.drive as any).items.set(fileId, {
+        id: fileId,
+        kind: 'file',
+        name: 'Popping Recap.mp4',
+        canEdit: true,
+        mimeType: 'video/mp4',
+        sizeBytes: 2000
+      });
+
+      ctx.mail.reset();
+
+      const res = handleRequest(
+        {
+          action: 'videos.register',
+          token: adminToken,
+          payload: { driveFileId: fileId, sessionId: popSession.id, title: 'Week 1 Popping Recap', notifyDancers: true }
+        },
+        ctx,
+        secrets
+      );
+
+      expect(res.ok).toBe(true);
+      expect(ctx.mail.sent.length).toBe(1);
+      const email = ctx.mail.sent[0];
+      expect(email.to).toBe('ali@example.com');
+      expect(email.subject).toBe('[UMDSC] Class Recap Video Uploaded - Popping (Class #1 - 2026-10-06)');
+      expect(email.body).toContain('Ali Popping');
+      expect(email.body).toContain('https://umdsc-dance-class.umdancesportc.workers.dev');
+    });
+
+    it('does not send emails when notifyDancers is false', () => {
+      const poppingDancer = {
+        memberId: 'm_pop2',
+        fullName: 'Ali Popping',
+        email: 'ali2@example.com',
+        styleIds: ['st_popping'],
+        styleNames: ['Popping']
+      };
+      const customEvent = seedEvent(ctx, {
+        name: 'OCT DANCE',
+        styleIds: ['st_popping'],
+        members: [poppingDancer]
+      });
+      const popSession = ctx.db.sessions.insert(
+        {
+          eventId: customEvent.id,
+          styleId: 'st_popping',
+          seq: 2,
+          date: '2026-10-13',
+          start: '20:00',
+          end: '22:00',
+          instructorId: '',
+          venue: 'Studio A',
+          status: 'scheduled',
+          note: ''
+        },
+        'system',
+        ctx.now()
+      );
+
+      const fileId = 'file_recap_email_test_2';
+      (ctx.drive as any).items.set(fileId, {
+        id: fileId,
+        kind: 'file',
+        name: 'Popping Recap 2.mp4',
+        canEdit: true,
+        mimeType: 'video/mp4',
+        sizeBytes: 2000
+      });
+
+      ctx.mail.reset();
+
+      const res = handleRequest(
+        {
+          action: 'videos.register',
+          token: adminToken,
+          payload: { driveFileId: fileId, sessionId: popSession.id, title: 'Week 2 Popping Recap', notifyDancers: false }
+        },
+        ctx,
+        secrets
+      );
+
+      expect(res.ok).toBe(true);
+      expect(ctx.mail.sent.length).toBe(0);
+    });
+  });
+
   describe('videos.deactivate also removes the file from Google Drive', () => {
     const registerVideo = (fileId: string, extra: Record<string, unknown> = {}) => {
       (ctx.drive as any).items.set(fileId, {

@@ -48,6 +48,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
   const [progressPercent, setProgressPercent] = useState<number>(0);
   const [uploadStatus, setUploadStatus] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const [notifyDancers, setNotifyDancers] = useState<boolean>(true);
 
   const isFolderMissing = type === 'video' && !style.videoFolderId;
   // Fast (original) vs Smaller (compress). Follows the file sizes until the user picks one.
@@ -226,7 +227,8 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
             driveFileId: uploaded.id,
             sessionId: selectedSessionId,
             title: curFile.name,
-            eventFolderId: folders.eventFolderId
+            eventFolderId: folders.eventFolderId,
+            notifyDancers
           });
         } else {
           await api.post('music.create', {
@@ -331,6 +333,19 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
                   ))}
                 </select>
               </Field>
+
+              {type === 'video' && (
+                <label className="flex items-center gap-2 cursor-pointer font-body text-xs text-[var(--text-1)] select-none">
+                  <input
+                    type="checkbox"
+                    checked={notifyDancers}
+                    disabled={isUploading}
+                    onChange={(e) => setNotifyDancers(e.target.checked)}
+                    className="w-4 h-4 accent-[var(--neon-cyan)] cursor-pointer"
+                  />
+                  <span>Send email notification to registered class dancers</span>
+                </label>
+              )}
             </>
           )}
 

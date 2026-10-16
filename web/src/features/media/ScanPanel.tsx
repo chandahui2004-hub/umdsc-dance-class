@@ -31,8 +31,8 @@ export const ScanPanel: React.FC<ScanPanelProps> = ({
   onClose,
   onSuccess
 }) => {
-  const queryClient = useQueryClient();
   const [selectedSessions, setSelectedSessions] = useState<Record<string, string>>({});
+  const [notifyDancers, setNotifyDancers] = useState<boolean>(true);
 
   const {
     data: scanResults = [],
@@ -59,7 +59,8 @@ export const ScanPanel: React.FC<ScanPanelProps> = ({
       return await api.post('videos.register', {
         driveFileId: fileId,
         sessionId: sId,
-        title: name
+        title: name,
+        notifyDancers
       });
     },
     onSuccess: async () => {
@@ -93,6 +94,16 @@ export const ScanPanel: React.FC<ScanPanelProps> = ({
               {errorMessage(error)}
             </div>
           )}
+
+          <label className="flex items-center gap-2 cursor-pointer font-body text-xs text-[var(--text-1)] select-none">
+            <input
+              type="checkbox"
+              checked={notifyDancers}
+              onChange={(e) => setNotifyDancers(e.target.checked)}
+              className="w-4 h-4 accent-[var(--neon-cyan)] cursor-pointer"
+            />
+            <span>Send email notification to registered class dancers on confirmation</span>
+          </label>
 
           {isLoading ? (
             <div className="p-8 text-center font-display text-xs text-[var(--text-1)] animate-pulse">
