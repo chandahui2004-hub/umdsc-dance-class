@@ -413,6 +413,14 @@ export function getMasterDataRoutes(): Record<string, Route> {
         payload.styleIds = assertInstructorStyles(ctx, payload.styleIds, isUpdate ? existing?.styleIds || [] : []);
       }
 
+      if (payload.styleColors !== undefined) {
+        if (typeof payload.styleColors === 'object' && payload.styleColors !== null) {
+          payload.styleColorsJson = JSON.stringify(payload.styleColors);
+        } else if (typeof payload.styleColors === 'string') {
+          payload.styleColorsJson = payload.styleColors;
+        }
+      }
+
       const folderId = getInstructorPhotosFolder(ctx);
 
       // Handle removed photos in update: Delete removed files from Google Drive

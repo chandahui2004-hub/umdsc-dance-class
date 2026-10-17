@@ -160,6 +160,21 @@ function parseNotifiedFullStyles(raw: string | undefined): string[] {
   return [];
 }
 
+function parseStyleColors(raw: string | undefined): Record<string, string> {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      const out: Record<string, string> = {};
+      for (const [k, v] of Object.entries(parsed)) {
+        if (typeof v === 'string') out[k] = v;
+      }
+      return out;
+    }
+  } catch {}
+  return {};
+}
+
 const defaultCodecs = {
   settings: {
     toCells: (r: SettingRow) => ({ ...r, active: r.active ? 'TRUE' : 'FALSE' }),
@@ -261,7 +276,15 @@ const defaultCodecs = {
     })
   },
   instructors: {
-    toCells: (r: Instructor) => ({ ...r, styleIds: (r.styleIds || []).join(','), active: r.active ? 'TRUE' : 'FALSE' }),
+    toCells: (r: Instructor) => {
+      const { styleColors, ...rest } = r;
+      return {
+        ...rest,
+        styleIds: (r.styleIds || []).join(','),
+        styleColorsJson: r.styleColorsJson || (styleColors ? JSON.stringify(styleColors) : '{}'),
+        active: r.active ? 'TRUE' : 'FALSE'
+      };
+    },
     fromCells: (c: Record<string, string>): Instructor => ({
       id: c.id,
       version: Number(c.version || 1),
@@ -271,6 +294,8 @@ const defaultCodecs = {
       name: c.name || '',
       contact: c.contact || '',
       color: c.color || '',
+      styleColors: parseStyleColors(c.styleColorsJson),
+      styleColorsJson: c.styleColorsJson || '{}',
       photoUrl: c.photoUrl || '',
       photosJson: c.photosJson || '[]',
       styleIds: parseList(c.styleIds)

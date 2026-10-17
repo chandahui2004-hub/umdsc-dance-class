@@ -55,6 +55,8 @@ export interface Instructor extends RowMeta {
   name: string;
   contact: string;
   color?: string;
+  styleColors?: Record<string, string>;
+  styleColorsJson?: string;
   photoUrl?: string;
   photos?: InstructorPhoto[];
   photosJson?: string;

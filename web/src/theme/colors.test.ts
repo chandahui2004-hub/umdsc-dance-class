@@ -23,6 +23,20 @@ describe('colors theme utilities', () => {
     expect(getInstructorColor({ color: '' })).toBe('var(--neon-orange)');
   });
 
+  it('resolves instructor per-style colors when styleId is provided', () => {
+    const instructor = {
+      color: '#FF5500',
+      styleColors: {
+        st_popping: '#00E5FF',
+        st_hiphop: '#FF007F'
+      }
+    };
+    expect(getInstructorColor(instructor, 'st_popping')).toBe('#00E5FF');
+    expect(getInstructorColor(instructor, 'st_hiphop')).toBe('#FF007F');
+    expect(getInstructorColor(instructor, 'st_locking')).toBe('#FF5500');
+    expect(getInstructorColor({ styleColors: {} }, 'st_locking', 'var(--neon-gold)')).toBe('var(--neon-gold)');
+  });
+
   it('falls back to default ink when colorKey is empty or missing', () => {
     expect(getStyleColor('')).toBe('var(--c-ink)');
     expect(getStyleColor(undefined)).toBe('var(--c-ink)');

@@ -91,7 +91,7 @@ export const TodayPage: React.FC = () => {
             const style = getStyle(session.styleId);
             const instructor = resolveInstructor(session, style, bootstrap?.instructors || []);
             const photoUrl = getInstructorPhotoUrl(instructor);
-            const colorVar = getInstructorColor(instructor);
+            const colorVar = getInstructorColor(instructor, session.styleId);
 
             return (
               <Panel

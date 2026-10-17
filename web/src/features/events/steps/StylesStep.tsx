@@ -4,16 +4,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { DanceStyle, Instructor } from '@umdsc/shared';
 import { call, errorMessage } from '../../../lib/api';
 import { PixelButton } from '../../../components/ui/PixelButton';
-import { getStyleColor } from '../../../theme/colors';
 import { instructorsForStyle, missingInstructorStyle, setStyleInstructors } from '../eventDraft';
 import type { StepProps } from '../EventWizard';
-
-const PALETTE = ['orange', 'blue', 'pink', 'green', 'yellow', 'lavender', 'peach', 'darkgreen', 'brown', 'darkpurple', 'red'];
 
 export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBack, styles, instructors }) => {
   const queryClient = useQueryClient();
   const [newName, setNewName] = useState('');
-  const [newColor, setNewColor] = useState('lavender');
   const [newAliases, setNewAliases] = useState('');
   const [showNew, setShowNew] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,12 +69,12 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
   const missingSlotStyleName = missingSlotStyleId ? styles.find(s => s.id === missingSlotStyleId)?.name || missingSlotStyleId : '';
 
   const createStyle = useMutation({
-    mutationFn: async (input: { name: string; colorKey: string; aliases: string[] }) =>
+    mutationFn: async (input: { name: string; colorKey?: string; aliases: string[] }) =>
       (
         await call<DanceStyle>('styles.create', {
           name: input.name,
           aliases: input.aliases,
-          colorKey: input.colorKey,
+          colorKey: input.colorKey || '',
           defaultWeekday: null,
           defaultStart: '20:00',
           defaultEnd: '22:00',
@@ -99,8 +95,8 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
     onError: err => setError(errorMessage(err))
   });
 
-  const addFromToken = (token: string, i: number) =>
-    createStyle.mutate({ name: token, colorKey: PALETTE[i % PALETTE.length], aliases: [token.toLowerCase()] });
+  const addFromToken = (token: string, _i: number) =>
+    createStyle.mutate({ name: token, colorKey: '', aliases: [token.toLowerCase()] });
 
   const unknown = draft.preview?.unknownClasses || [];
 
@@ -117,7 +113,7 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
             }`}
           >
             <input type="checkbox" checked={draft.styleIds.includes(s.id)} onChange={() => toggle(s.id)} className="w-5 h-5 accent-[var(--neon-gold)]" />
-            <span className="w-4 h-4 border-2 border-[var(--outline)]" style={{ backgroundColor: getStyleColor(s.colorKey) }} />
+            <span className="font-mono text-[14px] text-[var(--neon-cyan)]">▶</span>
             <span className="font-body text-[16px] text-[var(--text-1)]">{s.name}</span>
             {draft.preview && (
               <span className="ml-auto font-mono text-[12px] text-[var(--neon-cyan)]">
@@ -208,7 +204,7 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
           {showNew ? 'CLOSE' : '+ NEW STYLE'}
         </PixelButton>
         {showNew && (
-          <div className="border-2 border-[var(--outline)] bg-[var(--night-1)] px-panel p-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="border-2 border-[var(--outline)] bg-[var(--night-1)] px-panel p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input
               aria-label="New style name"
               value={newName}
@@ -216,18 +212,6 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
               placeholder="Name, e.g. Waacking"
               className="min-h-[48px] px-3 border-2 border-[var(--outline)] bg-[var(--night-2)] px-well font-body text-[16px] text-[var(--text-1)] placeholder:text-[var(--text-3)]"
             />
-            <select
-              aria-label="New style colour"
-              value={newColor}
-              onChange={e => setNewColor(e.target.value)}
-              className="min-h-[48px] px-3 border-2 border-[var(--outline)] bg-[var(--night-2)] px-well font-body text-[16px] text-[var(--text-1)]"
-            >
-              {PALETTE.map(c => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
             <input
               aria-label="Other spellings"
               value={newAliases}
@@ -235,20 +219,22 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
               placeholder="Other spellings, comma separated"
               className="min-h-[48px] px-3 border-2 border-[var(--outline)] bg-[var(--night-2)] px-well font-body text-[16px] text-[var(--text-1)] placeholder:text-[var(--text-3)]"
             />
-            <PixelButton
-              size="md"
-              variant="primary"
-              disabled={!newName.trim() || createStyle.isPending}
-              onClick={() =>
-                createStyle.mutate({
-                  name: newName.trim(),
-                  colorKey: newColor,
-                  aliases: [newName.trim().toLowerCase(), ...newAliases.split(',').map(a => a.trim().toLowerCase()).filter(Boolean)]
-                })
-              }
-            >
-              {createStyle.isPending ? 'ADDING…' : 'ADD STYLE'}
-            </PixelButton>
+            <div className="sm:col-span-2 flex justify-end">
+              <PixelButton
+                size="md"
+                variant="primary"
+                disabled={!newName.trim() || createStyle.isPending}
+                onClick={() =>
+                  createStyle.mutate({
+                    name: newName.trim(),
+                    colorKey: '',
+                    aliases: [newName.trim().toLowerCase(), ...newAliases.split(',').map(a => a.trim().toLowerCase()).filter(Boolean)]
+                  })
+                }
+              >
+                {createStyle.isPending ? 'ADDING…' : 'ADD STYLE'}
+              </PixelButton>
+            </div>
           </div>
         )}
       </div>

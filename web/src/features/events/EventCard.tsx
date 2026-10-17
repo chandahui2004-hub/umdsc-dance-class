@@ -4,7 +4,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { DanceStyle, EventListItem } from '@umdsc/shared';
 import { call, errorMessage } from '../../lib/api';
 import { PixelButton } from '../../components/ui/PixelButton';
-import { getStyleColor } from '../../theme/colors';
 import { useCurrentEvent } from './useCurrentEvent';
 
 const TYPE_LABEL: Record<string, string> = {
@@ -89,8 +88,7 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
           return (
             <span
               key={id}
-              style={{ backgroundColor: getStyleColor(style?.colorKey) }}
-              className="px-2 py-0.5 border-2 border-[var(--outline)] font-display text-[12px] text-[var(--on-neon)] font-bold shadow-[1px_1px_0_var(--outline)]"
+              className="px-2 py-0.5 border-2 border-[var(--outline)] bg-[var(--night-3)] font-display text-[12px] text-[var(--neon-cyan)] font-bold shadow-[1px_1px_0_var(--outline)]"
             >
               {style?.name || id}
             </span>

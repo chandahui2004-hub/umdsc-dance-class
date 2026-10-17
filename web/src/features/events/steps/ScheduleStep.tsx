@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import type { ISODate } from '@umdsc/shared';
 import { PixelButton } from '../../../components/ui/PixelButton';
 import { formatDayLabel, getDatesBetween } from '../../../lib/time';
-import { getStyleColor } from '../../../theme/colors';
+import { getInstructorColor } from '../../../theme/colors';
 import { effectiveInstructorId, stylesWithoutClasses, type ScheduledClass } from '../eventDraft';
 import type { StepProps } from '../EventWizard';
 
@@ -88,6 +88,8 @@ export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onB
           {draft.styleIds.map(id => {
             const s = styles.find(x => x.id === id);
             const count = (draft.schedule[id] || []).length;
+            const assignedInst = instructors.find(i => (draft.styleInstructors[id] || []).includes(i.id));
+            const instColor = getInstructorColor(assignedInst, id);
             return (
               <button
                 key={id}
@@ -99,7 +101,7 @@ export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onB
                 }`}
               >
                 <span className="flex items-center gap-2">
-                  <span className="w-3 h-3 border-2 border-[var(--outline)]" style={{ backgroundColor: getStyleColor(s?.colorKey) }} />
+                  <span className="w-2.5 h-2.5 border border-[var(--outline)] shrink-0" style={{ backgroundColor: instColor }} />
                   {s?.name || id}
                 </span>
                 <span

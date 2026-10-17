@@ -66,7 +66,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
     }));
   };
 
-  const color = getInstructorColor(instructor);
+  const color = getInstructorColor(instructor, session.styleId);
 
   return (
     <div
@@ -118,7 +118,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
       {/* Class Meta & Instructor Focus Block: Photo Left, Information Right */}
       {(() => {
         const photoUrl = getInstructorPhotoUrl(instructor);
-        const instructorColor = getInstructorColor(instructor, color);
+        const instructorColor = getInstructorColor(instructor, session.styleId, color);
 
         return (
           <div className="px-well p-3 md:p-4 flex flex-col sm:flex-row gap-4 items-center sm:items-start">

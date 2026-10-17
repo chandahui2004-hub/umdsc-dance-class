@@ -104,7 +104,7 @@ export const DancerHome: React.FC = () => {
     for (const session of filteredSessions) {
       const style = styles.find((st) => st.id === session.styleId);
       const instructor = resolveInstructor(session, style, instructors);
-      const colorKey = getInstructorColor(instructor);
+      const colorKey = getInstructorColor(instructor, session.styleId);
       const isAttended = attMap.get(session.id);
       const isPast = session.date < today;
 
@@ -286,7 +286,23 @@ export const DancerHome: React.FC = () => {
         </span>
         <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
           {instructors.map((inst) => {
-            const colorVar = getInstructorColor(inst);
+            const teaches = (inst.styleIds || []).filter(sid => styles.some(st => st.id === sid));
+            if (teaches.length > 1) {
+              return teaches.map((sid) => {
+                const colorVar = getInstructorColor(inst, sid);
+                const sName = styles.find(s => s.id === sid)?.name || sid;
+                return (
+                  <div key={`${inst.id}-${sid}`} className="flex items-center gap-1.5">
+                    <span
+                      className="w-3 h-3 border border-[var(--outline)] inline-block flex-shrink-0"
+                      style={{ backgroundColor: colorVar }}
+                    />
+                    <span className="font-bold text-[var(--text-1)]">{inst.name} ({sName})</span>
+                  </div>
+                );
+              });
+            }
+            const colorVar = getInstructorColor(inst, teaches[0]);
             return (
               <div key={inst.id} className="flex items-center gap-1.5">
                 <span

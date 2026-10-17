@@ -7,7 +7,6 @@ import { Field } from '../../components/ui/Field';
 import { Spinner } from '../../components/ui/Spinner';
 import { ResetTestDataPanel } from './ResetTestDataPanel';
 import { RetentionPanel } from './RetentionPanel';
-import { STYLE_COLOR } from '../../theme/colors';
 import type { DanceStyle, StyleVideoFolder } from '@umdsc/shared';
 
 interface LinkHistoryItem {
@@ -94,17 +93,12 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
     }
   });
 
-  const color = STYLE_COLOR[style.colorKey] || `var(--c-${style.colorKey})`;
-
   return (
     <div className="p-3 md:p-4 bg-[var(--night-2)] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] space-y-3">
       {/* Style Header */}
       <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b-2 border-[var(--outline)]">
         <div className="flex items-center gap-2">
-          <span
-            className="w-4 h-4 border border-[var(--outline)] inline-block flex-shrink-0"
-            style={{ backgroundColor: color }}
-          />
+          <span className="font-mono text-[14px] text-[var(--neon-cyan)]">▶</span>
           <span className="font-display text-xs md:text-sm text-[var(--text-1)] font-bold">
             {style.name.toUpperCase()}
           </span>

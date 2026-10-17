@@ -22,6 +22,7 @@ import {
 import type { DanceStyle, Instructor, InstructorPhoto } from '@umdsc/shared';
 import { useEvents } from '../events/useCurrentEvent';
 import { useOverlayOpen } from '../../app/useOverlayOpen';
+import { getInstructorColor } from '../../theme/colors';
 
 export const InstructorsPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -36,6 +37,7 @@ export const InstructorsPage: React.FC = () => {
   const [name, setName] = useState('');
   const [contact, setContact] = useState('');
   const [color, setColor] = useState('orange');
+  const [styleColors, setStyleColors] = useState<Record<string, string>>({});
   const [styleIds, setStyleIds] = useState<string[]>([]);
   const [photos, setPhotos] = useState<InstructorPhoto[]>([]);
   const [activePhotoUrl, setActivePhotoUrl] = useState<string>('');
@@ -138,6 +140,7 @@ export const InstructorsPage: React.FC = () => {
     setName('');
     setContact('');
     setColor('orange');
+    setStyleColors({});
     setStyleIds([]);
     setPhotos([]);
     setActivePhotoUrl('');
@@ -153,6 +156,13 @@ export const InstructorsPage: React.FC = () => {
     setName(instructor.name);
     setContact(instructor.contact || '');
     setColor(instructor.color || 'orange');
+    let parsedStyleColors: Record<string, string> = {};
+    if (instructor.styleColors) {
+      parsedStyleColors = { ...instructor.styleColors };
+    } else if (instructor.styleColorsJson) {
+      try { parsedStyleColors = JSON.parse(instructor.styleColorsJson); } catch {}
+    }
+    setStyleColors(parsedStyleColors);
     setStyleIds([...(instructor.styleIds || [])]);
 
     // Retrieve all photos including all duplicates in Google Drive
@@ -332,6 +342,8 @@ export const InstructorsPage: React.FC = () => {
         name: name.trim(),
         contact: contact.trim(),
         color: color.trim(),
+        styleColors,
+        styleColorsJson: JSON.stringify(styleColors),
         styleIds: activeStyleIds,
         photoUrl: activePhotoUrl || '',
         photosJson: JSON.stringify(photos)
@@ -442,7 +454,7 @@ export const InstructorsPage: React.FC = () => {
                       className="w-full py-1 text-center border-2 border-[var(--outline)] shadow-[1px_1px_0_var(--outline)] font-display text-[10px] font-bold text-[var(--on-neon)] uppercase tracking-wider"
                       style={{ backgroundColor: instColor }}
                     >
-                      INSTRUCTOR{inst.color ? ` · ${inst.color.toUpperCase()}` : ''}
+                      INSTRUCTOR
                     </div>
 
                     {/* Instructor Meta */}
@@ -459,16 +471,20 @@ export const InstructorsPage: React.FC = () => {
                           {inst.contact || 'No contact specified'}
                         </span>
                       </p>
-                      <div className="flex flex-wrap gap-1 pt-1">
+                      <div className="flex flex-wrap gap-1.5 pt-1">
                         {(inst.styleIds || []).some(isActiveStyle) ? (
-                          (inst.styleIds || []).filter(isActiveStyle).map((sid) => (
-                            <span
-                              key={sid}
-                              className="bg-[var(--night-1)] border border-[var(--outline)] px-2 py-0.5 font-mono text-[12px] text-[var(--text-1)]"
-                            >
-                              {styleName(sid)}
-                            </span>
-                          ))
+                          (inst.styleIds || []).filter(isActiveStyle).map((sid) => {
+                            const sc = getInstructorColor(inst, sid);
+                            return (
+                              <span
+                                key={sid}
+                                className="border border-[var(--outline)] px-2 py-0.5 font-mono text-[12px] text-[var(--on-neon)] font-bold shadow-[1px_1px_0_var(--outline)]"
+                                style={{ backgroundColor: sc }}
+                              >
+                                {styleName(sid)}
+                              </span>
+                            );
+                          })
                         ) : (
                           <span className="font-body text-[12px] text-[var(--text-3)] italic">No dance styles yet</span>
                         )}
@@ -585,12 +601,42 @@ export const InstructorsPage: React.FC = () => {
                 ))}
               </div>
 
-              {/* Signature Color Swatch Picker */}
-              <ColorSwatchPicker
-                value={color}
-                onChange={setColor}
-                label="Instructor Signature Color"
-              />
+              {/* Signature Color Swatch Picker(s) - Per Style */}
+              {activeStyleIds.length > 0 ? (
+                <div className="space-y-3 pt-3 border-t-2 border-[var(--outline)]">
+                  <div>
+                    <h3 className="font-display text-[12px] text-[var(--neon-gold)] tracking-wider">
+                      INSTRUCTOR SIGNATURE COLORS (PER DANCE STYLE)
+                    </h3>
+                    <p className="font-body text-[14px] text-[var(--text-2)] mt-0.5">
+                      Choose a distinct signature color for each style this instructor teaches. Classes on the calendar will display this color.
+                    </p>
+                  </div>
+                  <div className="space-y-3">
+                    {activeStyleIds.map((sid) => {
+                      const st = styles.find((s) => s.id === sid);
+                      const currentColor = styleColors[sid] || color || 'orange';
+                      return (
+                        <ColorSwatchPicker
+                          key={sid}
+                          value={currentColor}
+                          onChange={(newCol) => {
+                            setStyleColors((prev) => ({ ...prev, [sid]: newCol }));
+                            if (sid === activeStyleIds[0]) setColor(newCol);
+                          }}
+                          label={`Color for ${st?.name || sid}`}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <ColorSwatchPicker
+                  value={color}
+                  onChange={setColor}
+                  label="Instructor Signature Color"
+                />
+              )}
 
               {/* Photo Management Section */}
               <div className="space-y-3 pt-3 border-t-2 border-[var(--outline)]">

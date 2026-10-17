@@ -151,7 +151,7 @@ export const ClassesPage: React.FC = () => {
       const ev = getEvent(s.eventId);
       const evTag = isAll && ev ? ` · ${ev.name}` : '';
       (marks[s.date] ||= []).push({
-        colorKey: instructor?.color || 'orange',
+        colorKey: getInstructorColor(instructor, s.styleId),
         kind: 'class',
         label: `${style?.name || 'Class'} Class ${s.seq}${evTag}`
       });
@@ -162,7 +162,7 @@ export const ClassesPage: React.FC = () => {
   const colorOf = (s: ClassSession) => {
     const style = getStyle(s.styleId);
     const instructor = resolveInstructor(s, style, instructors);
-    return getInstructorColor(instructor);
+    return getInstructorColor(instructor, s.styleId);
   };
 
   if (!eventsLoading && events.length === 0) {

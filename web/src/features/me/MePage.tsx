@@ -6,7 +6,6 @@ import { session } from '../../lib/session';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { HeartsBar } from '../../components/ui/HeartsBar';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { STYLE_COLOR } from '../../theme/colors';
 import { EditProfileDialog } from './EditProfileDialog';
 
 export const MePage: React.FC = () => {
@@ -168,18 +167,13 @@ export const MePage: React.FC = () => {
 
                       const attendedCount = styleSessions.filter((s) => attMap.has(s.id)).length;
                       const totalStyleClasses = styleSessions.length;
-                      const color = STYLE_COLOR[style.colorKey] || `var(--c-${style.colorKey})`;
-
                       return (
                         <div
                           key={style.id}
                           className="px-well p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                         >
                           <div className="flex items-center gap-2">
-                            <span
-                              className="w-3.5 h-3.5 border border-[var(--outline)] inline-block flex-shrink-0"
-                              style={{ backgroundColor: color }}
-                            />
+                            <span className="font-mono text-[14px] text-[var(--neon-cyan)]">▶</span>
                             <div>
                               <span className="font-display text-[12px] text-[var(--text-1)] font-bold block">
                                 {style.name.toUpperCase()}

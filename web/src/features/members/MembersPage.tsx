@@ -8,7 +8,6 @@ import { Sheet } from '../../components/ui/Sheet';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { EventStep, StyleStep } from '../../components/ui/EventStyleSteps';
-import { getStyleColor } from '../../theme/colors';
 import { exportToCsv } from '../../lib/csv';
 import type { Member } from '@umdsc/shared';
 import { useCurrentEvent } from '../events/useCurrentEvent';
@@ -266,19 +265,14 @@ export const MembersPage: React.FC = () => {
                 )}
                 <td className="p-3">
                   <div className="flex flex-wrap gap-1">
-                    {m.styleNames?.map((sName) => {
-                      const styleObj = bootstrap?.styles?.find((s) => s.name.toLowerCase() === sName.toLowerCase());
-                      const c = getStyleColor(styleObj?.colorKey);
-                      return (
-                        <span
-                          key={sName}
-                          style={{ backgroundColor: c }}
-                          className="px-2 py-0.5 text-[12px] font-display text-[var(--on-neon)] font-bold border border-[var(--outline)]"
-                        >
-                          {sName}
-                        </span>
-                      );
-                    })}
+                    {m.styleNames?.map((sName) => (
+                      <span
+                        key={sName}
+                        className="px-2 py-0.5 text-[12px] font-display text-[var(--neon-cyan)] bg-[var(--night-3)] font-bold border border-[var(--outline)]"
+                      >
+                        {sName}
+                      </span>
+                    ))}
                   </div>
                 </td>
                 <td className="p-3 text-right">
@@ -330,19 +324,14 @@ export const MembersPage: React.FC = () => {
 
             {/* Style Badges */}
             <div className="flex flex-wrap gap-1">
-              {m.styleNames?.map((sName) => {
-                const styleObj = bootstrap?.styles?.find((s) => s.name.toLowerCase() === sName.toLowerCase());
-                const c = getStyleColor(styleObj?.colorKey);
-                return (
-                  <span
-                    key={sName}
-                    style={{ backgroundColor: c }}
-                    className="px-2 py-0.5 text-[12px] font-display text-[var(--on-neon)] font-bold border border-[var(--outline)]"
-                  >
-                    {sName}
-                  </span>
-                );
-              })}
+              {m.styleNames?.map((sName) => (
+                <span
+                  key={sName}
+                  className="px-2 py-0.5 text-[12px] font-display text-[var(--neon-cyan)] bg-[var(--night-3)] font-bold border border-[var(--outline)]"
+                >
+                  {sName}
+                </span>
+              ))}
             </div>
 
             <div className="flex justify-between items-center pt-1 border-t border-[var(--outline)] text-[12px]">
@@ -491,21 +480,16 @@ export const MembersPage: React.FC = () => {
                   REGISTERED DANCE CLASSES
                 </span>
                 <div className="flex flex-wrap gap-2">
-                  {selectedMember.styleNames?.map((sName) => {
-                    const styleObj = bootstrap?.styles?.find((s) => s.name.toLowerCase() === sName.toLowerCase());
-                    const c = getStyleColor(styleObj?.colorKey);
-                    return (
-                      <div
-                        key={sName}
-                        style={{ backgroundColor: c }}
-                        className="p-2 border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)]"
-                      >
-                        <span className="font-display text-[12px] text-[var(--on-neon)] font-bold">
-                          {sName}
-                        </span>
-                      </div>
-                    );
-                  })}
+                  {selectedMember.styleNames?.map((sName) => (
+                    <div
+                      key={sName}
+                      className="p-2 border-2 border-[var(--outline)] bg-[var(--night-3)] shadow-[2px_2px_0_var(--outline)]"
+                    >
+                      <span className="font-display text-[12px] text-[var(--neon-cyan)] font-bold">
+                        {sName}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -738,21 +722,16 @@ export const MembersPage: React.FC = () => {
                 REGISTERED DANCE CLASSES
               </span>
               <div className="flex flex-wrap gap-2">
-                {selectedMember.styleNames?.map((sName) => {
-                  const styleObj = bootstrap?.styles?.find((s) => s.name.toLowerCase() === sName.toLowerCase());
-                  const c = getStyleColor(styleObj?.colorKey);
-                  return (
-                    <div
-                      key={sName}
-                      style={{ backgroundColor: c }}
-                      className="p-2 border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)]"
-                    >
-                      <span className="font-display text-[12px] text-[var(--on-neon)] font-bold">
-                        {sName}
-                      </span>
-                    </div>
-                  );
-                })}
+                {selectedMember.styleNames?.map((sName) => (
+                  <div
+                    key={sName}
+                    className="p-2 border-2 border-[var(--outline)] bg-[var(--night-3)] shadow-[2px_2px_0_var(--outline)]"
+                  >
+                    <span className="font-display text-[12px] text-[var(--neon-cyan)] font-bold">
+                      {sName}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
 

@@ -5,22 +5,10 @@ import { api, errorMessage } from '../../lib/api';
 import { Panel } from '../../components/ui/Panel';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { Field } from '../../components/ui/Field';
-import { ColorSwatchPicker } from '../../components/ui/ColorSwatchPicker';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { useOverlayOpen } from '../../app/useOverlayOpen';
 import type { DanceStyle, Instructor } from '@umdsc/shared';
-
-const SWATCH_COLORS = [
-  { key: 'green', label: 'GREEN', css: 'var(--c-green)' },
-  { key: 'blue', label: 'BLUE', css: 'var(--c-blue)' },
-  { key: 'orange', label: 'ORANGE', css: 'var(--c-orange)' },
-  { key: 'pink', label: 'PINK', css: 'var(--c-pink)' },
-  { key: 'yellow', label: 'YELLOW', css: 'var(--c-yellow)' },
-  { key: 'lavender', label: 'LAVENDER', css: 'var(--c-lavender)' },
-  { key: 'peach', label: 'PEACH', css: 'var(--c-peach)' },
-  { key: 'darkgreen', label: 'DARK GREEN', css: 'var(--c-darkgreen)' }
-];
 
 const WEEKDAYS = [
   { val: 1, name: 'Monday' },
@@ -42,7 +30,6 @@ export const StylesPage: React.FC = () => {
   // Form states
   const [name, setName] = useState('');
   const [aliases, setAliases] = useState('');
-  const [colorKey, setColorKey] = useState('green');
   const [defaultWeekday, setDefaultWeekday] = useState<number>(1);
   const [defaultStart, setDefaultStart] = useState('20:00');
   const [defaultEnd, setDefaultEnd] = useState('22:00');
@@ -71,7 +58,6 @@ export const StylesPage: React.FC = () => {
     setEditingStyle(null);
     setName('');
     setAliases('');
-    setColorKey('green');
     setDefaultWeekday(1);
     setDefaultStart('20:00');
     setDefaultEnd('22:00');
@@ -86,7 +72,6 @@ export const StylesPage: React.FC = () => {
     setIsCreating(false);
     setName(style.name);
     setAliases((style.aliases || []).join(', '));
-    setColorKey(style.colorKey || 'green');
     setDefaultWeekday(style.defaultWeekday ?? 1);
     setDefaultStart(style.defaultStart || '20:00');
     setDefaultEnd(style.defaultEnd || '22:00');
@@ -116,7 +101,6 @@ export const StylesPage: React.FC = () => {
       const payload: any = {
         name: name.trim(),
         aliases: aliasArray,
-        colorKey,
         defaultWeekday: Number(defaultWeekday),
         defaultStart,
         defaultEnd,
@@ -196,7 +180,6 @@ export const StylesPage: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {styles.map((style) => {
-            const swatch = SWATCH_COLORS.find((c) => c.key === style.colorKey) || SWATCH_COLORS[0];
             const teachers = instructors.filter((i) => i.active && (i.styleIds || []).includes(style.id));
             const weekday = WEEKDAYS.find((w) => w.val === style.defaultWeekday);
 
@@ -206,12 +189,8 @@ export const StylesPage: React.FC = () => {
                 title={style.name}
                 className="px-corners space-y-3"
               >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-6 h-6 border-2 border-[var(--outline)] shrink-0"
-                    style={{ backgroundColor: swatch.css }}
-                    title={swatch.label}
-                  />
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[14px] text-[var(--neon-gold)]">▶</span>
                   <h3 className="font-display text-[14px] font-bold text-[var(--text-1)]">{style.name}</h3>
                 </div>
 
@@ -352,12 +331,6 @@ export const StylesPage: React.FC = () => {
                 />
               </Field>
 
-              {/* Dynamic Color Swatch Picker with Custom Hex Insertion & Removal */}
-              <ColorSwatchPicker
-                value={colorKey}
-                onChange={setColorKey}
-                label="Color Swatch"
-              />
 
               {/* Default Schedule */}
               <div className="space-y-4 pt-3 border-t-2 border-[var(--outline)]">

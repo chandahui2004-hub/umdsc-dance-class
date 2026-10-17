@@ -22,7 +22,18 @@ export function getStyleColor(colorKey?: string): string {
   return STYLE_COLOR[trimmed.toLowerCase()] || `var(--c-${trimmed.toLowerCase()})` || 'var(--c-ink)';
 }
 
-export function getInstructorColor(instructor?: { color?: string } | null, fallback = 'var(--neon-orange)'): string {
-  if (!instructor?.color || !instructor.color.trim()) return fallback;
-  return getStyleColor(instructor.color);
+export function getInstructorColor(
+  instructor?: { color?: string; styleColors?: Record<string, string> } | null,
+  styleId?: string,
+  fallback = 'var(--neon-orange)'
+): string {
+  if (!instructor) return fallback;
+  if (styleId && instructor.styleColors && instructor.styleColors[styleId]) {
+    const sc = instructor.styleColors[styleId].trim();
+    if (sc) return getStyleColor(sc);
+  }
+  if (instructor.color && instructor.color.trim()) {
+    return getStyleColor(instructor.color);
+  }
+  return fallback;
 }

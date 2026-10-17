@@ -11,17 +11,6 @@ import { pickFolder, checkFolderAccess } from '../../lib/google/picker';
 import { fetchAccountEmail, sameAccount, useGoogleAccountEmail } from '../../lib/google/googleAccount';
 import { GoogleAccountBar } from './GoogleAccountBar';
 
-const SWATCH_COLORS: Record<string, string> = {
-  green: 'var(--c-green)',
-  blue: 'var(--c-blue)',
-  orange: 'var(--c-orange)',
-  pink: 'var(--c-pink)',
-  yellow: 'var(--c-yellow)',
-  lavender: 'var(--c-lavender)',
-  peach: 'var(--c-peach)',
-  darkgreen: 'var(--c-darkgreen)'
-};
-
 interface ClassLeadVideoFoldersPanelProps {
   event: EventItem | null;
   styles: DanceStyle[];
@@ -221,7 +210,6 @@ export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProp
           ) : (
             <div className="space-y-2">
               {styles.map((s) => {
-                const swatchBg = SWATCH_COLORS[s.colorKey] || 'var(--c-blue)';
                 const isEditing = editingStyleId === s.id;
                 const uploader = s.videoUploaderEmail || '';
                 const isUploaderSignedIn = sameAccount(currentEmail, uploader);
@@ -235,10 +223,7 @@ export const ClassLeadVideoFoldersPanel: React.FC<ClassLeadVideoFoldersPanelProp
                   >
                     {/* Style info */}
                     <div className="flex items-center gap-3">
-                      <div
-                        className="w-4 h-4 border border-[var(--outline)] shrink-0"
-                        style={{ backgroundColor: swatchBg }}
-                      />
+                      <span className="font-mono text-[14px] text-[var(--neon-cyan)]">▶</span>
                       <div>
                         <span className="font-display text-xs font-bold text-[var(--text-1)]">
                           {s.name}
