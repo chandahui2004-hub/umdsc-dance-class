@@ -63,6 +63,20 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
     onError
   });
 
+  let styleSlots: Record<string, number> = {};
+  if (event.styleSlots && typeof event.styleSlots === 'object') {
+    styleSlots = event.styleSlots;
+  } else if (event.styleSlotsJson) {
+    try {
+      styleSlots = JSON.parse(event.styleSlotsJson);
+    } catch {
+      styleSlots = {};
+    }
+  }
+
+  const totalSlots = Object.values(styleSlots).reduce((acc, v) => acc + (Number(v) || 0), 0);
+  const singleStyle = event.styleIds.length === 1;
+
   return (
     <div
       data-testid={`event-card-${event.id}`}
@@ -77,20 +91,45 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
             {TYPE_LABEL[event.type] || event.type} · {event.startDate} → {event.endDate}
           </p>
         </div>
-        <span className="px-2 py-1 border-2 border-[var(--outline)] bg-[var(--neon-gold)] font-display text-[12px] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--outline)]">
-          {event.memberCount} DANCERS
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          {totalSlots > 0 && (
+            <span
+              className="px-2 py-1 border-2 border-[var(--outline)] bg-[var(--night-3)] font-display text-[12px] text-[var(--neon-cyan)] font-bold shadow-[2px_2px_0_var(--outline)]"
+              title={`Total slot capacity set: ${totalSlots}`}
+            >
+              {singleStyle
+                ? `${totalSlots} SLOTS SET (${Math.max(0, totalSlots - event.memberCount)} AVAIL)`
+                : `${totalSlots} SLOTS SET`}
+            </span>
+          )}
+          <span className="px-2 py-1 border-2 border-[var(--outline)] bg-[var(--neon-gold)] font-display text-[12px] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--outline)]">
+            {event.memberCount} DANCERS
+          </span>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-1.5">
         {event.styleIds.map(id => {
           const style = styles.find(s => s.id === id);
+          const slots = styleSlots[id];
+          const isFull = event.notifiedFullStyles?.includes(id);
+          const avail = slots !== undefined && singleStyle ? Math.max(0, slots - event.memberCount) : undefined;
           return (
             <span
               key={id}
-              className="px-2 py-0.5 border-2 border-[var(--outline)] bg-[var(--night-3)] font-display text-[12px] text-[var(--neon-cyan)] font-bold shadow-[1px_1px_0_var(--outline)]"
+              className="px-2 py-0.5 border-2 border-[var(--outline)] bg-[var(--night-3)] font-display text-[12px] text-[var(--neon-cyan)] font-bold shadow-[1px_1px_0_var(--outline)] flex items-center gap-1.5"
             >
-              {style?.name || id}
+              <span>{style?.name || id}</span>
+              {slots !== undefined && slots > 0 ? (
+                <span
+                  className={`font-mono text-[11px] border-l border-[var(--outline)] pl-1.5 ${
+                    isFull ? 'text-[var(--neon-red)] font-bold' : 'text-[var(--neon-gold)] font-bold'
+                  }`}
+                  title={`${slots} slots set${avail !== undefined ? ` (${avail} available)` : ''}${isFull ? ' (Capacity Reached)' : ''}`}
+                >
+                  {slots} SLOTS{avail !== undefined ? ` · ${avail} AVAIL` : ''}{isFull ? ' (FULL)' : ''}
+                </span>
+              ) : null}
             </span>
           );
         })}
