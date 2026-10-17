@@ -274,5 +274,26 @@ describe('importEventMembers', () => {
     // Should NOT re-send duplicate alert emails
     const repeatAlerts = ctx.mail.sent.filter(m => m.subject.includes('Slot Full: Popping'));
     expect(repeatAlerts.length).toBe(0);
+
+    // If capacity is raised to 5 (greater than current 3 enrolled), it re-arms
+    const currentEv = fresh(event);
+    ctx.db.events.update(currentEv.id, currentEv.version, {
+      styleSlots: { st_popping: 5 },
+      styleSlotsJson: JSON.stringify({ st_popping: 5 })
+    } as any, 'system', ctx.now());
+    ctx.mail.reset();
+    importEventMembers(ctx, fresh(event), { full: true });
+    expect(fresh(event).notifiedFullStyles).not.toContain('st_popping');
+
+    // Add 4th and 5th dancer to hit the new cap of 5
+    source(sourceId).appendRows([
+      ['2026-10-06 11:00:00', 'David', '22004444', '0123456789', 'd@test.com', 'Popping'],
+      ['2026-10-06 12:00:00', 'Emma', '22005555', '0123456789', 'e@test.com', 'Popping']
+    ]);
+    ctx.mail.reset();
+    importEventMembers(ctx, fresh(event), { full: true });
+    const rearmedAlerts = ctx.mail.sent.filter(m => m.subject.includes('Slot Full: Popping'));
+    expect(rearmedAlerts.length).toBeGreaterThanOrEqual(1);
+    expect(fresh(event).notifiedFullStyles).toContain('st_popping');
   });
 });

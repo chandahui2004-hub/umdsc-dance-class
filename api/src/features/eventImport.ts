@@ -456,22 +456,31 @@ export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boo
 
   for (const styleId of event.styleIds || []) {
     const cap = Number(slotCapacity[styleId]);
-    if (cap > 0 && !alreadyNotified.has(styleId)) {
+    if (cap > 0) {
       const enrolledCount = members.filter(m => (m.styleIds || []).includes(styleId)).length;
       if (enrolledCount >= cap) {
-        alreadyNotified.add(styleId);
-        newlyNotified = true;
-        const style = ctx.db.styles.find(s => s.id === styleId && s.active)[0];
-        const styleName = style?.name || styleId;
-        const clubEmail = ctx.clubEmail || ctx.db.settings.find(s => s.key === 'clubEmail' && s.active)[0]?.value;
-        const adminEmails = ctx.db.admins.find(a => a.active && a.username.includes('@')).map(a => a.username);
-        const classLeadEmail = style?.videoUploaderEmail;
-        const recipients = Array.from(new Set([clubEmail, ...adminEmails, classLeadEmail].filter(Boolean))) as string[];
+        if (!alreadyNotified.has(styleId)) {
+          alreadyNotified.add(styleId);
+          newlyNotified = true;
+          const style = ctx.db.styles.find(s => s.id === styleId && s.active)[0];
+          const styleName = style?.name || styleId;
+          const clubEmail = ctx.clubEmail || ctx.db.settings.find(s => s.key === 'clubEmail' && s.active)[0]?.value;
+          const adminEmails = ctx.db.admins.find(a => a.active && a.username.includes('@')).map(a => a.username);
+          const classLeadEmail = style?.videoUploaderEmail?.trim();
+          const styleInstructors = (event.styleInstructors?.[styleId] || []);
+          const instructorEmails = styleInstructors
+            .map(id => ctx.db.instructors.get(id))
+            .filter(Boolean)
+            .map(i => i?.contact?.trim())
+            .filter((c): c is string => Boolean(c && c.includes('@')));
+          const recipients = Array.from(
+            new Set([clubEmail, ...adminEmails, classLeadEmail, ...instructorEmails].filter(Boolean).map(e => e!.toLowerCase()))
+          ) as string[];
 
-        for (const to of recipients) {
-          const subject = `[UMDSC Alert] Slot Full: ${styleName} in ${event.name} (${enrolledCount}/${cap} Enrolled)`;
-          const body = `Dear Admins and Class Lead,\n\nThis is an automated notification from the UMDSC Dance Class System.\n\nThe enrollment for ${styleName} in ${event.name} has reached or exceeded its target slot capacity:\n- Style: ${styleName}\n- Event: ${event.name}\n- Enrolled Dancers: ${enrolledCount}\n- Slot Capacity: ${cap}\n\nPlease note: The system and Google Form will still continue to accept additional member registrations unless you choose to close the form. This email is sent as an alert for your awareness.\n\nKeep dancing!\nUniversiti Malaya Dance Sport Club (UMDSC)`;
-          const htmlBody = `<div style="font-family: sans-serif; line-height: 1.6; color: #222;">
+          for (const to of recipients) {
+            const subject = `[UMDSC Alert] Slot Full: ${styleName} in ${event.name} (${enrolledCount}/${cap} Enrolled)`;
+            const body = `Dear Admins and Class Lead,\n\nThis is an automated notification from the UMDSC Dance Class System.\n\nThe enrollment for ${styleName} in ${event.name} has reached or exceeded its target slot capacity:\n- Style: ${styleName}\n- Event: ${event.name}\n- Enrolled Dancers: ${enrolledCount}\n- Slot Capacity: ${cap}\n\nPlease note: The system and Google Form will still continue to accept additional member registrations unless you choose to close the form. This email is sent as an alert for your awareness.\n\nKeep dancing!\nUniversiti Malaya Dance Sport Club (UMDSC)`;
+            const htmlBody = `<div style="font-family: sans-serif; line-height: 1.6; color: #222;">
   <h2 style="color: #ef4444;">[UMDSC Alert] Slot Capacity Reached</h2>
   <p>The enrollment for <strong>${styleName}</strong> in <strong>${event.name}</strong> has reached its target slot capacity.</p>
   <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; margin: 16px 0;">
@@ -483,12 +492,17 @@ export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boo
   <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
   <p style="font-size: 12px; color: #888;">Universiti Malaya Dance Sport Club (UMDSC)</p>
 </div>`;
-          try {
-            ctx.mail.sendEmail({ to, subject, body, htmlBody });
-          } catch (err) {
-            console.warn(`[eventImport] Failed to send slot capacity alert email to ${to}:`, err);
+            try {
+              ctx.mail.sendEmail({ to, subject, body, htmlBody });
+            } catch (err) {
+              console.warn(`[eventImport] Failed to send slot capacity alert email to ${to}:`, err);
+            }
           }
         }
+      } else if (alreadyNotified.has(styleId)) {
+        // Re-arm notification if enrollment drops below cap or cap was raised
+        alreadyNotified.delete(styleId);
+        newlyNotified = true;
       }
     }
   }
