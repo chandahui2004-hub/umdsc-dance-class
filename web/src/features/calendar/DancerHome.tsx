@@ -5,7 +5,8 @@ import { useDancerAttendance } from '../auth/useDancerAttendance';
 import { MonthCalendar, type CalendarMark } from '../../components/ui/MonthCalendar';
 import { DaySheet } from './DaySheet';
 import { todayKL, addMonths } from '../../lib/time';
-import { STYLE_COLOR } from '../../theme/colors';
+import { getInstructorColor } from '../../theme/colors';
+import { resolveInstructor } from '../../lib/instructorPhotos';
 import { session } from '../../lib/session';
 
 export const DancerHome: React.FC = () => {
@@ -102,7 +103,8 @@ export const DancerHome: React.FC = () => {
 
     for (const session of filteredSessions) {
       const style = styles.find((st) => st.id === session.styleId);
-      const colorKey = style?.colorKey || 'orange';
+      const instructor = resolveInstructor(session, style, instructors);
+      const colorKey = getInstructorColor(instructor);
       const isAttended = attMap.get(session.id);
       const isPast = session.date < today;
 
@@ -119,12 +121,12 @@ export const DancerHome: React.FC = () => {
       marks[session.date].push({
         colorKey,
         kind,
-        label: `${style?.name || 'Class'} #${session.seq}`
+        label: `${style?.name || 'Class'} #${session.seq} (${instructor?.name || 'Instructor'})`
       });
     }
 
     return marks;
-  }, [filteredSessions, styles, attendance, attendanceLoading, today]);
+  }, [filteredSessions, styles, instructors, attendance, attendanceLoading, today]);
 
   if (isLoading && !bootstrap) {
     return (
@@ -277,21 +279,21 @@ export const DancerHome: React.FC = () => {
         }}
       />
 
-      {/* Style & Attendance Legend */}
+      {/* Instructor & Attendance Legend */}
       <div className="px-panel p-3 space-y-2">
         <span className="font-display text-[10px] text-[var(--text-2)] font-bold uppercase block">
           LEGEND:
         </span>
         <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
-          {styles.map((style) => {
-            const colorVar = STYLE_COLOR[style.colorKey] || `var(--c-${style.colorKey})`;
+          {instructors.map((inst) => {
+            const colorVar = getInstructorColor(inst);
             return (
-              <div key={style.id} className="flex items-center gap-1.5">
+              <div key={inst.id} className="flex items-center gap-1.5">
                 <span
                   className="w-3 h-3 border border-[var(--outline)] inline-block flex-shrink-0"
                   style={{ backgroundColor: colorVar }}
                 />
-                <span className="font-bold text-[var(--text-1)]">{style.name}</span>
+                <span className="font-bold text-[var(--text-1)]">{inst.name}</span>
               </div>
             );
           })}

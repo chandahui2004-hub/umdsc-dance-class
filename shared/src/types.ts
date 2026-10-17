@@ -101,6 +101,10 @@ export interface EventItem extends RowMeta {
   styleIds: string[]; styleInstructors: Record<string, string[]>; folderId: string; videoFolderId: string; membersSpreadsheetId: string;
   status: EventStatus; sourceRowCount: number; sourceLastRowHash: string;
   lastSyncAt: string; lastSyncError: string; memberCount: number;
+  styleSlots?: Record<string, number>;
+  styleSlotsJson?: string;
+  notifiedFullStyles?: string[];
+  notifiedFullStylesJson?: string;
 }
 export type EventListItem = EventItem & { folderMissing: boolean };
 export type EventSummary = Pick<EventItem, 'id' | 'name' | 'type' | 'startDate' | 'endDate' | 'status' | 'styleIds'>;

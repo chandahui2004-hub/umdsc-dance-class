@@ -66,6 +66,11 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
   const inactiveTicked = draft.styleIds.filter(id => !activeStyleIds.includes(id));
   const missingStyleId = missingInstructorStyle(draft, activeStyleIds);
   const missingStyleName = missingStyleId ? styles.find(s => s.id === missingStyleId)?.name || missingStyleId : '';
+  const missingSlotStyleId = draft.styleIds.find(id => {
+    const val = draft.styleSlots?.[id];
+    return val === undefined || isNaN(val) || val <= 0;
+  });
+  const missingSlotStyleName = missingSlotStyleId ? styles.find(s => s.id === missingSlotStyleId)?.name || missingSlotStyleId : '';
 
   const createStyle = useMutation({
     mutationFn: async (input: { name: string; colorKey: string; aliases: string[] }) =>
@@ -121,13 +126,46 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
             )}
           </label>
           {draft.styleIds.includes(s.id) && (
-            <InstructorPicker
-              style={s}
-              instructors={instructors}
-              selected={draft.styleInstructors[s.id] || []}
-              onToggle={instructorId => toggleInstructor(s.id, instructorId)}
-              onReload={() => queryClient.invalidateQueries({ queryKey: ['instructors'] })}
-            />
+            <div className="space-y-2">
+              <div className="p-2.5 bg-[var(--night-2)] border-2 border-[var(--outline)] flex items-center justify-between gap-3 shadow-[2px_2px_0_var(--outline)]">
+                <div>
+                  <label htmlFor={`slot-capacity-${s.id}`} className="font-display text-[11px] text-[var(--neon-cyan)] font-bold block">
+                    SLOT CAPACITY (COMPULSORY):
+                  </label>
+                  <span className="font-body text-[12px] text-[var(--text-2)]">
+                    Target limit to trigger alert email when full
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <input
+                    id={`slot-capacity-${s.id}`}
+                    type="number"
+                    min="1"
+                    required
+                    placeholder="e.g. 30"
+                    value={draft.styleSlots?.[s.id] ?? ''}
+                    onChange={e => {
+                      const val = parseInt(e.target.value, 10);
+                      onChange({
+                        styleSlots: {
+                          ...(draft.styleSlots || {}),
+                          [s.id]: isNaN(val) ? 0 : val
+                        }
+                      });
+                    }}
+                    className="w-20 min-h-[38px] px-2 border-2 border-[var(--outline)] bg-[var(--night-1)] font-mono text-[14px] text-[var(--text-1)] text-right focus:border-[var(--neon-gold)]"
+                  />
+                  <span className="font-mono text-[11px] text-[var(--text-3)]">slots</span>
+                </div>
+              </div>
+              <InstructorPicker
+                style={s}
+                instructors={instructors}
+                selected={draft.styleInstructors[s.id] || []}
+                onToggle={instructorId => toggleInstructor(s.id, instructorId)}
+                onReload={() => queryClient.invalidateQueries({ queryKey: ['instructors'] })}
+              />
+            </div>
           )}
           </div>
         ))}
@@ -225,11 +263,22 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
         <p className="font-body font-bold text-[14px] text-[var(--neon-gold)]">Choose an instructor for {missingStyleName}.</p>
       )}
 
+      {missingSlotStyleId && (
+        <p className="font-body font-bold text-[14px] text-[var(--neon-gold)]">
+          Please specify a valid slot capacity (at least 1) for {missingSlotStyleName}.
+        </p>
+      )}
+
       <div className="flex justify-between pt-3 border-t-2 border-[var(--outline)]">
         <PixelButton size="md" variant="secondary" onClick={onBack}>
           BACK
         </PixelButton>
-        <PixelButton size="md" variant="primary" disabled={draft.styleIds.length === 0 || missingStyleId !== null} onClick={onNext}>
+        <PixelButton
+          size="md"
+          variant="primary"
+          disabled={draft.styleIds.length === 0 || missingStyleId !== null || missingSlotStyleId !== undefined}
+          onClick={onNext}
+        >
           NEXT
         </PixelButton>
       </div>

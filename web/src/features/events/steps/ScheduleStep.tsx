@@ -3,7 +3,7 @@ import type { ISODate } from '@umdsc/shared';
 import { PixelButton } from '../../../components/ui/PixelButton';
 import { formatDayLabel, getDatesBetween } from '../../../lib/time';
 import { getStyleColor } from '../../../theme/colors';
-import { effectiveInstructorId, type ScheduledClass } from '../eventDraft';
+import { effectiveInstructorId, stylesWithoutClasses, type ScheduledClass } from '../eventDraft';
 import type { StepProps } from '../EventWizard';
 
 const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -32,6 +32,9 @@ export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onB
   const [fillStart, setFillStart] = useState('20:00');
   const [fillEnd, setFillEnd] = useState('22:00');
   const [fillCount, setFillCount] = useState(4);
+
+  const emptyStyleIds = stylesWithoutClasses(draft);
+  const emptyStyleNames = emptyStyleIds.map(id => styles.find(s => s.id === id)?.name || id);
 
   const weeks = useMemo(() => rangeWeeks(draft.startDate, draft.endDate), [draft.startDate, draft.endDate]);
   const classes = draft.schedule[activeId] || [];
@@ -84,6 +87,7 @@ export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onB
           <span className="font-display text-[12px] text-[var(--text-2)]">DANCE STYLES</span>
           {draft.styleIds.map(id => {
             const s = styles.find(x => x.id === id);
+            const count = (draft.schedule[id] || []).length;
             return (
               <button
                 key={id}
@@ -98,7 +102,13 @@ export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onB
                   <span className="w-3 h-3 border-2 border-[var(--outline)]" style={{ backgroundColor: getStyleColor(s?.colorKey) }} />
                   {s?.name || id}
                 </span>
-                <span className="font-mono">{(draft.schedule[id] || []).length}</span>
+                <span
+                  className={`font-mono text-[11px] px-1.5 py-0.5 border border-[var(--outline)] ${
+                    count === 0 ? 'bg-[var(--neon-red)] text-white' : 'bg-[var(--night-1)] text-[var(--text-1)]'
+                  }`}
+                >
+                  {count}
+                </span>
               </button>
             );
           })}
@@ -229,11 +239,23 @@ export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onB
         </div>
       )}
 
+      {emptyStyleIds.length > 0 && (
+        <div className="p-3 bg-[var(--night-2)] border-2 border-[var(--neon-pink)] shadow-[2px_2px_0_var(--outline)]">
+          <p className="font-display text-[12px] text-[var(--neon-pink)] font-bold">
+            ⚠ SCHEDULE REQUIRED FOR ALL SELECTED STYLES
+          </p>
+          <p className="font-body text-[14px] text-[var(--text-1)] mt-1">
+            Every selected dance style must have at least 1 class scheduled. Please add classes for:{' '}
+            <span className="font-bold text-[var(--neon-gold)]">{emptyStyleNames.join(', ')}</span>.
+          </p>
+        </div>
+      )}
+
       <div className="flex justify-between pt-3 border-t-2 border-[var(--outline)]">
         <PixelButton size="md" variant="secondary" onClick={onBack}>
           BACK
         </PixelButton>
-        <PixelButton size="md" variant="primary" onClick={onNext}>
+        <PixelButton size="md" variant="primary" disabled={emptyStyleIds.length > 0} onClick={onNext}>
           NEXT
         </PixelButton>
       </div>

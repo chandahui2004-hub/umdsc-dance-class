@@ -141,7 +141,7 @@ export const StylesPage: React.FC = () => {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['styles'] }),
-        queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] })
+        queryClient.invalidateQueries({ queryKey: ['bootstrap'] })
       ]);
       closeForm();
     },
@@ -157,7 +157,7 @@ export const StylesPage: React.FC = () => {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['styles'] }),
-        queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] })
+        queryClient.invalidateQueries({ queryKey: ['bootstrap'] })
       ]);
     }
   });

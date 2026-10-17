@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import type { ClassSession, EventItem, Instructor } from '@umdsc/shared';
 import {
   emptyDraft, draftFromEvent, pruneSchedule, localNameClash,
-  instructorsForStyle, setStyleInstructors, missingInstructorStyle, effectiveInstructorId
+  instructorsForStyle, setStyleInstructors, missingInstructorStyle, effectiveInstructorId,
+  stylesWithoutClasses
 } from './eventDraft';
 
 const cls = (seq: number, date: string) => ({ seq, date, start: '20:00', end: '22:00' });
@@ -172,15 +173,26 @@ describe('eventDraft', () => {
     expect(draftFromEvent(event, []).styleInstructors).toEqual({ pop: [] });
   });
 
-  it('pruneSchedule drops instructor lists of unticked styles', () => {
+  it('stylesWithoutClasses identifies styles with zero scheduled classes', () => {
     const d = {
       ...emptyDraft('2026-10-01'),
-      startDate: '2026-10-01',
-      endDate: '2026-10-31',
-      styleIds: ['pop'],
-      styleInstructors: { pop: ['a'], hh: ['b'] },
-      schedule: { pop: [cls(1, '2026-10-06')] }
+      styleIds: ['pop', 'hh', 'jazz'],
+      schedule: {
+        pop: [cls(1, '2026-10-06')],
+        hh: []
+        // jazz is undefined in schedule
+      }
     };
-    expect(pruneSchedule(d).styleInstructors).toEqual({ pop: ['a'] });
+    expect(stylesWithoutClasses(d)).toEqual(['hh', 'jazz']);
+
+    const fullDraft = {
+      ...d,
+      schedule: {
+        pop: [cls(1, '2026-10-06')],
+        hh: [cls(1, '2026-10-08')],
+        jazz: [cls(1, '2026-10-10')]
+      }
+    };
+    expect(stylesWithoutClasses(fullDraft)).toEqual([]);
   });
 });

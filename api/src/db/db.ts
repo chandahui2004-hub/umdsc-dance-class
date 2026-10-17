@@ -135,6 +135,31 @@ function parseStyleInstructors(raw: string): Record<string, string[]> {
   }
 }
 
+function parseStyleSlots(raw: string | undefined): Record<string, number> {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    const out: Record<string, number> = {};
+    for (const [styleId, num] of Object.entries(parsed)) {
+      const val = Number(num);
+      if (!isNaN(val) && val > 0) out[styleId] = val;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function parseNotifiedFullStyles(raw: string | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.map(String);
+  } catch {}
+  return [];
+}
+
 const defaultCodecs = {
   settings: {
     toCells: (r: SettingRow) => ({ ...r, active: r.active ? 'TRUE' : 'FALSE' }),
@@ -150,11 +175,13 @@ const defaultCodecs = {
   },
   events: {
     toCells: (r: EventItem) => {
-      const { styleInstructors, ...rest } = r;
+      const { styleInstructors, styleSlots, notifiedFullStyles, ...rest } = r;
       return {
         ...rest,
         styleIds: (r.styleIds || []).join(','),
         styleInstructorsJson: JSON.stringify(styleInstructors || {}),
+        styleSlotsJson: r.styleSlotsJson || JSON.stringify(styleSlots || {}),
+        notifiedFullStylesJson: r.notifiedFullStylesJson || JSON.stringify(notifiedFullStyles || []),
         active: r.active ? 'TRUE' : 'FALSE'
       };
     },
@@ -175,6 +202,10 @@ const defaultCodecs = {
       classIndex: c.classIndex === '' || c.classIndex === undefined ? -1 : Number(c.classIndex),
       styleIds: parseList(c.styleIds),
       styleInstructors: parseStyleInstructors(c.styleInstructorsJson),
+      styleSlots: parseStyleSlots(c.styleSlotsJson),
+      styleSlotsJson: c.styleSlotsJson || '{}',
+      notifiedFullStyles: parseNotifiedFullStyles(c.notifiedFullStylesJson),
+      notifiedFullStylesJson: c.notifiedFullStylesJson || '[]',
       folderId: c.folderId || '',
       videoFolderId: c.videoFolderId || '',
       membersSpreadsheetId: c.membersSpreadsheetId || '',

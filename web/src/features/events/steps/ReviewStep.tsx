@@ -5,7 +5,7 @@ import type { ClassSession, EventItem } from '@umdsc/shared';
 import { call, errorMessage } from '../../../lib/api';
 import { PixelButton } from '../../../components/ui/PixelButton';
 import { formatDayLabel } from '../../../lib/time';
-import { effectiveInstructorId, flattenSchedule } from '../eventDraft';
+import { effectiveInstructorId, flattenSchedule, stylesWithoutClasses } from '../eventDraft';
 import { useCurrentEvent } from '../useCurrentEvent';
 import type { StepProps } from '../EventWizard';
 
@@ -16,6 +16,9 @@ export const ReviewStep: React.FC<StepProps> = ({ draft, onBack, isEdit, event, 
   const queryClient = useQueryClient();
   const { setCurrentId } = useCurrentEvent();
   const [error, setError] = useState<string | null>(null);
+
+  const emptyStyleIds = stylesWithoutClasses(draft);
+  const emptyStyleNames = emptyStyleIds.map(id => styles.find(s => s.id === id)?.name || id);
 
   const { data: settings, isLoading: settingsLoading } = useQuery({
     queryKey: ['settings'],
@@ -32,7 +35,8 @@ export const ReviewStep: React.FC<StepProps> = ({ draft, onBack, isEdit, event, 
     columnMap: draft.columnMap,
     classIndex: draft.classIndex,
     styleIds: draft.styleIds,
-    styleInstructors: draft.styleInstructors
+    styleInstructors: draft.styleInstructors,
+    styleSlots: draft.styleSlots
   };
 
   // A class with no instructor of its own is saved with its style's first listed one.
@@ -54,6 +58,7 @@ export const ReviewStep: React.FC<StepProps> = ({ draft, onBack, isEdit, event, 
       (
         await call<{ event: EventItem }>('events.create', {
           ...fields,
+          validateStyleClasses: true,
           sheetUrl: draft.sheetUrl.trim(),
           sessions: classes.map(c => ({
             styleId: c.styleId,
@@ -135,6 +140,7 @@ export const ReviewStep: React.FC<StepProps> = ({ draft, onBack, isEdit, event, 
             {draft.styleIds.map(id => (
               <li key={id}>
                 {styles.find(s => s.id === id)?.name || id}: {(draft.schedule[id] || []).length} classes
+                {draft.styleSlots?.[id] !== undefined ? ` (${draft.styleSlots[id]} slots)` : ''}
                 {instructorNames(id) && (
                   <>
                     {' — '}
@@ -157,6 +163,18 @@ export const ReviewStep: React.FC<StepProps> = ({ draft, onBack, isEdit, event, 
         </dd>
       </dl>
 
+      {emptyStyleIds.length > 0 && (
+        <div role="alert" className="p-3 border-2 border-[var(--neon-pink)] bg-[var(--night-2)] shadow-[2px_2px_0_var(--outline)]">
+          <p className="font-display text-[12px] text-[var(--neon-pink)] font-bold">
+            ⚠ SCHEDULE REQUIRED FOR ALL SELECTED STYLES
+          </p>
+          <p className="font-body text-[14px] text-[var(--text-1)] mt-1">
+            Every selected dance style must have at least 1 class scheduled before this event can be created. Please return to Schedule step and add classes for:{' '}
+            <span className="font-bold text-[var(--neon-gold)]">{emptyStyleNames.join(', ')}</span>.
+          </p>
+        </div>
+      )}
+
       {!isEdit && noMaster && (
         <p role="alert" className="p-3 border-2 border-[var(--neon-red)] bg-[var(--night-1)] font-body font-bold text-[14px] text-[var(--neon-red)]">
           Set the attendance master folder on the Events page first.{' '}
@@ -176,11 +194,11 @@ export const ReviewStep: React.FC<StepProps> = ({ draft, onBack, isEdit, event, 
           BACK
         </PixelButton>
         {isEdit ? (
-          <PixelButton size="md" variant="primary" disabled={busy} onClick={() => save.mutate()}>
+          <PixelButton size="md" variant="primary" disabled={busy || emptyStyleIds.length > 0} onClick={() => save.mutate()}>
             {save.isPending ? 'SAVING…' : 'SAVE CHANGES'}
           </PixelButton>
         ) : (
-          <PixelButton size="md" variant="primary" disabled={busy || noMaster || settingsLoading} onClick={() => create.mutate()}>
+          <PixelButton size="md" variant="primary" disabled={busy || noMaster || settingsLoading || emptyStyleIds.length > 0} onClick={() => create.mutate()}>
             {create.isPending ? 'CREATING…' : 'CREATE EVENT'}
           </PixelButton>
         )}

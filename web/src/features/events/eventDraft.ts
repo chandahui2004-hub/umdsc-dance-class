@@ -26,6 +26,8 @@ export interface EventDraft {
   styleIds: string[];
   /** Instructors chosen per style; each class then picks one of its style's list. */
   styleInstructors: Record<string, string[]>;
+  /** Slot capacity per style for detection/alerts */
+  styleSlots?: Record<string, number>;
   schedule: Record<string, ScheduledClass[]>;
 }
 
@@ -41,6 +43,7 @@ export function emptyDraft(today: ISODate): EventDraft {
     endDate: today,
     styleIds: [],
     styleInstructors: {},
+    styleSlots: {},
     schedule: {}
   };
 }
@@ -87,6 +90,7 @@ export function draftFromEvent(e: EventItem, sessions: ClassSession[]): EventDra
     endDate: e.endDate,
     styleIds: [...e.styleIds],
     styleInstructors,
+    styleSlots: e.styleSlots || (e.styleSlotsJson ? JSON.parse(e.styleSlotsJson) : {}),
     schedule
   };
 }
@@ -143,6 +147,13 @@ export function missingInstructorStyle(d: EventDraft, activeStyleIds: readonly s
   return (
     d.styleIds.find(styleId => activeStyleIds.includes(styleId) && !(d.styleInstructors[styleId]?.length)) ?? null
   );
+}
+
+/**
+ * Returns any selected styles that do not have at least one scheduled class.
+ */
+export function stylesWithoutClasses(d: EventDraft): string[] {
+  return d.styleIds.filter(styleId => !(d.schedule[styleId]?.length));
 }
 
 /** Classes to send to the server, one list across all styles. */

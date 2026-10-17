@@ -353,6 +353,47 @@ describe('Feature: Bootstrap with Caching (features/bootstrap)', () => {
         expect((res.data as any).videos.map((v: any) => v.title)).toEqual(['Popping Class 1 Video']);
       }
     });
+
+    it('falls back to event.styleIds when dancer is registered in an event but has no stored eventStyles or sheet row', () => {
+      const workshop = seedEvent(ctx, {
+        name: 'FREESTYLE DANCE WORKSHOP',
+        styleIds: ['st_popping'],
+        members: []
+      });
+      const workSess = ctx.db.sessions.insert(
+        { eventId: workshop.id, styleId: 'st_popping', seq: 1, date: '2026-10-25', start: '14:00', end: '16:00', instructorId: '', venue: '', status: 'scheduled', note: '' },
+        'admin1', ctx.now()
+      );
+      addIndex('22003333', 'Workshop Dancer', [workshop.id]);
+      const res = handleRequest(
+        { action: 'dancer.bootstrap', token: dancerTokenFor('22003333', 'Workshop Dancer') },
+        ctx,
+        secrets
+      );
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        const data = res.data as any;
+        expect(data.events.map((e: any) => e.name)).toContain('FREESTYLE DANCE WORKSHOP');
+        expect(data.styles.map((s: any) => s.id)).toContain('st_popping');
+        expect(data.sessions.map((s: any) => s.id)).toContain(workSess.id);
+      }
+    });
+
+    it('canonicalizes style names in eventStyles to canonical style IDs', () => {
+      const mi = ctx.db.memberIndex.find(m => m.matricKey === '22001111')[0];
+      // Store style by its name 'Popping' instead of 'st_popping'
+      ctx.db.memberIndex.update(mi.id, mi.version, { eventStyles: { [event.id]: ['Popping'] } } as any, 'system', ctx.now());
+      ctx.cache.remove(`boot:dancer:22001111:1`);
+      ctx.cache.remove(`mi:22001111`);
+
+      const res = handleRequest({ action: 'dancer.bootstrap', token: dancerToken }, ctx, secrets);
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        const data = res.data as any;
+        expect(data.styles.map((s: any) => s.id)).toContain('st_popping');
+        expect(data.sessions.map((s: any) => s.id)).toContain(popSess.id);
+      }
+    });
   });
 
   it('still shows a dancer their styles when the event Members list is too big for the cache', () => {

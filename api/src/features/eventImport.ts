@@ -446,6 +446,57 @@ export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boo
   );
 
   const memberCount = body.filter(r => r[col('memberId')]).length + added.length;
+
+  // Check slot capacity per style and send alert email once when capacity is reached
+  const slotCapacity = event.styleSlots || (event.styleSlotsJson ? JSON.parse(event.styleSlotsJson) : {});
+  const alreadyNotified = new Set<string>(
+    event.notifiedFullStyles || (event.notifiedFullStylesJson ? JSON.parse(event.notifiedFullStylesJson) : [])
+  );
+  let newlyNotified = false;
+
+  for (const styleId of event.styleIds || []) {
+    const cap = Number(slotCapacity[styleId]);
+    if (cap > 0 && !alreadyNotified.has(styleId)) {
+      const enrolledCount = members.filter(m => (m.styleIds || []).includes(styleId)).length;
+      if (enrolledCount >= cap) {
+        alreadyNotified.add(styleId);
+        newlyNotified = true;
+        const style = ctx.db.styles.find(s => s.id === styleId && s.active)[0];
+        const styleName = style?.name || styleId;
+        const clubEmail = ctx.clubEmail || ctx.db.settings.find(s => s.key === 'clubEmail' && s.active)[0]?.value;
+        const adminEmails = ctx.db.admins.find(a => a.active && a.username.includes('@')).map(a => a.username);
+        const classLeadEmail = style?.videoUploaderEmail;
+        const recipients = Array.from(new Set([clubEmail, ...adminEmails, classLeadEmail].filter(Boolean))) as string[];
+
+        for (const to of recipients) {
+          const subject = `[UMDSC Alert] Slot Full: ${styleName} in ${event.name} (${enrolledCount}/${cap} Enrolled)`;
+          const body = `Dear Admins and Class Lead,\n\nThis is an automated notification from the UMDSC Dance Class System.\n\nThe enrollment for ${styleName} in ${event.name} has reached or exceeded its target slot capacity:\n- Style: ${styleName}\n- Event: ${event.name}\n- Enrolled Dancers: ${enrolledCount}\n- Slot Capacity: ${cap}\n\nPlease note: The system and Google Form will still continue to accept additional member registrations unless you choose to close the form. This email is sent as an alert for your awareness.\n\nKeep dancing!\nUniversiti Malaya Dance Sport Club (UMDSC)`;
+          const htmlBody = `<div style="font-family: sans-serif; line-height: 1.6; color: #222;">
+  <h2 style="color: #ef4444;">[UMDSC Alert] Slot Capacity Reached</h2>
+  <p>The enrollment for <strong>${styleName}</strong> in <strong>${event.name}</strong> has reached its target slot capacity.</p>
+  <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; margin: 16px 0;">
+    <p style="margin: 4px 0;"><strong>Dance Style:</strong> ${styleName}</p>
+    <p style="margin: 4px 0;"><strong>Event:</strong> ${event.name}</p>
+    <p style="margin: 4px 0;"><strong>Enrolled Count:</strong> <span style="color: #ef4444; font-weight: bold;">${enrolledCount}</span> / ${cap}</p>
+  </div>
+  <p style="color: #4b5563;"><strong>Note:</strong> The system and Google Form will still continue to accept additional member registrations unless you choose to close the form. This notification is sent for your awareness.</p>
+  <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+  <p style="font-size: 12px; color: #888;">Universiti Malaya Dance Sport Club (UMDSC)</p>
+</div>`;
+          try {
+            ctx.mail.sendEmail({ to, subject, body, htmlBody });
+          } catch (err) {
+            console.warn(`[eventImport] Failed to send slot capacity alert email to ${to}:`, err);
+          }
+        }
+      }
+    }
+  }
+
+  const notifiedList = Array.from(alreadyNotified);
+  event.notifiedFullStyles = notifiedList;
+  event.notifiedFullStylesJson = JSON.stringify(notifiedList);
+
   saveEventFields(ctx, event.id, {
     sourceTab: tab,
     sourceRowCount: lastRow,
@@ -456,7 +507,8 @@ export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boo
       ? 'Many matric numbers changed at once, so no dancer was moved. Check that the columns of the form did not move.'
       : unknownClasses.length
         ? `Unknown class in form: ${unknownClasses.map(u => u.token).join(', ')}`
-        : ''
+        : '',
+    ...(newlyNotified ? { notifiedFullStyles: notifiedList, notifiedFullStylesJson: JSON.stringify(notifiedList) } : {})
   });
 
   return { changed: true, added: added.length, updated, flaggedRemoved, corrected: corrections.size, memberCount, unknownClasses };

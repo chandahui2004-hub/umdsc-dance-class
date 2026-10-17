@@ -12,7 +12,7 @@ import { SessionEditor } from './SessionEditor';
 import { AddClassDialog } from './AddClassDialog';
 import { ClassCard } from '../calendar/ClassCard';
 import { todayKL, formatDayLabel } from '../../lib/time';
-import { getStyleColor } from '../../theme/colors';
+import { getInstructorColor } from '../../theme/colors';
 import { useCurrentEvent } from '../events/useCurrentEvent';
 import { resolveInstructor, getInstructorPhotoUrl, getDriveThumbnailUrl } from '../../lib/instructorPhotos';
 import type { ClassSession, DanceStyle, Instructor, ISODate, Month, VideoItem, MusicItem } from '@umdsc/shared';
@@ -147,20 +147,22 @@ export const ClassesPage: React.FC = () => {
     const marks: Record<ISODate, CalendarMark[]> = {};
     for (const s of filteredSessions) {
       const style = getStyle(s.styleId);
+      const instructor = resolveInstructor(s, style, instructors);
       const ev = getEvent(s.eventId);
       const evTag = isAll && ev ? ` · ${ev.name}` : '';
       (marks[s.date] ||= []).push({
-        colorKey: style?.colorKey || 'orange',
+        colorKey: instructor?.color || 'orange',
         kind: 'class',
         label: `${style?.name || 'Class'} Class ${s.seq}${evTag}`
       });
     }
     return marks;
-  }, [filteredSessions, allStyles, isAll, events]);
+  }, [filteredSessions, allStyles, instructors, isAll, events]);
 
-  const colorOf = (styleId: string) => {
-    const style = getStyle(styleId);
-    return getStyleColor(style?.colorKey);
+  const colorOf = (s: ClassSession) => {
+    const style = getStyle(s.styleId);
+    const instructor = resolveInstructor(s, style, instructors);
+    return getInstructorColor(instructor);
   };
 
   if (!eventsLoading && events.length === 0) {
@@ -423,7 +425,7 @@ export const ClassesPage: React.FC = () => {
                   className="text-left p-3 bg-[var(--night-2)] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] hover:bg-[var(--violet-2)] space-y-2 transition-none cursor-pointer"
                 >
                   <div className="flex flex-wrap justify-between items-start gap-1">
-                    <span style={{ backgroundColor: colorOf(s.styleId) }} className="px-2 py-0.5 text-[12px] font-display text-[var(--on-neon)] font-bold border border-[var(--outline)]">
+                    <span style={{ backgroundColor: colorOf(s) }} className="px-2 py-0.5 text-[12px] font-display text-[var(--on-neon)] font-bold border border-[var(--outline)]">
                       {style?.name || 'Style'} Class {s.seq}
                     </span>
                     {isAll && (

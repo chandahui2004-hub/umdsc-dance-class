@@ -184,6 +184,15 @@ export function getEventRoutes(): Record<string, Route> {
               );
 
         const patch: any = { ...next, styleInstructors, nameKey: eventNameKey(next.name) };
+        if (payload.styleSlots !== undefined && typeof payload.styleSlots === 'object') {
+          const slots: Record<string, number> = {};
+          for (const id of next.styleIds) {
+            const val = Number(payload.styleSlots[id]);
+            if (val && !isNaN(val) && val > 0) slots[id] = val;
+          }
+          patch.styleSlots = slots;
+          patch.styleSlotsJson = JSON.stringify(slots);
+        }
         if (payload.columnMap !== undefined) patch.columnMapJson = JSON.stringify(payload.columnMap || {});
         if (payload.classIndex !== undefined) patch.classIndex = Number(payload.classIndex);
         if (payload.sheetUrl !== undefined) {
@@ -369,8 +378,30 @@ export function getEventRoutes(): Record<string, Route> {
           }
           assertClassInstructor(ctx, { styleInstructors } as EventItem, s.styleId, s.instructorId || '');
         }
+
+        if (payload?.validateStyleClasses) {
+          const coveredStyles = new Set(sessions.map(s => s.styleId));
+          const missingStyles = styleIds.filter(id => !coveredStyles.has(id));
+          if (missingStyles.length > 0) {
+            const styleName = (styleId: string) => ctx.db.styles.find(s => s.id === styleId)[0]?.name || styleId;
+            throw new AppError(
+              'VALIDATION',
+              `Each selected dance style must have at least 1 class. Missing: ${missingStyles.map(styleName).join(', ')}`
+            );
+          }
+        }
         if (!ctx.db.settings.find(s => s.key === 'defaultAttendanceFolderId' && s.active)[0]?.value) {
           throw new AppError('VALIDATION', 'Set the attendance master folder on the Attendance page first');
+        }
+
+        const styleSlots: Record<string, number> = {};
+        if (payload?.styleSlots && typeof payload.styleSlots === 'object') {
+          for (const id of styleIds) {
+            const val = Number(payload.styleSlots[id]);
+            if (val && !isNaN(val) && val > 0) {
+              styleSlots[id] = val;
+            }
+          }
         }
 
         const actor = auth?.claims.sub || 'system';
@@ -387,6 +418,10 @@ export function getEventRoutes(): Record<string, Route> {
             classIndex: payload?.classIndex === undefined || payload?.classIndex === null ? -1 : Number(payload.classIndex),
             styleIds,
             styleInstructors,
+            styleSlots,
+            styleSlotsJson: JSON.stringify(styleSlots),
+            notifiedFullStyles: [],
+            notifiedFullStylesJson: '[]',
             folderId: '',
             videoFolderId: '',
             membersSpreadsheetId: '',

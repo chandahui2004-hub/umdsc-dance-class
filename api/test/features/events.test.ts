@@ -488,14 +488,26 @@ describe('Feature: events (features/events)', () => {
     expect(byName.get('LOST')).toBe(true);
   });
 
-  it('preview reports detected styles and unknown classes', () => {
-    const res = call('events.previewSource', { sheetUrl: sourceUrl });
-    expect(res.ok).toBe(true);
-    if (res.ok) {
-      const p = res.data as any;
-      expect(p.rowCount).toBe(2);
-      expect(p.detectedStyleIds.sort()).toEqual(['st_hiphop', 'st_popping']);
-      expect(p.unknownClasses).toEqual([{ token: 'Waacking', count: 1 }]);
+  it('rejects create when validateStyleClasses is true and a selected style has no classes', () => {
+    const res = call('events.create', createPayload({
+      styleIds: ['st_popping', 'st_hiphop'],
+      sessions: [{ styleId: 'st_popping', seq: 1, date: '2026-10-06', start: '20:00', end: '22:00' }],
+      validateStyleClasses: true
+    }));
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error.message).toContain('Each selected dance style must have at least 1 class. Missing: Hip Hop');
     }
+  });
+
+  it('stores styleSlots on created event and in database', () => {
+    const res = call('events.create', createPayload({
+      styleSlots: { st_popping: 35, st_hiphop: 20 }
+    }));
+    expect(res.ok).toBe(true);
+    const event = res.ok ? (res.data as any).event : null;
+    const dbEvent = ctx.db.events.get(event.id)!;
+    expect(dbEvent.styleSlots).toEqual({ st_popping: 35, st_hiphop: 20 });
+    expect(JSON.parse(dbEvent.styleSlotsJson!)).toEqual({ st_popping: 35, st_hiphop: 20 });
   });
 });

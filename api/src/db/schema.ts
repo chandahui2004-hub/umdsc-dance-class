@@ -2,7 +2,7 @@ export const COMMON_COLUMNS = ['id', 'version', 'updatedBy', 'updatedAt', 'activ
 
 export const SCHEMA = {
   Settings: ['key', 'value', ...COMMON_COLUMNS],
-  Events: ['name', 'nameKey', 'type', 'startDate', 'endDate', 'sourceSheetId', 'sourceTab', 'columnMapJson', 'classIndex', 'styleIds', 'folderId', 'videoFolderId', 'membersSpreadsheetId', 'status', 'sourceRowCount', 'sourceLastRowHash', 'lastSyncAt', 'lastSyncError', 'memberCount', 'styleInstructorsJson', ...COMMON_COLUMNS],
+  Events: ['name', 'nameKey', 'type', 'startDate', 'endDate', 'sourceSheetId', 'sourceTab', 'columnMapJson', 'classIndex', 'styleIds', 'folderId', 'videoFolderId', 'membersSpreadsheetId', 'status', 'sourceRowCount', 'sourceLastRowHash', 'lastSyncAt', 'lastSyncError', 'memberCount', 'styleInstructorsJson', 'styleSlotsJson', 'notifiedFullStylesJson', ...COMMON_COLUMNS],
   LinkHistory: ['key', 'oldValue', 'newValue', 'changedBy', 'changedAt', ...COMMON_COLUMNS],
   DanceStyles: ['name', 'aliases', 'colorKey', 'defaultWeekday', 'defaultStart', 'defaultEnd', 'defaultInstructorId', 'defaultVenue', 'attendanceFolderId', 'videoFolderId', 'videoFoldersJson', 'videoUploaderEmail', ...COMMON_COLUMNS],
   Instructors: ['name', 'contact', 'color', 'photoUrl', 'photosJson', 'styleIds', ...COMMON_COLUMNS],

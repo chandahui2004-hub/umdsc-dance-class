@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { musicAppLinks, canPractise, type ClassSession, type DanceStyle, type Instructor, type VideoItem, type MusicItem } from '@umdsc/shared';
-import { getStyleColor, STYLE_COLOR } from '../../theme/colors';
+import { getInstructorColor } from '../../theme/colors';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { NeonSign } from '../../components/ui/NeonSign';
 import { PixelPortraitFrame } from '../../components/ui/PixelPortraitFrame';
@@ -66,7 +66,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
     }));
   };
 
-  const color = style ? getStyleColor(style.colorKey) : 'var(--neon-orange)';
+  const color = getInstructorColor(instructor);
 
   return (
     <div
@@ -118,11 +118,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
       {/* Class Meta & Instructor Focus Block: Photo Left, Information Right */}
       {(() => {
         const photoUrl = getInstructorPhotoUrl(instructor);
-        const instructorColor = instructor?.color?.startsWith('#')
-          ? instructor.color
-          : instructor?.color
-          ? (STYLE_COLOR[instructor.color.toLowerCase()] || `var(--c-${instructor.color})`)
-          : color;
+        const instructorColor = getInstructorColor(instructor, color);
 
         return (
           <div className="px-well p-3 md:p-4 flex flex-col sm:flex-row gap-4 items-center sm:items-start">

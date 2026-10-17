@@ -9,7 +9,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { PixelPortraitFrame } from '../../components/ui/PixelPortraitFrame';
 import { todayKL } from '../../lib/time';
-import { getStyleColor } from '../../theme/colors';
+import { getInstructorColor } from '../../theme/colors';
 import type { TodayClass } from '@umdsc/shared';
 import { useCurrentEvent } from '../events/useCurrentEvent';
 import { resolveInstructor, getInstructorPhotoUrl } from '../../lib/instructorPhotos';
@@ -91,7 +91,7 @@ export const TodayPage: React.FC = () => {
             const style = getStyle(session.styleId);
             const instructor = resolveInstructor(session, style, bootstrap?.instructors || []);
             const photoUrl = getInstructorPhotoUrl(instructor);
-            const colorVar = getStyleColor(style?.colorKey);
+            const colorVar = getInstructorColor(instructor);
 
             return (
               <Panel

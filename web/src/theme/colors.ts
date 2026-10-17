@@ -17,5 +17,12 @@ export const STYLE_COLOR: Record<string, string> = {
 
 export function getStyleColor(colorKey?: string): string {
   if (!colorKey) return 'var(--c-ink)';
-  return STYLE_COLOR[colorKey.toLowerCase()] || 'var(--c-ink)';
+  const trimmed = colorKey.trim();
+  if (trimmed.startsWith('#')) return trimmed;
+  return STYLE_COLOR[trimmed.toLowerCase()] || `var(--c-${trimmed.toLowerCase()})` || 'var(--c-ink)';
+}
+
+export function getInstructorColor(instructor?: { color?: string } | null, fallback = 'var(--neon-orange)'): string {
+  if (!instructor?.color || !instructor.color.trim()) return fallback;
+  return getStyleColor(instructor.color);
 }

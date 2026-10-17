@@ -117,25 +117,49 @@ function resolveDancerEventStyles(
 
   const eventStylesMap = new Map<string, Set<string>>();
   const calPerm = perms['calendar.view'];
+  const allStyles = ctx.db.styles.find(s => s.active);
+
   for (const event of dancerEvents) {
-    const styleSet = new Set<string>();
+    const rawTokens = new Set<string>();
     // Styles stored at sync time need no sheet read; dancers indexed before that fall back to the Members sheet.
     const stored = dancer.eventStyles?.[event.id];
     if (Array.isArray(stored) && stored.length > 0) {
-      for (const sId of stored) styleSet.add(sId);
+      for (const sId of stored) rawTokens.add(sId);
     }
-    if (styleSet.size === 0) {
+    if (rawTokens.size === 0) {
       try {
-        for (const sId of dancerStylesInEvent(ctx, event, matricKey)) styleSet.add(sId);
+        for (const sId of dancerStylesInEvent(ctx, event, matricKey)) rawTokens.add(sId);
       } catch {
         // unreadable Members sheet: the dancer simply sees nothing for this event
       }
     }
     for (const mr of ctx.db.memberRoles.find(r => r.matricKey === matricKey && r.active)) {
       for (const sId of mr.styleIds || []) {
-        if (event.styleIds.includes(sId)) styleSet.add(sId);
+        if (event.styleIds.includes(sId)) rawTokens.add(sId);
       }
     }
+
+    // Resolve tokens to canonical style IDs belonging to this event
+    const styleSet = new Set<string>();
+    for (const token of rawTokens) {
+      const match = allStyles.find(
+        st => st.id === token || st.name.toLowerCase() === token.toLowerCase() || (st.aliases || []).some(a => a.toLowerCase() === token.toLowerCase())
+      );
+      if (match && event.styleIds.includes(match.id)) {
+        styleSet.add(match.id);
+      } else if (event.styleIds.includes(token)) {
+        styleSet.add(token);
+      }
+    }
+
+    // If dancer is registered in this event but has no specific style restriction or mapping yet,
+    // fall back to the event's assigned styles so their calendar classes appear.
+    if (styleSet.size === 0 && event.styleIds.length > 0) {
+      for (const sId of event.styleIds) {
+        styleSet.add(sId);
+      }
+    }
+
     if (Array.isArray(calPerm)) {
       for (const sId of Array.from(styleSet)) {
         if (!calPerm.includes(sId)) styleSet.delete(sId);

@@ -233,4 +233,46 @@ describe('importEventMembers', () => {
     expect(members[1].flags).toContain('removed-from-form');
     expect(result.flaggedRemoved).toBe(1);
   });
+
+  it('sends alert email when style enrollment reaches slot capacity, and only once across subsequent syncs', () => {
+    // Set videoUploaderEmail on popping style
+    const popping = ctx.db.styles.find(s => s.id === 'st_popping')[0];
+    ctx.db.styles.update(popping.id, popping.version, { videoUploaderEmail: 'lead@popping.com' } as any, 'system', ctx.now());
+    ctx.db.admins.insert({ username: 'admin@umdsc.com', displayName: 'Admin User', roleId: 'admin' } as any, 'system', ctx.now());
+
+    const { event, sourceId } = makeEvent(
+      [
+        row('Ali', '22001111', 'Popping'),
+        row('Bala', '22002222', 'Popping')
+      ],
+      {
+        styleSlots: { st_popping: 2 },
+        styleSlotsJson: JSON.stringify({ st_popping: 2 })
+      }
+    );
+
+    ctx.mail.reset();
+    importEventMembers(ctx, event, { full: true });
+
+    // Should have sent alert emails to clubEmail, admin, and class lead
+    const alertEmails = ctx.mail.sent.filter(m => m.subject.includes('Slot Full: Popping'));
+    expect(alertEmails.length).toBeGreaterThanOrEqual(1);
+    const recipients = alertEmails.map(m => m.to);
+    expect(recipients).toContain('umdancesportc@gmail.com');
+    expect(recipients).toContain('admin@umdsc.com');
+    expect(recipients).toContain('lead@popping.com');
+
+    // Verify event is marked as notified
+    const updatedEv = fresh(event);
+    expect(updatedEv.notifiedFullStyles).toContain('st_popping');
+
+    // Run sync again with an additional dancer (3rd dancer)
+    ctx.mail.reset();
+    source(sourceId).appendRows([['2026-10-06 10:00:00', 'Charlie', '22003333', '0123456789', 'c@test.com', 'Popping']]);
+    importEventMembers(ctx, fresh(event), { full: false });
+
+    // Should NOT re-send duplicate alert emails
+    const repeatAlerts = ctx.mail.sent.filter(m => m.subject.includes('Slot Full: Popping'));
+    expect(repeatAlerts.length).toBe(0);
+  });
 });

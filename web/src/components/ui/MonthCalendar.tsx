@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { monthGrid, addMonths, formatDayLabel, todayKL } from '../../lib/time';
-import { STYLE_COLOR } from '../../theme/colors';
+import { getStyleColor } from '../../theme/colors';
 import { PixelButton } from './PixelButton';
 import type { Month, ISODate } from '@umdsc/shared';
 
@@ -197,17 +197,15 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
               </span>
 
               {/* Coloured Markers (up to 4 square dots) */}
-              <div className="flex gap-1 flex-wrap justify-center w-full min-h-[4px]">
+              <div className="flex gap-1 flex-wrap justify-center w-full min-h-[6px]">
                 {dayMarks.slice(0, 4).map((m, idx) => {
-                  const colorVar = m.colorKey?.startsWith('#')
-                    ? m.colorKey
-                    : (STYLE_COLOR[m.colorKey?.toLowerCase()] || `var(--c-${m.colorKey})`);
+                  const colorVar = getStyleColor(m.colorKey);
                   return (
                     <span
                       key={idx}
                       data-marker="true"
                       style={{ backgroundColor: colorVar }}
-                      className="w-1 h-1 inline-block border-none"
+                      className="w-1.5 h-1.5 inline-block border border-[var(--outline)] flex-shrink-0"
                       title={m.label || m.kind}
                     />
                   );

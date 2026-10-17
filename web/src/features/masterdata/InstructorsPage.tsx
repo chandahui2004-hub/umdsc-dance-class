@@ -318,7 +318,7 @@ export const InstructorsPage: React.FC = () => {
           fileId: target.id
         });
         queryClient.invalidateQueries({ queryKey: ['instructors'] });
-        queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] });
+        queryClient.invalidateQueries({ queryKey: ['bootstrap'] });
         queryClient.invalidateQueries({ queryKey: ['drive-instructor-photos'] });
       } catch (e) {
         console.error('Failed to delete photo directly from Drive:', e);
@@ -348,7 +348,7 @@ export const InstructorsPage: React.FC = () => {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['instructors'] }),
-        queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] })
+        queryClient.invalidateQueries({ queryKey: ['bootstrap'] })
       ]);
       closeForm();
     },
@@ -364,7 +364,7 @@ export const InstructorsPage: React.FC = () => {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['instructors'] }),
-        queryClient.invalidateQueries({ queryKey: ['admin.bootstrap'] })
+        queryClient.invalidateQueries({ queryKey: ['bootstrap'] })
       ]);
     },
     onError: (err) => {
