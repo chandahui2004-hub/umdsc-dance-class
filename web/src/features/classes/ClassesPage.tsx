@@ -233,6 +233,45 @@ export const ClassesPage: React.FC = () => {
         }
       />
 
+      {/* Instructor Legend */}
+      {instructors.length > 0 && (
+        <div className="px-panel p-3 space-y-2">
+          <span className="font-display text-[10px] text-[var(--text-2)] font-bold uppercase block">
+            INSTRUCTOR LEGEND:
+          </span>
+          <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
+            {instructors.map((inst) => {
+              const teaches = (inst.styleIds || []).filter(sid => allStyles.some(st => st.id === sid));
+              if (teaches.length > 1) {
+                return teaches.map((sid) => {
+                  const colorVar = getInstructorColor(inst, sid);
+                  const sName = allStyles.find(s => s.id === sid)?.name || sid;
+                  return (
+                    <div key={`${inst.id}-${sid}`} className="flex items-center gap-1.5">
+                      <span
+                        className="w-3 h-3 border border-[var(--outline)] inline-block flex-shrink-0"
+                        style={{ backgroundColor: colorVar }}
+                      />
+                      <span className="font-bold text-[var(--text-1)]">{inst.name} ({sName})</span>
+                    </div>
+                  );
+                });
+              }
+              const colorVar = getInstructorColor(inst, teaches[0]);
+              return (
+                <div key={inst.id} className="flex items-center gap-1.5">
+                  <span
+                    className="w-3 h-3 border border-[var(--outline)] inline-block flex-shrink-0"
+                    style={{ backgroundColor: colorVar }}
+                  />
+                  <span className="font-bold text-[var(--text-1)]">{inst.name}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <Panel title={`CLASSES ON ${formatDayLabel(selectedDate).toUpperCase()}`}>
         {isLoading ? (
           <div className="p-4 text-center">

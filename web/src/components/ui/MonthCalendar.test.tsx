@@ -50,6 +50,29 @@ describe('MonthCalendar', () => {
     fireEvent.click(dayBtn);
     expect(onSelect).toHaveBeenCalledWith('2026-10-07');
   });
+
+  it('renders markers correctly when colorKey is already a CSS variable or hex', () => {
+    const marks = {
+      '2026-10-23': [
+        { colorKey: 'var(--c-blue)', kind: 'class' as const, label: 'Carmen' },
+        { colorKey: '#FF5500', kind: 'class' as const, label: 'Chen Jing' }
+      ]
+    };
+
+    render(
+      <MonthCalendar
+        month="2026-10"
+        onMonthChange={vi.fn()}
+        marks={marks}
+      />
+    );
+
+    const dayBtn = screen.getByRole('button', { name: /Fri 23 Oct.*Carmen.*Chen Jing/i });
+    const coloredMarkers = dayBtn.querySelectorAll('[data-marker]');
+    expect(coloredMarkers.length).toBe(2);
+    expect((coloredMarkers[0] as HTMLElement).style.backgroundColor).toBe('var(--c-blue)');
+    expect((coloredMarkers[1] as HTMLElement).style.backgroundColor).toBe('rgb(255, 85, 0)');
+  });
   it('marks the chosen date as pressed with a pink frame, distinct from today', () => {
     const today = todayKL();
     const other = today.endsWith('-15') ? today.slice(0, 8) + '16' : today.slice(0, 8) + '15';

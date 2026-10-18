@@ -37,6 +37,17 @@ describe('colors theme utilities', () => {
     expect(getInstructorColor({ styleColors: {} }, 'st_locking', 'var(--neon-gold)')).toBe('var(--neon-gold)');
   });
 
+  it('is idempotent when given already formatted CSS variables or functions', () => {
+    expect(getStyleColor('var(--c-blue)')).toBe('var(--c-blue)');
+    expect(getStyleColor('var(--neon-orange)')).toBe('var(--neon-orange)');
+    expect(getStyleColor('rgb(255, 85, 0)')).toBe('rgb(255, 85, 0)');
+    expect(getStyleColor('rgba(255, 85, 0, 0.8)')).toBe('rgba(255, 85, 0, 0.8)');
+    // Calling getStyleColor on getInstructorColor output should remain identical
+    const instColor = getInstructorColor({ color: 'blue' });
+    expect(instColor).toBe('var(--c-blue)');
+    expect(getStyleColor(instColor)).toBe('var(--c-blue)');
+  });
+
   it('falls back to default ink when colorKey is empty or missing', () => {
     expect(getStyleColor('')).toBe('var(--c-ink)');
     expect(getStyleColor(undefined)).toBe('var(--c-ink)');

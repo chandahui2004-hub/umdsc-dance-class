@@ -18,7 +18,16 @@ export const STYLE_COLOR: Record<string, string> = {
 export function getStyleColor(colorKey?: string): string {
   if (!colorKey) return 'var(--c-ink)';
   const trimmed = colorKey.trim();
-  if (trimmed.startsWith('#')) return trimmed;
+  if (
+    trimmed.startsWith('#') ||
+    trimmed.startsWith('var(') ||
+    trimmed.startsWith('rgb(') ||
+    trimmed.startsWith('rgba(') ||
+    trimmed.startsWith('hsl(') ||
+    trimmed.startsWith('hsla(')
+  ) {
+    return trimmed;
+  }
   return STYLE_COLOR[trimmed.toLowerCase()] || `var(--c-${trimmed.toLowerCase()})` || 'var(--c-ink)';
 }
 
