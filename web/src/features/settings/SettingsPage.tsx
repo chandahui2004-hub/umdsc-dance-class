@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '../../lib/api';
 import { Panel } from '../../components/ui/Panel';
@@ -291,11 +291,17 @@ export const SettingsPage: React.FC = () => {
     mutationFn: async (emails: string) => {
       return await api.post('settings.set', { key: 'adminNotificationEmails', value: emails });
     },
-    onSuccess: async () => {
+    onSuccess: async (_, variables) => {
       await queryClient.invalidateQueries({ queryKey: ['settings'] });
+      setAdminEmails(null);
+      const parsed = variables
+        .split(/[,;\n]+/)
+        .map((e) => e.trim())
+        .filter(Boolean);
+      const summary = parsed.length > 0 ? parsed.join(', ') : 'None (alerts will only go to club system email)';
       setStatusMessage({
         key: 'adminNotificationEmails',
-        text: 'NOTIFICATION EMAILS SAVED SUCCESSFULLY!',
+        text: `NOTIFICATION EMAILS SAVED SUCCESSFULLY! Active recipient(s): ${summary}`,
         type: 'success'
       });
     },
@@ -309,6 +315,13 @@ export const SettingsPage: React.FC = () => {
   });
 
   const clubEmail = settings.clubEmail || 'umdancesportc@gmail.com';
+  const savedEmailsRaw = settings.adminNotificationEmails || '';
+  const savedEmailList = useMemo(() => {
+    return savedEmailsRaw
+      .split(/[,;\n]+/)
+      .map((e) => e.trim())
+      .filter(Boolean);
+  }, [savedEmailsRaw]);
 
   return (
     <div className="space-y-6">
@@ -345,7 +358,7 @@ export const SettingsPage: React.FC = () => {
       ) : (
         <div className="space-y-6">
           {/* Admin Notification Emails Panel */}
-          <Panel title="ADMIN NOTIFICATION EMAILS" className="px-corners bg-[var(--night-2)] space-y-3">
+          <Panel title="ADMIN NOTIFICATION EMAILS" className="px-corners bg-[var(--night-2)] space-y-4">
             <p className="font-body text-sm text-[var(--text-2)]">
               Email addresses that receive system alerts (such as when event slots are full) in addition to the club system Gmail ({clubEmail}). Multiple emails can be separated by commas.
             </p>
@@ -362,6 +375,41 @@ export const SettingsPage: React.FC = () => {
                 {statusMessage.text}
               </div>
             )}
+
+            {/* Currently Saved Recipients Box */}
+            <div className="p-3 bg-[var(--night-1)] border-2 border-[var(--outline)] space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-display text-xs text-[var(--neon-cyan)] tracking-wider">
+                  CURRENTLY SAVED ALERT RECIPIENTS:
+                </span>
+                <span className="font-mono text-xs text-[var(--text-3)]">
+                  {savedEmailList.length} custom {savedEmailList.length === 1 ? 'address' : 'addresses'}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-1">
+                {savedEmailList.length > 0 ? (
+                  savedEmailList.map((email, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono bg-[var(--violet-2)] border-2 border-[var(--neon-green)] text-[var(--neon-green)] shadow-[1px_1px_0_var(--outline)]"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-[var(--neon-green)] animate-pulse" />
+                      <span>{email}</span>
+                    </span>
+                  ))
+                ) : (
+                  <span className="font-mono text-xs text-[var(--text-3)] italic">
+                    No custom admin notification emails saved yet.
+                  </span>
+                )}
+
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono bg-[var(--night-2)] border border-[var(--outline)] text-[var(--text-2)] shadow-[1px_1px_0_var(--outline)]">
+                  <span>👑</span>
+                  <span>{clubEmail} (Club System Default)</span>
+                </span>
+              </div>
+            </div>
 
             <Field
               label="Notification Email Addresses"
