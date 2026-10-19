@@ -296,4 +296,32 @@ describe('importEventMembers', () => {
     expect(rearmedAlerts.length).toBeGreaterThanOrEqual(1);
     expect(fresh(event).notifiedFullStyles).toContain('st_popping');
   });
+
+  it('sends slot alert to adminNotificationEmails from settings and counts single-style members', () => {
+    ctx.db.settings.insert({ key: 'adminNotificationEmails', value: 'personal@umdsc.com, manager@umdsc.com' } as any, 'system', ctx.now());
+
+    // Single-style event without class question in form
+    const { event } = makeEvent(
+      [
+        row('Freestyle Dancer 1', '24001111', ''),
+        row('Freestyle Dancer 2', '24002222', '')
+      ],
+      {
+        styleIds: ['st_popping'],
+        classIndex: -1,
+        styleSlots: { st_popping: 2 },
+        styleSlotsJson: JSON.stringify({ st_popping: 2 })
+      }
+    );
+
+    ctx.mail.reset();
+    importEventMembers(ctx, event, { full: true });
+
+    const alerts = ctx.mail.sent.filter(m => m.subject.includes('Slot Full: Popping'));
+    expect(alerts.length).toBeGreaterThanOrEqual(1);
+    const recipients = alerts.map(m => m.to);
+    expect(recipients).toContain('personal@umdsc.com');
+    expect(recipients).toContain('manager@umdsc.com');
+    expect(recipients).toContain('umdancesportc@gmail.com');
+  });
 });

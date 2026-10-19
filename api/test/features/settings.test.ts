@@ -61,6 +61,35 @@ describe('Feature: Settings and Links', () => {
     }
   });
 
+  it('settings.set saves general key-value settings like adminNotificationEmails', () => {
+    const res = handleRequest(
+      {
+        action: 'settings.set',
+        token: adminToken,
+        payload: {
+          key: 'adminNotificationEmails',
+          value: 'test1@umdsc.com, test2@umdsc.com'
+        }
+      },
+      ctx,
+      secrets
+    );
+
+    expect(res.ok).toBe(true);
+    const getRes = handleRequest(
+      {
+        action: 'settings.get',
+        token: adminToken
+      },
+      ctx,
+      secrets
+    );
+    expect(getRes.ok).toBe(true);
+    if (getRes.ok) {
+      expect((getRes.data as any).adminNotificationEmails).toBe('test1@umdsc.com, test2@umdsc.com');
+    }
+  });
+
   it('setLink with sheet URL for a folder key → LINK_WRONG_KIND', () => {
     // create fake sheet
     const ss = ctx.drive.createSpreadsheet('TestSheet', 'root');

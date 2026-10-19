@@ -9,7 +9,7 @@ import { logAudit } from '../logic/audit';
 import { previewSource, openSourceTab } from './eventSource';
 import { ensureEventFolder, ensureMembersSheet, ensureEventSheets, saveEventFields, eventYear, refileEventYear, renameStyleVideoFolders } from './eventSheets';
 import { getEvent, readEventMembers } from './eventMembers';
-import { importEventMembers, sourceUnchanged } from './eventImport';
+import { importEventMembers, sourceUnchanged, checkAndNotifySlotCapacities } from './eventImport';
 import { withScriptLock } from '../db/lock';
 import { assertSchemaReady } from './reset';
 import { cleanStyleInstructors, firstInstructor, assertClassInstructor } from './styleInstructors';
@@ -228,6 +228,11 @@ export function getEventRoutes(): Record<string, Route> {
           ensureEventSheets(ctx, updated);
         }
 
+        // Check slot capacities immediately upon saving or updating styleSlots
+        if (payload.styleSlots !== undefined) {
+          checkAndNotifySlotCapacities(ctx, updated);
+        }
+
         logAudit(ctx, actor, 'events.update', updated.id, updated.name);
         return ctx.db.events.get(updated.id);
       }
@@ -252,6 +257,20 @@ export function getEventRoutes(): Record<string, Route> {
 
           try {
             if (sourceUnchanged(ctx, event)) {
+              // Check if any unnotified style has reached slot capacity
+              const slotCap = event.styleSlots || (event.styleSlotsJson ? JSON.parse(event.styleSlotsJson) : {});
+              const hasUnnotifiedCaps = (event.styleIds || []).some(
+                sid => Number(slotCap[sid]) > 0 && !(event.notifiedFullStyles || []).includes(sid)
+              );
+              if (hasUnnotifiedCaps) {
+                withScriptLock(ctx.lock, () => {
+                  ctx.db.reload();
+                  const fresh = ctx.db.events.get(event.id);
+                  if (fresh && fresh.active && fresh.status === 'active') {
+                    checkAndNotifySlotCapacities(ctx, fresh);
+                  }
+                });
+              }
               result.checked.push(event.id);
               continue;
             }

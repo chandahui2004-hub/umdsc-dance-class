@@ -234,6 +234,8 @@ export const SettingsPage: React.FC = () => {
     type: 'success' | 'error';
   } | null>(null);
 
+  const [adminEmails, setAdminEmails] = useState<string | null>(null);
+
   const { data: settings = {}, isLoading: loadingSettings } = useQuery<Record<string, string>>({
     queryKey: ['settings'],
     queryFn: async () => {
@@ -285,6 +287,27 @@ export const SettingsPage: React.FC = () => {
     }
   });
 
+  const setNotificationEmailsMutation = useMutation({
+    mutationFn: async (emails: string) => {
+      return await api.post('settings.set', { key: 'adminNotificationEmails', value: emails });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['settings'] });
+      setStatusMessage({
+        key: 'adminNotificationEmails',
+        text: 'NOTIFICATION EMAILS SAVED SUCCESSFULLY!',
+        type: 'success'
+      });
+    },
+    onError: (err) => {
+      setStatusMessage({
+        key: 'adminNotificationEmails',
+        text: errorMessage(err),
+        type: 'error'
+      });
+    }
+  });
+
   const clubEmail = settings.clubEmail || 'umdancesportc@gmail.com';
 
   return (
@@ -321,6 +344,55 @@ export const SettingsPage: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-6">
+          {/* Admin Notification Emails Panel */}
+          <Panel title="ADMIN NOTIFICATION EMAILS" className="px-corners bg-[var(--night-2)] space-y-3">
+            <p className="font-body text-sm text-[var(--text-2)]">
+              Email addresses that receive system alerts (such as when event slots are full) in addition to the club system Gmail ({clubEmail}). Multiple emails can be separated by commas.
+            </p>
+
+            {statusMessage?.key === 'adminNotificationEmails' && (
+              <div
+                role="alert"
+                className={`p-3 font-body font-bold text-sm border-2 ${
+                  statusMessage.type === 'error'
+                    ? 'bg-[var(--violet-2)] border-[var(--neon-red)] text-[var(--neon-red)]'
+                    : 'bg-[var(--night-1)] border-[var(--neon-green)] text-[var(--neon-green)]'
+                }`}
+              >
+                {statusMessage.text}
+              </div>
+            )}
+
+            <Field
+              label="Notification Email Addresses"
+              hint="e.g. user@gmail.com, admin@gmail.com (comma separated)"
+            >
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  id="admin-notification-emails"
+                  aria-label="Admin Notification Email Addresses"
+                  type="text"
+                  value={adminEmails !== null ? adminEmails : (settings.adminNotificationEmails || '')}
+                  onChange={(e) => setAdminEmails(e.target.value)}
+                  placeholder="user@gmail.com, committee@gmail.com"
+                  className="flex-1 min-h-[44px] px-3 border-2 border-[var(--outline)] font-mono text-base bg-[var(--night-1)] text-[var(--text-1)]"
+                />
+                <PixelButton
+                  size="md"
+                  variant="primary"
+                  className="w-full sm:w-auto"
+                  disabled={setNotificationEmailsMutation.isPending}
+                  onClick={() => {
+                    const val = adminEmails !== null ? adminEmails : (settings.adminNotificationEmails || '');
+                    setNotificationEmailsMutation.mutate(val.trim());
+                  }}
+                >
+                  {setNotificationEmailsMutation.isPending ? 'SAVING…' : 'SAVE EMAILS'}
+                </PixelButton>
+              </div>
+            </Field>
+          </Panel>
+
           {/* Default Attendance Folder */}
           <Panel title="DEFAULT ATTENDANCE FOLDER" className="px-corners bg-[var(--night-2)] space-y-3">
             <div className="font-mono text-xs text-[var(--text-2)]">

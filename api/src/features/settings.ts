@@ -76,6 +76,28 @@ export function getSettingsRoutes(): Record<string, Route> {
       }
     },
 
+    'settings.set': {
+      perm: 'settings.edit',
+      write: true,
+      bumpsData: true,
+      handler: (ctx, auth, payload: any) => {
+        const key = String(payload?.key || '').trim();
+        const value = String(payload?.value ?? '').trim();
+        if (!key) {
+          throw new AppError('VALIDATION', 'key is required');
+        }
+        const existing = ctx.db.settings.find(s => s.key === key && s.active)[0];
+        const actor = auth?.claims?.sub || 'system';
+        if (existing) {
+          ctx.db.settings.update(existing.id, existing.version, { value }, actor, ctx.now());
+        } else {
+          ctx.db.settings.insert({ key, value }, actor, ctx.now());
+        }
+        logAudit(ctx, actor, 'settings.set', key, value);
+        return { key, value };
+      }
+    },
+
     'settings.update': {
       perm: 'settings.edit',
       write: true,

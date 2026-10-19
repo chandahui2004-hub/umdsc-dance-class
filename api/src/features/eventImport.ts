@@ -7,7 +7,7 @@ import { hashSheet } from '../logic/events';
 import { bumpAttendanceVersion } from '../logic/attendanceVersion';
 import { logAudit } from '../logic/audit';
 import { openSourceTab, timestampColumn, countUnknownClasses } from './eventSource';
-import { membersChanged } from './eventMembers';
+import { membersChanged, readEventMembers } from './eventMembers';
 import { ensureEventFolder, ensureMembersSheet, ensureEventSheets, saveEventFields } from './eventSheets';
 
 export interface ImportResult {
@@ -448,24 +448,72 @@ export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boo
   const memberCount = body.filter(r => r[col('memberId')]).length + added.length;
 
   // Check slot capacity per style and send alert email once when capacity is reached
+  const { newlyNotified, notifiedFullStyles: notifiedList } = checkAndNotifySlotCapacities(ctx, event, members);
+
+  saveEventFields(ctx, event.id, {
+    sourceTab: tab,
+    sourceRowCount: lastRow,
+    sourceLastRowHash: hash,
+    memberCount,
+    lastSyncAt: ctx.now().toISOString(),
+    lastSyncError: correctionsHeld
+      ? 'Many matric numbers changed at once, so no dancer was moved. Check that the columns of the form did not move.'
+      : unknownClasses.length
+        ? `Unknown class in form: ${unknownClasses.map(u => u.token).join(', ')}`
+        : '',
+    ...(newlyNotified ? { notifiedFullStyles: notifiedList, notifiedFullStylesJson: JSON.stringify(notifiedList) } : {})
+  });
+
+  return { changed: true, added: added.length, updated, flaggedRemoved, corrected: corrections.size, memberCount, unknownClasses };
+}
+
+/**
+ * Evaluates enrolled members against target styleSlots and sends notification
+ * emails once when capacity is reached. Can be called during member import,
+ * on event update (when slots are changed), or during background sync.
+ */
+export function checkAndNotifySlotCapacities(
+  ctx: Ctx,
+  event: EventItem,
+  providedMembers?: Member[]
+): { newlyNotified: boolean; notifiedFullStyles: string[] } {
   const slotCapacity = event.styleSlots || (event.styleSlotsJson ? JSON.parse(event.styleSlotsJson) : {});
   const alreadyNotified = new Set<string>(
     event.notifiedFullStyles || (event.notifiedFullStylesJson ? JSON.parse(event.notifiedFullStylesJson) : [])
   );
   let newlyNotified = false;
 
+  const members = providedMembers || (event.membersSpreadsheetId ? readEventMembers(ctx, event) : []);
+  const activeMembers = members.filter(
+    m => !(m.flags || []).includes('removed') && !(m.flags || []).includes(REMOVED_FLAG)
+  );
+
+  // Recipients:
+  // 1. Club system email
+  const clubEmail = ctx.clubEmail || ctx.db.settings.find(s => s.key === 'clubEmail' && s.active)[0]?.value;
+  // 2. Admin notification emails configured in Settings (comma/semicolon/newline separated)
+  const adminNotifRaw = ctx.db.settings.find(s => s.key === 'adminNotificationEmails' && s.active)[0]?.value || '';
+  const adminNotifEmails = adminNotifRaw
+    .split(/[,;\n\r]+/)
+    .map(e => e.trim())
+    .filter(e => e.includes('@'));
+  // 3. Admin user accounts with @ in username
+  const adminUserEmails = ctx.db.admins.find(a => a.active && a.username.includes('@')).map(a => a.username);
+
   for (const styleId of event.styleIds || []) {
     const cap = Number(slotCapacity[styleId]);
     if (cap > 0) {
-      const enrolledCount = members.filter(m => (m.styleIds || []).includes(styleId)).length;
+      // If single style event, all event members count towards the style
+      const enrolledCount = (event.styleIds.length === 1)
+        ? activeMembers.length
+        : activeMembers.filter(m => (m.styleIds || []).includes(styleId)).length;
+
       if (enrolledCount >= cap) {
         if (!alreadyNotified.has(styleId)) {
           alreadyNotified.add(styleId);
           newlyNotified = true;
           const style = ctx.db.styles.find(s => s.id === styleId && s.active)[0];
           const styleName = style?.name || styleId;
-          const clubEmail = ctx.clubEmail || ctx.db.settings.find(s => s.key === 'clubEmail' && s.active)[0]?.value;
-          const adminEmails = ctx.db.admins.find(a => a.active && a.username.includes('@')).map(a => a.username);
           const classLeadEmail = style?.videoUploaderEmail?.trim();
           const styleInstructors = (event.styleInstructors?.[styleId] || []);
           const instructorEmails = styleInstructors
@@ -473,8 +521,15 @@ export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boo
             .filter(Boolean)
             .map(i => i?.contact?.trim())
             .filter((c): c is string => Boolean(c && c.includes('@')));
+
           const recipients = Array.from(
-            new Set([clubEmail, ...adminEmails, classLeadEmail, ...instructorEmails].filter(Boolean).map(e => e!.toLowerCase()))
+            new Set([
+              clubEmail,
+              ...adminNotifEmails,
+              ...adminUserEmails,
+              classLeadEmail,
+              ...instructorEmails
+            ].filter(Boolean).map(e => e!.toLowerCase()))
           ) as string[];
 
           for (const to of recipients) {
@@ -495,7 +550,7 @@ export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boo
             try {
               ctx.mail.sendEmail({ to, subject, body, htmlBody });
             } catch (err) {
-              console.warn(`[eventImport] Failed to send slot capacity alert email to ${to}:`, err);
+              console.warn(`[checkAndNotifySlotCapacities] Failed to send slot capacity alert email to ${to}:`, err);
             }
           }
         }
@@ -508,22 +563,14 @@ export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boo
   }
 
   const notifiedList = Array.from(alreadyNotified);
-  event.notifiedFullStyles = notifiedList;
-  event.notifiedFullStylesJson = JSON.stringify(notifiedList);
+  if (newlyNotified) {
+    event.notifiedFullStyles = notifiedList;
+    event.notifiedFullStylesJson = JSON.stringify(notifiedList);
+    saveEventFields(ctx, event.id, {
+      notifiedFullStylesJson: event.notifiedFullStylesJson
+    });
+  }
 
-  saveEventFields(ctx, event.id, {
-    sourceTab: tab,
-    sourceRowCount: lastRow,
-    sourceLastRowHash: hash,
-    memberCount,
-    lastSyncAt: ctx.now().toISOString(),
-    lastSyncError: correctionsHeld
-      ? 'Many matric numbers changed at once, so no dancer was moved. Check that the columns of the form did not move.'
-      : unknownClasses.length
-        ? `Unknown class in form: ${unknownClasses.map(u => u.token).join(', ')}`
-        : '',
-    ...(newlyNotified ? { notifiedFullStyles: notifiedList, notifiedFullStylesJson: JSON.stringify(notifiedList) } : {})
-  });
-
-  return { changed: true, added: added.length, updated, flaggedRemoved, corrected: corrections.size, memberCount, unknownClasses };
+  return { newlyNotified, notifiedFullStyles: notifiedList };
 }
+
