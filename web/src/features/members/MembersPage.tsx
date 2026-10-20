@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { call, errorMessage } from '../../lib/api';
 import { useBootstrap } from '../auth/useBootstrap';
@@ -95,6 +95,24 @@ export const MembersPage: React.FC = () => {
   const openEventIds = events.filter((e) => e.status !== 'archived').map((e) => e.id);
   const editableEventIds = (m: AugmentedMember) => (m.eventIds || []).filter((id) => openEventIds.includes(id));
 
+  // Compute styles scoped to the currently selected event
+  const eventStyles = useMemo(() => {
+    const all = bootstrap?.styles || [];
+    if (isAll || !event) return all;
+    const styleIds = new Set(event.styleIds || []);
+    return all.filter((s) => styleIds.has(s.id));
+  }, [bootstrap?.styles, isAll, event]);
+
+  // Reset selectedStyleId if the style is not in the current event
+  useEffect(() => {
+    if (selectedStyleId !== 'all' && !isAll && event) {
+      const styleIds = new Set(event.styleIds || []);
+      if (!styleIds.has(selectedStyleId)) {
+        setSelectedStyleId('all');
+      }
+    }
+  }, [event?.id, isAll, selectedStyleId, event?.styleIds]);
+
   // A correction made straight in a form's response sheet shows after REFRESH: sync, then reload
   const refreshFromForms = async () => {
     setSyncing(true);
@@ -102,7 +120,7 @@ export const MembersPage: React.FC = () => {
       if (canImport) {
         for (const id of isAll ? openEventIds : eventId ? [eventId] : []) {
           try {
-            await call('events.sync', { id });
+            await call('events.sync', { id, purgeRemoved: true, force: true });
           } catch {
             // an archived or retired event does not sync; its list still reloads
           }
@@ -527,7 +545,7 @@ export const MembersPage: React.FC = () => {
       <div className="space-y-3">
         <EventStep allowAll />
         <StyleStep
-          styles={bootstrap?.styles || []}
+          styles={eventStyles}
           value={selectedStyleId}
           onChange={setSelectedStyleId}
           allOption={`ALL CLASSES (${members.length})`}

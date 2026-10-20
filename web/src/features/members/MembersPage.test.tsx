@@ -105,6 +105,34 @@ describe('MembersPage Component', () => {
     expect(screen.getByText(/exit fullscreen/i)).toBeInTheDocument();
   });
 
+  it('scopes dance style dropdown to only the styles in the currently selected event', async () => {
+    mockUseCurrentEventState = {
+      events: [
+        { id: 'evt1', name: 'OCT CLASS', status: 'active', styleIds: ['st_popping'] },
+        { id: 'evt2', name: 'NOV CLASS', status: 'active', styleIds: ['st_hiphop'] }
+      ],
+      current: { id: 'evt1', name: 'OCT CLASS', status: 'active', styleIds: ['st_popping'] },
+      setCurrentId: vi.fn(),
+      isAll: false
+    };
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <MembersPage />
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    // Open style dropdown
+    const styleTrigger = await screen.findByRole('button', { name: /Choose dance style/i });
+    fireEvent.click(styleTrigger);
+
+    // Popping should be in the options, Hip Hop should NOT be
+    expect(screen.getByRole('option', { name: /Popping/i })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /Hip Hop/i })).not.toBeInTheDocument();
+  });
+
   describe('for a user who may import dancers', () => {
     const renderPage = () =>
       render(

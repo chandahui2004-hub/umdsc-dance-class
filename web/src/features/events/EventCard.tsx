@@ -41,7 +41,7 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
   const onError = (err: unknown) => setNote(errorMessage(err));
 
   const sync = useMutation({
-    mutationFn: async () => (await call<SyncResult>('events.sync', { id: event.id })).data,
+    mutationFn: async () => (await call<SyncResult>('events.sync', { id: event.id, purgeRemoved: true, force: true })).data,
     onSuccess: async r => {
       await Promise.all([refresh(), queryClient.invalidateQueries({ queryKey: ['members'] })]);
       setNote(r.message || `Synced: +${r.added} new, ${r.updated} updated`);
