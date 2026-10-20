@@ -10,16 +10,6 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { useOverlayOpen } from '../../app/useOverlayOpen';
 import type { DanceStyle, Instructor } from '@umdsc/shared';
 
-const WEEKDAYS = [
-  { val: 1, name: 'Monday' },
-  { val: 2, name: 'Tuesday' },
-  { val: 3, name: 'Wednesday' },
-  { val: 4, name: 'Thursday' },
-  { val: 5, name: 'Friday' },
-  { val: 6, name: 'Saturday' },
-  { val: 0, name: 'Sunday' }
-];
-
 export const StylesPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [editingStyle, setEditingStyle] = useState<DanceStyle | null>(null);
@@ -30,10 +20,6 @@ export const StylesPage: React.FC = () => {
   // Form states
   const [name, setName] = useState('');
   const [aliases, setAliases] = useState('');
-  const [defaultWeekday, setDefaultWeekday] = useState<number>(1);
-  const [defaultStart, setDefaultStart] = useState('20:00');
-  const [defaultEnd, setDefaultEnd] = useState('22:00');
-  const [defaultVenue, setDefaultVenue] = useState('');
   const [attendanceFolderUrl, setAttendanceFolderUrl] = useState('');
   const [videoFolderUrl, setVideoFolderUrl] = useState('');
 
@@ -58,10 +44,6 @@ export const StylesPage: React.FC = () => {
     setEditingStyle(null);
     setName('');
     setAliases('');
-    setDefaultWeekday(1);
-    setDefaultStart('20:00');
-    setDefaultEnd('22:00');
-    setDefaultVenue('');
     setAttendanceFolderUrl('');
     setVideoFolderUrl('');
     setFormError(null);
@@ -72,10 +54,6 @@ export const StylesPage: React.FC = () => {
     setIsCreating(false);
     setName(style.name);
     setAliases((style.aliases || []).join(', '));
-    setDefaultWeekday(style.defaultWeekday ?? 1);
-    setDefaultStart(style.defaultStart || '20:00');
-    setDefaultEnd(style.defaultEnd || '22:00');
-    setDefaultVenue(style.defaultVenue || '');
     setAttendanceFolderUrl(style.attendanceFolderId ? `https://drive.google.com/drive/folders/${style.attendanceFolderId}` : '');
     setVideoFolderUrl(style.videoFolderId ? `https://drive.google.com/drive/folders/${style.videoFolderId}` : '');
     setFormError(null);
@@ -100,12 +78,15 @@ export const StylesPage: React.FC = () => {
 
       const payload: any = {
         name: name.trim(),
-        aliases: aliasArray,
-        defaultWeekday: Number(defaultWeekday),
-        defaultStart,
-        defaultEnd,
-        defaultVenue: defaultVenue.trim()
+        aliases: aliasArray
       };
+
+      if (editingStyle) {
+        if (editingStyle.defaultWeekday !== undefined) payload.defaultWeekday = editingStyle.defaultWeekday;
+        if (editingStyle.defaultStart) payload.defaultStart = editingStyle.defaultStart;
+        if (editingStyle.defaultEnd) payload.defaultEnd = editingStyle.defaultEnd;
+        if (editingStyle.defaultVenue) payload.defaultVenue = editingStyle.defaultVenue;
+      }
 
       if (attendanceFolderUrl.trim()) {
         payload.attendanceFolderUrl = attendanceFolderUrl.trim();
@@ -181,7 +162,6 @@ export const StylesPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {styles.map((style) => {
             const teachers = instructors.filter((i) => i.active && (i.styleIds || []).includes(style.id));
-            const weekday = WEEKDAYS.find((w) => w.val === style.defaultWeekday);
 
             return (
               <Panel
@@ -217,14 +197,8 @@ export const StylesPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Default Schedule & Venue */}
+                {/* Instructors */}
                 <div className="px-well p-2 font-mono text-[12px] space-y-1 text-[var(--text-2)]">
-                  <div>
-                    <span className="font-bold text-[var(--text-1)]">Schedule:</span> {weekday?.name || 'Unset'}, {style.defaultStart} - {style.defaultEnd}
-                  </div>
-                  <div>
-                    <span className="font-bold text-[var(--text-1)]">Venue:</span> {style.defaultVenue || 'Unset'}
-                  </div>
                   <div>
                     {teachers.length > 0 ? (
                       <>
@@ -330,60 +304,6 @@ export const StylesPage: React.FC = () => {
                   className="w-full min-h-[44px] px-3 px-well font-body text-[16px] text-[var(--text-1)] placeholder:text-[var(--text-3)]"
                 />
               </Field>
-
-
-              {/* Default Schedule */}
-              <div className="space-y-4 pt-3 border-t-2 border-[var(--outline)]">
-                <h3 className="font-display text-[12px] text-[var(--text-1)] tracking-wider">
-                  DEFAULT SCHEDULE & VENUE
-                </h3>
-
-                <Field label="Default Day">
-                  <select
-                    value={defaultWeekday}
-                    onChange={(e) => setDefaultWeekday(Number(e.target.value))}
-                    className="w-full min-h-[44px] px-3 px-well font-body text-[16px] text-[var(--text-1)] bg-[var(--night-1)]"
-                  >
-                    {WEEKDAYS.map((w) => (
-                      <option key={w.val} value={w.val}>
-                        {w.name}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field label="Start Time">
-                    <input
-                      type="time"
-                      value={defaultStart}
-                      onChange={(e) => setDefaultStart(e.target.value)}
-                      className="w-full min-h-[44px] px-3 px-well font-mono text-[16px] text-[var(--text-1)]"
-                    />
-                  </Field>
-
-                  <Field label="End Time">
-                    <input
-                      type="time"
-                      value={defaultEnd}
-                      onChange={(e) => setDefaultEnd(e.target.value)}
-                      className="w-full min-h-[44px] px-3 px-well font-mono text-[16px] text-[var(--text-1)]"
-                    />
-                  </Field>
-                </div>
-
-                <Field label="Default Venue">
-                  <input
-                    id="style-default-venue"
-                    aria-label="Default Venue"
-                    type="text"
-                    value={defaultVenue}
-                    onChange={(e) => setDefaultVenue(e.target.value)}
-                    placeholder="e.g. Studio A"
-                    className="w-full min-h-[44px] px-3 px-well font-body text-[16px] text-[var(--text-1)] placeholder:text-[var(--text-3)]"
-                  />
-                </Field>
-              </div>
 
               {/* Folders */}
               <Field label="Attendance Folder Link" hint="Leave blank to use system default">
