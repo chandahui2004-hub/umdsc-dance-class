@@ -121,7 +121,10 @@ export const DancerHome: React.FC = () => {
       marks[session.date].push({
         colorKey,
         kind,
-        label: `${style?.name || 'Class'} #${session.seq} (${instructor?.name || 'Instructor'})`
+        label: `${style?.name || 'Class'} #${session.seq} (${instructor?.name || 'Instructor'})`,
+        className: `${style?.name || 'Class'} Class ${session.seq}`,
+        time: `${session.start} - ${session.end}`,
+        instructorName: instructor?.name || 'TBA'
       });
     }
 

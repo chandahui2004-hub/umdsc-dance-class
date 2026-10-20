@@ -153,7 +153,10 @@ export const ClassesPage: React.FC = () => {
       (marks[s.date] ||= []).push({
         colorKey: getInstructorColor(instructor, s.styleId),
         kind: 'class',
-        label: `${style?.name || 'Class'} Class ${s.seq}${evTag}`
+        label: `${style?.name || 'Class'} Class ${s.seq}${evTag}`,
+        className: `${style?.name || 'Class'} Class ${s.seq}`,
+        time: `${s.start} - ${s.end}`,
+        instructorName: instructor?.name || 'TBA'
       });
     }
     return marks;

@@ -93,4 +93,43 @@ describe('MonthCalendar', () => {
     expect(both.className).toContain('px-neon');
     expect(both.className).toContain('--neon-pink');
   });
+
+  it('displays tooltip with class name, time, and instructor when mouse hovers over day with class marks', () => {
+    const marks = {
+      '2026-10-15': [
+        {
+          colorKey: 'blue',
+          kind: 'class' as const,
+          label: 'Popping Class 1',
+          className: 'Popping Class 1',
+          time: '20:00 - 21:30',
+          instructorName: 'Carmen Loh'
+        }
+      ]
+    };
+
+    render(
+      <MonthCalendar
+        month="2026-10"
+        onMonthChange={vi.fn()}
+        marks={marks}
+      />
+    );
+
+    const dayBtn = screen.getByRole('button', { name: /Thu 15 Oct.*Popping Class 1/i });
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+
+    // Hover over the day tile
+    fireEvent.mouseEnter(dayBtn);
+
+    const tooltip = screen.getByRole('tooltip');
+    expect(tooltip).toBeInTheDocument();
+    expect(tooltip).toHaveTextContent('Popping Class 1');
+    expect(tooltip).toHaveTextContent('20:00 - 21:30');
+    expect(tooltip).toHaveTextContent('Carmen Loh');
+
+    // Mouse leave removes tooltip
+    fireEvent.mouseLeave(dayBtn);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
 });

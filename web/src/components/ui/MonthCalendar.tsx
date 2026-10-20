@@ -8,6 +8,9 @@ export interface CalendarMark {
   colorKey: string;
   kind: 'present' | 'absent' | 'upcoming' | 'class';
   label?: string;
+  className?: string;
+  time?: string;
+  instructorName?: string;
 }
 
 export interface MonthCalendarProps {
@@ -37,6 +40,7 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
   onSelect,
   action
 }) => {
+  const [hoveredDate, setHoveredDate] = React.useState<ISODate | null>(null);
   const grid = monthGrid(month);
   const today = todayKL();
   const [yearStr, monthStr] = month.split('-');
@@ -149,12 +153,15 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
 
       {/* Calendar Grid Days */}
       <div className="grid grid-cols-7 gap-1 md:gap-2">
-        {grid.flat().map((dateStr) => {
+        {grid.flat().map((dateStr, index) => {
           const isCurrentMonth = dateStr.startsWith(month);
           const isSelected = dateStr === selected;
           const isToday = dateStr === today;
           const dayNum = parseInt(dateStr.split('-')[2], 10);
           const dayMarks = marks[dateStr] || [];
+          const isHovered = hoveredDate === dateStr;
+          const colIndex = index % 7;
+          const rowIndex = Math.floor(index / 7);
 
           const markLabels = dayMarks
             .map((m) => m.label || m.kind)
@@ -164,54 +171,100 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
           }`;
 
           return (
-            <button
-              key={dateStr}
-              type="button"
-              data-date={dateStr}
-              aria-label={ariaLabel}
-              onClick={() => onSelect?.(dateStr)}
-              onKeyDown={(e) => handleKeyDown(e, dateStr)}
-              aria-pressed={isSelected}
-              data-today={isToday || undefined}
-              style={isToday ? ({ '--glow': 'var(--neon-cyan)' } as React.CSSProperties) : undefined}
-              className={`px-well min-h-[44px] min-w-[44px] p-1 flex flex-col justify-between items-center transition-none font-display text-[10px] md:text-[12px] cursor-pointer focus:outline-none ${
-                isToday ? 'px-neon' : ''
-              } ${
-                isSelected
-                  ? // Selected: pink inset frame, pressed down (today keeps its cyan glow around it)
-                    'bg-[var(--violet-2)] border-[var(--neon-pink)] shadow-[inset_0_0_0_2px_var(--neon-pink),inset_3px_3px_0_var(--night-0)] translate-x-[2px] translate-y-[2px]'
-                  : isToday
-                  ? 'border-[var(--neon-cyan)]'
-                  : isCurrentMonth
-                  ? 'hover:bg-[var(--violet-1)] active:translate-y-[2px]'
-                  : 'opacity-30'
-              }`}
-            >
-              {/* Day Number */}
-              <span
-                className={`text-[10px] md:text-[12px] leading-none ${
-                  isCurrentMonth ? 'text-[var(--text-1)]' : 'text-[var(--text-3)]'
+            <div key={dateStr} className="relative">
+              <button
+                type="button"
+                data-date={dateStr}
+                aria-label={ariaLabel}
+                onClick={() => onSelect?.(dateStr)}
+                onKeyDown={(e) => handleKeyDown(e, dateStr)}
+                onMouseEnter={() => setHoveredDate(dateStr)}
+                onMouseLeave={() => setHoveredDate(null)}
+                onFocus={() => setHoveredDate(dateStr)}
+                onBlur={() => setHoveredDate(null)}
+                aria-pressed={isSelected}
+                data-today={isToday || undefined}
+                style={isToday ? ({ '--glow': 'var(--neon-cyan)' } as React.CSSProperties) : undefined}
+                className={`w-full px-well min-h-[44px] min-w-[44px] p-1 flex flex-col justify-between items-center transition-none font-display text-[10px] md:text-[12px] cursor-pointer focus:outline-none ${
+                  isToday ? 'px-neon' : ''
+                } ${
+                  isSelected
+                    ? // Selected: pink inset frame, pressed down (today keeps its cyan glow around it)
+                      'bg-[var(--violet-2)] border-[var(--neon-pink)] shadow-[inset_0_0_0_2px_var(--neon-pink),inset_3px_3px_0_var(--night-0)] translate-x-[2px] translate-y-[2px]'
+                    : isToday
+                    ? 'border-[var(--neon-cyan)]'
+                    : isCurrentMonth
+                    ? 'hover:bg-[var(--violet-1)] active:translate-y-[2px]'
+                    : 'opacity-30'
                 }`}
               >
-                {dayNum}
-              </span>
+                {/* Day Number */}
+                <span
+                  className={`text-[10px] md:text-[12px] leading-none ${
+                    isCurrentMonth ? 'text-[var(--text-1)]' : 'text-[var(--text-3)]'
+                  }`}
+                >
+                  {dayNum}
+                </span>
 
-              {/* Coloured Markers (up to 4 square dots) */}
-              <div className="flex gap-1 flex-wrap justify-center w-full min-h-[6px]">
-                {dayMarks.slice(0, 4).map((m, idx) => {
-                  const colorVar = getStyleColor(m.colorKey);
-                  return (
-                    <span
-                      key={idx}
-                      data-marker="true"
-                      style={{ backgroundColor: colorVar }}
-                      className="w-1.5 h-1.5 inline-block border border-[var(--outline)] flex-shrink-0"
-                      title={m.label || m.kind}
-                    />
-                  );
-                })}
-              </div>
-            </button>
+                {/* Coloured Markers (up to 4 square dots) */}
+                <div className="flex gap-1 flex-wrap justify-center w-full min-h-[6px]">
+                  {dayMarks.slice(0, 4).map((m, idx) => {
+                    const colorVar = getStyleColor(m.colorKey);
+                    return (
+                      <span
+                        key={idx}
+                        data-marker="true"
+                        style={{ backgroundColor: colorVar }}
+                        className="w-1.5 h-1.5 inline-block border border-[var(--outline)] flex-shrink-0"
+                        title={m.label || m.kind}
+                      />
+                    );
+                  })}
+                </div>
+              </button>
+
+              {/* Hover Tooltip showing class name, time, and instructor */}
+              {isHovered && dayMarks.length > 0 && (
+                <div
+                  role="tooltip"
+                  className={`absolute z-50 pointer-events-none min-w-[170px] max-w-[240px] p-2 bg-[var(--night-2)] border-2 border-[var(--neon-cyan)] shadow-[3px_3px_0_var(--outline)] text-left ${
+                    colIndex === 0
+                      ? 'left-0'
+                      : colIndex === 6
+                      ? 'right-0'
+                      : 'left-1/2 -translate-x-1/2'
+                  } ${
+                    rowIndex < 2
+                      ? 'top-[calc(100%+6px)]'
+                      : 'bottom-[calc(100%+6px)]'
+                  }`}
+                >
+                  <div className="font-display text-[9px] text-[var(--neon-gold)] tracking-wider border-b border-[var(--outline)] pb-1 mb-1.5 uppercase font-bold">
+                    {formatDayLabel(dateStr)}
+                  </div>
+                  <div className="space-y-1.5">
+                    {dayMarks.map((m, mIdx) => (
+                      <div key={mIdx} className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1.5 font-bold text-xs text-[var(--text-1)]">
+                          <span
+                            className="w-2 h-2 inline-block border border-[var(--outline)] shrink-0"
+                            style={{ backgroundColor: getStyleColor(m.colorKey) }}
+                          />
+                          <span className="truncate">{m.className || m.label || 'Dance Class'}</span>
+                        </div>
+                        {(m.time || m.instructorName) && (
+                          <div className="text-[10px] text-[var(--text-2)] font-mono pl-3.5 flex flex-col gap-0.5">
+                            {m.time && <span>⏰ {m.time}</span>}
+                            {m.instructorName && <span>👤 {m.instructorName}</span>}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
