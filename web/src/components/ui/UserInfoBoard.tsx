@@ -148,21 +148,21 @@ export const UserInfoBoard: React.FC<UserInfoBoardProps> = ({
     >
       {/* Board Header & Role Badge */}
       <div className="flex items-center justify-between border-b-2 border-[var(--outline)] pb-2">
-        <span className="font-display text-[10px] text-[var(--text-2)] tracking-wider uppercase">
+        <span className="font-display text-[11px] text-[var(--text-2)] tracking-wider uppercase">
           PLAYER PROFILE
         </span>
         <span
           data-testid="user-role-badge"
-          className={`font-display text-[10px] uppercase px-2 py-0.5 border-2 border-[var(--outline)] flex items-center gap-1.5 ${
+          className={`font-display text-[11px] uppercase px-2 py-0.5 border-2 border-[var(--outline)] flex items-center gap-1.5 ${
             isAdmin
               ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold'
               : 'bg-[var(--violet-2)] text-[var(--neon-cyan)] font-bold'
           }`}
         >
           {isAdmin ? (
-            <AdminCrownIcon className="w-3 h-3" />
+            <AdminCrownIcon className="w-3.5 h-3.5" />
           ) : (
-            <DancerFigureIcon className="w-3 h-3" />
+            <DancerFigureIcon className="w-3.5 h-3.5" />
           )}
           <span>{isAdmin ? 'ADMIN' : 'DANCER'}</span>
         </span>
@@ -171,7 +171,7 @@ export const UserInfoBoard: React.FC<UserInfoBoardProps> = ({
       {/* User Information Details */}
       <div className="space-y-1.5 font-display text-xs">
         <div className="flex items-start gap-2">
-          <span className="text-[var(--text-2)] text-[10px] w-[88px] shrink-0 whitespace-nowrap uppercase pt-0.5">
+          <span className="text-[var(--text-2)] text-[11px] w-[88px] shrink-0 whitespace-nowrap uppercase pt-0.5">
             USER:
           </span>
           <span
@@ -184,12 +184,12 @@ export const UserInfoBoard: React.FC<UserInfoBoardProps> = ({
         </div>
 
         <div className="flex items-start gap-2">
-          <span className="text-[var(--text-2)] text-[10px] w-[88px] shrink-0 whitespace-nowrap uppercase pt-0.5">
+          <span className="text-[var(--text-2)] text-[11px] w-[88px] shrink-0 whitespace-nowrap uppercase pt-0.5">
             MATRIKS:
           </span>
           <span
             data-testid="user-matriks-display"
-            className="text-[var(--neon-cyan)] font-mono text-sm font-bold tracking-wider min-w-0 break-all"
+            className="text-[var(--neon-cyan)] font-mono text-base font-bold tracking-wider min-w-0 break-all"
           >
             {matriksNumber}
           </span>

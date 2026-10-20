@@ -47,7 +47,7 @@ export const TabBar: React.FC<TabBarProps> = ({ tabs, moreItems }) => {
                 to={sub.path}
                 onClick={() => setIsMoreOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center gap-2 p-2.5 min-h-[48px] px-panel font-display text-[10px] uppercase select-none cursor-pointer ${
+                  `flex items-center gap-2 p-2.5 min-h-[48px] px-panel font-display text-[12px] uppercase select-none cursor-pointer ${
                     isActive
                       ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold'
                       : 'text-[var(--text-1)] hover:bg-[var(--violet-2)]'
@@ -88,7 +88,7 @@ export const TabBar: React.FC<TabBarProps> = ({ tabs, moreItems }) => {
                 <div className="w-6 h-6 flex items-center justify-center relative">
                   {tab.icon}
                 </div>
-                <span className="font-display text-[10px] uppercase tracking-tight truncate max-w-full text-center px-0.5 flex items-center gap-0.5">
+                <span className="font-display text-[11px] uppercase tracking-tight truncate max-w-full text-center px-0.5 flex items-center gap-0.5">
                   {tab.label} {isMoreOpen ? '▲' : '▼'}
                 </span>
               </button>
@@ -110,12 +110,12 @@ export const TabBar: React.FC<TabBarProps> = ({ tabs, moreItems }) => {
               <div className="w-6 h-6 flex items-center justify-center relative">
                 {tab.icon}
                 {tab.badge !== undefined && (
-                  <span className="absolute -top-1 -right-2 min-w-[16px] bg-[var(--neon-red)] text-[var(--on-neon)] font-display text-[10px] px-1 border border-[var(--outline)] text-center">
+                  <span className="absolute -top-1 -right-2 min-w-[16px] bg-[var(--neon-red)] text-[var(--on-neon)] font-display text-[11px] px-1 border border-[var(--outline)] text-center">
                     {tab.badge}
                   </span>
                 )}
               </div>
-              <span className="font-display text-[10px] uppercase tracking-tight truncate max-w-full text-center px-0.5">
+              <span className="font-display text-[11px] uppercase tracking-tight truncate max-w-full text-center px-0.5">
                 {tab.label}
               </span>
             </NavLink>
