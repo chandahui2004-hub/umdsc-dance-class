@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useCurrentEvent } from '../../features/events/useCurrentEvent';
+import { PixelDropdown, PixelDropdownOption } from './PixelDropdown';
 
 interface StepPanelProps {
   numeral: 'I' | 'II';
@@ -77,35 +78,26 @@ export const EventStep: React.FC<{ allowAll?: boolean }> = ({ allowAll = false }
   const active = events.filter(e => e.status === 'active');
   const archived = events.filter(e => e.status === 'archived');
 
+  const options: PixelDropdownOption[] = [
+    { value: 'ALL', label: allowAll ? 'ALL EVENTS' : '— Choose an event —' },
+    ...active.map(e => ({ value: e.id, label: e.name })),
+    ...archived.map(e => ({ value: e.id, label: `[Archived] ${e.name}`, hint: 'Archived event' }))
+  ];
+
   return (
     <StepPanel numeral="I" title="CHOOSE EVENT" highlight={!chosen && !allowAll}>
-      <select
-        aria-label="Current event"
-        value={isAll ? 'ALL' : current?.id || ''}
-        onChange={e => setCurrentId(e.target.value)}
-        className="w-full min-h-[48px] px-3 px-well font-body text-[18px] text-[var(--text-1)]"
-      >
-        <option value="ALL">{allowAll ? 'ALL EVENTS' : '— Choose an event —'}</option>
-        {active.map(e => (
-          <option key={e.id} value={e.id}>
-            {e.name}
-          </option>
-        ))}
-        {archived.length > 0 && (
-          <optgroup label="── Archived ──">
-            {archived.map(e => (
-              <option key={e.id} value={e.id}>
-                {e.name}
-              </option>
-            ))}
-          </optgroup>
-        )}
-      </select>
+      <PixelDropdown
+        ariaLabel="Current event"
+        options={options}
+        value={isAll ? 'ALL' : current?.id || 'ALL'}
+        onChange={val => setCurrentId(val)}
+        maxVisibleItems={5}
+      />
     </StepPanel>
   );
 };
 
-/** Step II: dance style buttons. Greyed out until an event is chosen. */
+/** Step II: dance style dropdown. Greyed out until an event is chosen. */
 export const StyleStep: React.FC<{
   styles: { id: string; name: string }[];
   value: string;
@@ -113,32 +105,29 @@ export const StyleStep: React.FC<{
   disabled?: boolean;
   /** Extra choice before the styles, e.g. ALL on the Dancers page. */
   allOption?: string;
-  /** Shown under the buttons, e.g. a missing-folder warning. */
+  /** Shown under the dropdown, e.g. a missing-folder warning. */
   note?: React.ReactNode;
 }> = ({ styles, value, onChange, disabled, allOption, note }) => {
   const options = allOption ? [{ id: 'all', name: allOption }, ...styles] : styles;
+  const dropdownOptions: PixelDropdownOption[] = options.map(s => ({
+    value: s.id,
+    label: s.name
+  }));
+
   return (
     <StepPanel numeral="II" title="CHOOSE DANCE STYLE" disabled={disabled} disabledNote="Choose an event first.">
       {options.length === 0 ? (
         <p className="font-body text-[16px] text-[var(--text-2)]">No dance styles in this event yet.</p>
       ) : (
-        <div className="flex gap-2 overflow-x-auto pixel-scrollbar pb-1">
-          {options.map(s => (
-            <button
-              key={s.id}
-              type="button"
-              aria-pressed={value === s.id}
-              onClick={() => onChange(s.id)}
-              className={`min-h-[44px] px-3 border-2 border-[var(--outline)] font-display text-[12px] cursor-pointer select-none whitespace-nowrap transition-none ${
-                value === s.id
-                  ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--outline)]'
-                  : 'px-well text-[var(--text-1)] hover:bg-[var(--violet-2)]'
-              }`}
-            >
-              {s.name}
-            </button>
-          ))}
-        </div>
+        <PixelDropdown
+          ariaLabel="Choose dance style"
+          placeholder="— Choose a dance style —"
+          options={dropdownOptions}
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          maxVisibleItems={5}
+        />
       )}
       {note}
     </StepPanel>
