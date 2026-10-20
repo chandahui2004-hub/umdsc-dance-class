@@ -66,7 +66,7 @@ export const AdminEmailManager: React.FC<AdminEmailManagerProps> = ({
     <div className="space-y-4">
       {/* Add New Email Bar */}
       <form onSubmit={handleAdd} className="p-3 bg-[var(--night-1)] border-2 border-[var(--outline)] space-y-2">
-        <label htmlFor="add-admin-email" className="font-display text-[10px] uppercase text-[var(--neon-cyan)] tracking-wider block font-bold">
+        <label htmlFor="add-admin-email" className="font-display text-[11px] uppercase text-[var(--neon-cyan)] tracking-wider block font-bold">
           ADD NOTIFICATION EMAIL
         </label>
         <div className="flex flex-col sm:flex-row gap-2">
@@ -94,7 +94,7 @@ export const AdminEmailManager: React.FC<AdminEmailManagerProps> = ({
 
       {/* Header and Count */}
       <div className="flex items-center justify-between pt-1">
-        <span className="font-display text-[10px] text-[var(--neon-gold)] tracking-wider uppercase font-bold">
+        <span className="font-display text-[11px] text-[var(--neon-gold)] tracking-wider uppercase font-bold">
           CURRENTLY SAVED ALERT RECIPIENTS:
         </span>
         <span className="font-mono text-xs text-[var(--text-3)]">
@@ -187,7 +187,7 @@ export const AdminEmailManager: React.FC<AdminEmailManagerProps> = ({
             <span className="font-mono text-sm sm:text-base text-[var(--text-1)] truncate">
               {clubEmail}
             </span>
-            <span className="text-[10px] font-display uppercase tracking-wider text-[var(--neon-gold)] border border-[var(--neon-gold)] px-1.5 py-0.5">
+            <span className="text-[11px] font-display uppercase tracking-wider text-[var(--neon-gold)] border border-[var(--neon-gold)] px-1.5 py-0.5 font-bold">
               Club Default
             </span>
           </div>

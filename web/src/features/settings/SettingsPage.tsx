@@ -143,11 +143,11 @@ const StyleVideoFolderRow: React.FC<{ style: DanceStyle }> = ({ style }) => {
                 <div className="space-y-1 min-w-0">
                   <div className="flex items-center gap-2">
                     {isActive ? (
-                      <span className="font-display text-[10px] px-1.5 py-0.5 bg-[var(--neon-green)] text-[var(--on-neon)] border border-[var(--outline)] font-bold">
+                      <span className="font-display text-[11px] px-1.5 py-0.5 bg-[var(--neon-green)] text-[var(--on-neon)] border border-[var(--outline)] font-bold">
                         ● ACTIVE
                       </span>
                     ) : (
-                      <span className="font-display text-[10px] px-1.5 py-0.5 bg-[var(--night-1)] text-[var(--text-2)] border border-[var(--outline)] font-bold">
+                      <span className="font-display text-[11px] px-1.5 py-0.5 bg-[var(--night-1)] text-[var(--text-2)] border border-[var(--outline)] font-bold">
                         INACTIVE
                       </span>
                     )}
@@ -325,18 +325,22 @@ export const SettingsPage: React.FC = () => {
       <ResetTestDataPanel />
       <RetentionPanel />
 
-      {/* Permissions & Service Account Banner */}
-      <div className="bg-[var(--violet-2)] border-2 border-[var(--outline)] p-4 shadow-[2px_2px_0_var(--outline)] space-y-2">
-        <h3 className="font-display text-xs text-[var(--neon-gold)] uppercase font-bold">
-          GOOGLE DRIVE ACCESS REQUIREMENT
-        </h3>
-        <p className="font-body text-base text-[var(--text-2)]">
-          Every Google Drive folder or spreadsheet used by this system must be shared with{' '}
-          <strong className="font-mono text-sm text-[var(--neon-gold)] bg-[var(--night-1)] px-2 py-0.5 border border-[var(--outline)]">
+      {/* Permissions Banner */}
+      <div className="bg-[var(--violet-2)] border-2 border-[var(--outline)] p-3 shadow-[2px_2px_0_var(--outline)] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="font-display text-[11px] text-[var(--neon-gold)] uppercase font-bold tracking-wider">
+            DRIVE ACCESS:
+          </span>
+          <span className="font-body text-sm text-[var(--text-2)]">
+            Share all folders & sheets with
+          </span>
+          <strong className="font-mono text-sm text-[var(--neon-gold)] bg-[var(--night-1)] px-1.5 py-0.5 border border-[var(--outline)]">
             {clubEmail}
-          </strong>{' '}
-          as <strong className="text-[var(--text-1)]">Editor</strong> before setting the link.
-        </p>
+          </strong>
+        </div>
+        <span className="font-display text-[11px] px-2 py-0.5 bg-[var(--neon-gold)] text-[var(--on-neon)] border border-[var(--outline)] font-bold self-start sm:self-auto">
+          EDITOR REQUIRED
+        </span>
       </div>
 
       {loadingSettings ? (
@@ -348,7 +352,7 @@ export const SettingsPage: React.FC = () => {
           {/* Admin Notification Emails Panel */}
           <Panel title="ADMIN NOTIFICATION EMAILS" className="px-corners bg-[var(--night-2)] space-y-4">
             <p className="font-body text-sm text-[var(--text-2)]">
-              Email addresses that receive system alerts (such as when event slots are full) in addition to the club system Gmail ({clubEmail}).
+              Recipients for slot capacity alerts & system notifications (sent alongside {clubEmail}).
             </p>
 
             {statusMessage?.key === 'adminNotificationEmails' && (
