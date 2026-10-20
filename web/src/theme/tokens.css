@@ -86,7 +86,7 @@
   --font-display: 'Press Start 2P', monospace;
   --font-body: 'Pixelify Sans', sans-serif;
   --font-mono: 'VT323', monospace;
-  --min-font-size: 8px;
+  --min-font-size: 11px;
 
   /* Retro Borders & Shadows */
   --border-width: 4px;
@@ -98,7 +98,7 @@
 }
 
 @theme {
-  --text-micro: 8px;
+  --text-micro: 11px;
 
   --color-night-1: var(--night-1);
   --color-violet-1: var(--violet-1);

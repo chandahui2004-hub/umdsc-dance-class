@@ -105,6 +105,21 @@
 
 .px-paused * { animation-play-state: paused !important; }
 
+/* Mobile Performance Optimizations (60fps Touch Scrolling) */
+@media (max-width: 768px) {
+  .px-starfield {
+    animation: none !important;
+  }
+  .px-twinkle,
+  .px-drift-far,
+  .px-drift-mid {
+    animation: none !important;
+  }
+  .px-scanlines::after {
+    display: none !important;
+  }
+}
+
 /* Global 8-bit Focus Ring (spec §8) */
 :focus-visible {
   outline: 2px solid var(--neon-cyan) !important;
@@ -185,6 +200,8 @@ body, table, th, td, button, input, select, textarea, p, span, h1, h2, h3, h4, h
 .pixel-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: var(--violet-3) var(--night-1);
+  -webkit-overflow-scrolling: touch;
+  transform: translateZ(0);
 }
 
 /* Custom well focus-visible glow (spec §8) */
