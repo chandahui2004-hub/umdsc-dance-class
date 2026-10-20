@@ -31,21 +31,21 @@
 **Interfaces:**
 - Produces: Smooth 60fps scrolling on mobile devices without continuous CPU/GPU composition lag from repeating starfield drift or scanline gradients.
 
-- [ ] **Step 1: Inspect and update `pixel.css` for mobile responsiveness**
+- [x] **Step 1: Inspect and update `pixel.css` for mobile responsiveness**
   - Add `@media (max-width: 768px)` rule for `.px-starfield`:
     - Disable `animation: px-drift-far` and `animation: px-twinkle` on mobile; keep the crisp static pixel starfield pattern.
     - Set `.px-scanlines::after` opacity to `0` or disable on mobile touch viewports to eliminate screen-wide repaints during touch scroll.
   - In `.pixel-scrollbar`: add `transform: translateZ(0)` and `will-change: scroll-position` for hardware-accelerated inertia scrolling.
 
-- [ ] **Step 2: Verify `tokens.css` minimum font and text micro scale**
+- [x] **Step 2: Verify `tokens.css` minimum font and text micro scale**
   - Change `--min-font-size: 8px;` to `--min-font-size: 11px;`.
   - Update `--text-micro: 8px;` in `@theme` to `--text-micro: 11px;`.
 
-- [ ] **Step 3: Run build and tests to verify syntax and theme consistency**
+- [x] **Step 3: Run build and tests to verify syntax and theme consistency**
   - Run: `npm --workspace=@umdsc/web run build`
   - Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   ```bash
   git add web/src/theme/pixel.css web/src/theme/tokens.css
   git commit -m "perf(web): throttle mobile starfield animations and update font floor token"
@@ -66,26 +66,26 @@
 **Interfaces:**
 - Produces: Mobile bottom tabs, role badges, header username button, and more sheet items enlarged to `text-[11px]` and `text-[12px]`, dramatically improving readability on small phone displays.
 
-- [ ] **Step 1: Enlarge fonts in `TabBar.tsx`**
+- [x] **Step 1: Enlarge fonts in `TabBar.tsx`**
   - Bottom dock tab labels: `text-[10px]` → `text-[11px] font-display tracking-tight`.
   - More sheet navigation items: `text-[10px]` → `text-[12px] font-display`.
 
-- [ ] **Step 2: Enlarge fonts and clean up top bar in `PhoneShell.tsx`**
+- [x] **Step 2: Enlarge fonts and clean up top bar in `PhoneShell.tsx`**
   - Role badge (`ADMIN` / `DANCER`): `text-[10px]` → `text-[11px] font-display font-bold`.
   - Username toggle button: `text-[10px]` → `text-[11px] font-display`.
   - Nav toggle button (`HIDE NAV` / `SHOW NAV`): `text-[10px]` → `text-[11px] font-display`.
   - Skyline strip: clean padding and alignment.
 
-- [ ] **Step 3: Enlarge fonts and simplify `UserInfoBoard.tsx`**
+- [x] **Step 3: Enlarge fonts and simplify `UserInfoBoard.tsx`**
   - Header label: `text-[10px]` → `text-[12px] font-display`.
   - User role badge: `text-[10px]` → `text-[12px] font-display`.
   - Matriks number & username: `text-sm font-mono` → `text-base font-mono` (16px).
 
-- [ ] **Step 4: Run unit tests to verify no regressions**
+- [x] **Step 4: Run unit tests to verify no regressions**
   - Run: `npm --workspace=@umdsc/web test TabBar UserInfoBoard`
   - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   ```bash
   git add web/src/components/ui/TabBar.tsx web/src/app/PhoneShell.tsx web/src/components/ui/UserInfoBoard.tsx
   git commit -m "style(ui): enlarge mobile nav tabs and shell typography to 11px-12px minimum"
@@ -105,22 +105,22 @@
 **Interfaces:**
 - Produces: Highly visible weekday labels, date digits, hover tooltip text, and DaySheet class cards.
 
-- [ ] **Step 1: Enlarge fonts in `MonthCalendar.tsx`**
+- [x] **Step 1: Enlarge fonts in `MonthCalendar.tsx`**
   - Weekday labels: `text-[10px]` → `text-[11px] md:text-[12px] font-display font-bold`.
   - Calendar day digits: `text-[10px] md:text-[12px]` → `text-[12px] md:text-[14px] font-display font-bold`.
   - Hover tooltip date title: `text-[9px]` → `text-[11px] font-display font-bold text-[var(--neon-gold)]`.
   - Hover tooltip time and instructor: `text-[10px]` → `text-[13px] font-mono`.
 
-- [ ] **Step 2: Enlarge fonts and streamline headers in `DaySheet.tsx`**
+- [x] **Step 2: Enlarge fonts and streamline headers in `DaySheet.tsx`**
   - Class title: `text-base` (16px) `font-display`.
   - Venue, instructor, and time: `text-[12px]` → `text-[14px] font-mono` with clear icons.
   - Streamline subtitle from generic text to formatted date & class count badge.
 
-- [ ] **Step 3: Run tests to verify MonthCalendar**
+- [x] **Step 3: Run tests to verify MonthCalendar**
   - Run: `npm --workspace=@umdsc/web test MonthCalendar`
   - Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   ```bash
   git add web/src/components/ui/MonthCalendar.tsx web/src/features/calendar/DaySheet.tsx
   git commit -m "style(calendar): enlarge date digits, weekday labels, and tooltip typography"
@@ -140,21 +140,21 @@
 **Interfaces:**
 - Produces: Clean, uncluttered Settings page with concise 1-line guidance, retro status chips instead of long paragraphs, and enlarged button labels.
 
-- [ ] **Step 1: Streamline copy in `SettingsPage.tsx`**
+- [x] **Step 1: Streamline copy in `SettingsPage.tsx`**
   - Replace verbose intro paragraphs with compact status badges (`LIVE ALERTS ACTIVE`, `GMAIL CONNECTED`).
   - Shorten field descriptions from 2-3 sentences to crisp single-line instructions.
   - Enlarge history status badges and retention notes to `text-[11px]` minimum.
 
-- [ ] **Step 2: Enlarge button & badge text in `AdminEmailManager.tsx`**
+- [x] **Step 2: Enlarge button & badge text in `AdminEmailManager.tsx`**
   - `ADD NOTIFICATION EMAIL` label: `text-[10px]` → `text-[11px] font-display font-bold`.
   - Card action buttons (`EDIT`, `DELETE`): `text-[10px]` → `text-[11px] font-display`.
   - Email address: `text-sm font-mono` → `text-base font-mono` (16px).
 
-- [ ] **Step 3: Run tests to verify AdminEmailManager**
+- [x] **Step 3: Run tests to verify AdminEmailManager**
   - Run: `npm --workspace=@umdsc/web test AdminEmailManager`
   - Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   ```bash
   git add web/src/features/settings/SettingsPage.tsx web/src/features/settings/AdminEmailManager.tsx
   git commit -m "style(settings): streamline verbose copy and enlarge email management typography"
@@ -173,19 +173,19 @@
 **Interfaces:**
 - Produces: Concise Event Cards with compact badges instead of verbose text strings (`[SPREADSHEET ↗]`, `[SYNCED: 20 Oct 08:30]`).
 
-- [ ] **Step 1: Streamline text and badges in `EventCard.tsx`**
+- [x] **Step 1: Streamline text and badges in `EventCard.tsx`**
   - Change `"Form: open response sheet ↗"` to a compact pixel button/badge `[SPREADSHEET ↗]`.
   - Format last sync as a concise chip `SYNCED: {date}`.
   - Streamline slot badges: ensure slots and availability use `text-[12px] font-mono`.
 
-- [ ] **Step 2: Streamline `FolderLinksHeader.tsx`**
+- [x] **Step 2: Streamline `FolderLinksHeader.tsx`**
   - Remove redundant instructional text; provide concise action links with clear retro folder icons.
 
-- [ ] **Step 3: Run web tests**
+- [x] **Step 3: Run web tests**
   - Run: `npm --workspace=@umdsc/web test`
   - Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   ```bash
   git add web/src/features/events/EventCard.tsx web/src/features/events/FolderLinksHeader.tsx
   git commit -m "style(events): streamline event card text with compact retro badges"
@@ -205,19 +205,19 @@
 **Interfaces:**
 - Produces: Concise Studio controls with clear, enlarged labels (`text-[11px]` font-display and `text-[13px]` font-mono), removing cramped or cut-off text.
 
-- [ ] **Step 1: Enlarge and shorten timeline controls in `VideoTimeline.tsx`**
+- [x] **Step 1: Enlarge and shorten timeline controls in `VideoTimeline.tsx`**
   - Shorten `"DRAG ⚑ TO ALIGN VIDEO START"` → `"ALIGN VIDEO ⚑"` with `text-[11px] font-display font-bold`.
   - Enlarge flag time badge from `text-[10px]` to `text-[12px] font-mono`.
 
-- [ ] **Step 2: Enlarge loop marker tags and control labels in `FullscreenStudio.tsx`**
+- [x] **Step 2: Enlarge loop marker tags and control labels in `FullscreenStudio.tsx`**
   - Enlarge buttons and status indicators from `text-[10px]` to `text-[11px] font-display`.
   - Ensure all loop time markers use `text-[13px] font-mono`.
 
-- [ ] **Step 3: Run studio tests**
+- [x] **Step 3: Run studio tests**
   - Run: `npm --workspace=@umdsc/web test FullscreenStudio VideoTimeline`
   - Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   ```bash
   git add web/src/features/music-studio/FullscreenStudio.tsx web/src/features/music-studio/sync/VideoPanel.tsx web/src/features/music-studio/sync/VideoTimeline.tsx
   git commit -m "style(studio): enlarge control typography and streamline video timeline labels"
@@ -235,18 +235,18 @@
 - Production build (`npm run build`)
 - Git push to `origin/main`
 
-- [ ] **Step 1: Run full test suite**
+- [x] **Step 1: Run full test suite**
   - Run: `npm test`
   - Expected: PASS (840+ tests pass).
 
-- [ ] **Step 2: Run Playwright mobile layout tests**
+- [x] **Step 2: Run Playwright mobile layout tests**
   - Run: `npm --workspace=@umdsc/web run e2e -- phone-layout.spec.ts`
   - Expected: PASS (all 12 mobile checks pass at 360px and 390px).
 
-- [ ] **Step 3: Run production build**
+- [x] **Step 3: Run production build**
   - Run: `npm run build`
   - Expected: PASS.
 
-- [ ] **Step 4: Push to origin/main**
+- [x] **Step 4: Push to origin/main**
   - Run: `git push origin main`
   - Expected: Published cleanly to Cloudflare.
