@@ -8,6 +8,7 @@ import { PixelButton } from '../../components/ui/PixelButton';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { EventStep } from '../../components/ui/EventStyleSteps';
+import { SideDrawer } from '../../components/ui/SideDrawer';
 import { SessionEditor } from './SessionEditor';
 import { AddClassDialog } from './AddClassDialog';
 import { ClassCard } from '../calendar/ClassCard';
@@ -23,6 +24,7 @@ export const ClassesPage: React.FC = () => {
 
   const [currentMonth, setCurrentMonth] = useState<Month>(todayKL().slice(0, 7));
   const [selectedDate, setSelectedDate] = useState<ISODate>(todayKL());
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<ClassSession | null>(null);
   const [showAddClass, setShowAddClass] = useState(false);
 
@@ -226,7 +228,10 @@ export const ClassesPage: React.FC = () => {
         onMonthChange={setCurrentMonth}
         marks={calendarMarks}
         selected={selectedDate}
-        onSelect={setSelectedDate}
+        onSelect={(date) => {
+          setSelectedDate(date);
+          setDrawerOpen(true);
+        }}
         action={
           activeEvents.length > 0 ? (
             <PixelButton size="sm" variant="primary" onClick={() => setShowAddClass(true)}>
@@ -235,6 +240,57 @@ export const ClassesPage: React.FC = () => {
           ) : undefined
         }
       />
+
+      {/* Slide-in Right Side Drawer for Selected Date Classes */}
+      <SideDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        title={formatDayLabel(selectedDate).toUpperCase()}
+        subtitle={`${activeSessions.filter(s => s.date === selectedDate).length} class(es) scheduled`}
+      >
+        {(() => {
+          const dateSessions = activeSessions.filter(s => s.date === selectedDate);
+          const visibleDateSessions = isFiltered ? dateSessions.filter(matchesFilter) : dateSessions;
+          if (visibleDateSessions.length === 0) {
+            return (
+              <div className="p-6 text-center px-well space-y-2">
+                <p className="font-display text-[12px] text-[var(--text-2)]">
+                  NO CLASSES ON THIS DATE
+                </p>
+                <p className="font-body text-[14px] text-[var(--text-3)]">
+                  {dateSessions.length > 0
+                    ? `${dateSessions.length} other class(es) filtered out.`
+                    : 'Click another highlighted day on the calendar to view its schedule.'}
+                </p>
+              </div>
+            );
+          }
+          return (
+            <div className="space-y-4">
+              {visibleDateSessions.map(s => {
+                const style = getStyle(s.styleId);
+                return (
+                  <ClassCard
+                    key={s.id}
+                    session={s}
+                    style={style}
+                    instructor={resolveInstructor(s, style, instructors)}
+                    videos={dayVideos.filter(v => v.sessionId === s.id)}
+                    music={dayMusic.filter(m => m.sessionId === s.id)}
+                    eventName={isAll ? getEvent(s.eventId)?.name : undefined}
+                    showAttendance={false}
+                    action={
+                      <PixelButton size="sm" variant="secondary" onClick={() => { setDrawerOpen(false); setEditingSession(s); }}>
+                        ✎ EDIT CLASS
+                      </PixelButton>
+                    }
+                  />
+                );
+              })}
+            </div>
+          );
+        })()}
+      </SideDrawer>
 
       {/* Instructor Legend */}
       {instructors.length > 0 && (

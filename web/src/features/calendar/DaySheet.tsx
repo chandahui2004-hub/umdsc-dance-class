@@ -1,10 +1,9 @@
 import React from 'react';
 import type { ISODate, ClassSession, DanceStyle, Instructor, VideoItem, MusicItem, EventSummary } from '@umdsc/shared';
-import { Sheet } from '../../components/ui/Sheet';
+import { SideDrawer } from '../../components/ui/SideDrawer';
 import { ClassCard } from './ClassCard';
 import { formatDayLabel } from '../../lib/time';
 import { resolveInstructor } from '../../lib/instructorPhotos';
-import { useOverlayOpen } from '../../app/useOverlayOpen';
 
 export interface DaySheetProps {
   isOpen: boolean;
@@ -33,8 +32,6 @@ export const DaySheet: React.FC<DaySheetProps> = ({
   attendanceLoading = false,
   events = []
 }) => {
-  useOverlayOpen(isOpen && Boolean(date));
-
   if (!date) return null;
 
   const daySessions = sessions
@@ -42,9 +39,15 @@ export const DaySheet: React.FC<DaySheetProps> = ({
     .sort((a, b) => a.start.localeCompare(b.start) || a.seq - b.seq);
 
   const formattedTitle = formatDayLabel(date).toUpperCase();
+  const subtitle = `${daySessions.length} class${daySessions.length === 1 ? '' : 'es'} scheduled`;
 
   return (
-    <Sheet isOpen={isOpen} onClose={onClose} title={formattedTitle}>
+    <SideDrawer
+      isOpen={isOpen}
+      onClose={onClose}
+      title={formattedTitle}
+      subtitle={subtitle}
+    >
       <div className="space-y-4">
         {daySessions.length === 0 ? (
           <div className="p-6 text-center px-well space-y-2">
@@ -80,6 +83,6 @@ export const DaySheet: React.FC<DaySheetProps> = ({
           })
         )}
       </div>
-    </Sheet>
+    </SideDrawer>
   );
 };
