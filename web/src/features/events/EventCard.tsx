@@ -122,7 +122,7 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
               <span>{style?.name || id}</span>
               {slots !== undefined && slots > 0 ? (
                 <span
-                  className={`font-mono text-[11px] border-l border-[var(--outline)] pl-1.5 ${
+                  className={`font-mono text-[13px] border-l border-[var(--outline)] pl-1.5 ${
                     isFull ? 'text-[var(--neon-red)] font-bold' : 'text-[var(--neon-gold)] font-bold'
                   }`}
                   title={`${slots} slots set${avail !== undefined ? ` (${avail} available)` : ''}${isFull ? ' (Capacity Reached)' : ''}`}
@@ -135,33 +135,36 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
         })}
       </div>
 
-      <div className="font-body text-[14px] text-[var(--text-1)] space-y-1">
-        <p>
-          Form:{' '}
+      <div className="space-y-1.5 pt-1">
+        <div className="flex flex-wrap items-center gap-2">
           <a
             href={`https://docs.google.com/spreadsheets/d/${event.sourceSheetId}`}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center min-h-[44px] underline text-[var(--neon-cyan)]"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 min-h-[36px] bg-[var(--night-1)] text-[var(--neon-cyan)] border-2 border-[var(--outline)] hover:border-[var(--neon-cyan)] font-display text-[11px] font-bold shadow-[1px_1px_0_var(--outline)]"
           >
-            open response sheet ↗
+            <span>📊</span>
+            <span>RESPONSE SHEET ↗</span>
           </a>
-        </p>
-        <p>Last sync: {formatKL(event.lastSyncAt)}</p>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 min-h-[36px] bg-[var(--night-1)] text-[var(--text-2)] border-2 border-[var(--outline)] font-mono text-[13px]">
+            <span>🔄</span>
+            <span>SYNCED: {formatKL(event.lastSyncAt)}</span>
+          </span>
+        </div>
         {event.lastSyncError && (
-          <p role="alert" className="font-bold text-[var(--neon-red)]">
+          <p role="alert" className="font-bold text-sm text-[var(--neon-red)]">
             ⚠ {event.lastSyncError}
           </p>
         )}
         {event.folderMissing && (
-          <p className="font-bold text-[var(--neon-red)] flex flex-wrap items-center gap-2">
+          <p className="font-bold text-sm text-[var(--neon-red)] flex flex-wrap items-center gap-2">
             ⚠ Folder missing in Drive.
             <PixelButton size="md" variant="danger" disabled={recreate.isPending} onClick={() => recreate.mutate()}>
               {recreate.isPending ? 'RECREATING…' : 'RECREATE'}
             </PixelButton>
           </p>
         )}
-        {note && <p className="font-bold text-[var(--neon-green)]">{note}</p>}
+        {note && <p className="font-bold text-sm text-[var(--neon-green)]">{note}</p>}
       </div>
 
       <div className="flex flex-wrap gap-2 pt-2 border-t-2 border-[var(--outline)]">
