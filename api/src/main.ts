@@ -32,6 +32,10 @@ export function doGet(e?: GoogleAppsScript.Events.DoGet): GoogleAppsScript.Conte
 
   if (action === 'health') {
     response = { ok: true, data: { version: '0.1.0' } };
+  } else if (action === 'warm') {
+    const { ctx } = buildCtx();
+    const result = warmCaches(ctx);
+    response = { ok: true, data: { warmed: true, result } };
   } else {
     // Google sometimes delivers the website's POST as a GET, so the request never ran. Answer
     // "retry" rather than ok, or the page would take this as the real (empty) answer.

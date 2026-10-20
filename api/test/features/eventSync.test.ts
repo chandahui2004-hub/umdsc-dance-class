@@ -626,5 +626,53 @@ describe('Feature: event auto-sync and sync now', () => {
       expect(member.flags || []).not.toContain('duplicate');
       expect(member.styleNames).toEqual(expect.arrayContaining(['Popping', 'Hip Hop']));
     });
+
+    it('events.sync bumps DATA_VERSION and purges removed members', () => {
+      const sourceId = seedSourceSheet(ctx, [
+        HEADERS,
+        ['2026-10-01', 'Dancer 1', '24001', '', '', 'Popping'],
+        ['2026-10-01', 'Dancer 2', '24002', '', '', 'Popping']
+      ]);
+      const created = call('events.create', {
+        name: 'FREESTYLE TEST',
+        type: 'workshop',
+        startDate: '2026-10-23',
+        endDate: '2026-10-23',
+        sheetUrl: `https://docs.google.com/spreadsheets/d/${sourceId}/edit`,
+        columnMap: { fullName: 1, matric: 2, contact: 3, email: 4, gender: null, nationality: null },
+        classIndex: 5,
+        styleIds: ['st_popping'],
+        sessions: []
+      });
+      const eventId = (created.data as any).event.id;
+      const vBefore = dataVersion();
+
+      // Now remove Dancer 2 from source sheet
+      const tab = sourceTab(sourceId);
+      tab.rows = [tab.rows[0], tab.rows[1]]; // only Dancer 1 left
+
+      // Sync with purge
+      const res = call('events.sync', { id: eventId, force: true, purgeRemoved: true });
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect((res.data as any).purged).toBe(1);
+        expect((res.data as any).memberCount).toBe(1);
+      }
+
+      // DATA_VERSION MUST be bumped
+      expect(dataVersion()).toBeGreaterThan(vBefore);
+
+      // Members list should only have 1 dancer
+      const members = call('members.list', { eventId });
+      expect(members.ok).toBe(true);
+      if (members.ok) {
+        expect((members.data as any[]).length).toBe(1);
+        expect((members.data as any[])[0].fullName).toBe('Dancer 1');
+      }
+
+      // Event memberCount in db must be 1
+      const ev = ctx.db.events.get(eventId)!;
+      expect(ev.memberCount).toBe(1);
+    });
   });
 });

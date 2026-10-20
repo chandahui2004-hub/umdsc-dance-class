@@ -83,11 +83,15 @@ export const MembersPage: React.FC = () => {
             });
           }
         }
-        return Array.from(dedupedMap.values());
+        return Array.from(dedupedMap.values()).filter(
+          (m) => !(m.flags || []).includes('removed-from-form') && !(m.flags || []).includes('removed')
+        );
       }
 
       const res = await call<Member[]>('members.list', { eventId });
-      return (res.data || []).map((m) => ({ ...m, eventIds: [eventId] }));
+      return (res.data || [])
+        .filter((m) => !(m.flags || []).includes('removed-from-form') && !(m.flags || []).includes('removed'))
+        .map((m) => ({ ...m, eventIds: [eventId] }));
     }
   });
 

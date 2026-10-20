@@ -3,6 +3,7 @@ import { AppError } from '../errors';
 import { withScriptLock } from '../db/lock';
 import { readEventMembers } from './eventMembers';
 import { getDancerChunk } from './bootstrap';
+import { importEventMembers, sourceUnchanged } from './eventImport';
 import type { EventItem, Member } from '@umdsc/shared';
 
 export interface WarmResult {
@@ -50,14 +51,32 @@ export function warmCaches(ctx: Ctx): WarmResult {
 
   for (const event of events) {
     try {
-      const members = readEventMembers(ctx, event);
+      if (event.sourceSheetId && !sourceUnchanged(ctx, event)) {
+        try {
+          withScriptLock(ctx.lock, () => {
+            ctx.db.reload();
+            const fresh = ctx.db.events.get(event.id);
+            if (fresh && fresh.active && fresh.status !== 'archived') {
+              const res = importEventMembers(ctx, fresh, { full: true, purgeRemoved: true, force: true });
+              if (res.changed || fresh.memberCount !== res.memberCount) {
+                ctx.props.set('DATA_VERSION', String(Number(ctx.props.get('DATA_VERSION') || 1) + 1));
+              }
+            }
+          }, 10000);
+        } catch {
+          // If lock is held, next warm round picks it up
+        }
+      }
+
+      const freshEvent = ctx.db.events.get(event.id) || event;
+      const members = readEventMembers(ctx, freshEvent);
       try {
-        result.backfilled += withScriptLock(ctx.lock, () => backfillEventStyles(ctx, event, members), 5000);
+        result.backfilled += withScriptLock(ctx.lock, () => backfillEventStyles(ctx, freshEvent, members), 5000);
       } catch (err) {
         // Another request holds the lock: skip the backfill this round, the next run retries.
         if (!(err instanceof AppError && err.code === 'BUSY')) throw err;
       }
-      for (const styleId of event.styleIds) {
+      for (const styleId of freshEvent.styleIds) {
         getDancerChunk(ctx, event.id, styleId, dataVersion);
         result.chunks++;
       }

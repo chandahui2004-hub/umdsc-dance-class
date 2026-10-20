@@ -3,7 +3,7 @@ import { makeCtx } from '../fakes/makeCtx';
 import { FakeDrive } from '../fakes/fakeDrive';
 import { FakeSpreadsheet, FakeSheet } from '../fakes/fakeSheets';
 import { seedEvent, seedSourceSheet } from '../fixtures/events';
-import { importEventMembers } from '../../src/features/eventImport';
+import { importEventMembers, sourceUnchanged } from '../../src/features/eventImport';
 import { readEventMembers } from '../../src/features/eventMembers';
 import { EventItem } from '@umdsc/shared';
 
@@ -348,6 +348,26 @@ describe('importEventMembers', () => {
     // MemberIndex should not have eventId for purged dancers
     const d2 = ctx.db.memberIndex.find(m => m.matricKey === '24002')[0];
     expect(d2?.eventIds || []).not.toContain(event.id);
+  });
+
+  it('sourceUnchanged returns false when source rows are fewer than stored memberCount', () => {
+    const { event, sourceId } = makeEvent([
+      row('Dancer 1', '24001', 'Popping'),
+      row('Dancer 2', '24002', 'Popping'),
+      row('Dancer 3', '24003', 'Popping')
+    ]);
+    const res1 = importEventMembers(ctx, event, { full: true });
+    expect(res1.memberCount).toBe(3);
+
+    const ev = fresh(event);
+    expect(ev.memberCount).toBe(3);
+
+    // Now remove 2 dancers from source
+    const src = source(sourceId);
+    src.rows = [src.rows[0], src.rows[1]]; // 1 dancer + 1 header = 2 rows
+
+    // Even if sourceRowCount was somehow cached at 2, sourceUnchanged sees 2 rows vs 3 memberCount
+    expect(sourceUnchanged(ctx, { ...ev, sourceRowCount: 2, sourceLastRowHash: '' })).toBe(false);
   });
 });
 

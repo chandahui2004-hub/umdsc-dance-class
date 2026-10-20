@@ -15,6 +15,7 @@ export interface ImportResult {
   added: number;
   updated: number;
   flaggedRemoved: number;
+  purged: number;
   /** Dancers whose matric was corrected in the form and who were moved to it. */
   corrected: number;
   memberCount: number;
@@ -106,7 +107,14 @@ export function refreshAttendanceFixedColumns(ctx: Ctx, event: EventItem, change
 export function sourceUnchanged(ctx: Ctx, event: EventItem): boolean {
   const { sheet } = openSourceTab(ctx, event.sourceSheetId, event.sourceTab);
   const data = sheet.getDisplayValues();
-  return data.length === event.sourceRowCount && hashSheet(data) === event.sourceLastRowHash;
+  if (data.length !== event.sourceRowCount || hashSheet(data) !== event.sourceLastRowHash) {
+    return false;
+  }
+  // Re-read if source sheet has fewer responses than stored memberCount (e.g. responses were removed)
+  if (data.length > 1 && event.memberCount > 0 && data.length - 1 < event.memberCount) {
+    return false;
+  }
+  return true;
 }
 
 interface GoneRow {
@@ -297,7 +305,7 @@ export function importEventMembers(
   const lastRow = data.length;
   const hash = hashSheet(data);
   if (!opts.full && lastRow === event.sourceRowCount && hash === event.sourceLastRowHash) {
-    return { changed: false, added: 0, updated: 0, flaggedRemoved: 0, corrected: 0, memberCount: event.memberCount, unknownClasses: [] };
+    return { changed: false, added: 0, updated: 0, flaggedRemoved: 0, purged: 0, corrected: 0, memberCount: event.memberCount, unknownClasses: [] };
   }
 
   const { members, timestampsByMember, unknownClasses } = buildEventMembers(ctx, event, data);
@@ -314,6 +322,7 @@ export function importEventMembers(
 
   let updated = 0;
   let flaggedRemoved = 0;
+  let purged = 0;
   let bodyChanged = false;
   const refreshed = new Map<string, Member>();
   const known = new Set(body.map(row => row[col('memberId')]).filter(Boolean));
@@ -367,6 +376,7 @@ export function importEventMembers(
       }
       if (opts.purgeRemoved) {
         body[i] = MEMBERS_COLUMNS.map(() => '');
+        purged++;
         bodyChanged = true;
         return;
       }
@@ -493,7 +503,7 @@ export function importEventMembers(
     ...(newlyNotified ? { notifiedFullStyles: notifiedList, notifiedFullStylesJson: JSON.stringify(notifiedList) } : {})
   });
 
-  return { changed: true, added: added.length, updated, flaggedRemoved, corrected: corrections.size, memberCount, unknownClasses };
+  return { changed: true, added: added.length, updated, flaggedRemoved, purged, corrected: corrections.size, memberCount, unknownClasses };
 }
 
 /**

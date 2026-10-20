@@ -291,9 +291,11 @@ export function getEventRoutes(): Record<string, Route> {
               ctx.db.reload();
               const fresh = ctx.db.events.get(event.id);
               if (!fresh || !fresh.active || fresh.status !== 'active') return;
-              importEventMembers(ctx, fresh, { full: false });
+              const res = importEventMembers(ctx, fresh, { full: false, purgeRemoved: true });
+              if (res.changed || fresh.memberCount !== res.memberCount) {
+                result.changed.push(event.id);
+              }
             });
-            result.changed.push(event.id);
           } catch (err) {
             if (err instanceof AppError && err.code === 'BUSY') {
               ctx.cache.remove(checkKey);
@@ -322,17 +324,25 @@ export function getEventRoutes(): Record<string, Route> {
         if (pastRetention(event, todayKL(ctx.now()))) {
           throw new AppError('VALIDATION', RETENTION_NO_SYNC);
         }
+        const force = Boolean(payload?.force);
         const forceKey = `sync:force:${event.id}`;
         const recent = ctx.cache.get(forceKey);
-        if (recent !== null) {
+        if (!force && recent !== null) {
           return { ...JSON.parse(recent), message: 'Synced less than a minute ago' };
         }
 
         const purgeRemoved = Boolean(payload?.purgeRemoved);
-        const force = Boolean(payload?.force);
         const result = importEventMembers(ctx, event, { full: true, purgeRemoved, force });
         ctx.cache.put(forceKey, JSON.stringify(result), SYNC_NOW_SECONDS);
-        if (result.added > 0 || result.updated > 0 || result.flaggedRemoved > 0 || result.corrected > 0) {
+        if (
+          result.changed ||
+          result.added > 0 ||
+          result.updated > 0 ||
+          result.flaggedRemoved > 0 ||
+          result.purged > 0 ||
+          result.corrected > 0 ||
+          event.memberCount !== result.memberCount
+        ) {
           ctx.props.set('DATA_VERSION', String(Number(ctx.props.get('DATA_VERSION') || 1) + 1));
         }
         logAudit(ctx, auth?.claims.sub || 'system', 'events.sync', event.id, `+${result.added} ~${result.updated}`);
