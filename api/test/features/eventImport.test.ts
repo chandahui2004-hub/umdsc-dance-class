@@ -324,4 +324,30 @@ describe('importEventMembers', () => {
     expect(recipients).toContain('manager@umdsc.com');
     expect(recipients).toContain('umdancesportc@gmail.com');
   });
+
+  it('purges removed responses when purgeRemoved is true and updates memberCount to active members', () => {
+    const { event, sourceId } = makeEvent([
+      row('Dancer 1', '24001', 'Popping'),
+      row('Dancer 2', '24002', 'Popping'),
+      row('Dancer 3', '24003', 'Popping')
+    ]);
+    importEventMembers(ctx, event, { full: true });
+    expect(fresh(event).memberCount).toBe(3);
+
+    // Source sheet now only has 1 dancer (2 removed)
+    const src = source(sourceId);
+    src.rows = [src.rows[0], src.rows[1]]; // header + Dancer 1
+
+    importEventMembers(ctx, fresh(event), { full: true, purgeRemoved: true });
+
+    const members = readEventMembers(ctx, fresh(event));
+    expect(members.length).toBe(1);
+    expect(members[0].fullName).toBe('Dancer 1');
+    expect(fresh(event).memberCount).toBe(1);
+
+    // MemberIndex should not have eventId for purged dancers
+    const d2 = ctx.db.memberIndex.find(m => m.matricKey === '24002')[0];
+    expect(d2?.eventIds || []).not.toContain(event.id);
+  });
 });
+

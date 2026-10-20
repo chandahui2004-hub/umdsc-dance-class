@@ -287,7 +287,11 @@ export function sendRegistrationConfirmationEmail(ctx: Ctx, event: EventItem, me
  * with no writes when the form's row count and last row are unchanged; `full`
  * (Sync now) always re-reads, which also catches edits to older responses.
  */
-export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boolean }): ImportResult {
+export function importEventMembers(
+  ctx: Ctx,
+  event: EventItem,
+  opts: { full: boolean; purgeRemoved?: boolean; force?: boolean }
+): ImportResult {
   const { tab, sheet: source } = openSourceTab(ctx, event.sourceSheetId, event.sourceTab);
   const data = source.getDisplayValues();
   const lastRow = data.length;
@@ -306,7 +310,7 @@ export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boo
   const existing = membersSheet.getDisplayValues();
   const header = existing[0] || [...MEMBERS_COLUMNS];
   const col = (name: string) => header.indexOf(name);
-  const body = existing.slice(1).map(r => MEMBERS_COLUMNS.map((_, i) => r[i] ?? ''));
+  let body = existing.slice(1).map(r => MEMBERS_COLUMNS.map((_, i) => r[i] ?? ''));
 
   let updated = 0;
   let flaggedRemoved = 0;
@@ -329,9 +333,17 @@ export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boo
     .filter(row => row[col('memberId')])
     .map(row => ({ memberId: row[col('memberId')], sourceTimestamp: row[col('sourceTimestamp')] }));
   const corrections = findCorrections(gone, members, timestampsByMember, known, listed);
-  const correctionsHeld = tooManyCorrections(corrections.size, members.length);
+  const correctionsHeld = !opts.force && !opts.purgeRemoved && tooManyCorrections(corrections.size, members.length);
   if (correctionsHeld) corrections.clear();
   const placed = new Set<string>();
+
+  if (opts.purgeRemoved) {
+    for (const g of gone) {
+      if (!corrections.has(g.memberId)) {
+        dropEventFromIndex(ctx, event, g.matricKey);
+      }
+    }
+  }
 
   const stylesAddedMembers: Member[] = [];
 
@@ -350,6 +362,11 @@ export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boo
         } else {
           body[i] = MEMBERS_COLUMNS.map(() => '');
         }
+        bodyChanged = true;
+        return;
+      }
+      if (opts.purgeRemoved) {
+        body[i] = MEMBERS_COLUMNS.map(() => '');
         bodyChanged = true;
         return;
       }
@@ -380,7 +397,18 @@ export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boo
     }
   });
 
-  if (bodyChanged) membersSheet.setValues(2, 1, body);
+  if (opts.purgeRemoved) {
+    body = body.filter(r => r[col('memberId')]);
+  }
+
+  if (bodyChanged) {
+    if (opts.purgeRemoved) {
+      membersSheet.clearBody();
+      if (body.length > 0) membersSheet.setValues(2, 1, body);
+    } else {
+      membersSheet.setValues(2, 1, body);
+    }
+  }
   const added = members.filter(m => !known.has(m.memberId) && !placed.has(m.memberId));
   if (added.length > 0) membersSheet.appendRows(added.map(cellsOf));
 
@@ -445,7 +473,8 @@ export function importEventMembers(ctx: Ctx, event: EventItem, opts: { full: boo
     ctx.now()
   );
 
-  const memberCount = body.filter(r => r[col('memberId')]).length + added.length;
+  const activeBody = body.filter(r => r[col('memberId')] && !String(r[col('flags')] || '').split(',').includes(REMOVED_FLAG));
+  const memberCount = activeBody.length + added.length;
 
   // Check slot capacity per style and send alert email once when capacity is reached
   const { newlyNotified, notifiedFullStyles: notifiedList } = checkAndNotifySlotCapacities(ctx, event, members);

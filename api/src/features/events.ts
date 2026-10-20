@@ -328,7 +328,9 @@ export function getEventRoutes(): Record<string, Route> {
           return { ...JSON.parse(recent), message: 'Synced less than a minute ago' };
         }
 
-        const result = importEventMembers(ctx, event, { full: true });
+        const purgeRemoved = Boolean(payload?.purgeRemoved);
+        const force = Boolean(payload?.force);
+        const result = importEventMembers(ctx, event, { full: true, purgeRemoved, force });
         ctx.cache.put(forceKey, JSON.stringify(result), SYNC_NOW_SECONDS);
         if (result.added > 0 || result.updated > 0 || result.flaggedRemoved > 0 || result.corrected > 0) {
           ctx.props.set('DATA_VERSION', String(Number(ctx.props.get('DATA_VERSION') || 1) + 1));
