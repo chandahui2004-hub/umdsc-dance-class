@@ -96,19 +96,19 @@ export const ClassCard: React.FC<ClassCardProps> = ({
           {!showAttendance ? (
             action ?? null
           ) : attendancePresent === true ? (
-            <span className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--neon-green)] text-[var(--on-neon)] border-2 border-[var(--outline)] font-display text-[10px] md:text-[12px] font-bold">
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--neon-green)] text-[var(--on-neon)] border-2 border-[var(--outline)] font-display text-[11px] md:text-[12px] font-bold">
               ✓ ATTENDED
             </span>
           ) : isPast && attendanceLoading ? (
-            <span className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--violet-2)] text-[var(--text-2)] border-2 border-[var(--outline)] font-display text-[10px] md:text-[12px] font-bold animate-pulse">
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--violet-2)] text-[var(--text-2)] border-2 border-[var(--outline)] font-display text-[11px] md:text-[12px] font-bold animate-pulse">
               CHECKING…
             </span>
           ) : isPast ? (
-            <span className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--night-2)] text-[var(--neon-red)] border-2 border-[var(--neon-red)] font-display text-[10px] md:text-[12px] font-bold">
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--night-2)] text-[var(--neon-red)] border-2 border-[var(--neon-red)] font-display text-[11px] md:text-[12px] font-bold">
               ✕ ABSENT
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--neon-gold)] text-[var(--on-neon)] border-2 border-[var(--outline)] font-display text-[10px] md:text-[12px] font-bold animate-pulse">
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--neon-gold)] text-[var(--on-neon)] border-2 border-[var(--outline)] font-display text-[11px] md:text-[12px] font-bold animate-pulse">
               UPCOMING
             </span>
           )}
@@ -136,7 +136,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
             {/* Information (Right) */}
             <div className="flex-1 w-full space-y-3">
               <div>
-                <span className="font-display text-[10px] text-[var(--text-2)] uppercase tracking-wider block">
+                <span className="font-display text-[11px] text-[var(--text-2)] uppercase tracking-wider block">
                   INSTRUCTOR
                 </span>
                 <h3 className="font-display text-base md:text-lg text-[var(--text-1)] font-bold mt-0.5">
@@ -151,18 +151,18 @@ export const ClassCard: React.FC<ClassCardProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t-2 border-[var(--outline)]">
                 <div>
-                  <span className="font-display text-[10px] text-[var(--text-2)] block">TIME:</span>
+                  <span className="font-display text-[11px] text-[var(--text-2)] block">TIME:</span>
                   <span className="font-mono text-[24px] text-[var(--neon-gold)] leading-none">{session.start} - {session.end}</span>
                 </div>
                 <div>
-                  <span className="font-display text-[10px] text-[var(--text-2)] block">VENUE:</span>
+                  <span className="font-display text-[11px] text-[var(--text-2)] block">VENUE:</span>
                   <span className="font-body text-[16px] text-[var(--text-2)]">{session.venue || 'Dance Studio'}</span>
                 </div>
               </div>
 
               {session.note && (
                 <div className="px-well p-2 text-xs font-mono">
-                  <span className="font-display text-[10px] text-[var(--text-2)] block">CLASS NOTE:</span>
+                  <span className="font-display text-[11px] text-[var(--text-2)] block">CLASS NOTE:</span>
                   <span className="text-[var(--text-1)]">{session.note}</span>
                 </div>
               )}
@@ -175,7 +175,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
       {session.walkInCode && (
         <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-[var(--night-2)] border-2 border-[var(--outline)]">
           <div className="flex items-center gap-2">
-            <span className="font-display text-[10px] px-1.5 py-0.5 bg-[var(--neon-cyan)] text-[var(--on-neon)] border border-[var(--outline)] font-bold">
+            <span className="font-display text-[11px] px-1.5 py-0.5 bg-[var(--neon-cyan)] text-[var(--on-neon)] border border-[var(--outline)] font-bold">
               WALK-IN PASS
             </span>
             <span className="font-mono text-[14px] text-[var(--neon-gold)] font-bold tracking-wider">
@@ -191,7 +191,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
               setCopiedCode(true);
               setTimeout(() => setCopiedCode(false), 2000);
             }}
-            className="font-display text-[10px] px-2 py-1 bg-[var(--night-1)] text-[var(--text-1)] border border-[var(--outline)] hover:border-[var(--neon-gold)] cursor-pointer"
+            className="font-display text-[11px] px-2 py-1 bg-[var(--night-1)] text-[var(--text-1)] border border-[var(--outline)] hover:border-[var(--neon-gold)] cursor-pointer"
           >
             {copiedCode ? '✓ COPIED!' : 'COPY CODE'}
           </button>
@@ -210,7 +210,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
               variant="secondary"
               onClick={handleToggleAllVideos}
               data-testid="toggle-all-videos-btn"
-              className="text-[10px] py-0.5 px-2"
+              className="text-[11px] py-0.5 px-2"
             >
               {allVideosCollapsed ? '▼ EXPAND ALL' : '▲ COLLAPSE ALL'}
             </PixelButton>

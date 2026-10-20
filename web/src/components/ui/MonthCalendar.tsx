@@ -144,7 +144,7 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
         {WEEKDAYS.map((day) => (
           <div
             key={day}
-            className="font-display text-[10px] text-[var(--text-2)] py-1"
+            className="font-display text-[11px] md:text-[12px] font-bold text-[var(--text-2)] py-1"
           >
             {day}
           </div>
@@ -185,7 +185,7 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
                 aria-pressed={isSelected}
                 data-today={isToday || undefined}
                 style={isToday ? ({ '--glow': 'var(--neon-cyan)' } as React.CSSProperties) : undefined}
-                className={`w-full px-well min-h-[44px] min-w-[44px] p-1 flex flex-col justify-between items-center transition-none font-display text-[10px] md:text-[12px] cursor-pointer focus:outline-none ${
+                className={`w-full px-well min-h-[44px] min-w-[44px] p-1 flex flex-col justify-between items-center transition-none font-display text-[12px] md:text-[14px] cursor-pointer focus:outline-none ${
                   isToday ? 'px-neon' : ''
                 } ${
                   isSelected
@@ -200,7 +200,7 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
               >
                 {/* Day Number */}
                 <span
-                  className={`text-[10px] md:text-[12px] leading-none ${
+                  className={`text-[12px] md:text-[14px] font-bold leading-none ${
                     isCurrentMonth ? 'text-[var(--text-1)]' : 'text-[var(--text-3)]'
                   }`}
                 >
@@ -228,7 +228,7 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
               {isHovered && dayMarks.length > 0 && (
                 <div
                   role="tooltip"
-                  className={`absolute z-50 pointer-events-none min-w-[170px] max-w-[240px] p-2 bg-[var(--night-2)] border-2 border-[var(--neon-cyan)] shadow-[3px_3px_0_var(--outline)] text-left ${
+                  className={`absolute z-50 pointer-events-none min-w-[180px] max-w-[260px] p-2 bg-[var(--night-2)] border-2 border-[var(--neon-cyan)] shadow-[3px_3px_0_var(--outline)] text-left ${
                     colIndex === 0
                       ? 'left-0'
                       : colIndex === 6
@@ -240,7 +240,7 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
                       : 'bottom-[calc(100%+6px)]'
                   }`}
                 >
-                  <div className="font-display text-[9px] text-[var(--neon-gold)] tracking-wider border-b border-[var(--outline)] pb-1 mb-1.5 uppercase font-bold">
+                  <div className="font-display text-[11px] text-[var(--neon-gold)] tracking-wider border-b border-[var(--outline)] pb-1 mb-1.5 uppercase font-bold">
                     {formatDayLabel(dateStr)}
                   </div>
                   <div className="space-y-1.5">
@@ -254,7 +254,7 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
                           <span className="truncate">{m.className || m.label || 'Dance Class'}</span>
                         </div>
                         {(m.time || m.instructorName) && (
-                          <div className="text-[10px] text-[var(--text-2)] font-mono pl-3.5 flex flex-col gap-0.5">
+                          <div className="text-[13px] text-[var(--text-2)] font-mono pl-3.5 flex flex-col gap-0.5">
                             {m.time && <span>⏰ {m.time}</span>}
                             {m.instructorName && <span>👤 {m.instructorName}</span>}
                           </div>
