@@ -149,7 +149,7 @@ export const VideoTimeline: React.FC<VideoTimelineProps> = ({
           {/* Tooltip on hover/drag */}
           {isHoveringFlag && (
             <div
-              className="absolute -top-6 px-1.5 py-0.5 bg-[var(--night-2)] border border-[var(--neon-gold)] text-[10px] font-mono text-[var(--neon-gold)] whitespace-nowrap shadow-[1px_1px_0_var(--outline)] pointer-events-none"
+              className="absolute -top-6 px-1.5 py-0.5 bg-[var(--night-2)] border border-[var(--neon-gold)] text-[12px] font-mono font-bold text-[var(--neon-gold)] whitespace-nowrap shadow-[1px_1px_0_var(--outline)] pointer-events-none"
             >
               Start: {formatTime(videoStart)}
             </div>
@@ -169,9 +169,9 @@ export const VideoTimeline: React.FC<VideoTimelineProps> = ({
         />
       </div>
 
-      <div className="flex justify-between items-center mt-1 text-[10px] font-mono text-[var(--text-2)]">
+      <div className="flex justify-between items-center mt-1 text-[13px] font-mono text-[var(--text-2)]">
         <span>00:00</span>
-        <span className="text-[10px] text-[var(--neon-orange)]">DRAG ⚑ TO ALIGN VIDEO START</span>
+        <span className="text-[11px] font-display font-bold text-[var(--neon-orange)]">ALIGN VIDEO ⚑</span>
         <span>{formatTime(duration)}</span>
       </div>
     </div>

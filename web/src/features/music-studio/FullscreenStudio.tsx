@@ -775,7 +775,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
             type="button"
             aria-label={effectiveIsPlaying ? 'Pause' : 'Play'}
             onClick={effectiveIsPlaying ? handlePause : handlePlay}
-            className="min-h-[44px] px-3 py-1.5 bg-[var(--neon-orange)] hover:bg-[var(--neon-orange)]/90 active:translate-x-0.5 active:translate-y-0.5 text-[var(--on-neon)] font-display text-[10px] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] flex items-center justify-center"
+            className="min-h-[44px] px-3 py-1.5 bg-[var(--neon-orange)] hover:bg-[var(--neon-orange)]/90 active:translate-x-0.5 active:translate-y-0.5 text-[var(--on-neon)] font-display text-[11px] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] flex items-center justify-center"
           >
             {effectiveIsPlaying ? 'II' : 'PLAY'}
           </button>
@@ -785,7 +785,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
             type="button"
             aria-label={isLooping ? 'Loop ON' : 'Loop OFF'}
             onClick={onToggleLoop}
-            className={`min-h-[44px] px-3 py-1.5 font-display text-[10px] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] transition-colors flex items-center justify-center ${
+            className={`min-h-[44px] px-3 py-1.5 font-display text-[11px] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] transition-colors flex items-center justify-center ${
               isLooping
                 ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] animate-pulse font-bold'
                 : 'bg-[var(--night-2)] text-[var(--text-2)] hover:text-[var(--text-1)]'
@@ -798,11 +798,11 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
           <div className="flex flex-col items-center px-1 font-mono">
             <span className="text-xs font-bold text-[var(--neon-gold)]">{loopDurationText}</span>
             {markerDraftRange ? (
-              <span className="text-[10px] text-[var(--text-2)]">
+              <span className="text-[12px] text-[var(--text-2)] font-mono">
                 [{formatTime(markerDraftRange.start)} - {formatTime(markerDraftRange.end)}]
               </span>
             ) : loopMarker ? (
-              <span className="text-[10px] text-[var(--neon-cyan)]">
+              <span className="text-[12px] text-[var(--neon-cyan)] font-mono">
                 [{formatTime(loopMarker.time)} - {formatTime(loopMarker.endTime)}]
               </span>
             ) : null}
@@ -815,7 +815,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
               aria-label="Set In"
               onClick={onSetInPoint}
               title="Set In Point (A) at current playhead"
-              className="min-h-[44px] px-2 py-1 bg-[var(--neon-cyan)] text-[var(--on-neon)] font-display text-[10px] border-2 border-[var(--outline)] hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5 flex items-center justify-center"
+              className="min-h-[44px] px-2 py-1 bg-[var(--neon-cyan)] text-[var(--on-neon)] font-display text-[11px] border-2 border-[var(--outline)] hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5 flex items-center justify-center"
             >
               [A] IN
             </button>
@@ -824,7 +824,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
               aria-label="Set Out"
               onClick={onSetOutPoint}
               title="Set Out Point (B) at current playhead"
-              className="min-h-[44px] px-2 py-1 bg-[var(--neon-cyan)] text-[var(--on-neon)] font-display text-[10px] border-2 border-[var(--outline)] hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5 flex items-center justify-center"
+              className="min-h-[44px] px-2 py-1 bg-[var(--neon-cyan)] text-[var(--on-neon)] font-display text-[11px] border-2 border-[var(--outline)] hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5 flex items-center justify-center"
             >
               [B] OUT
             </button>
@@ -835,7 +835,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
                 aria-label="Clear A-B Range"
                 onClick={() => onMarkerDraftChange?.(null)}
                 title="Clear A-B Draft Points"
-                className="min-h-[44px] px-2 py-1 bg-[var(--night-2)] text-[var(--neon-red)] hover:bg-[var(--night-1)] font-mono text-[10px] font-bold border-2 border-[var(--outline)] flex items-center justify-center"
+                className="min-h-[44px] px-2 py-1 bg-[var(--night-2)] text-[var(--neon-red)] hover:bg-[var(--night-1)] font-mono text-[12px] font-bold border-2 border-[var(--outline)] flex items-center justify-center"
               >
                 ✕
               </button>
@@ -847,7 +847,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
             type="button"
             aria-label="Toggle Loops"
             onClick={() => setShowLoopsPanel(prev => !prev)}
-            className={`min-h-[44px] px-2.5 py-1.5 font-display text-[10px] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] transition active:translate-x-0.5 active:translate-y-0.5 flex items-center justify-center ${
+            className={`min-h-[44px] px-2.5 py-1.5 font-display text-[11px] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] transition active:translate-x-0.5 active:translate-y-0.5 flex items-center justify-center ${
               showLoopsPanel
                 ? 'bg-[var(--neon-cyan)] text-[var(--on-neon)] font-bold'
                 : 'bg-[var(--night-2)] text-[var(--text-2)] hover:text-[var(--text-1)]'
@@ -862,7 +862,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
             aria-label="Save Loop"
             onClick={handleOpenAddLoop}
             title="Save current A-B as a reusable loop"
-            className="min-h-[44px] px-2 py-1.5 bg-[var(--neon-green)] hover:bg-[var(--neon-green)]/90 active:translate-x-0.5 active:translate-y-0.5 text-[var(--on-neon)] font-display text-[10px] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] flex items-center justify-center"
+            className="min-h-[44px] px-2 py-1.5 bg-[var(--neon-green)] hover:bg-[var(--neon-green)]/90 active:translate-x-0.5 active:translate-y-0.5 text-[var(--on-neon)] font-display text-[11px] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] flex items-center justify-center"
           >
             + SAVE
           </button>
@@ -886,7 +886,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
 
           {/* Voice Indicator */}
           {speechListening && (
-            <span className="font-mono text-[10px] text-[var(--neon-green)] bg-[var(--night-1)] px-1.5 py-0.5 border border-[var(--neon-green)]">
+            <span className="font-mono text-[12px] text-[var(--neon-green)] bg-[var(--night-1)] px-1.5 py-0.5 border border-[var(--neon-green)]">
               🎤 {speechTranscript || 'VOICE READY'}
             </span>
           )}
@@ -897,7 +897,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
               type="button"
               aria-label={useDrivePreview ? 'Switch to Direct Sync' : 'Switch to Drive Player'}
               onClick={() => setUseDrivePreview(!useDrivePreview)}
-              className={`min-h-[44px] px-2.5 py-1.5 font-display text-[10px] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] transition active:translate-x-0.5 active:translate-y-0.5 cursor-pointer flex items-center justify-center ${
+              className={`min-h-[44px] px-2.5 py-1.5 font-display text-[11px] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] transition active:translate-x-0.5 active:translate-y-0.5 cursor-pointer flex items-center justify-center ${
                 useDrivePreview
                   ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold'
                   : 'bg-[var(--night-2)] text-[var(--text-2)] hover:text-[var(--text-1)]'
@@ -917,7 +917,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
             type="button"
             aria-label="Exit"
             onClick={onExitFullscreen}
-            className="min-h-[44px] px-2.5 py-1.5 bg-[var(--neon-red)] text-white font-display text-[10px] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] hover:bg-[var(--neon-red)]/90 active:translate-x-0.5 active:translate-y-0.5 flex items-center justify-center"
+            className="min-h-[44px] px-2.5 py-1.5 bg-[var(--neon-red)] text-white font-display text-[11px] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] hover:bg-[var(--neon-red)]/90 active:translate-x-0.5 active:translate-y-0.5 flex items-center justify-center"
           >
             ✕ EXIT
           </button>
@@ -931,7 +931,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
           >
             {/* Panel Header */}
             <div className="flex items-center justify-between bg-[var(--night-2)] px-3 py-2 border-b-4 border-[var(--outline)]">
-              <span className="font-display text-[10px] text-[var(--neon-gold)]">
+              <span className="font-display text-[11px] text-[var(--neon-gold)]">
                 ♫ REHEARSAL LOOPS ({markers.length})
               </span>
               <div className="flex items-center gap-2">
