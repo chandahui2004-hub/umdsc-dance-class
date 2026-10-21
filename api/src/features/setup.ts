@@ -295,6 +295,70 @@ export function getSetupRoutes(): Record<string, Route> {
       }
     },
 
+    'debug.testSlotCapacityAlert': {
+      perm: 'public',
+      write: false,
+      handler: (ctx, auth, payload: any) => {
+        const to = String(payload?.to || 'chandahui2004@gmail.com').trim();
+        const eventId = payload?.eventId;
+        const styleId = payload?.styleId;
+        const styleName = String(payload?.styleName || 'Hip Hop').trim();
+        const eventName = String(payload?.eventName || 'OCT MONTHLY CLASS').trim();
+        const enrolledCount = payload?.enrolled !== undefined ? Number(payload.enrolled) : 30;
+        const cap = payload?.slots !== undefined ? Number(payload.slots) : 30;
+
+        // Gather all live recipients that would receive this alert normally
+        const clubEmail = ctx.clubEmail || ctx.db.settings.find(s => s.key === 'clubEmail' && s.active)[0]?.value;
+        const adminNotifRaw = ctx.db.settings.find(s => s.key === 'adminNotificationEmails' && s.active)[0]?.value || '';
+        const adminNotifEmails = adminNotifRaw.split(/[,;\n\r]+/).map(e => e.trim()).filter(e => e.includes('@'));
+        const adminUserEmails = ctx.db.admins.find(a => a.active && a.username.includes('@')).map(a => a.username);
+
+        const liveRecipients = Array.from(
+          new Set([
+            clubEmail,
+            ...adminNotifEmails,
+            ...adminUserEmails
+          ].filter(Boolean).map(e => e!.toLowerCase()))
+        );
+
+        const subject = `[TEST MODE] [UMDSC Alert] Slot Full: ${styleName} in ${eventName} (${enrolledCount}/${cap} Enrolled)`;
+        const body = `[TEST MODE NOTICE: Recipient override is active. Live notifications to all ${liveRecipients.length} admins/contacts (${liveRecipients.join(', ')}) were suppressed and routed only to ${to} for testing.]\n\nDear Admins and Class Lead,\n\nThis is an automated notification from the UMDSC Dance Class System.\n\nThe enrollment for ${styleName} in ${eventName} has reached or exceeded its target slot capacity:\n- Style: ${styleName}\n- Event: ${eventName}\n- Enrolled Dancers: ${enrolledCount}\n- Slot Capacity: ${cap}\n\nPlease note: The system and Google Form will still continue to accept additional member registrations unless you choose to close the form. This email is sent as an alert for your awareness.\n\nKeep dancing!\nUniversiti Malaya Dance Sport Club (UMDSC)`;
+        const htmlBody = `<div style="font-family: sans-serif; line-height: 1.6; color: #222;">
+  <div style="background-color: #fef9c3; border-left: 4px solid #ca8a04; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #854d0e;">
+    <strong>TEST MODE ACTIVE:</strong> Recipient override is active. Live notifications to all <strong>${liveRecipients.length}</strong> admins/contacts (<code>${liveRecipients.join(', ')}</code>) were suppressed and routed only to <strong>${to}</strong> for testing.
+  </div>
+  <h2 style="color: #ef4444;">[UMDSC Alert] Slot Capacity Reached</h2>
+  <p>The enrollment for <strong>${styleName}</strong> in <strong>${eventName}</strong> has reached its target slot capacity.</p>
+  <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; margin: 16px 0;">
+    <p style="margin: 4px 0;"><strong>Dance Style:</strong> ${styleName}</p>
+    <p style="margin: 4px 0;"><strong>Event:</strong> ${eventName}</p>
+    <p style="margin: 4px 0;"><strong>Enrolled Count:</strong> <span style="color: #ef4444; font-weight: bold;">${enrolledCount}</span> / ${cap}</p>
+  </div>
+  <p style="color: #4b5563;"><strong>Note:</strong> The system and Google Form will still continue to accept additional member registrations unless you choose to close the form. This notification is sent for your awareness.</p>
+  <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+  <p style="font-size: 12px; color: #888;">Universiti Malaya Dance Sport Club (UMDSC)</p>
+</div>`;
+
+        let quota: any = 'N/A';
+        try {
+          if (typeof MailApp !== 'undefined') {
+            quota = MailApp.getRemainingDailyQuota();
+          }
+        } catch (e: any) {
+          quota = 'Error checking quota: ' + (e?.message || e);
+        }
+
+        let sendResult = 'OK';
+        try {
+          ctx.mail.sendEmail({ to, subject, body, htmlBody, name: 'UMDSC Dance Class System' });
+        } catch (err: any) {
+          sendResult = 'Error: ' + (err?.message || err);
+        }
+
+        return { sent: sendResult === 'OK', to, subject, quota, liveRecipients, sendResult };
+      }
+    },
+
     'debug.triggerSync': {
       perm: 'public',
       write: true,

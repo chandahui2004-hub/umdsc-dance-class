@@ -539,6 +539,10 @@ export function checkAndNotifySlotCapacities(
   // 3. Admin user accounts with @ in username
   const adminUserEmails = ctx.db.admins.find(a => a.active && a.username.includes('@')).map(a => a.username);
 
+  // 4. Test recipient override setting: when set, all live recipient notifications are suppressed and sent only to the test email
+  const slotAlertTestEmail = (ctx.db.settings.find(s => s.key === 'slotAlertTestEmail' && s.active)[0]?.value || '').trim();
+  const isTestMode = Boolean(slotAlertTestEmail && slotAlertTestEmail.includes('@'));
+
   for (const styleId of event.styleIds || []) {
     const cap = Number(slotCapacity[styleId]);
     if (cap > 0) {
@@ -561,7 +565,7 @@ export function checkAndNotifySlotCapacities(
             .map(i => i?.contact?.trim())
             .filter((c): c is string => Boolean(c && c.includes('@')));
 
-          const recipients = Array.from(
+          const allLiveRecipients = Array.from(
             new Set([
               clubEmail,
               ...adminNotifEmails,
@@ -571,10 +575,23 @@ export function checkAndNotifySlotCapacities(
             ].filter(Boolean).map(e => e!.toLowerCase()))
           ) as string[];
 
+          const recipients = isTestMode ? [slotAlertTestEmail.toLowerCase()] : allLiveRecipients;
+
           for (const to of recipients) {
-            const subject = `[UMDSC Alert] Slot Full: ${styleName} in ${event.name} (${enrolledCount}/${cap} Enrolled)`;
-            const body = `Dear Admins and Class Lead,\n\nThis is an automated notification from the UMDSC Dance Class System.\n\nThe enrollment for ${styleName} in ${event.name} has reached or exceeded its target slot capacity:\n- Style: ${styleName}\n- Event: ${event.name}\n- Enrolled Dancers: ${enrolledCount}\n- Slot Capacity: ${cap}\n\nPlease note: The system and Google Form will still continue to accept additional member registrations unless you choose to close the form. This email is sent as an alert for your awareness.\n\nKeep dancing!\nUniversiti Malaya Dance Sport Club (UMDSC)`;
+            const subjectPrefix = isTestMode ? '[TEST MODE] ' : '';
+            const subject = `${subjectPrefix}[UMDSC Alert] Slot Full: ${styleName} in ${event.name} (${enrolledCount}/${cap} Enrolled)`;
+            const body = isTestMode
+              ? `[TEST MODE NOTICE: Recipient override is active. Live notifications to all ${allLiveRecipients.length} admins/contacts (${allLiveRecipients.join(', ')}) were suppressed and routed only to ${slotAlertTestEmail} for testing.]\n\nDear Admins and Class Lead,\n\nThis is an automated notification from the UMDSC Dance Class System.\n\nThe enrollment for ${styleName} in ${event.name} has reached or exceeded its target slot capacity:\n- Style: ${styleName}\n- Event: ${event.name}\n- Enrolled Dancers: ${enrolledCount}\n- Slot Capacity: ${cap}\n\nPlease note: The system and Google Form will still continue to accept additional member registrations unless you choose to close the form. This email is sent as an alert for your awareness.\n\nKeep dancing!\nUniversiti Malaya Dance Sport Club (UMDSC)`
+              : `Dear Admins and Class Lead,\n\nThis is an automated notification from the UMDSC Dance Class System.\n\nThe enrollment for ${styleName} in ${event.name} has reached or exceeded its target slot capacity:\n- Style: ${styleName}\n- Event: ${event.name}\n- Enrolled Dancers: ${enrolledCount}\n- Slot Capacity: ${cap}\n\nPlease note: The system and Google Form will still continue to accept additional member registrations unless you choose to close the form. This email is sent as an alert for your awareness.\n\nKeep dancing!\nUniversiti Malaya Dance Sport Club (UMDSC)`;
+
+            const testNoticeHtml = isTestMode
+              ? `<div style="background-color: #fef9c3; border-left: 4px solid #ca8a04; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #854d0e;">
+    <strong>TEST MODE ACTIVE:</strong> Recipient override is active. Live notifications to all <strong>${allLiveRecipients.length}</strong> admins/contacts (<code>${allLiveRecipients.join(', ')}</code>) were suppressed and routed only to <strong>${slotAlertTestEmail}</strong> for testing.
+  </div>`
+              : '';
+
             const htmlBody = `<div style="font-family: sans-serif; line-height: 1.6; color: #222;">
+  ${testNoticeHtml}
   <h2 style="color: #ef4444;">[UMDSC Alert] Slot Capacity Reached</h2>
   <p>The enrollment for <strong>${styleName}</strong> in <strong>${event.name}</strong> has reached its target slot capacity.</p>
   <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; margin: 16px 0;">
@@ -587,7 +604,7 @@ export function checkAndNotifySlotCapacities(
   <p style="font-size: 12px; color: #888;">Universiti Malaya Dance Sport Club (UMDSC)</p>
 </div>`;
             try {
-              ctx.mail.sendEmail({ to, subject, body, htmlBody });
+              ctx.mail.sendEmail({ to, subject, body, htmlBody, name: 'UMDSC Dance Class System' });
             } catch (err) {
               console.warn(`[checkAndNotifySlotCapacities] Failed to send slot capacity alert email to ${to}:`, err);
             }

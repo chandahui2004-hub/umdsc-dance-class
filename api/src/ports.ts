@@ -125,6 +125,7 @@ export interface SendEmailOptions {
   subject: string;
   body: string;
   htmlBody?: string;
+  name?: string;
 }
 
 export interface MailPort {

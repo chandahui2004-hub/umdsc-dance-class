@@ -11,14 +11,17 @@ export class GasMailAdapter implements MailPort {
           const params: GoogleAppsScript.Mail.MailAdvancedParameters = {
             to: email,
             subject: options.subject,
-            body: options.body
+            body: options.body,
+            name: options.name || 'UMDSC Dance Class System'
           };
           if (options.htmlBody) {
             params.htmlBody = options.htmlBody;
           }
           MailApp.sendEmail(params);
         } else if (typeof GmailApp !== 'undefined' && GmailApp.sendEmail) {
-          const extra: GoogleAppsScript.Gmail.GmailAdvancedOptions = {};
+          const extra: GoogleAppsScript.Gmail.GmailAdvancedOptions = {
+            name: options.name || 'UMDSC Dance Class System'
+          };
           if (options.htmlBody) {
             extra.htmlBody = options.htmlBody;
           }
