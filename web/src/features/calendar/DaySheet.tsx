@@ -34,7 +34,24 @@ export const DaySheet: React.FC<DaySheetProps> = ({
 }) => {
   useOverlayOpen(isOpen);
 
-  // Snap height on mobile: 'half' (50vh) or 'full' (92vh)
+  // Detect mobile viewport (< 640px)
+  const [isMobile, setIsMobile] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    return typeof window.innerWidth === 'number' ? window.innerWidth < 640 : true;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(max-width: 639.98px)');
+    const update = (e: MediaQueryListEvent | MediaQueryList) => setIsMobile(e.matches);
+    update(mq);
+    if (mq.addEventListener) {
+      mq.addEventListener('change', update);
+      return () => mq.removeEventListener('change', update);
+    }
+  }, []);
+
+  // Snap height on mobile: 'half' (50dvh) or 'full' (92dvh)
   const [snapHeight, setSnapHeight] = useState<'half' | 'full'>('half');
 
   // Reset to half height whenever opened or date changes
@@ -76,16 +93,16 @@ export const DaySheet: React.FC<DaySheetProps> = ({
     touchStartY.current = null;
     touchDeltaY.current = 0;
 
-    if (deltaY < -40) {
+    if (deltaY < -25) {
       // Dragged UP -> expand to full
       setSnapHeight('full');
-    } else if (deltaY > 50) {
+    } else if (deltaY > 25) {
       // Dragged DOWN
       if (snapHeight === 'full') {
         // Collapse to half
         setSnapHeight('half');
-      } else {
-        // Dismiss
+      } else if (deltaY > 50) {
+        // Dragged down significantly while already half -> dismiss
         onClose();
       }
     }
@@ -122,11 +139,16 @@ export const DaySheet: React.FC<DaySheetProps> = ({
       <div
         data-testid="day-sheet-panel"
         data-snap={snapHeight}
-        className={`relative z-10 w-full sm:w-[480px] max-w-full bg-[var(--night-2)] flex flex-col transition-[height,max-height] duration-200 ease-out
-          border-t-4 border-t-[var(--neon-cyan)] shadow-[0_-8px_0_var(--outline)]
-          sm:border-t-0 sm:border-l-4 sm:border-l-[var(--neon-cyan)] sm:shadow-[-8px_0_0_var(--outline)]
-          ${snapHeight === 'half' ? 'h-[50vh] max-h-[50vh] sm:h-full sm:max-h-full' : 'h-[92vh] max-h-[92vh] sm:h-full sm:max-h-full'}
-        `}
+        className="relative z-10 w-full sm:w-[480px] max-w-full bg-[var(--night-2)] flex flex-col day-sheet-mobile-panel overflow-hidden"
+        style={
+          isMobile
+            ? {
+                height: snapHeight === 'half' ? '50dvh' : '92dvh',
+                maxHeight: snapHeight === 'half' ? '50dvh' : '92dvh',
+                transition: 'height 250ms cubic-bezier(0.2, 0.9, 0.3, 1), max-height 250ms cubic-bezier(0.2, 0.9, 0.3, 1)'
+              }
+            : undefined
+        }
       >
         {/* Mobile Drag Handle Bar & Gesture Area */}
         <div
@@ -134,19 +156,20 @@ export const DaySheet: React.FC<DaySheetProps> = ({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className="flex sm:hidden flex-col items-center justify-center pt-2 pb-1.5 bg-[var(--night-1)] border-b border-[var(--outline)] select-none cursor-pointer"
+          style={{ touchAction: 'none' }}
+          className="flex sm:hidden flex-col items-center justify-center pt-2.5 pb-2 bg-[var(--night-1)] border-b border-[var(--outline)] select-none cursor-pointer"
           onClick={toggleSnap}
         >
           <button
             type="button"
             data-testid="day-sheet-handle"
             aria-label={snapHeight === 'half' ? 'Expand to full height' : 'Collapse to half height'}
-            className="flex flex-col items-center gap-1 group py-0.5 px-3"
+            className="flex flex-col items-center gap-1.5 group py-0.5 px-4"
           >
             {/* Grab pill */}
-            <div className="w-10 h-1.5 bg-[var(--neon-cyan)] rounded-none shadow-[1px_1px_0_var(--outline)]" />
+            <div className="w-12 h-1.5 bg-[var(--neon-cyan)] rounded-none shadow-[1px_1px_0_var(--outline)]" />
             <span className="font-display text-[9px] text-[var(--neon-gold)] tracking-wider">
-              {snapHeight === 'half' ? '▲ EXPAND TO FULL PAGE' : '▼ COLLAPSE TO HALF'}
+              {snapHeight === 'half' ? '▲ DRAG OR TAP TO EXPAND' : '▼ DRAG OR TAP TO HALF'}
             </span>
           </button>
         </div>
@@ -156,9 +179,10 @@ export const DaySheet: React.FC<DaySheetProps> = ({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className="bg-[var(--night-1)] text-[var(--text-1)] px-4 py-3 border-b-2 border-[var(--outline)] flex items-center justify-between shrink-0"
+          style={{ touchAction: 'none' }}
+          className="bg-[var(--night-1)] text-[var(--text-1)] px-4 py-3 border-b-2 border-[var(--outline)] flex items-center justify-between shrink-0 select-none"
         >
-          <div className="min-w-0 pr-2">
+          <div className="min-w-0 pr-2 cursor-pointer" onClick={toggleSnap}>
             <h2 className="font-display text-[12px] sm:text-[14px] tracking-wider uppercase text-[var(--neon-cyan)] px-glow-text truncate">
               {formattedTitle}
             </h2>
@@ -175,8 +199,8 @@ export const DaySheet: React.FC<DaySheetProps> = ({
           </button>
         </div>
 
-        {/* Sheet Content Body */}
-        <div className="p-4 overflow-y-auto pixel-scrollbar font-body text-base flex-1 space-y-4">
+        {/* Sheet Content Body - min-h-0 and flex-1 guarantee it scrolls inside the 50dvh container */}
+        <div className="p-4 overflow-y-auto pixel-scrollbar font-body text-base flex-1 min-h-0 space-y-4">
           {daySessions.length === 0 ? (
             <div className="p-6 text-center px-well space-y-2">
               <p className="font-display text-[12px] text-[var(--text-2)]">
