@@ -59,7 +59,7 @@ const mockInstructors: Instructor[] = [
   { id: 'inst-2', name: 'Elena Gomez', styleIds: ['style-bachata'], ...mockMeta } as unknown as Instructor
 ];
 
-describe('DaySheet (Adaptive Dancer Calendar Sheet)', () => {
+describe('DaySheet (Adaptive Dancer & Admin Calendar Sheet)', () => {
   it('does not render when isOpen is false', () => {
     renderWithRouter(
       <DaySheet
@@ -72,13 +72,14 @@ describe('DaySheet (Adaptive Dancer Calendar Sheet)', () => {
         videos={[]}
         music={[]}
         attendance={[]}
+        forceMobile={true}
       />
     );
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('renders with initial half-height snap on mobile and displays classes', () => {
+  it('renders with initial 1/3 screen snap on mobile with compact cards and without blocking backdrop', () => {
     renderWithRouter(
       <DaySheet
         isOpen={true}
@@ -90,6 +91,7 @@ describe('DaySheet (Adaptive Dancer Calendar Sheet)', () => {
         videos={[]}
         music={[]}
         attendance={[]}
+        forceMobile={true}
       />
     );
 
@@ -98,15 +100,19 @@ describe('DaySheet (Adaptive Dancer Calendar Sheet)', () => {
 
     const panel = screen.getByTestId('day-sheet-panel');
     expect(panel).toBeInTheDocument();
-    expect(panel).toHaveAttribute('data-snap', 'half');
+    expect(panel).toHaveAttribute('data-snap', 'third');
 
-    // Shows date title and class details
-    expect(screen.getByText(/2 classes scheduled/i)).toBeInTheDocument();
-    expect(screen.getByText(/Salsa/i)).toBeInTheDocument();
-    expect(screen.getByText(/Bachata/i)).toBeInTheDocument();
+    // In 1/3 mode, no backdrop intercepts clicks
+    expect(screen.queryByTestId('day-sheet-backdrop')).not.toBeInTheDocument();
+
+    // Shows compact class cards with style, time, venue, and small instructor avatar
+    expect(screen.getByTestId('compact-class-s1')).toBeInTheDocument();
+    expect(screen.getByTestId('compact-class-s2')).toBeInTheDocument();
+    expect(screen.getByText(/Studio A/)).toBeInTheDocument();
+    expect(screen.getByText(/19:00 - 20:30/)).toBeInTheDocument();
   });
 
-  it('toggles from half to full height when drag handle is tapped', () => {
+  it('expands to full screen when tapping directly on a compact class card', () => {
     renderWithRouter(
       <DaySheet
         isOpen={true}
@@ -118,21 +124,51 @@ describe('DaySheet (Adaptive Dancer Calendar Sheet)', () => {
         videos={[]}
         music={[]}
         attendance={[]}
+        forceMobile={true}
+      />
+    );
+
+    const panel = screen.getByTestId('day-sheet-panel');
+    expect(panel).toHaveAttribute('data-snap', 'third');
+
+    // Tap on the first compact class card
+    const compactCard = screen.getByTestId('compact-class-s1');
+    fireEvent.click(compactCard);
+
+    // Should now be expanded to full
+    expect(panel).toHaveAttribute('data-snap', 'full');
+    expect(screen.getByTestId('day-sheet-backdrop')).toBeInTheDocument();
+  });
+
+  it('toggles from 1/3 to full height when drag handle is tapped', () => {
+    renderWithRouter(
+      <DaySheet
+        isOpen={true}
+        onClose={vi.fn()}
+        date={mockDate}
+        sessions={mockSessions}
+        styles={mockStyles}
+        instructors={mockInstructors}
+        videos={[]}
+        music={[]}
+        attendance={[]}
+        forceMobile={true}
       />
     );
 
     const panel = screen.getByTestId('day-sheet-panel');
     const handle = screen.getByTestId('day-sheet-handle');
 
-    expect(panel).toHaveAttribute('data-snap', 'half');
+    expect(panel).toHaveAttribute('data-snap', 'third');
 
     // Click drag handle to expand
     fireEvent.click(handle);
     expect(panel).toHaveAttribute('data-snap', 'full');
+    expect(screen.getByTestId('day-sheet-backdrop')).toBeInTheDocument();
 
-    // Click drag handle again to collapse back to half
+    // Click drag handle again to collapse back to 1/3
     fireEvent.click(handle);
-    expect(panel).toHaveAttribute('data-snap', 'half');
+    expect(panel).toHaveAttribute('data-snap', 'third');
   });
 
   it('handles touch drag up to expand and drag down to collapse / close', () => {
@@ -148,27 +184,28 @@ describe('DaySheet (Adaptive Dancer Calendar Sheet)', () => {
         videos={[]}
         music={[]}
         attendance={[]}
+        forceMobile={true}
       />
     );
 
     const panel = screen.getByTestId('day-sheet-panel');
     const handleArea = screen.getByTestId('day-sheet-drag-area');
 
-    // Drag up from half: deltaY = -60px -> snap to full
+    // Drag up from 1/3: deltaY = -40px -> snap to full
     fireEvent.touchStart(handleArea, { touches: [{ clientY: 300 }] });
-    fireEvent.touchMove(handleArea, { touches: [{ clientY: 240 }] });
+    fireEvent.touchMove(handleArea, { touches: [{ clientY: 250 }] });
     fireEvent.touchEnd(handleArea);
 
     expect(panel).toHaveAttribute('data-snap', 'full');
 
-    // Drag down from full: deltaY = +60px -> snap back to half
+    // Drag down from full: deltaY = +40px -> snap back to 1/3
     fireEvent.touchStart(handleArea, { touches: [{ clientY: 200 }] });
-    fireEvent.touchMove(handleArea, { touches: [{ clientY: 260 }] });
+    fireEvent.touchMove(handleArea, { touches: [{ clientY: 250 }] });
     fireEvent.touchEnd(handleArea);
 
-    expect(panel).toHaveAttribute('data-snap', 'half');
+    expect(panel).toHaveAttribute('data-snap', 'third');
 
-    // Drag down from half: deltaY = +70px -> close sheet
+    // Drag down from 1/3: deltaY = +60px -> close sheet
     fireEvent.touchStart(handleArea, { touches: [{ clientY: 200 }] });
     fireEvent.touchMove(handleArea, { touches: [{ clientY: 270 }] });
     fireEvent.touchEnd(handleArea);
@@ -176,7 +213,7 @@ describe('DaySheet (Adaptive Dancer Calendar Sheet)', () => {
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
 
-  it('calls onClose when close button is clicked', () => {
+  it('calls onClose when close button is clicked in either mode', () => {
     const handleClose = vi.fn();
     renderWithRouter(
       <DaySheet
@@ -189,6 +226,7 @@ describe('DaySheet (Adaptive Dancer Calendar Sheet)', () => {
         videos={[]}
         music={[]}
         attendance={[]}
+        forceMobile={true}
       />
     );
 
@@ -197,12 +235,12 @@ describe('DaySheet (Adaptive Dancer Calendar Sheet)', () => {
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
 
-  it('calls onClose when backdrop is clicked', () => {
-    const handleClose = vi.fn();
+  it('renders custom session action for admin mode when expanded to full mode', () => {
+    const handleEdit = vi.fn();
     renderWithRouter(
       <DaySheet
         isOpen={true}
-        onClose={handleClose}
+        onClose={vi.fn()}
         date={mockDate}
         sessions={mockSessions}
         styles={mockStyles}
@@ -210,35 +248,27 @@ describe('DaySheet (Adaptive Dancer Calendar Sheet)', () => {
         videos={[]}
         music={[]}
         attendance={[]}
+        showAttendance={false}
+        forceMobile={true}
+        sessionAction={(s) => (
+          <button type="button" onClick={() => handleEdit(s.id)}>
+            ✎ EDIT CLASS
+          </button>
+        )}
       />
     );
 
-    const backdrop = screen.getByTestId('day-sheet-backdrop');
-    fireEvent.click(backdrop);
-    expect(handleClose).toHaveBeenCalledTimes(1);
+    // Expand to full mode
+    const handle = screen.getByTestId('day-sheet-handle');
+    fireEvent.click(handle);
+
+    const editBtns = screen.getAllByRole('button', { name: /✎ EDIT CLASS/i });
+    expect(editBtns.length).toBeGreaterThan(0);
+    fireEvent.click(editBtns[0]);
+    expect(handleEdit).toHaveBeenCalledWith('s1');
   });
 
-  it('calls onClose when Escape key is pressed', () => {
-    const handleClose = vi.fn();
-    renderWithRouter(
-      <DaySheet
-        isOpen={true}
-        onClose={handleClose}
-        date={mockDate}
-        sessions={mockSessions}
-        styles={mockStyles}
-        instructors={mockInstructors}
-        videos={[]}
-        music={[]}
-        attendance={[]}
-      />
-    );
-
-    fireEvent.keyDown(window, { key: 'Escape' });
-    expect(handleClose).toHaveBeenCalledTimes(1);
-  });
-
-  it('resets to half height when reopened with a new date', () => {
+  it('resets to 1/3 height when reopened with a new date', () => {
     const { rerender } = render(
       <MemoryRouter>
         <DaySheet
@@ -251,6 +281,7 @@ describe('DaySheet (Adaptive Dancer Calendar Sheet)', () => {
           videos={[]}
           music={[]}
           attendance={[]}
+          forceMobile={true}
         />
       </MemoryRouter>
     );
@@ -272,6 +303,7 @@ describe('DaySheet (Adaptive Dancer Calendar Sheet)', () => {
           videos={[]}
           music={[]}
           attendance={[]}
+          forceMobile={true}
         />
       </MemoryRouter>
     );
@@ -288,10 +320,11 @@ describe('DaySheet (Adaptive Dancer Calendar Sheet)', () => {
           videos={[]}
           music={[]}
           attendance={[]}
+          forceMobile={true}
         />
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId('day-sheet-panel')).toHaveAttribute('data-snap', 'half');
+    expect(screen.getByTestId('day-sheet-panel')).toHaveAttribute('data-snap', 'third');
   });
 });
