@@ -100,9 +100,9 @@ describe('DaySheet (Adaptive Dancer & Admin Calendar Sheet)', () => {
 
     const panel = screen.getByTestId('day-sheet-panel');
     expect(panel).toBeInTheDocument();
-    expect(panel).toHaveAttribute('data-snap', 'third');
+    expect(panel).toHaveAttribute('data-snap', 'quarter');
 
-    // In 1/3 mode, no backdrop intercepts clicks
+    // In 1/4 mode, no backdrop intercepts clicks
     expect(screen.queryByTestId('day-sheet-backdrop')).not.toBeInTheDocument();
 
     // Shows compact class cards with style, time, venue, and small instructor avatar
@@ -129,7 +129,7 @@ describe('DaySheet (Adaptive Dancer & Admin Calendar Sheet)', () => {
     );
 
     const panel = screen.getByTestId('day-sheet-panel');
-    expect(panel).toHaveAttribute('data-snap', 'third');
+    expect(panel).toHaveAttribute('data-snap', 'quarter');
 
     // Tap on the first compact class card
     const compactCard = screen.getByTestId('compact-class-s1');
@@ -140,7 +140,7 @@ describe('DaySheet (Adaptive Dancer & Admin Calendar Sheet)', () => {
     expect(screen.getByTestId('day-sheet-backdrop')).toBeInTheDocument();
   });
 
-  it('toggles from 1/3 to full height when drag handle is tapped', () => {
+  it('toggles from 1/4 to full height when drag handle is tapped', () => {
     renderWithRouter(
       <DaySheet
         isOpen={true}
@@ -159,16 +159,16 @@ describe('DaySheet (Adaptive Dancer & Admin Calendar Sheet)', () => {
     const panel = screen.getByTestId('day-sheet-panel');
     const handle = screen.getByTestId('day-sheet-handle');
 
-    expect(panel).toHaveAttribute('data-snap', 'third');
+    expect(panel).toHaveAttribute('data-snap', 'quarter');
 
     // Click drag handle to expand
     fireEvent.click(handle);
     expect(panel).toHaveAttribute('data-snap', 'full');
     expect(screen.getByTestId('day-sheet-backdrop')).toBeInTheDocument();
 
-    // Click drag handle again to collapse back to 1/3
+    // Click drag handle again to collapse back to 1/4
     fireEvent.click(handle);
-    expect(panel).toHaveAttribute('data-snap', 'third');
+    expect(panel).toHaveAttribute('data-snap', 'quarter');
   });
 
   it('handles touch drag up to expand and drag down to collapse / close', () => {
@@ -191,21 +191,21 @@ describe('DaySheet (Adaptive Dancer & Admin Calendar Sheet)', () => {
     const panel = screen.getByTestId('day-sheet-panel');
     const handleArea = screen.getByTestId('day-sheet-drag-area');
 
-    // Drag up from 1/3: deltaY = -40px -> snap to full
+    // Drag up from 1/4: deltaY = -40px -> snap to full
     fireEvent.touchStart(handleArea, { touches: [{ clientY: 300 }] });
     fireEvent.touchMove(handleArea, { touches: [{ clientY: 250 }] });
     fireEvent.touchEnd(handleArea);
 
     expect(panel).toHaveAttribute('data-snap', 'full');
 
-    // Drag down from full: deltaY = +40px -> snap back to 1/3
+    // Drag down from full: deltaY = +40px -> snap back to 1/4
     fireEvent.touchStart(handleArea, { touches: [{ clientY: 200 }] });
     fireEvent.touchMove(handleArea, { touches: [{ clientY: 250 }] });
     fireEvent.touchEnd(handleArea);
 
-    expect(panel).toHaveAttribute('data-snap', 'third');
+    expect(panel).toHaveAttribute('data-snap', 'quarter');
 
-    // Drag down from 1/3: deltaY = +60px -> close sheet
+    // Drag down from 1/4: deltaY = +60px -> close sheet
     fireEvent.touchStart(handleArea, { touches: [{ clientY: 200 }] });
     fireEvent.touchMove(handleArea, { touches: [{ clientY: 270 }] });
     fireEvent.touchEnd(handleArea);
@@ -268,7 +268,7 @@ describe('DaySheet (Adaptive Dancer & Admin Calendar Sheet)', () => {
     expect(handleEdit).toHaveBeenCalledWith('s1');
   });
 
-  it('resets to 1/3 height when reopened with a new date', () => {
+  it('resets to 1/4 height when reopened with a new date', () => {
     const { rerender } = render(
       <MemoryRouter>
         <DaySheet
@@ -325,6 +325,6 @@ describe('DaySheet (Adaptive Dancer & Admin Calendar Sheet)', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId('day-sheet-panel')).toHaveAttribute('data-snap', 'third');
+    expect(screen.getByTestId('day-sheet-panel')).toHaveAttribute('data-snap', 'quarter');
   });
 });

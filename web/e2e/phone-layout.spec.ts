@@ -391,39 +391,6 @@ for (const width of [360, 390]) {
       expect(failures, `Found ${failures.length} layout failures:\n${failures.join('\n')}`).toEqual([]);
     });
 
-    test('nav toggle hidden in overlays', async ({ page }) => {
-      await setupPage(page);
-
-      // On /, nav toggle is visible initially
-      await page.goto('/');
-      await page.waitForLoadState('networkidle');
-      await expect(page.getByTestId('mobile-nav-toggle-btn')).toBeVisible();
-
-      // Open day sheet -> nav toggle must be hidden
-      const dayBtn = page.locator('button[data-date]').first();
-      await dayBtn.click();
-      await page.waitForTimeout(300);
-      await expect(page.getByTestId('mobile-nav-toggle-btn')).toBeHidden();
-
-      // Close day sheet -> nav toggle visible again
-      await page.getByRole('button', { name: 'Close' }).click();
-      await page.waitForTimeout(200);
-      await expect(page.getByTestId('mobile-nav-toggle-btn')).toBeVisible();
-
-      // Open Studio fullscreen -> nav toggle must be hidden
-      await page.goto('/studio?music=m-1');
-      await page.waitForLoadState('networkidle');
-      await expect(page.getByTestId('mobile-nav-toggle-btn')).toBeVisible();
-
-      await page.getByRole('button', { name: /full ?screen/i }).click();
-      await page.waitForTimeout(300);
-      await expect(page.getByTestId('mobile-nav-toggle-btn')).toBeHidden();
-
-      // Exit fullscreen -> nav toggle visible again
-      await page.getByRole('button', { name: /exit/i }).click();
-      await page.waitForTimeout(200);
-      await expect(page.getByTestId('mobile-nav-toggle-btn')).toBeVisible();
-    });
 
     test('style edit modal does not clip vertically and is fully scrollable', async ({ page }) => {
       await page.addInitScript(() => {

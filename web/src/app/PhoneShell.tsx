@@ -23,7 +23,6 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
   children
 }) => {
   const [isUserInfoOpen, setIsUserInfoOpen] = useState(false);
-  const [isNavCollapsed, setIsNavCollapsed] = useState(false);
 
   const currentSession = session.get();
   const claims = currentSession?.claims;
@@ -38,11 +37,7 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
     >
       {/* Shell Container: centered with max-width 560px on tablet (768-1023px) */}
       <div
-        className={`w-full md:max-w-[560px] md:mx-auto md:border-x-4 md:border-[var(--outline)] md:shadow-[6px_0_0_var(--outline)] flex-1 flex flex-col bg-[var(--night-1)] ${
-          isNavCollapsed
-            ? 'pb-8'
-            : 'pb-[calc(var(--dock-h)+env(safe-area-inset-bottom)+24px)]'
-        }`}
+        className="w-full md:max-w-[560px] md:mx-auto md:border-x-4 md:border-[var(--outline)] md:shadow-[6px_0_0_var(--outline)] flex-1 flex flex-col bg-[var(--night-1)] pb-[calc(var(--dock-h)+env(safe-area-inset-bottom)+16px)]"
       >
         {/* Top User Status & Live Clock Bar */}
         <div className="sticky top-0 z-[var(--z-chrome)] bg-[var(--night-2)] text-[var(--text-1)] border-b-2 border-[var(--outline)] shadow-[0_4px_0_var(--outline)] pt-[env(safe-area-inset-top)] overflow-x-hidden">
@@ -115,53 +110,14 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
         )}
 
         {/* Main Content */}
-        <main
-          className={`flex-1 p-4 overflow-x-hidden ${
-            !isNavCollapsed
-              ? 'pb-[calc(var(--dock-h)+env(safe-area-inset-bottom)+72px)]'
-              : 'pb-[calc(env(safe-area-inset-bottom)+72px)]'
-          }`}
-        >
+        <main className="flex-1 p-4 overflow-x-hidden">
           {children}
         </main>
       </div>
 
-      {/* Bottom Navigation with Collapse & Expand */}
+      {/* Bottom Navigation */}
       <div className="w-full md:max-w-[560px] md:mx-auto">
-        {!isNavCollapsed ? (
-          <div className="relative">
-            {/* Collapse Button atop the TabBar */}
-            <div className="fixed bottom-[calc(var(--dock-h)+env(safe-area-inset-bottom)+16px)] right-3 z-50">
-              <button
-                type="button"
-                onClick={() => setIsNavCollapsed(true)}
-                aria-label="Collapse navigation"
-                title="Collapse navigation"
-                data-testid="mobile-nav-toggle-btn"
-                className="min-h-[44px] px-3 py-1 px-panel border-2 border-[var(--outline)] text-[var(--neon-gold)] font-display text-[11px] flex items-center gap-1.5 cursor-pointer select-none active:translate-x-[1px] active:translate-y-[1px]"
-              >
-                <span>HIDE NAV</span>
-                <span>▼</span>
-              </button>
-            </div>
-            <TabBar tabs={tabs} moreItems={moreItems} />
-          </div>
-        ) : (
-          /* Expand Button when TabBar is collapsed */
-          <div className="fixed bottom-[calc(16px+env(safe-area-inset-bottom))] right-3 z-50">
-            <button
-              type="button"
-              onClick={() => setIsNavCollapsed(false)}
-              aria-label="Expand navigation"
-              title="Expand navigation"
-              data-testid="mobile-nav-toggle-btn"
-              className="min-h-[44px] px-3.5 py-2 bg-[var(--neon-gold)] text-[var(--on-neon)] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] font-display text-[11px] font-bold flex items-center gap-1.5 cursor-pointer select-none active:translate-x-[2px] active:translate-y-[2px]"
-            >
-              <span>SHOW NAV</span>
-              <span>▲</span>
-            </button>
-          </div>
-        )}
+        <TabBar tabs={tabs} moreItems={moreItems} />
       </div>
     </div>
   );

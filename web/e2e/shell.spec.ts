@@ -138,25 +138,13 @@ test.describe('Responsive Shell Layout', () => {
     expect(page.url()).toContain('/login');
   });
 
-  test('mobile: collapses and expands bottom navigation', async ({ page }, testInfo) => {
+  test('mobile: bottom navigation is visible', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'mobile', 'Only for mobile project');
 
     await page.goto('/');
 
     const tabBar = page.getByRole('navigation', { name: 'Bottom Navigation' });
     await expect(tabBar).toBeVisible();
-
-    const navToggleBtn = page.getByTestId('mobile-nav-toggle-btn');
-    await expect(navToggleBtn).toHaveText(/HIDE NAV/);
-    await navToggleBtn.click();
-
-    // Now tab bar is collapsed/hidden
-    await expect(tabBar).not.toBeVisible();
-    const showNavBtn = page.getByTestId('mobile-nav-toggle-btn');
-    await expect(showNavBtn).toHaveText(/SHOW NAV/);
-
-    // Expand again
-    await showNavBtn.click();
-    await expect(tabBar).toBeVisible();
+    await expect(page.getByTestId('mobile-nav-toggle-btn')).not.toBeVisible();
   });
 });

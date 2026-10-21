@@ -58,16 +58,16 @@ export const DaySheet: React.FC<DaySheetProps> = ({
 
   const isMobile = forceMobile !== undefined ? forceMobile : detectedMobile;
 
-  // Snap height on mobile: 'third' (~36dvh) or 'full' (~92dvh)
-  const [snapHeight, setSnapHeight] = useState<'third' | 'full'>('third');
+  // Snap height on mobile: 'quarter' (~26dvh) or 'full' (~92dvh)
+  const [snapHeight, setSnapHeight] = useState<'quarter' | 'full'>('quarter');
 
   // Lock body scroll only when expanded to full on mobile, or on desktop drawer
   useOverlayOpen(isOpen && (!isMobile || snapHeight === 'full'));
 
-  // Reset to 1/3 height whenever opened or date changes
+  // Reset to 1/4 height whenever opened or date changes
   useEffect(() => {
     if (isOpen) {
-      setSnapHeight('third');
+      setSnapHeight('quarter');
     }
   }, [isOpen, date]);
 
@@ -109,17 +109,17 @@ export const DaySheet: React.FC<DaySheetProps> = ({
     } else if (deltaY > 20) {
       // Dragged DOWN
       if (snapHeight === 'full') {
-        // Collapse to 1/3
-        setSnapHeight('third');
+        // Collapse to 1/4
+        setSnapHeight('quarter');
       } else if (deltaY > 40) {
-        // Dragged down significantly while in 1/3 -> dismiss
+        // Dragged down significantly while in 1/4 -> dismiss
         onClose();
       }
     }
   };
 
   const toggleSnap = () => {
-    setSnapHeight((prev) => (prev === 'third' ? 'full' : 'third'));
+    setSnapHeight((prev) => (prev === 'quarter' ? 'full' : 'quarter'));
   };
 
   if (!isOpen || !date) return null;
@@ -131,18 +131,18 @@ export const DaySheet: React.FC<DaySheetProps> = ({
   const formattedTitle = formatDayLabel(date).toUpperCase();
   const subtitle = `${daySessions.length} class${daySessions.length === 1 ? '' : 'es'} scheduled`;
 
-  const isThirdMode = isMobile && snapHeight === 'third';
+  const isQuarterMode = isMobile && snapHeight === 'quarter';
 
   return (
     <div
       role="dialog"
-      aria-modal={!isThirdMode}
+      aria-modal={!isQuarterMode}
       className={`fixed inset-0 z-[var(--z-overlay)] flex items-end sm:items-stretch sm:justify-end ${
-        isThirdMode ? 'pointer-events-none' : 'pointer-events-auto'
+        isQuarterMode ? 'pointer-events-none' : 'pointer-events-auto'
       }`}
     >
       {/* Backdrop: only visible & active when expanded to full on mobile, or on desktop */}
-      {!isThirdMode && (
+      {!isQuarterMode && (
         <div
           className="fixed inset-0 bg-[var(--night-0)]/80 px-dither cursor-pointer pointer-events-auto"
           onClick={onClose}
@@ -159,8 +159,8 @@ export const DaySheet: React.FC<DaySheetProps> = ({
         style={
           isMobile
             ? {
-                height: snapHeight === 'third' ? '36dvh' : '92dvh',
-                maxHeight: snapHeight === 'third' ? '36dvh' : '92dvh',
+                height: snapHeight === 'quarter' ? '26dvh' : '92dvh',
+                maxHeight: snapHeight === 'quarter' ? '26dvh' : '92dvh',
                 transition: 'height 250ms cubic-bezier(0.2, 0.9, 0.3, 1), max-height 250ms cubic-bezier(0.2, 0.9, 0.3, 1)'
               }
             : undefined
@@ -179,13 +179,13 @@ export const DaySheet: React.FC<DaySheetProps> = ({
           <button
             type="button"
             data-testid="day-sheet-handle"
-            aria-label={snapHeight === 'third' ? 'Expand to full height' : 'Collapse to 1/3 height'}
+            aria-label={snapHeight === 'quarter' ? 'Expand to full height' : 'Collapse to 1/4 height'}
             className="flex flex-col items-center gap-1 group py-0.5 px-4"
           >
             {/* Grab pill */}
             <div className="w-12 h-1.5 bg-[var(--neon-cyan)] rounded-none shadow-[1px_1px_0_var(--outline)]" />
             <span className="font-display text-[9px] text-[var(--neon-gold)] tracking-wider">
-              {snapHeight === 'third' ? '▲ EXPAND (FULL SCREEN)' : '▼ COLLAPSE (1/3 SCREEN)'}
+              {snapHeight === 'quarter' ? '▲ EXPAND (FULL SCREEN)' : '▼ COLLAPSE (1/4 SCREEN)'}
             </span>
           </button>
         </div>
@@ -203,7 +203,7 @@ export const DaySheet: React.FC<DaySheetProps> = ({
               <h2 className="font-display text-[12px] sm:text-[14px] tracking-wider uppercase text-[var(--neon-cyan)] px-glow-text truncate">
                 {formattedTitle}
               </h2>
-              {isThirdMode && (
+              {isQuarterMode && (
                 <span className="font-mono text-[9px] px-1.5 py-0.5 bg-[var(--violet-2)] text-[var(--neon-gold)] border border-[var(--outline)] shrink-0">
                   TAP TO EXPAND
                 </span>
@@ -243,8 +243,8 @@ export const DaySheet: React.FC<DaySheetProps> = ({
               const ev = events.find((e) => e.id === session.eventId);
               const colorVar = getInstructorColor(instructor, session.styleId);
 
-              // 1/3 Compact View on Mobile: show date, time, style, event, venue, small instructor picture
-              if (isThirdMode) {
+              // 1/4 Compact View on Mobile: show date, time, style, event, venue, small instructor picture
+              if (isQuarterMode) {
                 const photoUrl = instructor ? getInstructorPhotoUrl(instructor) : null;
                 const thumbUrl = photoUrl ? getDriveThumbnailUrl(photoUrl, 100) : null;
 
