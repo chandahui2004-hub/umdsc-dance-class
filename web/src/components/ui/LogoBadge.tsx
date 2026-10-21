@@ -13,19 +13,18 @@ export function LogoBadge({ height = 96, className = '' }: LogoBadgeProps): Reac
       className={`relative inline-block select-none ${className}`}
       style={{ width: `${width}px`, height: `${height}px` }}
     >
-      {/* Lightbox backing rectangle */}
+      {/* Retro pixel backing rectangle */}
       <div
-        className="absolute inset-[12.5%]"
-        style={{ backgroundColor: 'var(--text-1)' }}
+        className="absolute inset-[10%] bg-[var(--night-2)] border border-[var(--outline)]"
         aria-hidden="true"
       />
 
-      {/* Real UMDSC logo */}
+      {/* 8-bit Retro UMDSC Pixel Logo */}
       <img
-        src="/logo.png"
+        src="/logo-pixel.png"
         alt="UMDSC logo"
-        className="absolute inset-[12.5%] w-[75%] h-[75%] object-contain"
-        style={{ imageRendering: 'auto' }}
+        className="absolute inset-[10%] w-[80%] h-[80%] object-contain drop-shadow-[0_0_8px_rgba(0,240,255,0.5)]"
+        style={{ imageRendering: 'pixelated' }}
         draggable={false}
       />
 

@@ -299,69 +299,72 @@ export const ClassesPage: React.FC = () => {
         </div>
       )}
 
-      <Panel title={`CLASSES ON ${formatDayLabel(selectedDate).toUpperCase()}`}>
-        {isLoading ? (
-          <div className="p-4 text-center">
-            <Spinner size="md" />
-          </div>
-        ) : error ? (
-          <div role="alert" className="p-3 bg-[var(--night-1)] border-2 border-[var(--neon-red)] text-[var(--neon-red)] text-[12px] font-body font-bold">{errorMessage(error)}</div>
-        ) : (
-          (() => {
-            const dateSessions = activeSessions.filter(s => s.date === selectedDate);
-            const visibleDateSessions = isFiltered ? dateSessions.filter(matchesFilter) : dateSessions;
-            return (
-              <>
-                {visibleDateSessions.length > 0 && (
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                    {visibleDateSessions.map(s => {
-                      const style = getStyle(s.styleId);
-                      return (
-                        <ClassCard
-                          key={s.id}
-                          session={s}
-                          style={style}
-                          instructor={resolveInstructor(s, style, instructors)}
-                          videos={dayVideos.filter(v => v.sessionId === s.id)}
-                          music={dayMusic.filter(m => m.sessionId === s.id)}
-                          eventName={isAll ? getEvent(s.eventId)?.name : undefined}
-                          showAttendance={false}
-                          action={
-                            <PixelButton size="sm" variant="secondary" onClick={() => setEditingSession(s)}>
-                              ✎ EDIT CLASS
-                            </PixelButton>
-                          }
-                        />
-                      );
-                    })}
-                  </div>
-                )}
-                {isFiltered && visibleDateSessions.length === 0 && dateSessions.length > 0 && (
-                  <div className="p-3 bg-[var(--night-1)] border border-[var(--outline)] text-center space-y-1">
-                    <p className="font-body text-[13px] text-[var(--text-2)]">
-                      No classes match filter on this date ({dateSessions.length} other class{dateSessions.length > 1 ? 'es' : ''} scheduled).
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFilterStyleId('all');
-                        setFilterInstructor('all');
-                        setFilterEventId('all');
-                      }}
-                      className="font-display text-[10px] text-[var(--neon-gold)] underline cursor-pointer"
-                    >
-                      RESET FILTERS
-                    </button>
-                  </div>
-                )}
-                {dateSessions.length === 0 && (
-                  <p className="font-body text-[14px] text-[var(--text-2)] py-2 text-center">No classes on this date.</p>
-                )}
-              </>
-            );
-          })()
-        )}
-      </Panel>
+      {/* Selected date classes panel — hidden on mobile since DaySheet bottom sheet covers it */}
+      <div className="hidden sm:block">
+        <Panel title={`CLASSES ON ${formatDayLabel(selectedDate).toUpperCase()}`}>
+          {isLoading ? (
+            <div className="p-4 text-center">
+              <Spinner size="md" />
+            </div>
+          ) : error ? (
+            <div role="alert" className="p-3 bg-[var(--night-1)] border-2 border-[var(--neon-red)] text-[var(--neon-red)] text-[12px] font-body font-bold">{errorMessage(error)}</div>
+          ) : (
+            (() => {
+              const dateSessions = activeSessions.filter(s => s.date === selectedDate);
+              const visibleDateSessions = isFiltered ? dateSessions.filter(matchesFilter) : dateSessions;
+              return (
+                <>
+                  {visibleDateSessions.length > 0 && (
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                      {visibleDateSessions.map(s => {
+                        const style = getStyle(s.styleId);
+                        return (
+                          <ClassCard
+                            key={s.id}
+                            session={s}
+                            style={style}
+                            instructor={resolveInstructor(s, style, instructors)}
+                            videos={dayVideos.filter(v => v.sessionId === s.id)}
+                            music={dayMusic.filter(m => m.sessionId === s.id)}
+                            eventName={isAll ? getEvent(s.eventId)?.name : undefined}
+                            showAttendance={false}
+                            action={
+                              <PixelButton size="sm" variant="secondary" onClick={() => setEditingSession(s)}>
+                                ✎ EDIT CLASS
+                              </PixelButton>
+                            }
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
+                  {isFiltered && visibleDateSessions.length === 0 && dateSessions.length > 0 && (
+                    <div className="p-3 bg-[var(--night-1)] border border-[var(--outline)] text-center space-y-1">
+                      <p className="font-body text-[13px] text-[var(--text-2)]">
+                        No classes match filter on this date ({dateSessions.length} other class{dateSessions.length > 1 ? 'es' : ''} scheduled).
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilterStyleId('all');
+                          setFilterInstructor('all');
+                          setFilterEventId('all');
+                        }}
+                        className="font-display text-[10px] text-[var(--neon-gold)] underline cursor-pointer"
+                      >
+                        RESET FILTERS
+                      </button>
+                    </div>
+                  )}
+                  {dateSessions.length === 0 && (
+                    <p className="font-body text-[14px] text-[var(--text-2)] py-2 text-center">No classes on this date.</p>
+                  )}
+                </>
+              );
+            })()
+          )}
+        </Panel>
+      </div>
 
       <Panel title={isAll ? 'ALL CLASSES ACROSS ALL EVENTS' : `ALL CLASSES IN ${event?.name || ''}`}>
         {/* Filter Controls Bar */}

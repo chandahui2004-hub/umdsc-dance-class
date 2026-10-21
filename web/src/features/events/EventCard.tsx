@@ -67,7 +67,11 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
     mutationFn: async () => (await call<any>('events.syncFormSlots', { id: event.id })).data,
     onSuccess: async (data: any) => {
       await refresh();
-      if (data?.formClosed) {
+      if (data?.discoveredStyleIds && data.discoveredStyleIds.length > 0) {
+        setNote(`Google Form synchronized: ${data.discoveredStyleIds.length} new style(s) discovered from form!`);
+      } else if (data?.formClosedManually) {
+        setNote('Google Form detected as manually closed by admin in Google Forms.');
+      } else if (data?.formClosed) {
         setNote('Google Form closed: FULL HOUSE reached.');
       } else if (data?.fullStyleIds && data.fullStyleIds.length > 0) {
         setNote(`Google Form updated: ${data.fullStyleIds.length} full style(s) removed.`);
@@ -163,6 +167,17 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
             <span>📊</span>
             <span>RESPONSE SHEET ↗</span>
           </a>
+          {Boolean((event as any).formUrl) && (
+            <a
+              href={(event as any).formUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 min-h-[36px] bg-[var(--night-1)] text-[var(--neon-gold)] border-2 border-[var(--outline)] hover:border-[var(--neon-gold)] font-display text-[11px] font-bold shadow-[1px_1px_0_var(--outline)]"
+            >
+              <span>📝</span>
+              <span>GOOGLE FORM ↗</span>
+            </a>
+          )}
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 min-h-[36px] bg-[var(--night-1)] text-[var(--text-2)] border-2 border-[var(--outline)] font-mono text-[13px]">
             <span>🔄</span>
             <span>SYNCED: {formatKL(event.lastSyncAt)}</span>

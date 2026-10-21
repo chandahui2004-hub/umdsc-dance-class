@@ -180,6 +180,65 @@ describe('Google Form Automated Slot Gating (syncGoogleFormSlotChoices)', () => 
     expect(question.helpText).toContain('Popping, Locking');
   });
 
+  it('respects admin manual form closure when form is closed directly in Google Forms', () => {
+    const { event, formId } = makeEvent([], {
+      styleSlots: { st_hiphop: 10 }
+    });
+
+    const form = ctx.form.openForm(formId)!;
+    // Admin directly toggled "Accepting responses" to false in Google Forms (custom message is empty or custom)
+    form.setAcceptingResponses(false);
+    form.setCustomClosedFormMessage('Registrations temporarily paused by club admin');
+
+    // Only 1 dancer enrolled out of 10
+    const members: Member[] = [
+      { memberId: 'm1', fullName: 'Alice', matricRaw: '2301', matricKey: '2301', nameKey: 'alice', styleIds: ['st_hiphop'], styleNames: ['Hip Hop'] }
+    ];
+
+    const result = syncGoogleFormSlotChoices(ctx, event, members);
+
+    expect(result.synced).toBe(true);
+    expect(result.formClosed).toBe(true);
+    expect(result.formClosedManually).toBe(true);
+    // Crucial: Must NOT force re-open the form!
+    expect(form.isAcceptingResponses()).toBe(false);
+  });
+
+  it('auto-discovers new dance style choices added directly in Google Form and adds to event styles', () => {
+    // Add Breaking to master data styles
+    addStyle('st_breaking', 'Breaking', ['breaking', 'bboy']);
+
+    const sourceId = seedSourceSheet(ctx, [HEADERS]);
+    const formId = 'form_with_new_style';
+    const form = ctx.form.createForm(formId);
+    ctx.form.setLinkedForm(sourceId, `https://docs.google.com/forms/d/${formId}/edit`);
+
+    // The Google Form has Hip Hop AND Breaking (added by admin directly in Google Forms)
+    form.addQuestion({
+      id: 'q_styles',
+      title: 'Select dance class',
+      choices: ['Hip Hop', 'Breaking'],
+      helpText: ''
+    });
+
+    // But the event in our database currently only has Hip Hop
+    const event = seedEvent(ctx, {
+      name: 'STYLE AUTO SYNC EVENT',
+      sourceSheetId: sourceId,
+      styleIds: ['st_hiphop'],
+      styleSlots: { st_hiphop: 10 }
+    });
+
+    const result = syncGoogleFormSlotChoices(ctx, event, []);
+
+    expect(result.synced).toBe(true);
+    expect(result.discoveredStyleIds).toContain('st_breaking');
+    // Event in db now automatically includes st_breaking!
+    const refreshed = ctx.db.events.get(event.id)!;
+    expect(refreshed.styleIds).toContain('st_hiphop');
+    expect(refreshed.styleIds).toContain('st_breaking');
+  });
+
   it('gracefully handles events without a linked Google Form without throwing', () => {
     const sourceId = seedSourceSheet(ctx, [HEADERS]);
     // Do NOT link any form

@@ -357,8 +357,14 @@ export function getEventRoutes(): Record<string, Route> {
       handler: (ctx, auth, payload: any) => {
         const event = getEvent(ctx, String(payload?.id || ''));
         const result = syncGoogleFormSlotChoices(ctx, event);
+        if (result.discoveredStyleIds && result.discoveredStyleIds.length > 0) {
+          ctx.props.set('DATA_VERSION', String(Number(ctx.props.get('DATA_VERSION') || 1) + 1));
+        }
         logAudit(ctx, auth?.claims.sub || 'system', 'events.syncFormSlots', event.id, JSON.stringify(result));
-        return result;
+        return {
+          ...result,
+          event: ctx.db.events.get(event.id)
+        };
       }
     },
 
