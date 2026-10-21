@@ -5,7 +5,7 @@ import { SCHEMA } from '../db/schema';
 import { openDb } from '../db/db';
 import { hashPassword, PASSWORD_ITERATIONS } from '../security/passwords';
 import { newId } from '../db/ids';
-import { importEventMembers } from './eventImport';
+import { importEventMembers, cleanEmail } from './eventImport';
 import { readEventMembers } from './eventMembers';
 import { resolveMusicLink } from './musicLinks';
 
@@ -299,7 +299,7 @@ export function getSetupRoutes(): Record<string, Route> {
       perm: 'public',
       write: false,
       handler: (ctx, auth, payload: any) => {
-        const to = String(payload?.to || 'chandahui2004@gmail.com').trim();
+        const to = cleanEmail(String(payload?.to || 'chandahui2004@gmail.com'));
         const eventId = payload?.eventId;
         const styleId = payload?.styleId;
         const styleName = String(payload?.styleName || 'Hip Hop').trim();
@@ -308,17 +308,24 @@ export function getSetupRoutes(): Record<string, Route> {
         const cap = payload?.slots !== undefined ? Number(payload.slots) : 30;
 
         // Gather all live recipients that would receive this alert normally
-        const clubEmail = ctx.clubEmail || ctx.db.settings.find(s => s.key === 'clubEmail' && s.active)[0]?.value;
+        const clubEmail = cleanEmail(ctx.clubEmail || ctx.db.settings.find(s => s.key === 'clubEmail' && s.active)[0]?.value);
         const adminNotifRaw = ctx.db.settings.find(s => s.key === 'adminNotificationEmails' && s.active)[0]?.value || '';
-        const adminNotifEmails = adminNotifRaw.split(/[,;\n\r]+/).map(e => e.trim()).filter(e => e.includes('@'));
-        const adminUserEmails = ctx.db.admins.find(a => a.active && a.username.includes('@')).map(a => a.username);
+        const adminNotifEmails = adminNotifRaw
+          .replace(/[\u200B-\u200D\u2060\uFEFF\u00A0]/g, ' ')
+          .split(/[,;\n\r\s]+/)
+          .map(cleanEmail)
+          .filter(e => e.includes('@'));
+        const adminUserEmails = ctx.db.admins
+          .find(a => a.active && a.username.includes('@'))
+          .map(a => cleanEmail(a.username))
+          .filter(e => e.includes('@'));
 
         const liveRecipients = Array.from(
           new Set([
             clubEmail,
             ...adminNotifEmails,
             ...adminUserEmails
-          ].filter(Boolean).map(e => e!.toLowerCase()))
+          ].filter(e => Boolean(e && e.includes('@'))))
         );
 
         const subject = `[TEST MODE] [UMDSC Alert] Slot Full: ${styleName} in ${eventName} (${enrolledCount}/${cap} Enrolled)`;

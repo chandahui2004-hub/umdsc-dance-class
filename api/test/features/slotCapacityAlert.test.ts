@@ -296,4 +296,44 @@ describe('Slot Capacity & Alert System (Bug Audit & Verification)', () => {
     expect(ctx.mail.sent[0].to).toBe('chandahui2004@gmail.com');
     expect(ctx.mail.sent[0].name).toBe('UMDSC Dance Class System');
   });
+
+  it('sanitizes invisible / zero-width characters (e.g. U+2060, U+200B) from admin emails and usernames', () => {
+    // Inject invisible U+2060 word joiner into settings and admin accounts (as observed from real pasted data)
+    ctx.db.settings.insert(
+      { key: 'adminNotificationEmails', value: '\u2060pastemail@umdsc.com,  \u200Btest2@umdsc.com  ' } as any,
+      'system',
+      ctx.now()
+    );
+    ctx.db.admins.insert(
+      { username: '\u2060hiddenzero@umdsc.com', displayName: 'Hidden Admin', roleId: 'admin' } as any,
+      'system',
+      ctx.now()
+    );
+
+    const { event } = makeEvent(
+      [
+        row('Alice', '23001001', 'Popping'),
+        row('Bob', '23001002', 'Popping')
+      ],
+      { styleSlots: { st_popping: 2 } }
+    );
+
+    ctx.mail.reset();
+    importEventMembers(ctx, event, { full: true });
+
+    const sentAlerts = ctx.mail.sent.filter(m => m.subject.includes('Slot Full'));
+    const recipients = sentAlerts.map(m => m.to);
+
+    // Verify all recipients are completely cleaned of invisible characters
+    expect(recipients).toContain('pastemail@umdsc.com');
+    expect(recipients).toContain('test2@umdsc.com');
+    expect(recipients).toContain('hiddenzero@umdsc.com');
+
+    recipients.forEach(r => {
+      expect(r).not.toContain('\u2060');
+      expect(r).not.toContain('\u200B');
+      expect(r).not.toContain('\uFEFF');
+      expect(r).not.toContain(' ');
+    });
+  });
 });

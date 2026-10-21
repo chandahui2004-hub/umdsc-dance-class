@@ -4,9 +4,10 @@ import { PixelButton } from '../../components/ui/PixelButton';
 export function parseEmailList(raw: string): string[] {
   if (!raw) return [];
   return raw
+    .replace(/[\u200B-\u200D\u2060\uFEFF\u00A0]/g, ' ')
     .split(/[,，;；\n\s]+/)
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
+    .map((e) => e.replace(/[\u200B-\u200D\u2060\uFEFF\u00A0\s]/g, '').toLowerCase())
+    .filter((e) => Boolean(e && e.includes('@')));
 }
 
 export interface AdminEmailManagerProps {

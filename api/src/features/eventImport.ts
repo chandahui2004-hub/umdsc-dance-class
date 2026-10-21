@@ -506,6 +506,12 @@ export function importEventMembers(
   return { changed: true, added: added.length, updated, flaggedRemoved, purged, corrected: corrections.size, memberCount, unknownClasses };
 }
 
+/** Sanitizes email strings by stripping zero-width / invisible format characters (e.g. U+2060, U+200B) and whitespace */
+export function cleanEmail(raw: string | undefined | null): string {
+  if (!raw) return '';
+  return raw.replace(/[\u200B-\u200D\u2060\uFEFF\u00A0\s]/g, '').trim().toLowerCase();
+}
+
 /**
  * Evaluates enrolled members against target styleSlots and sends notification
  * emails once when capacity is reached. Can be called during member import,
@@ -529,18 +535,22 @@ export function checkAndNotifySlotCapacities(
 
   // Recipients:
   // 1. Club system email
-  const clubEmail = ctx.clubEmail || ctx.db.settings.find(s => s.key === 'clubEmail' && s.active)[0]?.value;
+  const clubEmail = cleanEmail(ctx.clubEmail || ctx.db.settings.find(s => s.key === 'clubEmail' && s.active)[0]?.value);
   // 2. Admin notification emails configured in Settings (comma/semicolon/newline separated)
   const adminNotifRaw = ctx.db.settings.find(s => s.key === 'adminNotificationEmails' && s.active)[0]?.value || '';
   const adminNotifEmails = adminNotifRaw
-    .split(/[,;\n\r]+/)
-    .map(e => e.trim())
+    .replace(/[\u200B-\u200D\u2060\uFEFF\u00A0]/g, ' ')
+    .split(/[,;\n\r\s]+/)
+    .map(cleanEmail)
     .filter(e => e.includes('@'));
   // 3. Admin user accounts with @ in username
-  const adminUserEmails = ctx.db.admins.find(a => a.active && a.username.includes('@')).map(a => a.username);
+  const adminUserEmails = ctx.db.admins
+    .find(a => a.active && a.username.includes('@'))
+    .map(a => cleanEmail(a.username))
+    .filter(e => e.includes('@'));
 
   // 4. Test recipient override setting: when set, all live recipient notifications are suppressed and sent only to the test email
-  const slotAlertTestEmail = (ctx.db.settings.find(s => s.key === 'slotAlertTestEmail' && s.active)[0]?.value || '').trim();
+  const slotAlertTestEmail = cleanEmail(ctx.db.settings.find(s => s.key === 'slotAlertTestEmail' && s.active)[0]?.value);
   const isTestMode = Boolean(slotAlertTestEmail && slotAlertTestEmail.includes('@'));
 
   for (const styleId of event.styleIds || []) {
@@ -557,13 +567,13 @@ export function checkAndNotifySlotCapacities(
           newlyNotified = true;
           const style = ctx.db.styles.find(s => s.id === styleId && s.active)[0];
           const styleName = style?.name || styleId;
-          const classLeadEmail = style?.videoUploaderEmail?.trim();
+          const classLeadEmail = cleanEmail(style?.videoUploaderEmail);
           const styleInstructors = (event.styleInstructors?.[styleId] || []);
           const instructorEmails = styleInstructors
             .map(id => ctx.db.instructors.get(id))
             .filter(Boolean)
-            .map(i => i?.contact?.trim())
-            .filter((c): c is string => Boolean(c && c.includes('@')));
+            .map(i => cleanEmail(i?.contact))
+            .filter(c => c.includes('@'));
 
           const allLiveRecipients = Array.from(
             new Set([
@@ -572,10 +582,10 @@ export function checkAndNotifySlotCapacities(
               ...adminUserEmails,
               classLeadEmail,
               ...instructorEmails
-            ].filter(Boolean).map(e => e!.toLowerCase()))
-          ) as string[];
+            ].filter(e => Boolean(e && e.includes('@'))))
+          );
 
-          const recipients = isTestMode ? [slotAlertTestEmail.toLowerCase()] : allLiveRecipients;
+          const recipients = isTestMode ? [slotAlertTestEmail] : allLiveRecipients;
 
           for (const to of recipients) {
             const subjectPrefix = isTestMode ? '[TEST MODE] ' : '';
