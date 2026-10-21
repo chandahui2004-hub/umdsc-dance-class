@@ -6,6 +6,7 @@ import { FakeCache } from './fakeCache';
 import { FakeLock } from './fakeLock';
 import { FakeProps } from './fakeProps';
 import { FakeMailAdapter } from './mail';
+import { FakeFormPort } from './fakeForm';
 import { openDb } from '../../src/db/db';
 
 export function makeCtx(opts?: {
@@ -17,11 +18,12 @@ export function makeCtx(opts?: {
   http?: FakeHttp;
   youtube?: FakeYouTube;
   mail?: FakeMailAdapter;
+  form?: FakeFormPort;
   clubEmail?: string;
   systemSpreadsheetId?: string;
   /** false leaves the one-time style-instructor fill-in pending; default presets it as done. */
   styleInstructorsMigrated?: boolean;
-}): Ctx & { http: FakeHttp; youtube: FakeYouTube; mail: FakeMailAdapter } {
+}): Ctx & { http: FakeHttp; youtube: FakeYouTube; mail: FakeMailAdapter; form: FakeFormPort } {
   const drive = opts?.drive || new FakeDrive();
   const cache = opts?.cache || new FakeCache();
   const lock = opts?.lock || new FakeLock();
@@ -46,6 +48,7 @@ export function makeCtx(opts?: {
     clubEmail,
     http,
     youtube,
-    mail
+    mail,
+    form: opts?.form || new FakeFormPort()
   };
 }

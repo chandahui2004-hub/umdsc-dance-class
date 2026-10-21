@@ -132,6 +132,28 @@ export interface MailPort {
   sendEmail(options: SendEmailOptions): void;
 }
 
+export interface FormQuestionPort {
+  id: string;
+  title: string;
+  choices: string[];
+  helpText: string;
+}
+
+export interface FormInstancePort {
+  getId(): string;
+  isAcceptingResponses(): boolean;
+  setAcceptingResponses(enabled: boolean): void;
+  setCustomClosedFormMessage(message: string): void;
+  getCustomClosedFormMessage(): string;
+  getStyleQuestion(searchKeywords?: string[]): FormQuestionPort | null;
+  setChoices(questionId: string, choices: string[], helpText?: string): void;
+}
+
+export interface FormPort {
+  getFormUrl(spreadsheetId: string): string | null;
+  openForm(idOrUrl: string): FormInstancePort | null;
+}
+
 export interface Ctx {
   now(): Date;
   drive: DrivePort;
@@ -143,4 +165,6 @@ export interface Ctx {
   http: HttpPort;
   youtube: YouTubePort;
   mail: MailPort;
+  form?: FormPort;
 }
+
