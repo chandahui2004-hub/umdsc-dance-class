@@ -10,6 +10,7 @@ import { previewSource, openSourceTab } from './eventSource';
 import { ensureEventFolder, ensureMembersSheet, ensureEventSheets, saveEventFields, eventYear, refileEventYear, renameStyleVideoFolders } from './eventSheets';
 import { getEvent, readEventMembers } from './eventMembers';
 import { importEventMembers, sourceUnchanged, checkAndNotifySlotCapacities } from './eventImport';
+import { syncGoogleFormSlotChoices } from './formGating';
 import { withScriptLock } from '../db/lock';
 import { assertSchemaReady } from './reset';
 import { cleanStyleInstructors, firstInstructor, assertClassInstructor } from './styleInstructors';
@@ -346,6 +347,17 @@ export function getEventRoutes(): Record<string, Route> {
           ctx.props.set('DATA_VERSION', String(Number(ctx.props.get('DATA_VERSION') || 1) + 1));
         }
         logAudit(ctx, auth?.claims.sub || 'system', 'events.sync', event.id, `+${result.added} ~${result.updated}`);
+        return result;
+      }
+    },
+
+    'events.syncFormSlots': {
+      perm: 'members.import',
+      write: true,
+      handler: (ctx, auth, payload: any) => {
+        const event = getEvent(ctx, String(payload?.id || ''));
+        const result = syncGoogleFormSlotChoices(ctx, event);
+        logAudit(ctx, auth?.claims.sub || 'system', 'events.syncFormSlots', event.id, JSON.stringify(result));
         return result;
       }
     },

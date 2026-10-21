@@ -9,6 +9,7 @@ import { logAudit } from '../logic/audit';
 import { openSourceTab, timestampColumn, countUnknownClasses } from './eventSource';
 import { membersChanged, readEventMembers } from './eventMembers';
 import { ensureEventFolder, ensureMembersSheet, ensureEventSheets, saveEventFields } from './eventSheets';
+import { syncGoogleFormSlotChoices } from './formGating';
 
 export interface ImportResult {
   changed: boolean;
@@ -635,6 +636,13 @@ export function checkAndNotifySlotCapacities(
     saveEventFields(ctx, event.id, {
       notifiedFullStylesJson: event.notifiedFullStylesJson
     });
+  }
+
+  // Automatically update choices or close form when capacity is reached or re-armed
+  try {
+    syncGoogleFormSlotChoices(ctx, event, members);
+  } catch (err) {
+    console.warn(`[checkAndNotifySlotCapacities] Google Form slot sync failed for event ${event.id}:`, err);
   }
 
   return { newlyNotified, notifiedFullStyles: notifiedList };

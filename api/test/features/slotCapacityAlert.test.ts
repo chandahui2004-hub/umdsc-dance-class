@@ -336,4 +336,32 @@ describe('Slot Capacity & Alert System (Bug Audit & Verification)', () => {
       expect(r).not.toContain(' ');
     });
   });
+
+  it('automatically modifies linked Google Form choices when importEventMembers reaches slot capacity', () => {
+    const formId = 'live_test_form_1';
+    const form = ctx.form.createForm(formId);
+    form.addQuestion({
+      id: 'q1',
+      title: 'Which classes are you attending?',
+      choices: ['Popping', 'Hip Hop'],
+      helpText: ''
+    });
+
+    const { event, sourceId } = makeEvent(
+      [
+        row('Alice', '23001001', 'Popping'),
+        row('Bob', '23001002', 'Popping')
+      ],
+      { styleSlots: { st_popping: 2, st_hiphop: 10 } }
+    );
+    ctx.form.setLinkedForm(sourceId, `https://docs.google.com/forms/d/${formId}/edit`);
+
+    importEventMembers(ctx, event, { full: true });
+
+    // Verify form was modified: Popping was removed, Hip Hop remains
+    const updatedForm = ctx.form.openForm(formId)!;
+    const q = updatedForm.getStyleQuestion()!;
+    expect(q.choices).toEqual(['Hip Hop']);
+    expect(q.helpText).toContain('Popping');
+  });
 });
