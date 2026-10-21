@@ -29,41 +29,61 @@ export class GasFormInstance implements FormInstancePort {
 
   getStyleQuestion(searchKeywords: string[] = ['class', 'style', 'dance', 'workshop']): FormQuestionPort | null {
     const items = this.form.getItems();
-    let bestCandidate: { item: GoogleAppsScript.Forms.Item; choices: string[]; helpText: string } | null = null;
+    const danceTerms = [
+      'hip hop', 'hiphop', 'popping', 'pop', 'locking', 'lock', 'choreo',
+      'choreography', 'kpop', 'k-pop', 'waacking', 'breaking', 'bboy',
+      'urban', 'latin', 'ballroom', 'salsa', 'bachata', 'open choreo', 'girls'
+    ];
+
+    let bestCandidate: { id: string; title: string; choices: string[]; helpText: string; score: number } | null = null;
 
     for (const item of items) {
       const type = item.getType();
+      let title = '';
+      let choices: string[] = [];
+      let helpText = '';
+
       if (type === FormApp.ItemType.CHECKBOX) {
         const cb = item.asCheckboxItem();
-        const title = cb.getTitle().toLowerCase();
-        const choices = cb.getChoices().map(c => c.getValue());
-        const helpText = cb.getHelpText();
-
-        if (searchKeywords.some(kw => title.includes(kw))) {
-          return { id: String(item.getId()), title: cb.getTitle(), choices, helpText };
-        }
-        if (!bestCandidate && choices.length > 0) {
-          bestCandidate = { item, choices, helpText };
-        }
+        title = cb.getTitle();
+        choices = cb.getChoices().map(c => c.getValue());
+        helpText = cb.getHelpText();
       } else if (type === FormApp.ItemType.MULTIPLE_CHOICE) {
         const mc = item.asMultipleChoiceItem();
-        const title = mc.getTitle().toLowerCase();
-        const choices = mc.getChoices().map(c => c.getValue());
-        const helpText = mc.getHelpText();
+        title = mc.getTitle();
+        choices = mc.getChoices().map(c => c.getValue());
+        helpText = mc.getHelpText();
+      } else {
+        continue;
+      }
 
-        if (searchKeywords.some(kw => title.includes(kw))) {
-          return { id: String(item.getId()), title: mc.getTitle(), choices, helpText };
+      if (choices.length === 0) continue;
+
+      const titleLower = title.toLowerCase();
+      let score = 0;
+
+      // Title matches keywords
+      if (searchKeywords.some(kw => titleLower.includes(kw))) {
+        score += 15;
+      }
+
+      // Choices match dance terminology
+      const choicesLower = choices.map(c => c.toLowerCase());
+      for (const term of danceTerms) {
+        if (choicesLower.some(c => c === term || c.includes(term))) {
+          score += 10;
         }
-        if (!bestCandidate && choices.length > 0) {
-          bestCandidate = { item, choices, helpText };
-        }
+      }
+
+      if (!bestCandidate || score > bestCandidate.score) {
+        bestCandidate = { id: String(item.getId()), title, choices, helpText, score };
       }
     }
 
-    if (bestCandidate) {
+    if (bestCandidate && bestCandidate.score > 0) {
       return {
-        id: String(bestCandidate.item.getId()),
-        title: bestCandidate.item.getTitle(),
+        id: bestCandidate.id,
+        title: bestCandidate.title,
         choices: bestCandidate.choices,
         helpText: bestCandidate.helpText
       };
