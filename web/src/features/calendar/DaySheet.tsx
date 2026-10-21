@@ -173,20 +173,17 @@ export const DaySheet: React.FC<DaySheetProps> = ({
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           style={{ touchAction: 'none' }}
-          className="flex sm:hidden flex-col items-center justify-center pt-2 pb-1.5 bg-[var(--night-1)] border-b border-[var(--outline)] select-none cursor-pointer"
+          className="flex sm:hidden flex-col items-center justify-center py-2 bg-[var(--night-1)] border-b border-[var(--outline)] select-none cursor-pointer"
           onClick={toggleSnap}
         >
           <button
             type="button"
             data-testid="day-sheet-handle"
             aria-label={snapHeight === 'quarter' ? 'Expand to full height' : 'Collapse to 1/4 height'}
-            className="flex flex-col items-center gap-1 group py-0.5 px-4"
+            className="flex flex-col items-center py-1 px-6 group"
           >
             {/* Grab pill */}
             <div className="w-12 h-1.5 bg-[var(--neon-cyan)] rounded-none shadow-[1px_1px_0_var(--outline)]" />
-            <span className="font-display text-[9px] text-[var(--neon-gold)] tracking-wider">
-              {snapHeight === 'quarter' ? '▲ EXPAND (FULL SCREEN)' : '▼ COLLAPSE (1/4 SCREEN)'}
-            </span>
           </button>
         </div>
 
