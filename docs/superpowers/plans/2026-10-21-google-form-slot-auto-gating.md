@@ -39,23 +39,23 @@
 - Produces: `FormPort`, `FormItemPort`, `FormChoiceItem`
 - Consumes: `Ctx` in `api/src/ports.ts`
 
-- [ ] **Step 1: Define `FormPort` interfaces in `api/src/ports.ts`**
+- [x] **Step 1: Define `FormPort` interfaces in `api/src/ports.ts`**
   Add `FormPort` and `FormInstancePort` defining:
   - `getFormUrl(sheetId: string): string | null`
   - `openForm(idOrUrl: string): FormInstancePort | null`
   - `FormInstancePort`: `isAcceptingResponses(): boolean`, `setAcceptingResponses(val: boolean): void`, `setCustomClosedFormMessage(msg: string): void`, `getStyleQuestion(): FormQuestionPort | null`, `setChoices(questionId: string, choices: string[], helpText?: string): void`
 
-- [ ] **Step 2: Create `FakeForm` and `FakeFormPort` in `api/test/fakes/fakeForm.ts`**
+- [x] **Step 2: Create `FakeForm` and `FakeFormPort` in `api/test/fakes/fakeForm.ts`**
   Implements `FormPort` in-memory for testing, storing questions, choices, accepting state, and closed message.
 
-- [ ] **Step 3: Write tests for `FakeForm` in `api/test/fakes/fakeForm.test.ts`**
+- [x] **Step 3: Write tests for `FakeForm` in `api/test/fakes/fakeForm.test.ts`**
   Verify setting choices, closing form, and toggling accepting state works in fake.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
   Run: `npm test -- test/fakes/fakeForm.test.ts` in `api`
   Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   ```bash
   git add api/src/ports.ts api/test/fakes/fakeForm.ts api/test/fakes/fakeForm.test.ts
   git commit -m "feat(api): define FormPort and implement FakeForm for unit testing"
@@ -73,25 +73,25 @@
 - Produces: `syncGoogleFormSlotChoices(ctx: Ctx, event: EventItem, members?: Member[]): FormGatingResult`
 - Consumes: `FormPort`, `EventItem`, `Ctx`
 
-- [ ] **Step 1: Write failing tests in `api/test/features/formGating.test.ts`**
+- [x] **Step 1: Write failing tests in `api/test/features/formGating.test.ts`**
   - Test 1: Single-style event reaches capacity → closes form with "FULL HOUSE" message.
   - Test 2: Multi-style event with 1 style full → removes full style from choices and sets warning in question description.
   - Test 3: Multi-style event with all styles full → closes form with "FULL HOUSE" message.
   - Test 4: Re-arming: when capacity drops below limit, restores removed choice and re-opens form.
   - Test 5: Missing form URL or invalid form ID degrades gracefully without error.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
   Run: `npm test -- test/features/formGating.test.ts` in `api`
   Expected: FAIL (module not found)
 
-- [ ] **Step 3: Implement `syncGoogleFormSlotChoices` in `api/src/features/formGating.ts`**
+- [x] **Step 3: Implement `syncGoogleFormSlotChoices` in `api/src/features/formGating.ts`**
   Implements slot tallying per style, compares with `styleSlots`, determines available choices, modifies form via `ctx.form` (with try/catch fallback), and updates question help text.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
   Run: `npm test -- test/features/formGating.test.ts` in `api`
   Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   ```bash
   git add api/src/features/formGating.ts api/test/features/formGating.test.ts
   git commit -m "feat(api): implement syncGoogleFormSlotChoices for dynamic choice removal and full house closure"
@@ -110,23 +110,23 @@
 - Produces: automated form gating trigger during `importEventMembers`, `events.sync`, and `events.update`
 - Consumes: `syncGoogleFormSlotChoices`
 
-- [ ] **Step 1: Write integration tests in `api/test/features/slotCapacityAlert.test.ts`**
+- [x] **Step 1: Write integration tests in `api/test/features/slotCapacityAlert.test.ts`**
   Verify that when `importEventMembers` or `events.update` detects slot capacity, `syncGoogleFormSlotChoices` is called alongside email alerts.
 
-- [ ] **Step 2: Call `syncGoogleFormSlotChoices` in `checkAndNotifySlotCapacities` (`eventImport.ts`)**
+- [x] **Step 2: Call `syncGoogleFormSlotChoices` in `checkAndNotifySlotCapacities` (`eventImport.ts`)**
   After sending emails (or safe test mode email), call `syncGoogleFormSlotChoices(ctx, event, members)`.
 
-- [ ] **Step 3: Call `syncGoogleFormSlotChoices` in `events.update` (`events.ts`)**
+- [x] **Step 3: Call `syncGoogleFormSlotChoices` in `events.update` (`events.ts`)**
   When an admin updates `styleSlots`, immediately sync the form options.
 
-- [ ] **Step 4: Add `events.syncFormSlots` route in `events.ts`**
+- [x] **Step 4: Add `events.syncFormSlots` route in `events.ts`**
   Enables manual 1-click slot sync from the admin interface.
 
-- [ ] **Step 5: Run tests to verify all pass**
+- [x] **Step 5: Run tests to verify all pass**
   Run: `npm test -- test/features/slotCapacityAlert.test.ts` in `api`
   Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   ```bash
   git add api/src/features/eventImport.ts api/src/features/events.ts api/test/features/slotCapacityAlert.test.ts
   git commit -m "feat(api): hook Google Form slot gating into event import and updates"
@@ -145,20 +145,20 @@
 - Produces: `GasFormAdapter` implementing `FormPort` using Google's `FormApp` and `SpreadsheetApp`
 - Consumes: `GoogleAppsScript.Forms.FormApp`
 
-- [ ] **Step 1: Implement `GasFormAdapter` in `api/src/gas/form.ts`**
+- [x] **Step 1: Implement `GasFormAdapter` in `api/src/gas/form.ts`**
   - Uses `SpreadsheetApp.openById(sheetId).getFormUrl()` to resolve linked form URL.
   - Uses `FormApp.openByUrl(url)` / `FormApp.openById(id)`.
   - Discovers style checkbox item, reads/writes choices, sets accepting responses and closed message.
   - Safe error handling: wraps all calls in try/catch.
 
-- [ ] **Step 2: Export from `api/src/gas/adapters.ts` and instantiate in `buildCtx()` in `api/src/main.ts`**
+- [x] **Step 2: Export from `api/src/gas/adapters.ts` and instantiate in `buildCtx()` in `api/src/main.ts`**
   Provide `form: new GasFormAdapter()` on `ctx`.
 
-- [ ] **Step 3: Run full api test suite and build**
+- [x] **Step 3: Run full api test suite and build**
   Run: `npm test` and `npm run build` in `api`
   Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   ```bash
   git add api/src/gas/form.ts api/src/gas/adapters.ts api/src/main.ts
   git commit -m "feat(gas): implement GasFormAdapter wrapping FormApp for live form editing"
@@ -169,27 +169,27 @@
 ### Task 5: Admin UI Controls & Manual Sync Button
 
 **Files:**
-- Modify: `web/src/features/events/EventModal.tsx`
-- Modify: `web/src/features/settings/SettingsPage.tsx`
-- Modify: `web/src/features/settings/AdminEmailManager.test.tsx`
+- Modify: `web/src/features/events/EventCard.tsx`
+- Modify: `web/src/features/events/eventDraft.ts`
+- Modify: `web/src/features/events/steps/FormLinkStep.tsx`
 
 **Interfaces:**
-- Produces: Form URL field in EventModal, "Sync Form Slots" button, and status badges
+- Produces: Form URL field in Event creation wizard, "⚡ SYNC FORM" button in EventCard
 - Consumes: `events.syncFormSlots` API route
 
-- [ ] **Step 1: Add optional Form URL / ID in `EventModal.tsx`**
+- [x] **Step 1: Add optional Form URL in `FormLinkStep.tsx` & `eventDraft.ts`**
   Allows admins to explicitly specify or override the Google Form URL if desired.
 
-- [ ] **Step 2: Add "Sync Google Form Slots" button in Event details and Settings**
+- [x] **Step 2: Add "⚡ SYNC FORM" button in `EventCard.tsx`**
   Allows admins to immediately push current slot limits to the live Google Form with 1 tap.
 
-- [ ] **Step 3: Run web tests and build**
+- [x] **Step 3: Run web tests and build**
   Run: `npm test` and `npm run build` in `web`
   Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   ```bash
-  git add web/src/features/events/EventModal.tsx web/src/features/settings/SettingsPage.tsx
+  git add web/src/features/events/EventCard.tsx web/src/features/events/eventDraft.ts web/src/features/events/steps/FormLinkStep.tsx
   git commit -m "feat(web): add Google Form URL field and manual slot sync trigger"
   ```
 
@@ -200,13 +200,13 @@
 **Files:**
 - GAS Deployment: `@72`
 
-- [ ] **Step 1: Deploy to Google Apps Script**
+- [x] **Step 1: Deploy to Google Apps Script**
   Run `clasp push -f`, create version 72 (`clasp version "v72: Automated Google Form slot gating and dynamic choice removal"`), and deploy to deployment `AKfycbz3zfWHdcl_3GuDsCf_ysLpH4XDNyklC87L9HuKpUVvhKrF-BU1M-QCf0PjPePAwwxIHA`.
 
-- [ ] **Step 2: Live Verification with test payload**
+- [x] **Step 2: Live Verification with test payload**
   Trigger live test endpoint to verify `FormApp` resolves the form, removes full choices, and closes on full house.
 
-- [ ] **Step 3: Commit and push to `main`**
+- [x] **Step 3: Commit and push to `main`**
   ```bash
   git push origin main
   ```
