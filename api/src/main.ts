@@ -7,7 +7,8 @@ import {
   GasPropsAdapter,
   GasHttpAdapter,
   GasYouTubeAdapter,
-  GasMailAdapter
+  GasMailAdapter,
+  GasFormAdapter
 } from './gas/adapters';
 import { openDb } from './db/db';
 import { Ctx } from './ports';
@@ -69,7 +70,8 @@ function buildCtx(): { ctx: Ctx; props: GasPropsAdapter } {
     clubEmail,
     http: new GasHttpAdapter(),
     youtube: new GasYouTubeAdapter(),
-    mail: new GasMailAdapter()
+    mail: new GasMailAdapter(),
+    form: new GasFormAdapter()
   };
   return { ctx, props };
 }

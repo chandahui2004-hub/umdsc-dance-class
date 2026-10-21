@@ -446,3 +446,5 @@ export class GasYouTubeAdapter implements YouTubePort {
 }
 
 export { GasMailAdapter } from './mail';
+export { GasFormAdapter, GasFormInstance } from './form';
+

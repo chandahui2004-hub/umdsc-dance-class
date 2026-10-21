@@ -23,7 +23,7 @@ export interface ImportResult {
   unknownClasses: { token: string; count: number }[];
 }
 
-const REMOVED_FLAG = 'removed-from-form';
+export const REMOVED_FLAG = 'removed-from-form';
 /** Member fields refreshed from the form on every sync that reads it. */
 const REFRESHED_FIELDS: (keyof Member)[] = [
   'fullName', 'nameKey', 'contact', 'email', 'gender', 'nationality', 'styleIds', 'styleNames'
