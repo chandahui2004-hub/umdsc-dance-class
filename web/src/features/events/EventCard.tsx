@@ -63,6 +63,23 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
     onError
   });
 
+  const syncFormSlots = useMutation({
+    mutationFn: async () => (await call<any>('events.syncFormSlots', { id: event.id })).data,
+    onSuccess: async (data: any) => {
+      await refresh();
+      if (data?.formClosed) {
+        setNote('Google Form closed: FULL HOUSE reached.');
+      } else if (data?.fullStyleIds && data.fullStyleIds.length > 0) {
+        setNote(`Google Form updated: ${data.fullStyleIds.length} full style(s) removed.`);
+      } else if (data?.synced) {
+        setNote('Google Form synchronized: choices up to date.');
+      } else {
+        setNote(data?.message || 'Form sync completed.');
+      }
+    },
+    onError
+  });
+
   let styleSlots: Record<string, number> = {};
   if (event.styleSlots && typeof event.styleSlots === 'object') {
     styleSlots = event.styleSlots;
@@ -185,6 +202,15 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
             </PixelButton>
             <PixelButton size="md" variant="secondary" disabled={sync.isPending} onClick={() => sync.mutate()}>
               {sync.isPending ? 'SYNCING…' : 'SYNC NOW'}
+            </PixelButton>
+            <PixelButton
+              size="md"
+              variant="secondary"
+              disabled={syncFormSlots.isPending}
+              onClick={() => syncFormSlots.mutate()}
+              title="Synchronize slot limits directly to Google Form"
+            >
+              {syncFormSlots.isPending ? 'UPDATING FORM…' : '⚡ SYNC FORM'}
             </PixelButton>
             <PixelButton
               size="md"

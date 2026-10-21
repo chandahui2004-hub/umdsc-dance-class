@@ -28,12 +28,15 @@ export interface EventDraft {
   styleInstructors: Record<string, string[]>;
   /** Slot capacity per style for detection/alerts */
   styleSlots?: Record<string, number>;
+  /** Optional direct Google Form link */
+  formUrl?: string;
   schedule: Record<string, ScheduledClass[]>;
 }
 
 export function emptyDraft(today: ISODate): EventDraft {
   return {
     sheetUrl: '',
+    formUrl: '',
     preview: null,
     columnMap: {},
     classIndex: -1,
@@ -91,6 +94,7 @@ export function draftFromEvent(e: EventItem, sessions: ClassSession[]): EventDra
     styleIds: [...e.styleIds],
     styleInstructors,
     styleSlots: e.styleSlots || (e.styleSlotsJson ? JSON.parse(e.styleSlotsJson) : {}),
+    formUrl: (e as any).formUrl || '',
     schedule
   };
 }
