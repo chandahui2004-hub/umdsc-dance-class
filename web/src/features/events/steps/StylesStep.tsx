@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { DanceStyle, Instructor } from '@umdsc/shared';
 import { call, errorMessage } from '../../../lib/api';
@@ -282,6 +281,50 @@ interface InstructorPickerProps {
 
 /** The instructors teaching one ticked style in this event. */
 const InstructorPicker: React.FC<InstructorPickerProps> = ({ style, instructors, selected, onToggle, onReload }) => {
+  const queryClient = useQueryClient();
+  const [showAdd, setShowAdd] = useState(false);
+  const [name, setName] = useState('');
+  const [contact, setContact] = useState('');
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const createInstructor = useMutation({
+    mutationFn: async () => {
+      const trimmedName = name.trim();
+      const trimmedContact = contact.trim();
+      const trimmedEmail = email.trim();
+      if (!trimmedName) throw new Error('Full Name is required');
+      if (!trimmedContact) throw new Error('Contact number is required');
+
+      const contactString = trimmedEmail ? `${trimmedContact} (${trimmedEmail})` : trimmedContact;
+
+      const res = await call<Instructor>('instructors.create', {
+        name: trimmedName,
+        contact: contactString,
+        styleIds: [style.id],
+        color: '',
+        styleColors: {}
+      });
+      return res.data;
+    },
+    onSuccess: async (newInst) => {
+      // Optimistically add to instructors cache
+      queryClient.setQueryData<Instructor[]>(['instructors'], (prev) =>
+        prev ? [...prev, newInst] : [newInst]
+      );
+      await queryClient.invalidateQueries({ queryKey: ['instructors'] });
+      setName('');
+      setContact('');
+      setEmail('');
+      setError(null);
+      setShowAdd(false);
+      if (!selected.includes(newInst.id)) {
+        onToggle(newInst.id);
+      }
+    },
+    onError: (err) => setError(errorMessage(err))
+  });
+
   const candidates = instructorsForStyle(instructors, style.id);
   // Saved on the event but no longer active or no longer teaching this style: keep them visible so nothing changes silently.
   const others = selected.filter(id => !candidates.some(c => c.id === id));
@@ -295,14 +338,18 @@ const InstructorPicker: React.FC<InstructorPickerProps> = ({ style, instructors,
 
   return (
     <div className="border-2 border-[var(--outline)] bg-[var(--night-1)] px-panel p-3 space-y-2">
-      <p className="font-display text-[12px] text-[var(--neon-cyan)]">INSTRUCTORS FOR {style.name.toUpperCase()}</p>
+      <div className="flex items-center justify-between gap-2 border-b border-[var(--outline)] pb-1.5">
+        <p className="font-display text-[12px] text-[var(--neon-cyan)] uppercase font-bold">
+          INSTRUCTORS FOR {style.name.toUpperCase()}
+        </p>
+        <span className="font-mono text-[11px] text-[var(--text-3)]">
+          {selected.length} selected
+        </span>
+      </div>
+
       {candidates.length === 0 && others.length === 0 ? (
         <p className="font-body text-[14px] text-[var(--neon-gold)]">
-          No instructor teaches {style.name} yet — add it on the{' '}
-          <Link to="/admin/instructors" target="_blank" rel="noreferrer" className="underline text-[var(--neon-cyan)]">
-            Instructors page
-          </Link>
-          .
+          No instructor teaches {style.name} yet. You can add one below directly without leaving this page!
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-1">
@@ -313,9 +360,96 @@ const InstructorPicker: React.FC<InstructorPickerProps> = ({ style, instructors,
           })}
         </div>
       )}
-      <PixelButton size="md" variant="secondary" onClick={onReload}>
-        ↻ RELOAD INSTRUCTORS
-      </PixelButton>
+
+      {/* Action buttons: Add New Instructor & Reload */}
+      <div className="flex flex-wrap items-center gap-2 pt-1">
+        <PixelButton
+          size="sm"
+          variant="secondary"
+          onClick={() => {
+            setShowAdd(v => !v);
+            setError(null);
+          }}
+        >
+          {showAdd ? '✕ CLOSE' : '+ NEW INSTRUCTOR'}
+        </PixelButton>
+        <PixelButton size="sm" variant="ghost" onClick={onReload}>
+          ↻ RELOAD
+        </PixelButton>
+      </div>
+
+      {/* Inline Add Instructor Form */}
+      {showAdd && (
+        <div className="border-2 border-[var(--outline)] bg-[var(--night-2)] p-3 space-y-2.5 mt-2 shadow-[2px_2px_0_var(--outline)]">
+          <p className="font-display text-[11px] text-[var(--neon-cyan)] uppercase font-bold tracking-wider">
+            ADD NEW INSTRUCTOR FOR {style.name}
+          </p>
+
+          <div className="grid grid-cols-1 gap-2">
+            <div>
+              <label htmlFor={`inst-name-${style.id}`} className="font-display text-[10px] text-[var(--text-2)] uppercase block font-bold mb-0.5">
+                Full Name <span className="text-[var(--neon-red)]">*</span>
+              </label>
+              <input
+                id={`inst-name-${style.id}`}
+                aria-label="Instructor Name"
+                placeholder="e.g. Alex Tan"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                className="w-full min-h-[38px] px-2.5 border-2 border-[var(--outline)] bg-[var(--night-1)] font-body text-[14px] text-[var(--text-1)] placeholder:text-[var(--text-3)] focus:border-[var(--neon-gold)]"
+              />
+            </div>
+
+            <div>
+              <label htmlFor={`inst-contact-${style.id}`} className="font-display text-[10px] text-[var(--text-2)] uppercase block font-bold mb-0.5">
+                Contact Number (Phone / WhatsApp) <span className="text-[var(--neon-red)]">*</span>
+              </label>
+              <input
+                id={`inst-contact-${style.id}`}
+                aria-label="Instructor Contact"
+                placeholder="e.g. +60123456789"
+                value={contact}
+                onChange={e => setContact(e.target.value)}
+                className="w-full min-h-[38px] px-2.5 border-2 border-[var(--outline)] bg-[var(--night-1)] font-mono text-[14px] text-[var(--text-1)] placeholder:text-[var(--text-3)] focus:border-[var(--neon-gold)]"
+              />
+            </div>
+
+            <div>
+              <label htmlFor={`inst-email-${style.id}`} className="font-display text-[10px] text-[var(--text-2)] uppercase block font-bold mb-0.5">
+                Email Address (Optional)
+              </label>
+              <input
+                id={`inst-email-${style.id}`}
+                aria-label="Instructor Email"
+                placeholder="e.g. alex@example.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="w-full min-h-[38px] px-2.5 border-2 border-[var(--outline)] bg-[var(--night-1)] font-body text-[14px] text-[var(--text-1)] placeholder:text-[var(--text-3)] focus:border-[var(--neon-gold)]"
+              />
+            </div>
+
+            {error && (
+              <p role="alert" className="font-body text-xs text-[var(--neon-red)] font-bold">
+                ⚠ {error}
+              </p>
+            )}
+
+            <div className="flex justify-end gap-2 pt-1 border-t border-[var(--outline)]">
+              <PixelButton size="sm" variant="ghost" onClick={() => setShowAdd(false)}>
+                CANCEL
+              </PixelButton>
+              <PixelButton
+                size="sm"
+                variant="primary"
+                disabled={!name.trim() || !contact.trim() || createInstructor.isPending}
+                onClick={() => createInstructor.mutate()}
+              >
+                {createInstructor.isPending ? 'ADDING…' : 'ADD & SELECT'}
+              </PixelButton>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
