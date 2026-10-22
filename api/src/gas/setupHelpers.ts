@@ -34,6 +34,7 @@ export function authorizeOnce(): string {
     } catch (fe: any) {
       formStatus = 'ERROR: ' + (fe?.message || fe);
       Logger.log('Google Forms authorization error: ' + formStatus);
+      Logger.log('--> ACTION NEEDED: Run "grantFormsPermission" from the function dropdown above, or revoke access at https://myaccount.google.com/connections to bring up the "Review permissions" modal.');
     }
   }
 
@@ -68,3 +69,15 @@ export function testFormAccess(formId: string = '11ZZM4qFUc1jj9LSqUXSzbr0y2-e4xz
     return msg;
   }
 }
+
+export function grantFormsPermission(): string {
+  // Calling FormApp directly without a try/catch block forces Google Apps Script
+  // to evaluate the missing scope and prompt the user with "Authorization required" -> "Review permissions"
+  const tempForm = FormApp.create('UMDSC_AUTH_TEMP');
+  const tempId = tempForm.getId();
+  DriveApp.getFileById(tempId).setTrashed(true);
+  const msg = 'SUCCESS: Google Forms permission granted! Temp form trashed.';
+  Logger.log(msg);
+  return msg;
+}
+
