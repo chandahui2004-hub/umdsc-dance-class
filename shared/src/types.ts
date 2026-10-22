@@ -107,6 +107,8 @@ export interface EventItem extends RowMeta {
   formId?: string;
   styleSlots?: Record<string, number>;
   styleSlotsJson?: string;
+  styleFormLabels?: Record<string, string>;
+  styleFormLabelsJson?: string;
   notifiedFullStyles?: string[];
   notifiedFullStylesJson?: string;
 }

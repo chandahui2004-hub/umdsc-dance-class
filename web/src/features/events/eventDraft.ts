@@ -28,6 +28,8 @@ export interface EventDraft {
   styleInstructors: Record<string, string[]>;
   /** Slot capacity per style for detection/alerts */
   styleSlots?: Record<string, number>;
+  /** Exact full text of the style's selection choice in Google Form (e.g. "Locking (RM60/month)") */
+  styleFormLabels?: Record<string, string>;
   /** Optional direct Google Form link */
   formUrl?: string;
   schedule: Record<string, ScheduledClass[]>;
@@ -47,6 +49,7 @@ export function emptyDraft(today: ISODate): EventDraft {
     styleIds: [],
     styleInstructors: {},
     styleSlots: {},
+    styleFormLabels: {},
     schedule: {}
   };
 }
@@ -94,6 +97,7 @@ export function draftFromEvent(e: EventItem, sessions: ClassSession[]): EventDra
     styleIds: [...e.styleIds],
     styleInstructors,
     styleSlots: e.styleSlots || (e.styleSlotsJson ? JSON.parse(e.styleSlotsJson) : {}),
+    styleFormLabels: e.styleFormLabels || (e.styleFormLabelsJson ? JSON.parse(e.styleFormLabelsJson) : {}),
     formUrl: e.formUrl || (e.formId ? `https://docs.google.com/forms/d/${e.formId}/edit` : '') || '',
     schedule
   };

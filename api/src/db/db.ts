@@ -190,7 +190,7 @@ const defaultCodecs = {
   },
   events: {
     toCells: (r: EventItem) => {
-      const { styleInstructors, styleSlots, notifiedFullStyles, ...rest } = r;
+      const { styleInstructors, styleSlots, styleFormLabels, notifiedFullStyles, ...rest } = r;
       return {
         ...rest,
         styleIds: (r.styleIds || []).join(','),
@@ -198,6 +198,7 @@ const defaultCodecs = {
         formId: r.formId || '',
         styleInstructorsJson: JSON.stringify(styleInstructors || {}),
         styleSlotsJson: r.styleSlotsJson || JSON.stringify(styleSlots || {}),
+        styleFormLabelsJson: r.styleFormLabelsJson || JSON.stringify(styleFormLabels || {}),
         notifiedFullStylesJson: r.notifiedFullStylesJson || JSON.stringify(notifiedFullStyles || []),
         active: r.active ? 'TRUE' : 'FALSE'
       };
@@ -223,6 +224,8 @@ const defaultCodecs = {
       styleInstructors: parseStyleInstructors(c.styleInstructorsJson),
       styleSlots: parseStyleSlots(c.styleSlotsJson),
       styleSlotsJson: c.styleSlotsJson || '{}',
+      styleFormLabels: parseStyleColors(c.styleFormLabelsJson),
+      styleFormLabelsJson: c.styleFormLabelsJson || '{}',
       notifiedFullStyles: parseNotifiedFullStyles(c.notifiedFullStylesJson),
       notifiedFullStylesJson: c.notifiedFullStylesJson || '[]',
       folderId: c.folderId || '',

@@ -109,6 +109,31 @@ describe('Google Form gating against the real club form layout', () => {
     expect(res.synced).toBe(false);
     expect(res.message).toMatch(/edit link/i);
   });
+
+  it('uses admin-configured styleFormLabels with highest priority for choice matching and restoration', () => {
+    const withCustomLabels: EventItem = {
+      ...event,
+      styleFormLabels: {
+        st_locking: 'Locking (RM60/month)',
+        st_popping: 'Popping (RM60/month)',
+        st_latin: 'Latin (RM60/month)',
+        st_hiphop: 'Hiphop (RM60/month)'
+      }
+    };
+    const res = syncGoogleFormSlotChoices(ctx, withCustomLabels, [member('a', ['st_locking'])]);
+    expect(res.synced).toBe(true);
+    expect(res.fullStyleIds).toEqual(['st_locking']);
+    expect(form.getStyleQuestion()!.choices).not.toContain('Locking (RM60/month)');
+
+    // Restore Locking when capacity is increased
+    const restoredEvent: EventItem = {
+      ...withCustomLabels,
+      styleSlots: { ...withCustomLabels.styleSlots, st_locking: 10 }
+    };
+    const res2 = syncGoogleFormSlotChoices(ctx, restoredEvent, [member('a', ['st_locking'])]);
+    expect(res2.fullStyleIds).toHaveLength(0);
+    expect(form.getStyleQuestion()!.choices).toContain('Locking (RM60/month)');
+  });
 });
 
 describe('Apps Script manifest', () => {

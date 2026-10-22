@@ -198,6 +198,15 @@ export function getEventRoutes(): Record<string, Route> {
           patch.styleSlots = slots;
           patch.styleSlotsJson = JSON.stringify(slots);
         }
+        if (payload.styleFormLabels !== undefined && typeof payload.styleFormLabels === 'object') {
+          const labels: Record<string, string> = {};
+          for (const id of next.styleIds) {
+            const val = String(payload.styleFormLabels[id] || '').trim();
+            if (val) labels[id] = val;
+          }
+          patch.styleFormLabels = labels;
+          patch.styleFormLabelsJson = JSON.stringify(labels);
+        }
         if (payload.columnMap !== undefined) patch.columnMapJson = JSON.stringify(payload.columnMap || {});
         if (payload.classIndex !== undefined) patch.classIndex = Number(payload.classIndex);
         if (payload.formUrl !== undefined) {
@@ -541,6 +550,16 @@ export function getEventRoutes(): Record<string, Route> {
           }
         }
 
+        const styleFormLabels: Record<string, string> = {};
+        if (payload?.styleFormLabels && typeof payload.styleFormLabels === 'object') {
+          for (const id of styleIds) {
+            const val = String(payload.styleFormLabels[id] || '').trim();
+            if (val) {
+              styleFormLabels[id] = val;
+            }
+          }
+        }
+
         const actor = auth?.claims.sub || 'system';
         const created = ctx.db.events.insert(
           {
@@ -559,6 +578,8 @@ export function getEventRoutes(): Record<string, Route> {
             styleInstructors,
             styleSlots,
             styleSlotsJson: JSON.stringify(styleSlots),
+            styleFormLabels,
+            styleFormLabelsJson: JSON.stringify(styleFormLabels),
             notifiedFullStyles: [],
             notifiedFullStylesJson: '[]',
             folderId: '',

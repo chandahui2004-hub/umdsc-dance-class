@@ -37,6 +37,7 @@ export const ReviewStep: React.FC<StepProps> = ({ draft, onBack, isEdit, event, 
     styleIds: draft.styleIds,
     styleInstructors: draft.styleInstructors,
     styleSlots: draft.styleSlots,
+    styleFormLabels: draft.styleFormLabels,
     formUrl: draft.formUrl !== undefined ? draft.formUrl.trim() : ''
   };
 

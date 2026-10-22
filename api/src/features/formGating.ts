@@ -105,6 +105,8 @@ export function syncGoogleFormSlotChoices(
   const question = form.getStyleQuestion();
   const discoveredStyleIds: string[] = [];
   const currentStyleIds = new Set(event.styleIds || []);
+  const formLabels: Record<string, string> =
+    event.styleFormLabels || (event.styleFormLabelsJson ? JSON.parse(event.styleFormLabelsJson) : {});
 
   if (question && question.choices.length > 0) {
     const allActiveStyles = ctx.db.styles.find(s => s.active);
@@ -113,6 +115,25 @@ export function syncGoogleFormSlotChoices(
       str.replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').replace(/\bclasses?\b/gi, '').trim();
 
     for (const rawChoice of question.choices) {
+      // 0. Check if choice matches admin's configured form label for an existing event style
+      let matchedLabelSid: string | null = null;
+      for (const [sid, label] of Object.entries(formLabels)) {
+        if (label && typeof label === 'string') {
+          if (rawChoice.trim().toLowerCase() === label.trim().toLowerCase() ||
+              cleanChoice(rawChoice).toLowerCase() === cleanChoice(label).toLowerCase()) {
+            matchedLabelSid = sid;
+            break;
+          }
+        }
+      }
+      if (matchedLabelSid) {
+        if (!currentStyleIds.has(matchedLabelSid)) {
+          currentStyleIds.add(matchedLabelSid);
+          discoveredStyleIds.push(matchedLabelSid);
+        }
+        continue;
+      }
+
       const choice = cleanChoice(rawChoice);
       if (!choice) continue;
       const choiceNorm = lettersOnly(choice);
@@ -284,6 +305,23 @@ export function syncGoogleFormSlotChoices(
     }
 
     const matchChoiceToStyleId = (choiceText: string): string | null => {
+      const choiceTrimmed = choiceText.trim().toLowerCase();
+
+      // 0. Explicit configured full name by admin (HIGHEST PRIORITY)
+      for (const sid of styleIds) {
+        const configured = formLabels[sid];
+        if (configured && typeof configured === 'string') {
+          if (configured.trim().toLowerCase() === choiceTrimmed) {
+            return sid;
+          }
+          const cfgClean = cleanChoice(configured).toLowerCase();
+          const chClean = cleanChoice(choiceText).toLowerCase();
+          if (cfgClean && chClean && (cfgClean === chClean || lettersOnly(cfgClean) === lettersOnly(chClean))) {
+            return sid;
+          }
+        }
+      }
+
       const cleaned = cleanChoice(choiceText);
       const cleanedNorm = lettersOnly(cleaned);
       const rawNorm = lettersOnly(choiceText);
@@ -343,7 +381,11 @@ export function syncGoogleFormSlotChoices(
     for (const availSid of availableStyleIds) {
       const alreadyPresent = filteredChoices.some(c => matchChoiceToStyleId(c) === availSid);
       if (!alreadyPresent) {
-        const restoredLabel = rememberedLabels[availSid] || styleInfoMap.get(availSid)?.name || availSid;
+        const restoredLabel =
+          formLabels[availSid] ||
+          rememberedLabels[availSid] ||
+          styleInfoMap.get(availSid)?.name ||
+          availSid;
         filteredChoices.push(restoredLabel);
       }
     }

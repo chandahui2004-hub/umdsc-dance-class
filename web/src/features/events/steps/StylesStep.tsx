@@ -153,6 +153,34 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
                   <span className="font-mono text-[11px] text-[var(--text-3)]">slots</span>
                 </div>
               </div>
+              <div className="p-2.5 bg-[var(--night-2)] border-2 border-[var(--outline)] space-y-1.5 shadow-[2px_2px_0_var(--outline)]">
+                <div className="flex items-center justify-between gap-2">
+                  <label htmlFor={`form-label-${s.id}`} className="font-display text-[11px] text-[var(--neon-gold)] font-bold block">
+                    GOOGLE FORM SELECTION FULL NAME:
+                  </label>
+                  <span className="font-mono text-[9px] text-[var(--neon-pink)] uppercase font-semibold">
+                    Exact Form Option
+                  </span>
+                </div>
+                <input
+                  id={`form-label-${s.id}`}
+                  type="text"
+                  placeholder={`e.g. ${s.name} (RM60/month)`}
+                  value={draft.styleFormLabels?.[s.id] ?? ''}
+                  onChange={e => {
+                    onChange({
+                      styleFormLabels: {
+                        ...(draft.styleFormLabels || {}),
+                        [s.id]: e.target.value
+                      }
+                    });
+                  }}
+                  className="w-full min-h-[38px] px-2.5 border-2 border-[var(--outline)] bg-[var(--night-1)] font-mono text-[13px] text-[var(--text-1)] placeholder:text-[var(--text-3)] focus:border-[var(--neon-gold)]"
+                />
+                <span className="font-body text-[11px] text-[var(--text-2)] block leading-tight">
+                  Enter the exact full option text from Google Form (including price e.g. “{s.name} (RM60/month)”). Solves matching and preserves original label when re-opening.
+                </span>
+              </div>
               <InstructorPicker
                 style={s}
                 instructors={instructors}
