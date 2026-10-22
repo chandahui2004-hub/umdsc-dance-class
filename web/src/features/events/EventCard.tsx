@@ -84,6 +84,25 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
     onError
   });
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const deleteEvent = useMutation({
+    mutationFn: async () => {
+      setDeleteError(null);
+      return (await call<any>('events.delete', { id: event.id })).data;
+    },
+    onSuccess: async () => {
+      setShowDeleteConfirm(false);
+      await Promise.all([
+        refresh(),
+        queryClient.invalidateQueries({ queryKey: ['sessions'] }),
+        queryClient.invalidateQueries({ queryKey: ['members'] })
+      ]);
+    },
+    onError: (err) => setDeleteError(errorMessage(err))
+  });
+
   let styleSlots: Record<string, number> = {};
   if (event.styleSlots && typeof event.styleSlots === 'object') {
     styleSlots = event.styleSlots;
@@ -246,7 +265,83 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
             {setStatus.isPending ? 'UNARCHIVING…' : 'UNARCHIVE'}
           </PixelButton>
         )}
+        <PixelButton
+          size="md"
+          variant="ghost"
+          disabled={deleteEvent.isPending}
+          onClick={() => {
+            setDeleteError(null);
+            setShowDeleteConfirm(true);
+          }}
+          className="!text-[var(--neon-red)] hover:!bg-[var(--violet-2)] border-[var(--neon-red)]"
+          title="Permanently delete this event and all associated data"
+        >
+          DELETE
+        </PixelButton>
       </div>
+
+      {/* Double-Confirmation Permanent Deletion Warning Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby={`delete-event-title-${event.id}`}
+            aria-describedby={`delete-event-desc-${event.id}`}
+            className="w-full max-w-md bg-[var(--night-1)] border-2 border-[var(--neon-red)] p-5 space-y-4 shadow-[4px_4px_0_var(--outline)]"
+          >
+            <div className="flex items-center gap-2 border-b-2 border-[var(--outline)] pb-2">
+              <span className="text-xl">⚠️</span>
+              <h2
+                id={`delete-event-title-${event.id}`}
+                className="font-display text-sm tracking-wider text-[var(--neon-red)] uppercase font-bold"
+              >
+                PERMANENT DELETE WARNING
+              </h2>
+            </div>
+
+            <p id={`delete-event-desc-${event.id}`} className="font-body text-[14px] text-[var(--text-1)] leading-relaxed">
+              Are you sure you want to <strong>PERMANENTLY</strong> delete the event{' '}
+              <span className="text-[var(--neon-cyan)]">"{event.name}"</span>?
+            </p>
+
+            <div className="bg-[var(--night-2)] p-3 border border-[var(--neon-red)] font-mono text-xs text-[var(--neon-red)] space-y-1">
+              <p className="font-bold">🚨 THIS ACTION CANNOT BE UNDONE:</p>
+              <ul className="list-disc list-inside space-y-0.5 text-[var(--text-2)]">
+                <li>Permanently deletes all class sessions & attendance sheets</li>
+                <li>Removes event enrollment links from registered dancers</li>
+                <li>Moves linked Google Drive folders and sheets to Trash</li>
+              </ul>
+            </div>
+
+            {deleteError && (
+              <p role="alert" className="font-body text-xs text-[var(--neon-red)] font-bold">
+                ⚠ {deleteError}
+              </p>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2 border-t-2 border-[var(--outline)]">
+              <PixelButton
+                size="md"
+                variant="ghost"
+                disabled={deleteEvent.isPending}
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                CANCEL
+              </PixelButton>
+              <PixelButton
+                size="md"
+                variant="primary"
+                disabled={deleteEvent.isPending}
+                onClick={() => deleteEvent.mutate()}
+                className="!bg-[var(--neon-red)] !text-white hover:brightness-110"
+              >
+                {deleteEvent.isPending ? 'DELETING…' : 'CONFIRM DELETE'}
+              </PixelButton>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

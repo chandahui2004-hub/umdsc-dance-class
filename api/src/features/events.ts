@@ -253,6 +253,85 @@ export function getEventRoutes(): Record<string, Route> {
       }
     },
 
+    'events.delete': {
+      perm: 'members.import',
+      write: true,
+      bumpsData: true,
+      handler: (ctx, auth, payload: any) => {
+        const { id } = payload || {};
+        if (!id) throw new AppError('VALIDATION', 'id is required');
+        const event = getEvent(ctx, String(id));
+        const actor = auth?.claims.sub || 'system';
+
+        // 1. Trash linked Google Drive folders and files
+        if (event.folderId) {
+          try {
+            ctx.drive.trashFolder(event.folderId);
+          } catch (e) {
+            console.warn(`[events.delete] Failed to trash folder ${event.folderId}:`, e);
+          }
+        }
+        if (event.videoFolderId && event.videoFolderId !== event.folderId) {
+          try {
+            ctx.drive.trashFolder(event.videoFolderId);
+          } catch (e) {
+            console.warn(`[events.delete] Failed to trash videoFolder ${event.videoFolderId}:`, e);
+          }
+        }
+        if (event.membersSpreadsheetId) {
+          try {
+            ctx.drive.deleteFile(event.membersSpreadsheetId);
+          } catch (e) {
+            console.warn(`[events.delete] Failed to delete members spreadsheet ${event.membersSpreadsheetId}:`, e);
+          }
+        }
+
+        // 2. Attendance sheets
+        const attSheets = ctx.db.attendanceSheets.find(a => a.eventId === event.id);
+        for (const sheet of attSheets) {
+          if (sheet.spreadsheetId) {
+            try {
+              ctx.drive.deleteFile(sheet.spreadsheetId);
+            } catch (e) {
+              console.warn(`[events.delete] Failed to delete attendance sheet spreadsheet ${sheet.spreadsheetId}:`, e);
+            }
+          }
+          if (sheet.active) {
+            ctx.db.attendanceSheets.deactivate(sheet.id, sheet.version, actor, ctx.now());
+          }
+        }
+
+        // 3. Class sessions
+        const sessions = ctx.db.sessions.find(s => s.eventId === event.id && s.active);
+        for (const s of sessions) {
+          ctx.db.sessions.deactivate(s.id, s.version, actor, ctx.now());
+        }
+
+        // 4. Clean up memberIndex event links
+        const members = ctx.db.memberIndex.find(m => m.active && m.eventIds.includes(event.id));
+        for (const m of members) {
+          const nextEventIds = m.eventIds.filter(eId => eId !== event.id);
+          ctx.db.memberIndex.update(m.id, m.version, { eventIds: nextEventIds }, actor, ctx.now());
+        }
+
+        // 5. Deactivate associated videos and music records
+        const videos = ctx.db.videos.find(v => v.eventId === event.id && v.active);
+        for (const v of videos) {
+          ctx.db.videos.deactivate(v.id, v.version, actor, ctx.now());
+        }
+        const musics = ctx.db.music.find(m => m.eventId === event.id && m.active);
+        for (const m of musics) {
+          ctx.db.music.deactivate(m.id, m.version, actor, ctx.now());
+        }
+
+        // 6. Deactivate Event
+        ctx.db.events.deactivate(event.id, event.version, actor, ctx.now());
+
+        logAudit(ctx, actor, 'events.delete', event.id, `Permanently deleted event ${event.name}`);
+        return { success: true, id: event.id };
+      }
+    },
+
     // Runs every 10 minutes from any open admin page. Registered as a read route:
     // it takes the script lock itself, and only when a form actually changed.
     'events.autoSync': {

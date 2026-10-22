@@ -331,6 +331,17 @@ export class GasDriveAdapter implements DrivePort {
       return false;
     }
   }
+
+  trashFolder(folderId: string): boolean {
+    try {
+      const folder = DriveApp.getFolderById(folderId);
+      folder.setTrashed(true);
+      return true;
+    } catch (e: any) {
+      Logger.log('trashFolder error: ' + e.message);
+      return false;
+    }
+  }
 }
 
 export class GasCacheAdapter implements CachePort {

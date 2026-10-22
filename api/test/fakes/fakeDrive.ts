@@ -189,5 +189,11 @@ export class FakeDrive implements DrivePort {
     this.items.delete(fileId);
     return true;
   }
-}
 
+  trashFolder(folderId: string): boolean {
+    const item = this.items.get(folderId) as any;
+    if (!item || item.ownedByOther) return false;
+    this.items.delete(folderId);
+    return true;
+  }
+}

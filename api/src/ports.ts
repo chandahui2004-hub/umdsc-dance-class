@@ -75,6 +75,8 @@ export interface DrivePort {
   renameFile(fileId: string, name: string): void;
   /** Moves a file to the Drive trash. Returns false if Drive refused (e.g. another account owns it). */
   deleteFile(fileId: string): boolean;
+  /** Moves a folder to the Drive trash. Returns false if Drive refused. */
+  trashFolder(folderId: string): boolean;
 }
 
 export interface CachePort {
