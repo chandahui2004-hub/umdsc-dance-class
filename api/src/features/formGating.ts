@@ -78,15 +78,22 @@ export function syncGoogleFormSlotChoices(
   let form: FormInstancePort | null = null;
   try {
     form = ctx.form.openForm(formTarget);
-  } catch (err) {
-    console.warn(`[syncGoogleFormSlotChoices] Failed to open form ${formTarget}:`, err);
+  } catch (err: any) {
+    const rawMsg = err instanceof Error ? err.message : String(err);
+    console.warn(`[syncGoogleFormSlotChoices] Failed to open form ${formTarget}:`, rawMsg);
+    let userMsg = `Failed to open Google Form: ${rawMsg}`;
+    if (/permission|no item with the given id|cannot find|not found/i.test(rawMsg)) {
+      userMsg = `Access denied for Google Form (${formTarget}). Please ensure the club system account 'umdancesportc@gmail.com' is added as an Editor (Collaborator) on the Google Form (Google Form > ⋮ > Add collaborators).`;
+    } else if (/auth|oauth|scope/i.test(rawMsg)) {
+      userMsg = `Authorization required for Google Forms on club account. Please approve the Forms permission in Apps Script.`;
+    }
     return {
       synced: false,
       formClosed: false,
       formClosedManually: false,
       fullStyleIds: [],
       availableStyleIds: [],
-      message: `Failed to open Google Form: ${err}`
+      message: userMsg
     };
   }
 
@@ -97,7 +104,7 @@ export function syncGoogleFormSlotChoices(
       formClosedManually: false,
       fullStyleIds: [],
       availableStyleIds: [],
-      message: `Google Form could not be found at ${formTarget}`
+      message: `Google Form could not be found at ${formTarget}. Ensure umdancesportc@gmail.com is added as an Editor (Collaborator) on the form.`
     };
   }
 

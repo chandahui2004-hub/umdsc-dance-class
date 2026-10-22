@@ -134,24 +134,23 @@ export class GasFormAdapter implements FormPort {
   }
 
   openForm(idOrUrl: string): FormInstancePort | null {
+    if (typeof FormApp === 'undefined') return null;
+    const formId = extractGoogleFormId(idOrUrl);
+    const isUrl = /^https?:\/\//.test(idOrUrl);
+    let form: GoogleAppsScript.Forms.Form | null = null;
     try {
-      if (typeof FormApp === 'undefined') return null;
-      const formId = extractGoogleFormId(idOrUrl);
-      const isUrl = /^https?:\/\//.test(idOrUrl);
-      let form: GoogleAppsScript.Forms.Form | null = null;
-      try {
-        form = formId ? FormApp.openById(formId) : FormApp.openByUrl(idOrUrl);
-      } catch (firstErr) {
-        if (formId && isUrl) {
+      form = formId ? FormApp.openById(formId) : FormApp.openByUrl(idOrUrl);
+    } catch (firstErr) {
+      if (formId && isUrl) {
+        try {
           form = FormApp.openByUrl(idOrUrl);
-        } else {
+        } catch {
           throw firstErr;
         }
+      } else {
+        throw firstErr;
       }
-      return form ? new GasFormInstance(form) : null;
-    } catch (err) {
-      console.error(`[GasFormAdapter] Failed to open form ${idOrUrl}:`, err);
-      return null;
     }
+    return form ? new GasFormInstance(form) : null;
   }
 }

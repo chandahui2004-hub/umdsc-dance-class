@@ -3,8 +3,28 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { DanceStyle, Instructor } from '@umdsc/shared';
 import { call, errorMessage } from '../../../lib/api';
 import { PixelButton } from '../../../components/ui/PixelButton';
+import { getStyleColor } from '../../../theme/colors';
 import { instructorsForStyle, missingInstructorStyle, setStyleInstructors } from '../eventDraft';
 import type { StepProps } from '../EventWizard';
+
+const STYLE_PALETTE = [
+  '#00f0ff', // cyan
+  '#ffd700', // gold
+  '#ff007f', // pink
+  '#00ff66', // green
+  '#ff9900', // orange
+  '#a855f7', // purple
+  '#38bdf8', // sky
+  '#f43f5e'  // rose
+];
+
+function resolveAccentColor(s: DanceStyle, index: number): string {
+  if (s.colorKey) {
+    const col = getStyleColor(s.colorKey);
+    if (col && col !== 'var(--c-ink)') return col;
+  }
+  return STYLE_PALETTE[index % STYLE_PALETTE.length];
+}
 
 export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBack, styles, instructors }) => {
   const queryClient = useQueryClient();
@@ -103,95 +123,161 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
     <div className="space-y-4">
       <p className="font-body text-[16px] text-[var(--text-1)]">Tick the dance styles taught in this event.</p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {activeStyles.map(s => (
-          <div key={s.id} className="space-y-2">
-          <label
-            className={`flex items-center gap-3 min-h-[48px] px-3 border-2 border-[var(--outline)] cursor-pointer select-none transition-none ${
-              draft.styleIds.includes(s.id) ? 'bg-[var(--violet-2)] shadow-[2px_2px_0_var(--outline)]' : 'bg-[var(--night-2)] hover:bg-[var(--violet-1)]'
-            }`}
-          >
-            <input type="checkbox" checked={draft.styleIds.includes(s.id)} onChange={() => toggle(s.id)} className="w-5 h-5 accent-[var(--neon-gold)]" />
-            <span className="font-mono text-[14px] text-[var(--neon-cyan)]">▶</span>
-            <span className="font-body text-[16px] text-[var(--text-1)]">{s.name}</span>
-            {draft.preview && (
-              <span className="ml-auto font-mono text-[12px] text-[var(--neon-cyan)]">
-                {draft.preview.detectedStyleIds.includes(s.id) ? 'in form' : ''}
-              </span>
-            )}
-          </label>
-          {draft.styleIds.includes(s.id) && (
-            <div className="space-y-2">
-              <div className="p-2.5 bg-[var(--night-2)] border-2 border-[var(--outline)] flex items-center justify-between gap-3 shadow-[2px_2px_0_var(--outline)]">
-                <div>
-                  <label htmlFor={`slot-capacity-${s.id}`} className="font-display text-[11px] text-[var(--neon-cyan)] font-bold block">
-                    SLOT CAPACITY (COMPULSORY):
-                  </label>
-                  <span className="font-body text-[12px] text-[var(--text-2)]">
-                    Target limit to trigger alert email when full
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 flex-shrink-0">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+        {activeStyles.map((s, idx) => {
+          const isTicked = draft.styleIds.includes(s.id);
+          const accentColor = resolveAccentColor(s, idx);
+
+          return (
+            <div
+              key={s.id}
+              className={`border-2 transition-none ${
+                isTicked
+                  ? 'bg-[var(--night-2)] shadow-[4px_4px_0_var(--outline)]'
+                  : 'bg-[var(--night-1)] hover:bg-[var(--night-2)] shadow-[2px_2px_0_var(--outline)]'
+              }`}
+              style={{
+                borderColor: isTicked ? accentColor : 'var(--outline)'
+              }}
+            >
+              {/* Card Header with Distinct Style Color Badge */}
+              <div
+                className="p-3 flex items-center justify-between gap-3 border-b-2 cursor-pointer select-none transition-none"
+                style={{
+                  borderBottomColor: isTicked ? accentColor : 'var(--outline)',
+                  backgroundColor: isTicked ? 'rgba(255, 255, 255, 0.04)' : 'transparent'
+                }}
+                onClick={() => toggle(s.id)}
+              >
+                <div className="flex items-center gap-3">
                   <input
-                    id={`slot-capacity-${s.id}`}
-                    type="number"
-                    min="1"
-                    required
-                    placeholder="e.g. 30"
-                    value={draft.styleSlots?.[s.id] ?? ''}
-                    onChange={e => {
-                      const val = parseInt(e.target.value, 10);
-                      onChange({
-                        styleSlots: {
-                          ...(draft.styleSlots || {}),
-                          [s.id]: isNaN(val) ? 0 : val
-                        }
-                      });
-                    }}
-                    className="w-20 min-h-[38px] px-2 border-2 border-[var(--outline)] bg-[var(--night-1)] font-mono text-[14px] text-[var(--text-1)] text-right focus:border-[var(--neon-gold)]"
+                    type="checkbox"
+                    checked={isTicked}
+                    onChange={() => toggle(s.id)}
+                    onClick={e => e.stopPropagation()}
+                    className="w-5 h-5 accent-[var(--neon-gold)] cursor-pointer"
                   />
-                  <span className="font-mono text-[11px] text-[var(--text-3)]">slots</span>
-                </div>
-              </div>
-              <div className="p-2.5 bg-[var(--night-2)] border-2 border-[var(--outline)] space-y-1.5 shadow-[2px_2px_0_var(--outline)]">
-                <div className="flex items-center justify-between gap-2">
-                  <label htmlFor={`form-label-${s.id}`} className="font-display text-[11px] text-[var(--neon-gold)] font-bold block">
-                    GOOGLE FORM SELECTION FULL NAME:
-                  </label>
-                  <span className="font-mono text-[9px] text-[var(--neon-pink)] uppercase font-semibold">
-                    Exact Form Option
+                  <span
+                    className="px-2.5 py-1 font-display text-[12px] font-bold tracking-wider uppercase shadow-[2px_2px_0_#000]"
+                    style={{
+                      backgroundColor: accentColor,
+                      color: '#050508'
+                    }}
+                  >
+                    {s.name}
                   </span>
                 </div>
-                <input
-                  id={`form-label-${s.id}`}
-                  type="text"
-                  placeholder={`e.g. ${s.name} (RM60/month)`}
-                  value={draft.styleFormLabels?.[s.id] ?? ''}
-                  onChange={e => {
-                    onChange({
-                      styleFormLabels: {
-                        ...(draft.styleFormLabels || {}),
-                        [s.id]: e.target.value
-                      }
-                    });
-                  }}
-                  className="w-full min-h-[38px] px-2.5 border-2 border-[var(--outline)] bg-[var(--night-1)] font-mono text-[13px] text-[var(--text-1)] placeholder:text-[var(--text-3)] focus:border-[var(--neon-gold)]"
-                />
-                <span className="font-body text-[11px] text-[var(--text-2)] block leading-tight">
-                  Enter the exact full option text from Google Form (including price e.g. “{s.name} (RM60/month)”). Solves matching and preserves original label when re-opening.
-                </span>
+
+                <div className="flex items-center gap-2">
+                  {draft.preview?.detectedStyleIds.includes(s.id) && (
+                    <span className="font-mono text-[11px] text-[var(--neon-cyan)] px-1.5 py-0.5 border border-[var(--neon-cyan)] bg-[var(--night-1)]">
+                      IN FORM
+                    </span>
+                  )}
+                  <span
+                    className={`font-mono text-[11px] font-bold px-2 py-0.5 border ${
+                      isTicked
+                        ? 'border-[var(--neon-green)] text-[var(--neon-green)] bg-[var(--night-1)]'
+                        : 'border-[var(--outline)] text-[var(--text-3)]'
+                    }`}
+                  >
+                    {isTicked ? '✓ ACTIVE' : '+ SELECT'}
+                  </span>
+                </div>
               </div>
-              <InstructorPicker
-                style={s}
-                instructors={instructors}
-                selected={draft.styleInstructors[s.id] || []}
-                onToggle={instructorId => toggleInstructor(s.id, instructorId)}
-                onReload={() => queryClient.invalidateQueries({ queryKey: ['instructors'] })}
-              />
+
+              {/* Expanded Style Config for Ticked Styles */}
+              {isTicked && (
+                <div className="p-3 space-y-3 bg-[var(--night-2)]">
+                  {/* Section 1: Slot Capacity */}
+                  <div className="p-2.5 bg-[var(--night-1)] border-2 border-[var(--outline)] flex items-center justify-between gap-3 shadow-[2px_2px_0_var(--outline)]">
+                    <div>
+                      <label
+                        htmlFor={`slot-capacity-${s.id}`}
+                        className="font-display text-[11px] text-[var(--neon-cyan)] font-bold block"
+                      >
+                        SLOT CAPACITY (COMPULSORY):
+                      </label>
+                      <span className="font-body text-[12px] text-[var(--text-2)]">
+                        Target limit to trigger alert email & slot auto-removal
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <input
+                        id={`slot-capacity-${s.id}`}
+                        type="number"
+                        min="1"
+                        required
+                        placeholder="e.g. 30"
+                        value={draft.styleSlots?.[s.id] ?? ''}
+                        onChange={e => {
+                          const val = parseInt(e.target.value, 10);
+                          onChange({
+                            styleSlots: {
+                              ...(draft.styleSlots || {}),
+                              [s.id]: isNaN(val) ? 0 : val
+                            }
+                          });
+                        }}
+                        className="w-20 min-h-[38px] px-2 border-2 border-[var(--outline)] bg-[var(--night-2)] font-mono text-[14px] text-[var(--text-1)] text-right focus:border-[var(--neon-gold)]"
+                      />
+                      <span className="font-mono text-[11px] text-[var(--text-3)]">slots</span>
+                    </div>
+                  </div>
+
+                  {/* Section 2: Google Form Option Full Name */}
+                  <div
+                    className="p-2.5 bg-[var(--night-1)] border-2 space-y-1.5 shadow-[2px_2px_0_var(--outline)]"
+                    style={{ borderColor: accentColor }}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <label
+                        htmlFor={`form-label-${s.id}`}
+                        className="font-display text-[11px] font-bold block"
+                        style={{ color: accentColor }}
+                      >
+                        GOOGLE FORM OPTION FULL NAME:
+                      </label>
+                      <span
+                        className="font-mono text-[9px] uppercase font-bold px-1.5 py-0.5 border"
+                        style={{ borderColor: accentColor, color: accentColor }}
+                      >
+                        Exact Choice Text
+                      </span>
+                    </div>
+                    <input
+                      id={`form-label-${s.id}`}
+                      type="text"
+                      placeholder={`e.g. ${s.name} (RM60/month)`}
+                      value={draft.styleFormLabels?.[s.id] ?? ''}
+                      onChange={e => {
+                        onChange({
+                          styleFormLabels: {
+                            ...(draft.styleFormLabels || {}),
+                            [s.id]: e.target.value
+                          }
+                        });
+                      }}
+                      className="w-full min-h-[38px] px-2.5 border-2 border-[var(--outline)] bg-[var(--night-2)] font-mono text-[13px] text-[var(--text-1)] placeholder:text-[var(--text-3)] focus:border-[var(--neon-gold)]"
+                    />
+                    <span className="font-body text-[11px] text-[var(--text-2)] block leading-tight">
+                      Type the exact checkbox text in Google Form for <strong>{s.name}</strong>. Used to auto-remove this choice when full and restore it when capacity opens up.
+                    </span>
+                  </div>
+
+                  {/* Section 3: Instructor Picker */}
+                  <InstructorPicker
+                    style={s}
+                    instructors={instructors}
+                    selected={draft.styleInstructors[s.id] || []}
+                    onToggle={instructorId => toggleInstructor(s.id, instructorId)}
+                    onReload={() => queryClient.invalidateQueries({ queryKey: ['instructors'] })}
+                  />
+                </div>
+              )}
             </div>
-          )}
-          </div>
-        ))}
+          );
+        })}
         {inactiveTicked.map(id => (
           <label
             key={id}
