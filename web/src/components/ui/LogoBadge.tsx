@@ -19,12 +19,11 @@ export function LogoBadge({ height = 96, className = '' }: LogoBadgeProps): Reac
         aria-hidden="true"
       />
 
-      {/* 8-bit Retro UMDSC Pixel Logo */}
+      {/* Official UMDSC Club Logo */}
       <img
-        src="/logo-pixel.png"
+        src="/logo.png"
         alt="UMDSC logo"
-        className="absolute inset-[10%] w-[80%] h-[80%] object-contain drop-shadow-[0_0_8px_rgba(0,240,255,0.5)]"
-        style={{ imageRendering: 'pixelated' }}
+        className="absolute inset-[10%] w-[80%] h-[80%] object-contain drop-shadow-[0_0_8px_rgba(0,240,255,0.4)]"
         draggable={false}
       />
 

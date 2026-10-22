@@ -225,7 +225,7 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
               onClick={() => syncFormSlots.mutate()}
               title="Synchronize slot limits directly to Google Form"
             >
-              {syncFormSlots.isPending ? 'UPDATING FORM…' : '⚡ SYNC FORM'}
+              {syncFormSlots.isPending ? 'UPDATING FORM…' : 'SYNC FORM'}
             </PixelButton>
             <PixelButton
               size="md"
