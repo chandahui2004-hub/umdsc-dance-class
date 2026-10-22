@@ -186,9 +186,9 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
             <span>📊</span>
             <span>RESPONSE SHEET ↗</span>
           </a>
-          {Boolean((event as any).formUrl) && (
+          {Boolean(event.formUrl || event.formId) && (
             <a
-              href={(event as any).formUrl}
+              href={event.formUrl || (event.formId ? `https://docs.google.com/forms/d/${event.formId}/edit` : '#')}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 px-2.5 py-1 min-h-[36px] bg-[var(--night-1)] text-[var(--neon-gold)] border-2 border-[var(--outline)] hover:border-[var(--neon-gold)] font-display text-[11px] font-bold shadow-[1px_1px_0_var(--outline)]"

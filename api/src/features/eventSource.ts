@@ -29,9 +29,16 @@ export function openSourceTab(ctx: Ctx, sheetId: string, preferredTab?: string):
   return { tab: first.name, sheet: first };
 }
 
-export function readSourceSheet(ctx: Ctx, sheetId: string, preferredTab?: string): { tab: string; data: string[][] } {
+export function readSourceSheet(ctx: Ctx, sheetId: string, preferredTab?: string): { tab: string; data: string[][]; formUrl?: string | null } {
   const { tab, sheet } = openSourceTab(ctx, sheetId, preferredTab);
-  return { tab, data: sheet.getDisplayValues() };
+  let formUrl: string | null = null;
+  try {
+    const ss = ctx.drive.openSpreadsheet(sheetId);
+    if (ss.getFormUrl) formUrl = ss.getFormUrl();
+  } catch {
+    // optional
+  }
+  return { tab, data: sheet.getDisplayValues(), formUrl };
 }
 
 export function sheetIdFromUrl(sheetUrl: string): string {
@@ -64,7 +71,7 @@ export function countUnknownClasses(
 }
 
 export function previewSource(ctx: Ctx, sheetUrl: string): SourcePreview {
-  const { tab, data } = readSourceSheet(ctx, sheetIdFromUrl(sheetUrl));
+  const { tab, data, formUrl } = readSourceSheet(ctx, sheetIdFromUrl(sheetUrl));
   if (data.length === 0) {
     throw new AppError('VALIDATION', 'Sheet is empty');
   }
@@ -94,6 +101,7 @@ export function previewSource(ctx: Ctx, sheetUrl: string): SourcePreview {
     sampleNames: members.slice(0, 3).map(m => m.fullName),
     detectedStyleIds: styles.filter(s => (countsByStyle[s.id] || 0) > 0).map(s => s.id),
     unknownClasses: countUnknownClasses(rows, classIndex, styles),
-    warnings
+    warnings,
+    formUrl
   };
 }

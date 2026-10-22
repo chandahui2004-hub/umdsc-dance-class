@@ -112,4 +112,9 @@ export class FakeSpreadsheet implements SpreadsheetPort {
   removeSheet(name: string): void {
     this.sheetsMap.delete(name);
   }
+
+  formUrl: string | null = null;
+  getFormUrl(): string | null {
+    return this.formUrl;
+  }
 }

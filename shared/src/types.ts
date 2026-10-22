@@ -118,6 +118,7 @@ export interface SourcePreview {
   scores: Record<string, number>; classIndex: number; rowCount: number; sampleNames: string[];
   detectedStyleIds: string[]; unknownClasses: { token: string; count: number }[];
   warnings: { kind: string; row: number; detail: string }[];
+  formUrl?: string | null;
 }
 
 // Type aliases for UI convenience

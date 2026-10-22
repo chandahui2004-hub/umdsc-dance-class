@@ -80,21 +80,34 @@ export const EventWizard: React.FC = () => {
       <h1 className="font-display text-[24px] text-[var(--text-1)]">{isEdit ? `Edit ${event?.name || 'event'}` : 'New event'}</h1>
 
       <ol className="flex flex-wrap gap-2" aria-label="Steps">
-        {STEPS.map((label, i) => (
-          <li
-            key={label}
-            aria-current={i === step ? 'step' : undefined}
-            className={`px-3 py-1 border-2 border-[var(--outline)] font-display text-[12px] ${
-              i === step
-                ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--outline)]'
-                : i < step
-                ? 'bg-[var(--neon-green)] text-[var(--on-neon)] font-bold'
-                : 'bg-[var(--night-2)] text-[var(--text-2)]'
-            }`}
-          >
-            {i + 1} {label}
-          </li>
-        ))}
+        {STEPS.map((label, i) => {
+          const isClickable = isEdit || i <= step;
+          return (
+            <li
+              key={label}
+              aria-current={i === step ? 'step' : undefined}
+              role={isClickable ? 'button' : undefined}
+              tabIndex={isClickable ? 0 : undefined}
+              onClick={() => {
+                if (isClickable) setStep(i);
+              }}
+              onKeyDown={e => {
+                if (isClickable && (e.key === 'Enter' || e.key === ' ')) setStep(i);
+              }}
+              className={`px-3 py-1 border-2 border-[var(--outline)] font-display text-[12px] select-none ${
+                isClickable ? 'cursor-pointer' : 'cursor-default'
+              } ${
+                i === step
+                  ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--outline)]'
+                  : i < step || isEdit
+                  ? 'bg-[var(--neon-green)] text-[var(--on-neon)] font-bold hover:brightness-110'
+                  : 'bg-[var(--night-2)] text-[var(--text-2)]'
+              }`}
+            >
+              {i + 1} {label}
+            </li>
+          );
+        })}
       </ol>
 
       {!loaded ? (

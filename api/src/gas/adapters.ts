@@ -150,6 +150,14 @@ export class GasSpreadsheetAdapter implements SpreadsheetPort {
     const s = this.ss.getSheetByName(name);
     if (s) this.ss.deleteSheet(s);
   }
+
+  getFormUrl(): string | null {
+    try {
+      return this.ss.getFormUrl() || null;
+    } catch {
+      return null;
+    }
+  }
 }
 
 export class GasDriveAdapter implements DrivePort {

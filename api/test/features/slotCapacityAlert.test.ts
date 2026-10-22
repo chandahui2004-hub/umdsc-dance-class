@@ -391,10 +391,20 @@ describe('Slot Capacity & Alert System (Bug Audit & Verification)', () => {
     expect(created.formUrl).toBe('https://docs.google.com/forms/d/11ZZM4qFUc1jj9LSqUXSzbr0y2-e4xziO8w4YSc4ze0I/edit');
     expect(created.formId).toBe('11ZZM4qFUc1jj9LSqUXSzbr0y2-e4xziO8w4YSc4ze0I');
 
+    // Update with /d/e/ form URL format
+    const updatedWithE = routes['events.update'].handler(ctx, { claims: { sub: 'admin1' } }, {
+      id: created.id,
+      version: created.version,
+      formUrl: 'https://docs.google.com/forms/d/e/1FAIpQLScgLQGnlHQguiSa6NU7vHuzhrOCxF148-WkXMP2VxYCS86F8w/viewform'
+    });
+
+    expect(updatedWithE.formUrl).toBe('https://docs.google.com/forms/d/e/1FAIpQLScgLQGnlHQguiSa6NU7vHuzhrOCxF148-WkXMP2VxYCS86F8w/viewform');
+    expect(updatedWithE.formId).toBe('1FAIpQLScgLQGnlHQguiSa6NU7vHuzhrOCxF148-WkXMP2VxYCS86F8w');
+
     // Update with another form URL
     const updated = routes['events.update'].handler(ctx, { claims: { sub: 'admin1' } }, {
       id: created.id,
-      version: created.version,
+      version: updatedWithE.version,
       formUrl: 'https://docs.google.com/forms/d/another_form_id_999/viewform'
     });
 
@@ -405,6 +415,14 @@ describe('Slot Capacity & Alert System (Bug Audit & Verification)', () => {
     const reloaded = ctx.db.events.get(created.id)!;
     expect(reloaded.formUrl).toBe('https://docs.google.com/forms/d/another_form_id_999/viewform');
     expect(reloaded.formId).toBe('another_form_id_999');
+
+    // Test previewSource auto-detecting formUrl from spreadsheet
+    const fakeSpreadsheet = drive.openSpreadsheet(sourceId) as FakeSpreadsheet;
+    fakeSpreadsheet.formUrl = 'https://docs.google.com/forms/d/detected_form_id_from_sheet/viewform';
+    const preview = routes['events.previewSource'].handler(ctx, { claims: { sub: 'admin1' } }, {
+      sheetUrl: `https://docs.google.com/spreadsheets/d/${sourceId}/edit`
+    });
+    expect(preview.formUrl).toBe('https://docs.google.com/forms/d/detected_form_id_from_sheet/viewform');
   });
 
   it('syncGoogleFormSlotChoices succeeds with edit link and closes form on full capacity', () => {

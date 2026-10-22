@@ -36,7 +36,8 @@ export const ReviewStep: React.FC<StepProps> = ({ draft, onBack, isEdit, event, 
     classIndex: draft.classIndex,
     styleIds: draft.styleIds,
     styleInstructors: draft.styleInstructors,
-    styleSlots: draft.styleSlots
+    styleSlots: draft.styleSlots,
+    formUrl: draft.formUrl !== undefined ? draft.formUrl.trim() : ''
   };
 
   // A class with no instructor of its own is saved with its style's first listed one.
@@ -132,8 +133,24 @@ export const ReviewStep: React.FC<StepProps> = ({ draft, onBack, isEdit, event, 
         </dd>
         <dt className="font-display text-[12px] pt-1 text-[var(--text-2)]">DANCERS</dt>
         <dd>{dancerCount}</dd>
-        <dt className="font-display text-[12px] pt-1 text-[var(--text-2)]">FORM</dt>
+        <dt className="font-display text-[12px] pt-1 text-[var(--text-2)]">SHEET</dt>
         <dd className="break-all font-mono text-[14px] text-[var(--neon-cyan)]">{draft.sheetUrl}</dd>
+        {draft.formUrl ? (
+          <>
+            <dt className="font-display text-[12px] pt-1 text-[var(--text-2)]">FORM EDIT LINK</dt>
+            <dd className="break-all font-mono text-[14px] text-[var(--neon-gold)] flex flex-wrap items-center gap-2">
+              <span>{draft.formUrl}</span>
+              <a
+                href={draft.formUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="underline text-[var(--neon-cyan)] text-[12px]"
+              >
+                [ TEST LINK ↗ ]
+              </a>
+            </dd>
+          </>
+        ) : null}
         <dt className="font-display text-[12px] pt-1 text-[var(--text-2)]">STYLES</dt>
         <dd>
           <ul className="space-y-1">

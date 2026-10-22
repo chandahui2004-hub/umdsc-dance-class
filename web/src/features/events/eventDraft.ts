@@ -94,7 +94,7 @@ export function draftFromEvent(e: EventItem, sessions: ClassSession[]): EventDra
     styleIds: [...e.styleIds],
     styleInstructors,
     styleSlots: e.styleSlots || (e.styleSlotsJson ? JSON.parse(e.styleSlotsJson) : {}),
-    formUrl: (e as any).formUrl || '',
+    formUrl: e.formUrl || (e.formId ? `https://docs.google.com/forms/d/${e.formId}/edit` : '') || '',
     schedule
   };
 }

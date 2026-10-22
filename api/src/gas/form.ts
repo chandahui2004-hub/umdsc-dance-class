@@ -137,8 +137,8 @@ export class GasFormAdapter implements FormPort {
       if (typeof FormApp === 'undefined') return null;
       let form: GoogleAppsScript.Forms.Form | null = null;
       // Extract form ID from URL if provided (handles edit links, view links, etc.)
-      const match = idOrUrl.match(/\/forms\/(?:u\/\d+\/)?d\/([a-zA-Z0-9_-]+)/);
-      const formId = match ? match[1] : idOrUrl;
+      const match = idOrUrl.match(/\/forms\/(?:u\/\d+\/)?d\/(?:e\/)?([a-zA-Z0-9_-]+)/);
+      const formId = match && match[1].length >= 15 ? match[1] : idOrUrl;
       try {
         form = FormApp.openById(formId);
       } catch (idErr) {

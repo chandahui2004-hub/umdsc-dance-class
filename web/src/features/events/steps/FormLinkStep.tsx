@@ -25,6 +25,8 @@ export const FormLinkStep: React.FC<StepProps> = ({ draft, onChange, onNext, isE
         preview: p,
         columnMap: p.columnMap,
         classIndex: p.classIndex,
+        // Auto-detect form URL from sheet if not already entered by the admin
+        ...(!draft.formUrl && p.formUrl ? { formUrl: p.formUrl } : {}),
         // A new event starts with the styles the form's answers mention
         ...(!isEdit && draft.styleIds.length === 0 ? { styleIds: p.detectedStyleIds } : {})
       });
@@ -52,16 +54,28 @@ export const FormLinkStep: React.FC<StepProps> = ({ draft, onChange, onNext, isE
       </label>
 
       <label className="block space-y-1">
-        <span className="font-display text-[12px] text-[var(--neon-cyan)]">DIRECT GOOGLE FORM LINK (OPTIONAL)</span>
+        <div className="flex flex-wrap items-center justify-between gap-1">
+          <span className="font-display text-[12px] text-[var(--neon-cyan)]">GOOGLE FORM EDIT ACCESS LINK</span>
+          {draft.formUrl && (
+            <a
+              href={draft.formUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="font-display text-[11px] text-[var(--neon-gold)] underline hover:text-[var(--neon-cyan)]"
+            >
+              [ TEST / OPEN FORM ↗ ]
+            </a>
+          )}
+        </div>
         <input
-          aria-label="Direct Google Form Link"
+          aria-label="Google Form Edit Access Link"
           value={draft.formUrl || ''}
           onChange={e => onChange({ formUrl: e.target.value })}
-          placeholder="https://docs.google.com/forms/d/… (auto-detected from sheet if left blank)"
+          placeholder="https://docs.google.com/forms/d/.../edit"
           className="w-full min-h-[48px] px-3 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-mono text-[16px] text-[var(--text-1)] placeholder:text-[var(--text-3)]"
         />
         <span className="font-body text-[13px] text-[var(--text-2)]">
-          Optional. Used to automatically remove full dance style choices and close the form when capacity is reached.
+          Paste or change the Google Form edit access link. This allows the system to automatically remove full dance style choices and close the form when capacity is reached.
         </span>
       </label>
 

@@ -65,6 +65,22 @@ describe('eventDraft', () => {
     expect(d.schedule.hh[0]).toMatchObject({ seq: 1, date: '2026-10-08', start: '19:00' });
   });
 
+  it('draftFromEvent preserves formUrl or falls back to formId edit link', () => {
+    const eventWithUrl = {
+      id: 'e1', name: 'OCT', type: 'trial', startDate: '2026-10-01', endDate: '2026-10-31',
+      sourceSheetId: 'src', columnMapJson: '{}', classIndex: -1, styleIds: [],
+      formUrl: 'https://docs.google.com/forms/d/11ZZM4qFUc1jj9LSqUXSzbr0y2-e4xziO8w4YSc4ze0I/edit'
+    } as unknown as EventItem;
+    expect(draftFromEvent(eventWithUrl, []).formUrl).toBe('https://docs.google.com/forms/d/11ZZM4qFUc1jj9LSqUXSzbr0y2-e4xziO8w4YSc4ze0I/edit');
+
+    const eventWithOnlyId = {
+      id: 'e2', name: 'OCT 2', type: 'trial', startDate: '2026-10-01', endDate: '2026-10-31',
+      sourceSheetId: 'src', columnMapJson: '{}', classIndex: -1, styleIds: [],
+      formId: '11ZZM4qFUc1jj9LSqUXSzbr0y2-e4xziO8w4YSc4ze0I'
+    } as unknown as EventItem;
+    expect(draftFromEvent(eventWithOnlyId, []).formUrl).toBe('https://docs.google.com/forms/d/11ZZM4qFUc1jj9LSqUXSzbr0y2-e4xziO8w4YSc4ze0I/edit');
+  });
+
   it('emptyDraft has no style instructors', () => {
     expect(emptyDraft('2026-09-30').styleInstructors).toEqual({});
   });

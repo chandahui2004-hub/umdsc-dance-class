@@ -52,8 +52,8 @@ function statusRoute(status: EventStatus): Route {
 export function extractGoogleFormId(urlOrId?: string): string {
   if (!urlOrId) return '';
   const trimmed = String(urlOrId).trim();
-  const match = trimmed.match(/\/forms\/(?:u\/\d+\/)?d\/([a-zA-Z0-9_-]+)/);
-  if (match) return match[1];
+  const match = trimmed.match(/\/forms\/(?:u\/\d+\/)?d\/(?:e\/)?([a-zA-Z0-9_-]+)/);
+  if (match && match[1].length >= 15) return match[1];
   if (/^[a-zA-Z0-9_-]{15,}$/.test(trimmed)) return trimmed;
   return '';
 }
@@ -243,8 +243,8 @@ export function getEventRoutes(): Record<string, Route> {
           ensureEventSheets(ctx, updated);
         }
 
-        // Check slot capacities immediately upon saving or updating styleSlots
-        if (payload.styleSlots !== undefined) {
+        // Check slot capacities immediately upon saving or updating styleSlots or formUrl
+        if (payload.styleSlots !== undefined || (payload.formUrl !== undefined && patch.formId)) {
           checkAndNotifySlotCapacities(ctx, updated);
         }
 
