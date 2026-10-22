@@ -2,6 +2,7 @@ import { Ctx, FormInstancePort } from '../ports';
 import { EventItem, Member } from '@umdsc/shared';
 import { readEventMembers } from './eventMembers';
 import { REMOVED_FLAG } from './eventImport';
+import { extractGoogleFormId, isResponderFormLink } from '../logic/googleForm';
 
 export const FULL_HOUSE_CLOSED_MESSAGE =
   'Sorry, we have reached FULL HOUSE for this event! Registration is now closed to prevent over-registration. Thank you for your interest and support! Keep dancing! — Universiti Malaya Dance Sport Club (UMDSC)';
@@ -46,10 +47,22 @@ export function syncGoogleFormSlotChoices(
     };
   }
 
-  // Find linked form URL or ID
+  // 1. Resolve form target. Must be an EDIT link or valid Google Form ID.
   const rawForm = event.formId || event.formUrl || (event.sourceSheetId ? ctx.form.getFormUrl(event.sourceSheetId) : null);
-  const match = (rawForm || '').match(/\/forms\/(?:u\/\d+\/)?d\/([a-zA-Z0-9_-]+)/);
-  const formTarget = (match ? match[1] : null) || event.formId || rawForm;
+
+  // Check if only a responder (/d/e/...) link was provided
+  if (isResponderFormLink(event.formUrl) && !extractGoogleFormId(event.formId)) {
+    return {
+      synced: false,
+      formClosed: false,
+      formClosedManually: false,
+      fullStyleIds: [],
+      availableStyleIds: [],
+      message: 'Google Form edit link required (e.g. https://docs.google.com/forms/d/.../edit). Responder /viewform links cannot be edited by Google Apps Script.'
+    };
+  }
+
+  const formTarget = extractGoogleFormId(rawForm) || (rawForm && !isResponderFormLink(rawForm) ? rawForm : null);
 
   if (!formTarget) {
     return {
@@ -58,7 +71,7 @@ export function syncGoogleFormSlotChoices(
       formClosedManually: false,
       fullStyleIds: [],
       availableStyleIds: [],
-      message: 'No Google Form linked to event'
+      message: 'No Google Form edit link linked to event'
     };
   }
 
@@ -96,23 +109,25 @@ export function syncGoogleFormSlotChoices(
   if (question && question.choices.length > 0) {
     const allActiveStyles = ctx.db.styles.find(s => s.active);
     const lettersOnly = (str: string) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cleanChoice = (str: string) =>
+      str.replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').replace(/\bclasses?\b/gi, '').trim();
 
     for (const rawChoice of question.choices) {
-      const choice = rawChoice.trim();
+      const choice = cleanChoice(rawChoice);
       if (!choice) continue;
+      const choiceNorm = lettersOnly(choice);
 
       // Try exact name or alias match
       let matched = allActiveStyles.find(
-        s => s.name.toLowerCase() === choice.toLowerCase() ||
-             (s.aliases || []).some(a => a.toLowerCase() === choice.toLowerCase())
+        s => lettersOnly(s.name) === choiceNorm ||
+             (s.aliases || []).some(a => lettersOnly(a) === choiceNorm)
       );
 
-      // Try letters-only match
+      // Try letters-only / substring match
       if (!matched) {
-        const choiceNorm = lettersOnly(choice);
         matched = allActiveStyles.find(
-          s => lettersOnly(s.name) === choiceNorm ||
-               (s.aliases || []).some(a => lettersOnly(a) === choiceNorm)
+          s => lettersOnly(s.name).includes(choiceNorm) || choiceNorm.includes(lettersOnly(s.name)) ||
+               (s.aliases || []).some(a => lettersOnly(a).includes(choiceNorm) || choiceNorm.includes(lettersOnly(a)))
         );
       }
 
@@ -122,8 +137,8 @@ export function syncGoogleFormSlotChoices(
           discoveredStyleIds.push(matched.id);
         }
       } else {
-        // Style does not exist in master data yet -> auto-create it in master data
-        const slug = lettersOnly(choice) || 'style';
+        // Genuine new style not in master data -> auto-create with clean name
+        const slug = choiceNorm || 'style';
         const newStyleId = 'st_' + slug;
         const existing = ctx.db.styles.find(s => s.id === newStyleId)[0];
         const finalId = existing ? `${newStyleId}_${Date.now() % 10000}` : newStyleId;
@@ -132,7 +147,7 @@ export function syncGoogleFormSlotChoices(
           ctx.db.styles.insert({
             id: finalId,
             name: choice,
-            aliases: [choice.toLowerCase()],
+            aliases: [choice.toLowerCase(), choiceNorm],
             colorKey: 'cyan',
             active: true,
             defaultWeekday: null,
@@ -255,6 +270,10 @@ export function syncGoogleFormSlotChoices(
   let remainingChoices: string[] = [];
 
   if (question) {
+    const lettersOnly = (str: string) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cleanChoice = (str: string) =>
+      str.replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').replace(/\bclasses?\b/gi, '').trim();
+
     // Map style IDs to style names & aliases
     const styleInfoMap = new Map<string, { id: string; name: string; aliases: string[] }>();
     for (const sid of styleIds) {
@@ -265,16 +284,52 @@ export function syncGoogleFormSlotChoices(
     }
 
     const matchChoiceToStyleId = (choiceText: string): string | null => {
-      const trimmed = choiceText.trim().toLowerCase();
+      const cleaned = cleanChoice(choiceText);
+      const cleanedNorm = lettersOnly(cleaned);
+      const rawNorm = lettersOnly(choiceText);
+
+      // 1. Exact match on cleaned name or alias
       for (const [sid, info] of styleInfoMap.entries()) {
-        if (trimmed === info.name.toLowerCase() || info.aliases.some(a => trimmed === a || trimmed.includes(a))) {
-          return sid;
+        const nameNorm = lettersOnly(info.name);
+        if (cleanedNorm === nameNorm || rawNorm === nameNorm) return sid;
+        for (const a of info.aliases) {
+          const aNorm = lettersOnly(a);
+          if (cleanedNorm === aNorm || rawNorm === aNorm) return sid;
+        }
+      }
+
+      // 2. Substring match
+      for (const [sid, info] of styleInfoMap.entries()) {
+        const nameNorm = lettersOnly(info.name);
+        if (cleanedNorm.includes(nameNorm) || nameNorm.includes(cleanedNorm)) return sid;
+        for (const a of info.aliases) {
+          const aNorm = lettersOnly(a);
+          if (cleanedNorm.includes(aNorm) || aNorm.includes(cleanedNorm)) return sid;
         }
       }
       return null;
     };
 
-    const availableStyleNames = availableStyleIds.map(sid => styleInfoMap.get(sid)?.name || sid);
+    // Cache original choice labels so when a style is restored, its original pricing/formatting is preserved
+    const cacheKey = `form_choices:${form.getId()}`;
+    const cachedLabelsRaw = ctx.cache.get(cacheKey);
+    let rememberedLabels: Record<string, string> = {};
+    if (cachedLabelsRaw) {
+      try {
+        rememberedLabels = JSON.parse(cachedLabelsRaw);
+      } catch {
+        rememberedLabels = {};
+      }
+    }
+
+    // Record any current choice mappings
+    for (const choice of question.choices) {
+      const sid = matchChoiceToStyleId(choice);
+      if (sid) {
+        rememberedLabels[sid] = choice;
+      }
+    }
+    ctx.cache.put(cacheKey, JSON.stringify(rememberedLabels), 86400 * 30);
 
     // Filter question choices:
     // Drop full styles. Keep available styles and unrecognized choices.
@@ -284,27 +339,49 @@ export function syncGoogleFormSlotChoices(
       return availableStyleIds.includes(matchedSid);
     });
 
-    // Ensure all available styles are present in choices
-    const choiceNamesLower = new Set(filteredChoices.map(c => c.trim().toLowerCase()));
-    for (const availName of availableStyleNames) {
-      if (!choiceNamesLower.has(availName.trim().toLowerCase())) {
-        filteredChoices.push(availName);
+    // Ensure all available styles are present in choices without adding duplicates
+    for (const availSid of availableStyleIds) {
+      const alreadyPresent = filteredChoices.some(c => matchChoiceToStyleId(c) === availSid);
+      if (!alreadyPresent) {
+        const restoredLabel = rememberedLabels[availSid] || styleInfoMap.get(availSid)?.name || availSid;
+        filteredChoices.push(restoredLabel);
       }
+    }
+
+    // Preserve original choices order if possible
+    const choiceOrder = Object.values(rememberedLabels);
+    if (choiceOrder.length > 0) {
+      filteredChoices.sort((a, b) => {
+        const idxA = choiceOrder.indexOf(a);
+        const idxB = choiceOrder.indexOf(b);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return 0;
+      });
     }
 
     remainingChoices = filteredChoices;
 
-    // Compose help text notice
-    let helpNotice = '';
+    // Compose help text notice while preserving the admin's original promotion / description
+    const NOTICE_PREFIX = '⚠️ Note:';
+    const cleanHelp = (question.helpText || '')
+      .split(/\n\s*\n/)
+      .filter(p => !p.trim().startsWith(NOTICE_PREFIX) && !p.includes('reached maximum capacity'))
+      .join('\n\n')
+      .trim();
+
+    let helpTextToSet = cleanHelp;
     if (fullStyleIds.length > 0) {
       const fullNames = fullStyleIds
         .map(sid => styleInfoMap.get(sid)?.name || sid)
         .join(', ');
-      helpNotice = `⚠️ Note: [${fullNames}] ${fullStyleIds.length === 1 ? 'has' : 'have'} reached maximum capacity and ${fullStyleIds.length === 1 ? 'is' : 'are'} closed for registration. Please select from the remaining available styles.`;
+      const helpNotice = `${NOTICE_PREFIX} [${fullNames}] ${fullStyleIds.length === 1 ? 'has' : 'have'} reached maximum capacity and ${fullStyleIds.length === 1 ? 'is' : 'are'} closed for registration. Please select from the remaining available styles.`;
+      helpTextToSet = cleanHelp ? `${cleanHelp}\n\n${helpNotice}` : helpNotice;
     }
 
     try {
-      form.setChoices(question.id, remainingChoices, helpNotice);
+      form.setChoices(question.id, remainingChoices, helpTextToSet);
     } catch (err) {
       console.warn(`[syncGoogleFormSlotChoices] Failed to update choices on form ${form.getId()}:`, err);
     }

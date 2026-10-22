@@ -11,6 +11,9 @@ import { ensureEventFolder, ensureMembersSheet, ensureEventSheets, saveEventFiel
 import { getEvent, readEventMembers } from './eventMembers';
 import { importEventMembers, sourceUnchanged, checkAndNotifySlotCapacities } from './eventImport';
 import { syncGoogleFormSlotChoices } from './formGating';
+import { extractGoogleFormId } from '../logic/googleForm';
+
+export { extractGoogleFormId };
 import { withScriptLock } from '../db/lock';
 import { assertSchemaReady } from './reset';
 import { cleanStyleInstructors, firstInstructor, assertClassInstructor } from './styleInstructors';
@@ -49,14 +52,6 @@ function statusRoute(status: EventStatus): Route {
   };
 }
 
-export function extractGoogleFormId(urlOrId?: string): string {
-  if (!urlOrId) return '';
-  const trimmed = String(urlOrId).trim();
-  const match = trimmed.match(/\/forms\/(?:u\/\d+\/)?d\/(?:e\/)?([a-zA-Z0-9_-]+)/);
-  if (match && match[1].length >= 15) return match[1];
-  if (/^[a-zA-Z0-9_-]{15,}$/.test(trimmed)) return trimmed;
-  return '';
-}
 
 /** Recomputes lastEventEnd (latest end date among each member's events) in one write. */
 function recalculateLastEventEnd(ctx: Ctx, event: EventItem): void {

@@ -391,7 +391,7 @@ describe('Slot Capacity & Alert System (Bug Audit & Verification)', () => {
     expect(created.formUrl).toBe('https://docs.google.com/forms/d/11ZZM4qFUc1jj9LSqUXSzbr0y2-e4xziO8w4YSc4ze0I/edit');
     expect(created.formId).toBe('11ZZM4qFUc1jj9LSqUXSzbr0y2-e4xziO8w4YSc4ze0I');
 
-    // Update with /d/e/ form URL format
+    // Update with /d/e/ responder URL format (does not extract fake id since it cannot be edited by FormApp)
     const updatedWithE = routes['events.update'].handler(ctx, { claims: { sub: 'admin1' } }, {
       id: created.id,
       version: created.version,
@@ -399,7 +399,7 @@ describe('Slot Capacity & Alert System (Bug Audit & Verification)', () => {
     });
 
     expect(updatedWithE.formUrl).toBe('https://docs.google.com/forms/d/e/1FAIpQLScgLQGnlHQguiSa6NU7vHuzhrOCxF148-WkXMP2VxYCS86F8w/viewform');
-    expect(updatedWithE.formId).toBe('1FAIpQLScgLQGnlHQguiSa6NU7vHuzhrOCxF148-WkXMP2VxYCS86F8w');
+    expect(updatedWithE.formId).toBe('');
 
     // Update with another form URL
     const updated = routes['events.update'].handler(ctx, { claims: { sub: 'admin1' } }, {

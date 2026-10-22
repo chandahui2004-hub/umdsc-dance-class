@@ -1,4 +1,5 @@
 import { FormPort, FormInstancePort, FormQuestionPort } from '../ports';
+import { extractGoogleFormId } from '../logic/googleForm';
 
 export class GasFormInstance implements FormInstancePort {
   private form: GoogleAppsScript.Forms.Form;
@@ -135,22 +136,21 @@ export class GasFormAdapter implements FormPort {
   openForm(idOrUrl: string): FormInstancePort | null {
     try {
       if (typeof FormApp === 'undefined') return null;
+      const formId = extractGoogleFormId(idOrUrl);
+      const isUrl = /^https?:\/\//.test(idOrUrl);
       let form: GoogleAppsScript.Forms.Form | null = null;
-      // Extract form ID from URL if provided (handles edit links, view links, etc.)
-      const match = idOrUrl.match(/\/forms\/(?:u\/\d+\/)?d\/(?:e\/)?([a-zA-Z0-9_-]+)/);
-      const formId = match && match[1].length >= 15 ? match[1] : idOrUrl;
       try {
-        form = FormApp.openById(formId);
-      } catch (idErr) {
-        if (idOrUrl.startsWith('http://') || idOrUrl.startsWith('https://')) {
+        form = formId ? FormApp.openById(formId) : FormApp.openByUrl(idOrUrl);
+      } catch (firstErr) {
+        if (formId && isUrl) {
           form = FormApp.openByUrl(idOrUrl);
         } else {
-          throw idErr;
+          throw firstErr;
         }
       }
       return form ? new GasFormInstance(form) : null;
     } catch (err) {
-      console.warn(`[GasFormAdapter] Failed to open form ${idOrUrl}:`, err);
+      console.error(`[GasFormAdapter] Failed to open form ${idOrUrl}:`, err);
       return null;
     }
   }
