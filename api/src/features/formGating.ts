@@ -47,10 +47,11 @@ export function syncGoogleFormSlotChoices(
   }
 
   // Find linked form URL or ID
-  const explicitForm = (event as any).formUrl || (event as any).formId;
-  const formUrl = explicitForm || (event.sourceSheetId ? ctx.form.getFormUrl(event.sourceSheetId) : null);
+  const rawForm = event.formId || event.formUrl || (event.sourceSheetId ? ctx.form.getFormUrl(event.sourceSheetId) : null);
+  const match = (rawForm || '').match(/\/forms\/(?:u\/\d+\/)?d\/([a-zA-Z0-9_-]+)/);
+  const formTarget = (match ? match[1] : null) || event.formId || rawForm;
 
-  if (!formUrl) {
+  if (!formTarget) {
     return {
       synced: false,
       formClosed: false,
@@ -63,9 +64,9 @@ export function syncGoogleFormSlotChoices(
 
   let form: FormInstancePort | null = null;
   try {
-    form = ctx.form.openForm(formUrl);
+    form = ctx.form.openForm(formTarget);
   } catch (err) {
-    console.warn(`[syncGoogleFormSlotChoices] Failed to open form ${formUrl}:`, err);
+    console.warn(`[syncGoogleFormSlotChoices] Failed to open form ${formTarget}:`, err);
     return {
       synced: false,
       formClosed: false,
@@ -83,7 +84,7 @@ export function syncGoogleFormSlotChoices(
       formClosedManually: false,
       fullStyleIds: [],
       availableStyleIds: [],
-      message: `Google Form could not be found at ${formUrl}`
+      message: `Google Form could not be found at ${formTarget}`
     };
   }
 

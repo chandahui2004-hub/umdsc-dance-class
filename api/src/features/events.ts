@@ -49,6 +49,15 @@ function statusRoute(status: EventStatus): Route {
   };
 }
 
+export function extractGoogleFormId(urlOrId?: string): string {
+  if (!urlOrId) return '';
+  const trimmed = String(urlOrId).trim();
+  const match = trimmed.match(/\/forms\/(?:u\/\d+\/)?d\/([a-zA-Z0-9_-]+)/);
+  if (match) return match[1];
+  if (/^[a-zA-Z0-9_-]{15,}$/.test(trimmed)) return trimmed;
+  return '';
+}
+
 /** Recomputes lastEventEnd (latest end date among each member's events) in one write. */
 function recalculateLastEventEnd(ctx: Ctx, event: EventItem): void {
   const matricKeys = new Set(readEventMembers(ctx, event).map(m => m.matricKey));
@@ -196,6 +205,11 @@ export function getEventRoutes(): Record<string, Route> {
         }
         if (payload.columnMap !== undefined) patch.columnMapJson = JSON.stringify(payload.columnMap || {});
         if (payload.classIndex !== undefined) patch.classIndex = Number(payload.classIndex);
+        if (payload.formUrl !== undefined) {
+          const formUrl = String(payload.formUrl || '').trim();
+          patch.formUrl = formUrl;
+          patch.formId = extractGoogleFormId(formUrl);
+        }
         if (payload.sheetUrl !== undefined) {
           const sourceSheetId = validateLink(ctx, String(payload.sheetUrl), 'spreadsheet');
           if (sourceSheetId !== existing.sourceSheetId) {
@@ -466,6 +480,8 @@ export function getEventRoutes(): Record<string, Route> {
             columnMapJson: JSON.stringify(payload?.columnMap || {}),
             classIndex: payload?.classIndex === undefined || payload?.classIndex === null ? -1 : Number(payload.classIndex),
             styleIds,
+            formUrl: payload?.formUrl ? String(payload.formUrl).trim() : '',
+            formId: extractGoogleFormId(payload?.formUrl),
             styleInstructors,
             styleSlots,
             styleSlotsJson: JSON.stringify(styleSlots),

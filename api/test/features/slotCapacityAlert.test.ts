@@ -5,6 +5,8 @@ import { FakeSpreadsheet, FakeSheet } from '../fakes/fakeSheets';
 import { seedEvent, seedSourceSheet } from '../fixtures/events';
 import { importEventMembers, checkAndNotifySlotCapacities } from '../../src/features/eventImport';
 import { getSetupRoutes } from '../../src/features/setup';
+import { getEventRoutes } from '../../src/features/events';
+import { syncGoogleFormSlotChoices } from '../../src/features/formGating';
 import { EventItem } from '@umdsc/shared';
 
 const HEADERS = ['Timestamp', 'Full Name', 'Matric Number', 'Contact Number', 'Email', 'Classes'];
@@ -364,4 +366,80 @@ describe('Slot Capacity & Alert System (Bug Audit & Verification)', () => {
     expect(q.choices).toEqual(['Hip Hop']);
     expect(q.helpText).toContain('Popping');
   });
+
+  it('persists formUrl and extracts formId in events.create and events.update', () => {
+    ctx.props.set('SYSTEM_SPREADSHEET_ID', 'sys_ss_id');
+    ctx.db.settings.insert({ key: 'defaultAttendanceFolderId', value: 'att_folder_1' } as any, 'system', ctx.now());
+    const inst = ctx.db.instructors.insert({ name: 'Bob Popping', styleIds: ['st_popping'] } as any, 'system', ctx.now());
+    const routes = getEventRoutes();
+    const sourceId = seedSourceSheet(ctx, [HEADERS]);
+
+    const res = routes['events.create'].handler(ctx, { claims: { sub: 'admin1' } }, {
+      name: 'Event With Form',
+      type: 'monthly',
+      startDate: '2026-10-01',
+      endDate: '2026-10-31',
+      sheetUrl: `https://docs.google.com/spreadsheets/d/${sourceId}/edit`,
+      formUrl: 'https://docs.google.com/forms/d/11ZZM4qFUc1jj9LSqUXSzbr0y2-e4xziO8w4YSc4ze0I/edit',
+      styleIds: ['st_popping'],
+      styleInstructors: { st_popping: [inst.id] },
+      styleSlots: { st_popping: 20 },
+      sessions: [{ seq: 1, styleId: 'st_popping', date: '2026-10-10', start: '20:00', end: '22:00', instructorId: inst.id }]
+    });
+    const created = res.event;
+
+    expect(created.formUrl).toBe('https://docs.google.com/forms/d/11ZZM4qFUc1jj9LSqUXSzbr0y2-e4xziO8w4YSc4ze0I/edit');
+    expect(created.formId).toBe('11ZZM4qFUc1jj9LSqUXSzbr0y2-e4xziO8w4YSc4ze0I');
+
+    // Update with another form URL
+    const updated = routes['events.update'].handler(ctx, { claims: { sub: 'admin1' } }, {
+      id: created.id,
+      version: created.version,
+      formUrl: 'https://docs.google.com/forms/d/another_form_id_999/viewform'
+    });
+
+    expect(updated.formUrl).toBe('https://docs.google.com/forms/d/another_form_id_999/viewform');
+    expect(updated.formId).toBe('another_form_id_999');
+
+    // Reload from database table to ensure serialization/deserialization works
+    const reloaded = ctx.db.events.get(created.id)!;
+    expect(reloaded.formUrl).toBe('https://docs.google.com/forms/d/another_form_id_999/viewform');
+    expect(reloaded.formId).toBe('another_form_id_999');
+  });
+
+  it('syncGoogleFormSlotChoices succeeds with edit link and closes form on full capacity', () => {
+    const realEditId = '11ZZM4qFUc1jj9LSqUXSzbr0y2-e4xziO8w4YSc4ze0I';
+    const form = ctx.form.createForm(realEditId);
+    form.addQuestion({
+      id: 'q_dance',
+      title: 'Choose Dance Style',
+      choices: ['Popping', 'Hip Hop'],
+      helpText: ''
+    });
+
+    const { event } = makeEvent(
+      [
+        row('Alice', '23001001', 'Popping'),
+        row('Bob', '23001002', 'Popping')
+      ],
+      {
+        formUrl: `https://docs.google.com/forms/d/${realEditId}/edit`,
+        formId: realEditId,
+        styleSlots: { st_popping: 2, st_hiphop: 15 }
+      }
+    );
+
+    importEventMembers(ctx, event, { full: true });
+
+    const res = syncGoogleFormSlotChoices(ctx, fresh(event));
+
+    expect(res.synced).toBe(true);
+    expect(res.fullStyleIds).toContain('st_popping');
+    expect(res.availableStyleIds).toContain('st_hiphop');
+
+    const updated = ctx.form.openForm(realEditId)!;
+    const q = updated.getStyleQuestion()!;
+    expect(q.choices).toEqual(['Hip Hop']);
+  });
 });
+

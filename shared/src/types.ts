@@ -103,6 +103,8 @@ export interface EventItem extends RowMeta {
   styleIds: string[]; styleInstructors: Record<string, string[]>; folderId: string; videoFolderId: string; membersSpreadsheetId: string;
   status: EventStatus; sourceRowCount: number; sourceLastRowHash: string;
   lastSyncAt: string; lastSyncError: string; memberCount: number;
+  formUrl?: string;
+  formId?: string;
   styleSlots?: Record<string, number>;
   styleSlotsJson?: string;
   notifiedFullStyles?: string[];

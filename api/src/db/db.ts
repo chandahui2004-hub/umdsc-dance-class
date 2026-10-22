@@ -194,6 +194,8 @@ const defaultCodecs = {
       return {
         ...rest,
         styleIds: (r.styleIds || []).join(','),
+        formUrl: r.formUrl || '',
+        formId: r.formId || '',
         styleInstructorsJson: JSON.stringify(styleInstructors || {}),
         styleSlotsJson: r.styleSlotsJson || JSON.stringify(styleSlots || {}),
         notifiedFullStylesJson: r.notifiedFullStylesJson || JSON.stringify(notifiedFullStyles || []),
@@ -216,6 +218,8 @@ const defaultCodecs = {
       columnMapJson: c.columnMapJson || '{}',
       classIndex: c.classIndex === '' || c.classIndex === undefined ? -1 : Number(c.classIndex),
       styleIds: parseList(c.styleIds),
+      formUrl: c.formUrl || '',
+      formId: c.formId || '',
       styleInstructors: parseStyleInstructors(c.styleInstructorsJson),
       styleSlots: parseStyleSlots(c.styleSlotsJson),
       styleSlotsJson: c.styleSlotsJson || '{}',
