@@ -23,13 +23,27 @@ export function authorizeOnce(): string {
   const mailQuota = typeof MailApp !== 'undefined' ? MailApp.getRemainingDailyQuota() : 'N/A';
   Logger.log('Authorized Drive root: ' + rootName + ', Mail quota: ' + mailQuota);
 
+  let formStatus = 'N/A';
+  if (typeof FormApp !== 'undefined') {
+    try {
+      const tempForm = FormApp.create('UMDSC_AUTH_TEMP');
+      const tempId = tempForm.getId();
+      DriveApp.getFileById(tempId).setTrashed(true);
+      formStatus = 'SUCCESS (verified with temp form: ' + tempId + ')';
+      Logger.log('Google Forms (FormApp) successfully authorized!');
+    } catch (fe: any) {
+      formStatus = 'ERROR: ' + (fe?.message || fe);
+      Logger.log('Google Forms authorization error: ' + formStatus);
+    }
+  }
+
   if (typeof MailApp !== 'undefined') {
     try {
       MailApp.sendEmail({
         to: 'chandahui2004@gmail.com',
         subject: '[UMDSC] System Email Authorization Test',
-        body: 'Hi Chan Da Hui,\n\nYour Google Apps Script email notification permission has been successfully authorized!\n\nThe UMDSC Dance Class System can now automatically send class registration confirmations and media recap notifications.\n\nWebsite: https://umdsc-dance-class.umdancesportc.workers.dev',
-        htmlBody: '<div style="font-family:sans-serif;padding:16px;"><h2 style="color:#6366f1;">UMDSC Dance Class System</h2><p>Hi <strong>Chan Da Hui</strong>,</p><p>Your Google Apps Script email notification permission has been successfully authorized!</p><p>The system can now automatically send class registration confirmations and media recap notifications.</p><p><a href="https://umdsc-dance-class.umdancesportc.workers.dev" style="background:#6366f1;color:#fff;padding:10px 20px;text-decoration:none;border-radius:4px;display:inline-block;">Open Dancer Portal</a></p></div>'
+        body: 'Hi Chan Da Hui,\n\nYour Google Apps Script permissions (Drive, Mail, Forms) have been successfully authorized!\n\nThe UMDSC Dance Class System can now automatically send class registration confirmations, media recap notifications, and synchronize Google Form slot limits.\n\nWebsite: https://umdsc-dance-class.umdancesportc.workers.dev',
+        htmlBody: '<div style="font-family:sans-serif;padding:16px;"><h2 style="color:#6366f1;">UMDSC Dance Class System</h2><p>Hi <strong>Chan Da Hui</strong>,</p><p>Your Google Apps Script permissions (Drive, Mail, Forms) have been successfully authorized!</p><p>The system can now automatically send class registration confirmations, media recap notifications, and synchronize Google Form slot limits.</p><p><a href="https://umdsc-dance-class.umdancesportc.workers.dev" style="background:#6366f1;color:#fff;padding:10px 20px;text-decoration:none;border-radius:4px;display:inline-block;">Open Dancer Portal</a></p></div>'
       });
       Logger.log('Test email sent to chandahui2004@gmail.com');
     } catch (e: any) {
@@ -37,5 +51,20 @@ export function authorizeOnce(): string {
     }
   }
 
-  return 'Authorized: ' + rootName + ', Mail quota: ' + mailQuota;
+  return 'Authorized: ' + rootName + ', Mail quota: ' + mailQuota + ', Forms: ' + formStatus;
+}
+
+export function testFormAccess(formId: string = '11ZZM4qFUc1jj9LSqUXSzbr0y2-e4xziO8w4YSc4ze0I'): string {
+  try {
+    const form = FormApp.openById(formId);
+    const title = form.getTitle();
+    const items = form.getItems();
+    const res = 'SUCCESS! Opened form: "' + title + '" (ID: ' + formId + ') with ' + items.length + ' question/items.';
+    Logger.log(res);
+    return res;
+  } catch (err: any) {
+    const msg = 'FAILED to open form ' + formId + ': ' + (err?.message || err);
+    Logger.log(msg);
+    return msg;
+  }
 }

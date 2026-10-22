@@ -1,4 +1,4 @@
-import { initSecrets, authorizeOnce } from './gas/setupHelpers';
+import { initSecrets, authorizeOnce, testFormAccess } from './gas/setupHelpers';
 import { handleRequest } from './router';
 import {
   GasDriveAdapter,
@@ -16,7 +16,7 @@ import { warmCaches } from './features/warmup';
 import { Hmac } from './security/tokens';
 import { ApiRequest } from '@umdsc/shared';
 
-export { initSecrets, authorizeOnce };
+export { initSecrets, authorizeOnce, testFormAccess };
 
 const gasHmac: Hmac = (key: string, message: string) => {
   const signed = Utilities.computeHmacSha256Signature(message, key);

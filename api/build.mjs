@@ -7,6 +7,7 @@ function doGet(e){return UMDSC.doGet(e)}
 function doPost(e){return UMDSC.doPost(e)}
 function initSecrets(){return UMDSC.initSecrets()}
 function authorizeOnce(){return UMDSC.authorizeOnce()}
+function testFormAccess(formId){return UMDSC.testFormAccess(formId)}
 function warmDancerCaches(){return UMDSC.warmDancerCaches()}
 function installWarmTrigger(){return UMDSC.installWarmTrigger()}
 `;
