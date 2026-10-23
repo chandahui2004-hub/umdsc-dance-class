@@ -10,6 +10,7 @@ import { openSourceTab, timestampColumn, countUnknownClasses } from './eventSour
 import { membersChanged, readEventMembers } from './eventMembers';
 import { ensureEventFolder, ensureMembersSheet, ensureEventSheets, saveEventFields } from './eventSheets';
 import { syncGoogleFormSlotChoices } from './formGating';
+import { fullNameMatches, nameSimilarity } from '../logic/normalize';
 
 export interface ImportResult {
   changed: boolean;
@@ -459,11 +460,16 @@ export function importEventMembers(
   }
 
   // MemberIndex: one write for every dancer in this form
-  const index = new Map(ctx.db.memberIndex.find(m => m.active).map(m => [m.matricKey, m]));
+  const existingMembers = ctx.db.memberIndex.find(m => m.active);
   ctx.db.memberIndex.upsertMany(
-    'matricKey',
+    'id',
     members.map(m => {
-      const prev = index.get(m.matricKey);
+      const prev = existingMembers.find(
+        em =>
+          (em.id === m.memberId || em.matricKey === m.matricKey) &&
+          (fullNameMatches(m.fullName, em.fullName) || nameSimilarity(m.fullName, em.fullName) >= 0.82)
+      );
+      const targetId = prev ? prev.id : m.memberId;
       const eventIds = Array.from(new Set([...(prev ? prev.eventIds : []), event.id]));
       const lastEventEnd = prev && prev.lastEventEnd > latest.endDate ? prev.lastEventEnd : latest.endDate;
       const styleIds = [...m.styleIds];
@@ -476,9 +482,10 @@ export function importEventMembers(
         prevStyles.join(',') !== styleIds.join(',')
       ) {
         ctx.cache.remove('mi:' + m.matricKey);
+        ctx.cache.remove('mi:' + targetId);
       }
       const eventStyles = { ...(prev?.eventStyles || {}), [event.id]: styleIds };
-      return { matricKey: m.matricKey, nameKey: m.nameKey, fullName: m.fullName, eventIds, lastEventEnd, eventStyles };
+      return { id: targetId, matricKey: m.matricKey, nameKey: m.nameKey, fullName: m.fullName, eventIds, lastEventEnd, eventStyles };
     }),
     'sync',
     ctx.now()

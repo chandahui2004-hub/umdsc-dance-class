@@ -309,6 +309,74 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
     }
   });
 
+  it('dancerLogin: two dancers sharing the same matric number can both independently log in with their respective names', () => {
+    // Seed two dancers with same matricKey
+    ctx.db.memberIndex.insert(
+      {
+        matricKey: '23005147',
+        nameKey: 'chan da hui',
+        fullName: 'Chan Da Hui',
+        eventIds: ['evt_test'],
+        lastEventEnd: '2026-10-31'
+      },
+      'system',
+      new Date()
+    );
+
+    ctx.db.memberIndex.insert(
+      {
+        matricKey: '23005147',
+        nameKey: 'testing1',
+        fullName: 'Testing1',
+        eventIds: ['evt_test'],
+        lastEventEnd: '2026-10-31'
+      },
+      'system',
+      new Date()
+    );
+
+    // 1. Chan Da Hui logs in
+    const resChan = handleRequest(
+      {
+        action: 'auth.dancerLogin',
+        payload: { matric: '23005147', fullName: 'Chan Da Hui' }
+      },
+      ctx,
+      secrets
+    );
+    expect(resChan.ok).toBe(true);
+    if (resChan.ok) {
+      const claims = verifyToken((resChan.data as any).token, secrets.tokenSecret, nodeHmac, Math.floor(ctx.now().getTime() / 1000));
+      expect(claims.name).toBe('Chan Da Hui');
+    }
+
+    // 2. Testing1 logs in
+    const resTesting = handleRequest(
+      {
+        action: 'auth.dancerLogin',
+        payload: { matric: '23005147', fullName: 'Testing1' }
+      },
+      ctx,
+      secrets
+    );
+    expect(resTesting.ok).toBe(true);
+    if (resTesting.ok) {
+      const claims = verifyToken((resTesting.data as any).token, secrets.tokenSecret, nodeHmac, Math.floor(ctx.now().getTime() / 1000));
+      expect(claims.name).toBe('Testing1');
+    }
+
+    // 3. Unregistered name with that matric fails
+    const resFail = handleRequest(
+      {
+        action: 'auth.dancerLogin',
+        payload: { matric: '23005147', fullName: 'Totally Different Name' }
+      },
+      ctx,
+      secrets
+    );
+    expect(resFail.ok).toBe(false);
+  });
+
   it('dancerLogin returns per-step timings only when debugTimings is true', () => {
     const login = (extra: Record<string, unknown>) =>
       handleRequest(

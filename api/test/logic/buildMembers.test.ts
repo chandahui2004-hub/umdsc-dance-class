@@ -152,4 +152,60 @@ describe('Build Members from Rows (logic/buildMembers)', () => {
     expect(result.countsByStyle['lt']).toBe(1);
     expect(result.countsByStyle['hh']).toBe(0);
   });
+
+  it('same matric with clearly distinct names → produces TWO separate dancers with unique memberIds and matricConflict warning', () => {
+    const rows = [
+      ['2026-10-01 10:00:00', 'Chan Da Hui', '23005147', '0123456789', 'dahui@test.com', 'Popping'],
+      ['2026-10-02 12:00:00', 'Testing1', '23005147', '0198765432', 'testing1@test.com', 'Hip Hop']
+    ];
+
+    const result = buildMembers({
+      headers,
+      rows,
+      map,
+      classIndex,
+      styles,
+      timestampIndex
+    });
+
+    expect(result.members.length).toBe(2);
+    const m1 = result.members.find(m => m.fullName === 'Chan Da Hui')!;
+    const m2 = result.members.find(m => m.fullName === 'Testing1')!;
+
+    expect(m1).toBeDefined();
+    expect(m2).toBeDefined();
+
+    // Both preserve the authentic matric number
+    expect(m1.matricKey).toBe('23005147');
+    expect(m2.matricKey).toBe('23005147');
+
+    // Internal memberIds are unique
+    expect(m1.memberId).toBe('M-23005147');
+    expect(m2.memberId).not.toBe('M-23005147');
+    expect(m2.memberId).toContain('23005147');
+
+    // Emits matricConflict warning
+    expect(result.warnings.some(w => w.kind === 'matricConflict')).toBe(true);
+  });
+
+  it('same matric with minor name variations (spacing/casing/typo) → merged as one dancer with nameVariation warning', () => {
+    const rows = [
+      ['2026-10-01 10:00:00', 'Chan Da Hui', '23005147', '0123456789', 'dahui@test.com', 'Popping'],
+      ['2026-10-02 12:00:00', 'CHAN DAHUI', '23005147', '0123456789', 'dahui2@test.com', 'Hip Hop']
+    ];
+
+    const result = buildMembers({
+      headers,
+      rows,
+      map,
+      classIndex,
+      styles,
+      timestampIndex
+    });
+
+    expect(result.members.length).toBe(1);
+    expect(result.members[0].matricKey).toBe('23005147');
+    expect(result.members[0].styleIds.sort()).toEqual(['hh', 'pp'].sort());
+    expect(result.warnings.some(w => w.kind === 'nameVariation')).toBe(true);
+  });
 });

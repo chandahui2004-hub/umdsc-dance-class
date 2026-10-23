@@ -1,10 +1,10 @@
 import { Member } from '@umdsc/shared';
 import { Field } from './headerMatch';
-import { normalizeMatric, nameKey, normalizePhone } from './normalize';
+import { normalizeMatric, nameKey, normalizePhone, fullNameMatches, nameSimilarity } from './normalize';
 import { parseStyles } from './classDetect';
 
 export interface ImportWarning {
-  kind: 'noStyle' | 'unknownClass' | 'duplicate' | 'missingName' | 'missingMatric' | 'phoneRepaired';
+  kind: 'noStyle' | 'unknownClass' | 'duplicate' | 'missingName' | 'missingMatric' | 'phoneRepaired' | 'matricConflict' | 'nameVariation';
   row: number;
   detail: string;
 }
@@ -38,11 +38,11 @@ export function buildMembers(input: {
 
   const membersByMatric = new Map<
     string,
-    {
+    Array<{
       member: Member;
       timestampValue: number;
       rowNum: number;
-    }
+    }>
   >();
   const timestampsByMember: Record<string, string[]> = {};
 
@@ -120,14 +120,11 @@ export function buildMembers(input: {
     }
 
     const styleNames = styleIds.map(id => styleNameById.get(id) || id);
-    const memberId = 'M-' + matricKey;
     const nk = nameKey(fullNameRaw);
-    if (sourceTimestamp) (timestampsByMember[memberId] ||= []).push(sourceTimestamp);
-
     const currentTimestampValue = sourceTimestamp ? Date.parse(sourceTimestamp) || 0 : 0;
 
     const currentMember: Member = {
-      memberId,
+      memberId: 'M-' + matricKey,
       fullName: fullNameRaw,
       matricRaw,
       matricKey,
@@ -142,53 +139,97 @@ export function buildMembers(input: {
       flags
     };
 
-    if (membersByMatric.has(matricKey)) {
-      const existing = membersByMatric.get(matricKey)!;
+    const existingList = membersByMatric.get(matricKey) || [];
+    let matchingEntry: { member: Member; timestampValue: number; rowNum: number } | null = null;
+
+    for (const entry of existingList) {
+      if (
+        fullNameMatches(fullNameRaw, entry.member.fullName) ||
+        nameSimilarity(fullNameRaw, entry.member.fullName) >= 0.82
+      ) {
+        matchingEntry = entry;
+        break;
+      }
+    }
+
+    if (matchingEntry) {
+      if (
+        fullNameRaw &&
+        matchingEntry.member.fullName &&
+        fullNameRaw.trim().toLowerCase() !== matchingEntry.member.fullName.trim().toLowerCase()
+      ) {
+        warnings.push({
+          kind: 'nameVariation',
+          row: rowNum,
+          detail: `Name variation "${matchingEntry.member.fullName}" vs "${fullNameRaw}" on matric ${matricKey}`
+        });
+      }
       warnings.push({
         kind: 'duplicate',
         row: rowNum,
         detail: `Duplicate matric ${matricKey} merged`
       });
 
-      const unionStylesSet = new Set([...existing.member.styleIds, ...styleIds]);
+      const unionStylesSet = new Set([...matchingEntry.member.styleIds, ...styleIds]);
       const unionStyleIds = Array.from(unionStylesSet);
       const unionStyleNames = unionStyleIds.map(id => styleNameById.get(id) || id);
 
-      const unionFlagsSet = new Set([...existing.member.flags, ...flags].filter(f => f !== 'duplicate'));
+      const unionFlagsSet = new Set([...matchingEntry.member.flags, ...flags].filter(f => f !== 'duplicate'));
       if (unionStyleIds.length > 0) {
         unionFlagsSet.delete('noStyle');
       }
 
-      if (currentTimestampValue >= existing.timestampValue) {
-        membersByMatric.set(matricKey, {
-          member: {
-            ...currentMember,
-            styleIds: unionStyleIds,
-            styleNames: unionStyleNames,
-            flags: Array.from(unionFlagsSet)
-          },
-          timestampValue: currentTimestampValue,
-          rowNum: existing.rowNum
-        });
+      if (sourceTimestamp) {
+        (timestampsByMember[matchingEntry.member.memberId] ||= []).push(sourceTimestamp);
+      }
+
+      if (currentTimestampValue >= matchingEntry.timestampValue) {
+        matchingEntry.member = {
+          ...currentMember,
+          memberId: matchingEntry.member.memberId,
+          styleIds: unionStyleIds,
+          styleNames: unionStyleNames,
+          flags: Array.from(unionFlagsSet)
+        };
+        matchingEntry.timestampValue = currentTimestampValue;
       } else {
-        existing.member.styleIds = unionStyleIds;
-        existing.member.styleNames = unionStyleNames;
-        existing.member.flags = Array.from(unionFlagsSet);
+        matchingEntry.member.styleIds = unionStyleIds;
+        matchingEntry.member.styleNames = unionStyleNames;
+        matchingEntry.member.flags = Array.from(unionFlagsSet);
       }
     } else {
-      membersByMatric.set(matricKey, {
+      if (existingList.length > 0) {
+        warnings.push({
+          kind: 'matricConflict',
+          row: rowNum,
+          detail: `Matric ${matricKey} shared by "${existingList[0].member.fullName}" and "${fullNameRaw}"`
+        });
+        const slug = nk.replace(/\s+/g, '_') || String(existingList.length + 1);
+        currentMember.memberId = `M-${matricKey}-${slug}`;
+      } else {
+        currentMember.memberId = `M-${matricKey}`;
+      }
+
+      if (sourceTimestamp) {
+        (timestampsByMember[currentMember.memberId] ||= []).push(sourceTimestamp);
+      }
+
+      existingList.push({
         member: currentMember,
         timestampValue: currentTimestampValue,
         rowNum
       });
+      membersByMatric.set(matricKey, existingList);
     }
   }
 
   const members: Member[] = [];
-  for (const { member } of membersByMatric.values()) {
-    members.push(member);
-    for (const styleId of member.styleIds) {
-      countsByStyle[styleId] = (countsByStyle[styleId] || 0) + 1;
+  for (const list of membersByMatric.values()) {
+    for (const { member } of list) {
+      members.push(member);
+      for (const styleId of member.styleIds) {
+        countsByStyle[styleId] = (countsByStyle[styleId] || 0) + 1;
+      }
     }
   }
 

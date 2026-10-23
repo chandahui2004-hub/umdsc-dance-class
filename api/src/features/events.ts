@@ -60,6 +60,7 @@ function recalculateLastEventEnd(ctx: Ctx, event: EventItem): void {
   const rows = ctx.db.memberIndex
     .find(m => m.active && matricKeys.has(m.matricKey))
     .map(m => ({
+      id: m.id,
       matricKey: m.matricKey,
       nameKey: m.nameKey,
       fullName: m.fullName,
@@ -67,7 +68,7 @@ function recalculateLastEventEnd(ctx: Ctx, event: EventItem): void {
       lastEventEnd: m.eventIds.map(id => endDates.get(id) || '').reduce((a, b) => (b > a ? b : a), '')
     }));
   if (rows.length > 0) {
-    ctx.db.memberIndex.upsertMany('matricKey', rows, 'system', ctx.now());
+    ctx.db.memberIndex.upsertMany('id', rows, 'system', ctx.now());
   }
 }
 

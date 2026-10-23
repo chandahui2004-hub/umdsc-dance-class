@@ -95,7 +95,9 @@ function loadDancerIndex(ctx: Ctx, matricKey: string): any {
     }
   }
 
-  const dancer = ctx.db.memberIndex.find(m => m.matricKey === matricKey && m.active)[0];
+  const dancer = ctx.db.memberIndex.find(
+    m => (m.id === matricKey || m.id === 'M-' + matricKey || m.matricKey === matricKey) && m.active
+  )[0];
   if (!dancer) {
     throw new AppError('NOT_FOUND', 'Dancer record not found');
   }
