@@ -83,4 +83,58 @@ describe('StylesPage', () => {
     expect(screen.queryByLabelText(/Default Venue/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/DEFAULT SCHEDULE & VENUE/i)).not.toBeInTheDocument();
   });
+
+  it('collapses dance styles by default and expands on click like EventsPage', async () => {
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('toggle-style-st-pop')).toBeInTheDocument();
+    });
+
+    // In collapsed state, toggle button shows style name and EXPAND ▼
+    expect(screen.getByTestId('toggle-style-st-pop')).toHaveTextContent('Popping');
+    expect(screen.getByTestId('toggle-style-st-pop')).toHaveTextContent('EXPAND ▼');
+    expect(screen.getByTestId('toggle-style-st-pop')).toHaveTextContent('1 INSTRUCTOR');
+
+    // Details like Aliases and EDIT button are not yet in the document
+    expect(screen.queryByRole('button', { name: /^EDIT$/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Aliases:/i)).not.toBeInTheDocument();
+
+    // Click to expand
+    fireEvent.click(screen.getByTestId('toggle-style-st-pop'));
+
+    // In expanded state: toggle label changes to COLLAPSE ▲ and details appear
+    expect(screen.getByTestId('toggle-style-st-pop')).toHaveTextContent('COLLAPSE ▲');
+    expect(screen.getByRole('button', { name: /^EDIT$/i })).toBeInTheDocument();
+    expect(screen.getByText(/Aliases:/i)).toBeInTheDocument();
+    expect(screen.getByText('pop')).toBeInTheDocument();
+    expect(screen.getByText('boogaloo')).toBeInTheDocument();
+    expect(screen.getByText(/Attendance Folder:/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^DEACTIVATE$/i })).toBeInTheDocument();
+
+    // Click again to collapse
+    fireEvent.click(screen.getByTestId('toggle-style-st-pop'));
+    expect(screen.getByTestId('toggle-style-st-pop')).toHaveTextContent('EXPAND ▼');
+    expect(screen.queryByRole('button', { name: /^EDIT$/i })).not.toBeInTheDocument();
+  });
+
+  it('supports EXPAND ALL and COLLAPSE ALL for all styles', async () => {
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /EXPAND ALL/i })).toBeInTheDocument();
+    });
+
+    // Click EXPAND ALL
+    fireEvent.click(screen.getByRole('button', { name: /EXPAND ALL/i }));
+
+    // Now button flips to COLLAPSE ALL and details are revealed
+    expect(screen.getByRole('button', { name: /COLLAPSE ALL/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^EDIT$/i })).toBeInTheDocument();
+
+    // Click COLLAPSE ALL
+    fireEvent.click(screen.getByRole('button', { name: /COLLAPSE ALL/i }));
+    expect(screen.getByRole('button', { name: /EXPAND ALL/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^EDIT$/i })).not.toBeInTheDocument();
+  });
 });

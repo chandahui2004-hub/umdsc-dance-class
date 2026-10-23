@@ -10,11 +10,164 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { useOverlayOpen } from '../../app/useOverlayOpen';
 import type { DanceStyle, Instructor } from '@umdsc/shared';
 
+interface CollapsibleStyleItemProps {
+  style: DanceStyle;
+  instructors: Instructor[];
+  isExpanded: boolean;
+  onToggle: () => void;
+  onEdit: (style: DanceStyle) => void;
+  onDeactivate: (style: DanceStyle) => void;
+  isDeactivating: boolean;
+}
+
+const CollapsibleStyleItem: React.FC<CollapsibleStyleItemProps> = ({
+  style,
+  instructors,
+  isExpanded,
+  onToggle,
+  onEdit,
+  onDeactivate,
+  isDeactivating
+}) => {
+  const teachers = instructors.filter((i) => i.active && (i.styleIds || []).includes(style.id));
+
+  return (
+    <div className="space-y-2" data-testid={`style-item-${style.id}`}>
+      <button
+        type="button"
+        data-testid={`toggle-style-${style.id}`}
+        onClick={onToggle}
+        className="w-full text-left px-3 py-2.5 border-2 border-[var(--outline)] bg-[var(--night-2)] hover:border-[var(--neon-cyan)] transition-colors flex items-center justify-between gap-3 shadow-[2px_2px_0_var(--outline)] group cursor-pointer"
+      >
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
+          <span className="font-mono text-sm text-[var(--neon-cyan)] group-hover:scale-110 transition-transform">
+            {isExpanded ? '▼' : '▶'}
+          </span>
+          <span className="font-display text-[14px] sm:text-[15px] text-[var(--text-1)] font-bold truncate">
+            {style.name}
+          </span>
+          {teachers.length > 0 && (
+            <span className="font-body text-[12px] text-[var(--text-2)] hidden sm:inline">
+              · {teachers.map((t) => t.name).join(', ')}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="px-2 py-0.5 border border-[var(--outline)] bg-[var(--neon-gold)] text-[var(--on-neon)] font-display text-[11px] font-bold shadow-[1px_1px_0_var(--outline)]">
+            {teachers.length} {teachers.length === 1 ? 'INSTRUCTOR' : 'INSTRUCTORS'}
+          </span>
+          <span className="font-mono text-xs text-[var(--text-2)] border border-[var(--outline)] px-1.5 py-0.5 bg-[var(--night-3)]">
+            {isExpanded ? 'COLLAPSE ▲' : 'EXPAND ▼'}
+          </span>
+        </div>
+      </button>
+
+      {isExpanded && (
+        <div className="pl-2 sm:pl-4 border-l-2 border-[var(--neon-cyan)]">
+          <Panel
+            title={style.name}
+            className="px-corners space-y-3 bg-[var(--night-2)]"
+          >
+            {/* Aliases */}
+            <div className="space-y-1">
+              <span className="font-display text-[10px] text-[var(--text-2)] uppercase">
+                Aliases:
+              </span>
+              <div className="flex flex-wrap gap-1">
+                {style.aliases && style.aliases.length > 0 ? (
+                  style.aliases.map((al, i) => (
+                    <span
+                      key={`${i}-${al}`}
+                      className="bg-[var(--night-1)] border border-[var(--outline)] px-2 py-0.5 font-mono text-[12px] uppercase text-[var(--text-1)]"
+                    >
+                      {al}
+                    </span>
+                  ))
+                ) : (
+                  <span className="font-body text-[12px] text-[var(--text-2)] italic">
+                    None
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Instructors */}
+            <div className="px-well p-2 font-mono text-[12px] space-y-1 text-[var(--text-2)]">
+              <div>
+                {teachers.length > 0 ? (
+                  <>
+                    <span className="font-bold text-[var(--text-1)]">Instructors:</span>{' '}
+                    {teachers.map((t) => t.name).join(', ')}
+                  </>
+                ) : (
+                  <>
+                    <span className="italic">No instructors yet</span>{' '}
+                    <Link
+                      to="/admin/instructors"
+                      className="inline-flex items-center min-h-[44px] text-[var(--neon-cyan)] underline font-bold"
+                    >
+                      Add one
+                    </Link>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Drive Folders */}
+            <div className="font-mono text-[12px] space-y-1 text-[var(--text-2)]">
+              <div>
+                <span className="font-bold text-[var(--text-1)]">Attendance Folder:</span>{' '}
+                {style.attendanceFolderId ? (
+                  <span className="text-[var(--neon-green)] font-bold">Configured</span>
+                ) : (
+                  <span className="italic">Using Default</span>
+                )}
+              </div>
+              <div>
+                <span className="font-bold text-[var(--text-1)]">Video Folder:</span>{' '}
+                {style.videoFolderId ? (
+                  <span className="text-[var(--neon-green)] font-bold">Configured</span>
+                ) : (
+                  <span className="italic">Using Default</span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2 border-t-2 border-[var(--outline)]">
+              <PixelButton
+                size="md"
+                variant="secondary"
+                className="flex-1"
+                onClick={() => onEdit(style)}
+              >
+                EDIT
+              </PixelButton>
+              <PixelButton
+                size="md"
+                variant="danger"
+                disabled={isDeactivating}
+                onClick={() => {
+                  if (confirm(`Deactivate style "${style.name}"?`)) {
+                    onDeactivate(style);
+                  }
+                }}
+              >
+                {isDeactivating ? 'DEACTIVATING…' : 'DEACTIVATE'}
+              </PixelButton>
+            </div>
+          </Panel>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const StylesPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [editingStyle, setEditingStyle] = useState<DanceStyle | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [expandedStyleIds, setExpandedStyleIds] = useState<Set<string>>(new Set());
   useOverlayOpen(Boolean(isCreating || editingStyle));
 
   // Form states
@@ -39,6 +192,25 @@ export const StylesPage: React.FC = () => {
     }
   });
 
+  const allStylesExpanded = styles.length > 0 && styles.every((s) => expandedStyleIds.has(s.id));
+
+  const toggleAllStyles = () => {
+    if (allStylesExpanded) {
+      setExpandedStyleIds(new Set());
+    } else {
+      setExpandedStyleIds(new Set(styles.map((s) => s.id)));
+    }
+  };
+
+  const toggleStyle = (id: string) => {
+    setExpandedStyleIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const openCreate = () => {
     setIsCreating(true);
     setEditingStyle(null);
@@ -54,8 +226,12 @@ export const StylesPage: React.FC = () => {
     setIsCreating(false);
     setName(style.name);
     setAliases((style.aliases || []).join(', '));
-    setAttendanceFolderUrl(style.attendanceFolderId ? `https://drive.google.com/drive/folders/${style.attendanceFolderId}` : '');
-    setVideoFolderUrl(style.videoFolderId ? `https://drive.google.com/drive/folders/${style.videoFolderId}` : '');
+    setAttendanceFolderUrl(
+      style.attendanceFolderId ? `https://drive.google.com/drive/folders/${style.attendanceFolderId}` : ''
+    );
+    setVideoFolderUrl(
+      style.videoFolderId ? `https://drive.google.com/drive/folders/${style.videoFolderId}` : ''
+    );
     setFormError(null);
   };
 
@@ -143,125 +319,52 @@ export const StylesPage: React.FC = () => {
         </PixelButton>
       </div>
 
-      {loadingStyles ? (
-        <div className="flex justify-center p-8">
-          <Spinner />
-        </div>
-      ) : styles.length === 0 ? (
-        <EmptyState
-          title="NO DANCE STYLES"
-          description="No dance styles exist yet. Click '+ NEW STYLE' to create one."
-          scene="shutter"
-          action={
-            <PixelButton size="md" variant="primary" onClick={openCreate}>
-              + NEW STYLE
+      <section data-testid="dance-styles-list" className="space-y-3">
+        <div className="flex items-center justify-between gap-2 border-b-2 border-[var(--outline)] pb-2">
+          <h2 className="font-display text-[12px] text-[var(--text-1)] tracking-wider">
+            ACTIVE DANCE STYLES ({styles.length})
+          </h2>
+          {styles.length > 0 && (
+            <PixelButton size="sm" variant="ghost" onClick={toggleAllStyles}>
+              {allStylesExpanded ? '▲ COLLAPSE ALL' : '▼ EXPAND ALL'}
             </PixelButton>
-          }
-        />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {styles.map((style) => {
-            const teachers = instructors.filter((i) => i.active && (i.styleIds || []).includes(style.id));
-
-            return (
-              <Panel
-                key={style.id}
-                title={style.name}
-                className="px-corners space-y-3"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-[14px] text-[var(--neon-gold)]">▶</span>
-                  <h3 className="font-display text-[14px] font-bold text-[var(--text-1)]">{style.name}</h3>
-                </div>
-
-                {/* Aliases */}
-                <div className="space-y-1">
-                  <span className="font-display text-[10px] text-[var(--text-2)] uppercase">
-                    Aliases:
-                  </span>
-                  <div className="flex flex-wrap gap-1">
-                    {(style.aliases && style.aliases.length > 0) ? (
-                      style.aliases.map((al, i) => (
-                        <span
-                          key={`${i}-${al}`}
-                          className="bg-[var(--night-1)] border border-[var(--outline)] px-2 py-0.5 font-mono text-[12px] uppercase text-[var(--text-1)]"
-                        >
-                          {al}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="font-body text-[12px] text-[var(--text-2)] italic">
-                        None
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Instructors */}
-                <div className="px-well p-2 font-mono text-[12px] space-y-1 text-[var(--text-2)]">
-                  <div>
-                    {teachers.length > 0 ? (
-                      <>
-                        <span className="font-bold text-[var(--text-1)]">Instructors:</span> {teachers.map((t) => t.name).join(', ')}
-                      </>
-                    ) : (
-                      <>
-                        <span className="italic">No instructors yet</span>{' '}
-                        <Link to="/admin/instructors" className="inline-flex items-center min-h-[44px] text-[var(--neon-cyan)] underline font-bold">
-                          Add one
-                        </Link>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Drive Folders */}
-                <div className="font-mono text-[12px] space-y-1 text-[var(--text-2)]">
-                  <div>
-                    <span className="font-bold text-[var(--text-1)]">Attendance Folder:</span>{' '}
-                    {style.attendanceFolderId ? (
-                      <span className="text-[var(--neon-green)] font-bold">Configured</span>
-                    ) : (
-                      <span className="italic">Using Default</span>
-                    )}
-                  </div>
-                  <div>
-                    <span className="font-bold text-[var(--text-1)]">Video Folder:</span>{' '}
-                    {style.videoFolderId ? (
-                      <span className="text-[var(--neon-green)] font-bold">Configured</span>
-                    ) : (
-                      <span className="italic">Using Default</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex gap-2 pt-2 border-t-2 border-[var(--outline)]">
-                  <PixelButton
-                    size="md"
-                    variant="secondary"
-                    className="flex-1"
-                    onClick={() => openEdit(style)}
-                  >
-                    EDIT
-                  </PixelButton>
-                  <PixelButton
-                    size="md"
-                    variant="danger"
-                    disabled={deactivateMutation.isPending}
-                    onClick={() => {
-                      if (confirm(`Deactivate style "${style.name}"?`)) {
-                        deactivateMutation.mutate(style);
-                      }
-                    }}
-                  >
-                    {deactivateMutation.isPending && deactivateMutation.variables?.id === style.id ? 'DEACTIVATING…' : 'DEACTIVATE'}
-                  </PixelButton>
-                </div>
-              </Panel>
-            );
-          })}
+          )}
         </div>
-      )}
+
+        {loadingStyles ? (
+          <div className="flex justify-center p-8">
+            <Spinner />
+          </div>
+        ) : styles.length === 0 ? (
+          <EmptyState
+            title="NO DANCE STYLES"
+            description="No dance styles exist yet. Click '+ NEW STYLE' to create one."
+            scene="shutter"
+            action={
+              <PixelButton size="md" variant="primary" onClick={openCreate}>
+                + NEW STYLE
+              </PixelButton>
+            }
+          />
+        ) : (
+          <div className="space-y-3">
+            {styles.map((style) => (
+              <CollapsibleStyleItem
+                key={style.id}
+                style={style}
+                instructors={instructors}
+                isExpanded={expandedStyleIds.has(style.id)}
+                onToggle={() => toggleStyle(style.id)}
+                onEdit={openEdit}
+                onDeactivate={(s) => deactivateMutation.mutate(s)}
+                isDeactivating={
+                  deactivateMutation.isPending && deactivateMutation.variables?.id === style.id
+                }
+              />
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* Create / Edit Modal */}
       {(isCreating || editingStyle) && (
