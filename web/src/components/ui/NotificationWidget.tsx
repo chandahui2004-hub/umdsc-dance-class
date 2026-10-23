@@ -195,8 +195,8 @@ export const NotificationWidget: React.FC = () => {
 
   return (
     <>
-      {/* Floating Retro Bell Button */}
-      <div className="fixed bottom-6 right-6 z-40">
+      {/* Floating Retro Bell Button (Top-Right) */}
+      <div className="fixed top-14 right-3 sm:top-5 sm:right-6 z-40">
         <button
           type="button"
           data-testid="notification-bell-btn"

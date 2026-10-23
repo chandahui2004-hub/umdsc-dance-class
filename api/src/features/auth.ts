@@ -88,18 +88,15 @@ export function getAuthRoutes(): Record<string, Route> {
 
         const matricKey = normalizeMatric(matric);
 
-        const candidates = ctx.db.memberIndex.find(m => m.matricKey === matricKey && m.active);
-        if (candidates.length === 0) {
+        const dancer = ctx.db.memberIndex.find(m => m.matricKey === matricKey && m.active)[0];
+        if (!dancer) {
           throw new AppError(
             'NOT_REGISTERED',
             "Matric number and name don't match a registered dancer. Type your full name as on the registration form."
           );
         }
 
-        const dancer = candidates.find(
-          c => fullNameMatches(fullName, c.fullName)
-        );
-        if (!dancer) {
+        if (fullName && !fullNameMatches(fullName, dancer.fullName)) {
           throw new AppError(
             'NOT_REGISTERED',
             "Matric number and name don't match a registered dancer. Type your full name as on the registration form."
@@ -144,12 +141,7 @@ export function getAuthRoutes(): Record<string, Route> {
         const pv = Number(ctx.props.get('PERM_VERSION') || 1);
         const exp = Math.floor(ctx.now().getTime() / 1000) + 30 * 24 * 3600;
 
-        const sub =
-          dancer.id && dancer.id.startsWith('M-')
-            ? dancer.id
-            : candidates.length > 1 && candidates[0].id !== dancer.id
-              ? `M-${matricKey}-${dancer.nameKey || dancer.fullName.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`
-              : 'M-' + matricKey;
+        const sub = dancer.id && dancer.id.startsWith('M-') ? dancer.id : 'M-' + matricKey;
 
         const claims: TokenClaims = {
           sub,

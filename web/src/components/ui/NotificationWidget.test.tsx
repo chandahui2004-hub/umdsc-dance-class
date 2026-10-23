@@ -108,6 +108,7 @@ describe('NotificationWidget Floating Center and 3-Tab Drawer', () => {
     // Floating bell button exists
     const bellBtn = screen.getByTestId('notification-bell-btn');
     expect(bellBtn).toBeInTheDocument();
+    expect(bellBtn.parentElement).toHaveClass('top-14', 'right-3');
 
     // Drawer is closed initially
     expect(screen.queryByTestId('notification-drawer')).not.toBeInTheDocument();

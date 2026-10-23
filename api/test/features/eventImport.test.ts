@@ -369,5 +369,37 @@ describe('importEventMembers', () => {
     // Even if sourceRowCount was somehow cached at 2, sourceUnchanged sees 2 rows vs 3 memberCount
     expect(sourceUnchanged(ctx, { ...ev, sourceRowCount: 2, sourceLastRowHash: '' })).toBe(false);
   });
+
+  it('automatically remaps Testing1 and Testing2 on matric 23005147 to unique alphanumeric TEST9001 and TEST9002', () => {
+    const { event, sourceId } = makeEvent([
+      row('Chan Da Hui', '23005147', 'Popping'),
+      row('Testing1', '23005147', 'Hip Hop'),
+      row('Testing2', '23005147', 'Popping')
+    ]);
+
+    const res = importEventMembers(ctx, event, { full: true });
+    expect(res.memberCount).toBe(3);
+
+    const members = readEventMembers(ctx, fresh(event));
+    expect(members.length).toBe(3);
+
+    const dahui = members.find(m => m.fullName === 'Chan Da Hui')!;
+    const test1 = members.find(m => m.fullName === 'Testing1')!;
+    const test2 = members.find(m => m.fullName === 'Testing2')!;
+
+    expect(dahui.matricKey).toBe('23005147');
+    expect(dahui.memberId).toBe('M-23005147');
+
+    expect(test1.matricKey).toBe('TEST9001');
+    expect(test1.memberId).toBe('M-TEST9001');
+
+    expect(test2.matricKey).toBe('TEST9002');
+    expect(test2.memberId).toBe('M-TEST9002');
+
+    // And verify the source sheet was updated
+    const src = source(sourceId);
+    expect(src.getDisplayValues()[2][2]).toBe('TEST9001');
+    expect(src.getDisplayValues()[3][2]).toBe('TEST9002');
+  });
 });
 
