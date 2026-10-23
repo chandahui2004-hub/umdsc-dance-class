@@ -115,13 +115,42 @@ export function syncGoogleFormSlotChoices(
   const formLabels: Record<string, string> =
     event.styleFormLabels || (event.styleFormLabelsJson ? JSON.parse(event.styleFormLabelsJson) : {});
 
-  if (question && question.choices.length > 0) {
-    const allActiveStyles = ctx.db.styles.find(s => s.active);
-    const lettersOnly = (str: string) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const cleanChoice = (str: string) =>
-      str.replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').replace(/\bclasses?\b/gi, '').trim();
+  const isSingleStyle = (event.styleIds || []).length === 1;
+  const NON_DANCE_CHOICES = new Set(['yes', 'no', 'true', 'false', 'maybe', 'na', 'none', 'male', 'female', 'other', 'student', 'staff']);
 
-    for (const rawChoice of question.choices) {
+  const allActiveStyles = ctx.db.styles.find(s => s.active);
+  const lettersOnly = (str: string) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const cleanChoice = (str: string) =>
+    str.replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').replace(/\bclasses?\b/gi, '').trim();
+
+  // Validate that the question choices actually contain dance style terms
+  let validStyleQuestion = question;
+  if (question && question.choices.length > 0) {
+    const hasStyleChoice = question.choices.some(choice => {
+      const clean = cleanChoice(choice);
+      if (!clean || NON_DANCE_CHOICES.has(clean.toLowerCase())) return false;
+      const cNorm = lettersOnly(clean);
+      return (
+        Object.values(formLabels).some(l => lettersOnly(cleanChoice(l)) === cNorm) ||
+        allActiveStyles.some(s =>
+          lettersOnly(s.name) === cNorm ||
+          (s.aliases || []).some(a => lettersOnly(a) === cNorm) ||
+          lettersOnly(s.name).includes(cNorm) ||
+          cNorm.includes(lettersOnly(s.name))
+        )
+      );
+    });
+
+    if (!hasStyleChoice) {
+      validStyleQuestion = null;
+    }
+  } else {
+    validStyleQuestion = null;
+  }
+
+  if (validStyleQuestion && validStyleQuestion.choices.length > 0) {
+    for (const rawChoice of validStyleQuestion.choices) {
+      if (NON_DANCE_CHOICES.has(cleanChoice(rawChoice).toLowerCase())) continue;
       // 0. Check if choice matches admin's configured form label for an existing event style
       let matchedLabelSid: string | null = null;
       for (const [sid, label] of Object.entries(formLabels)) {
@@ -294,10 +323,10 @@ export function syncGoogleFormSlotChoices(
     console.warn(`[syncGoogleFormSlotChoices] Failed to check accepting state on form ${form.getId()}:`, err);
   }
 
-  // 5. Manage choices on the style question
+  // 5. Manage choices on the style question (only for multi-style events)
   let remainingChoices: string[] = [];
 
-  if (question) {
+  if (!isSingleStyle && validStyleQuestion) {
     const lettersOnly = (str: string) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const cleanChoice = (str: string) =>
       str.replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').replace(/\bclasses?\b/gi, '').trim();
@@ -414,7 +443,7 @@ export function syncGoogleFormSlotChoices(
 
     // Compose help text notice while preserving the admin's original promotion / description
     const NOTICE_PREFIX = '⚠️ Note:';
-    const cleanHelp = (question.helpText || '')
+    const cleanHelp = (validStyleQuestion.helpText || '')
       .split(/\n\s*\n/)
       .filter(p => !p.trim().startsWith(NOTICE_PREFIX) && !p.includes('reached maximum capacity'))
       .join('\n\n')
@@ -430,7 +459,7 @@ export function syncGoogleFormSlotChoices(
     }
 
     try {
-      form.setChoices(question.id, remainingChoices, helpTextToSet);
+      form.setChoices(validStyleQuestion.id, remainingChoices, helpTextToSet);
     } catch (err) {
       console.warn(`[syncGoogleFormSlotChoices] Failed to update choices on form ${form.getId()}:`, err);
     }

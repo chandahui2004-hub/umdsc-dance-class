@@ -253,4 +253,78 @@ describe('Google Form Automated Slot Gating (syncGoogleFormSlotChoices)', () => 
     expect(result.synced).toBe(false);
     expect(result.message).toContain('No Google Form');
   });
+
+  it('closes single-style event form when slot capacity reached even without any style question on form', () => {
+    const sourceId = seedSourceSheet(ctx, [HEADERS]);
+    const formId = 'house_foundation_form';
+    const form = ctx.form.createForm(formId);
+    ctx.form.setLinkedForm(sourceId, `https://docs.google.com/forms/d/${formId}/edit`);
+
+    // The Google Form has ONLY non-dance questions: Full Name, Matric, Email
+    form.addQuestion({
+      id: 'q_name',
+      title: 'Full Name',
+      choices: [],
+      helpText: ''
+    });
+
+    // Event has exactly 1 style: House Foundation
+    const event = seedEvent(ctx, {
+      name: 'House Foundation',
+      sourceSheetId: sourceId,
+      styleIds: ['st_house'],
+      styleSlots: { st_house: 2 }
+    });
+
+    const members: Member[] = [
+      { memberId: 'm1', fullName: 'Alice', matricRaw: '2301', matricKey: '2301', nameKey: 'alice', styleIds: ['st_house'], styleNames: ['House'] },
+      { memberId: 'm2', fullName: 'Bob', matricRaw: '2302', matricKey: '2302', nameKey: 'bob', styleIds: ['st_house'], styleNames: ['House'] }
+    ];
+
+    const result = syncGoogleFormSlotChoices(ctx, event, members);
+
+    expect(result.synced).toBe(true);
+    expect(result.formClosed).toBe(true);
+    expect(result.fullStyleIds).toEqual(['st_house']);
+    expect(form.isAcceptingResponses()).toBe(false);
+    expect(form.getCustomClosedFormMessage()).toBe(FULL_HOUSE_CLOSED_MESSAGE);
+  });
+
+  it('does NOT corrupt single-style event with fake styles from other questions (e.g. Yes/No questions)', () => {
+    const sourceId = seedSourceSheet(ctx, [HEADERS]);
+    const formId = 'house_foundation_with_survey';
+    const form = ctx.form.createForm(formId);
+    ctx.form.setLinkedForm(sourceId, `https://docs.google.com/forms/d/${formId}/edit`);
+
+    // A survey question that contains the word "dance" or "class"
+    form.addQuestion({
+      id: 'q_survey',
+      title: 'Have you attended any dance class before?',
+      choices: ['Yes', 'No'],
+      helpText: ''
+    });
+
+    // Event has exactly 1 style: House Foundation
+    const event = seedEvent(ctx, {
+      name: 'House Foundation',
+      sourceSheetId: sourceId,
+      styleIds: ['st_house'],
+      styleSlots: { st_house: 1 }
+    });
+
+    const members: Member[] = [
+      { memberId: 'm1', fullName: 'Alice', matricRaw: '2301', matricKey: '2301', nameKey: 'alice', styleIds: ['st_house'], styleNames: ['House'] }
+    ];
+
+    const result = syncGoogleFormSlotChoices(ctx, event, members);
+
+    // Should NOT have discovered 'Yes' or 'No' as new styles!
+    expect(result.discoveredStyleIds || []).toEqual([]);
+    const refreshed = ctx.db.events.get(event.id)!;
+    expect(refreshed.styleIds).toEqual(['st_house']);
+
+    // And form should be closed because 1/1 reached!
+    expect(result.formClosed).toBe(true);
+    expect(form.isAcceptingResponses()).toBe(false);
+  });
 });
