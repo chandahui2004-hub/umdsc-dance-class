@@ -325,7 +325,7 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
 
     ctx.db.memberIndex.insert(
       {
-        matricKey: '23005147',
+        matricKey: 'TEST9001',
         nameKey: 'testing1',
         fullName: 'Testing1',
         eventIds: ['evt_test'],
@@ -335,7 +335,7 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
       new Date()
     );
 
-    // 1. Chan Da Hui logs in
+    // 1. Chan Da Hui logs in with 23005147
     const resChan = handleRequest(
       {
         action: 'auth.dancerLogin',
@@ -350,11 +350,11 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
       expect(claims.name).toBe('Chan Da Hui');
     }
 
-    // 2. Testing1 logs in
+    // 2. Testing1 logs in with TEST9001
     const resTesting = handleRequest(
       {
         action: 'auth.dancerLogin',
-        payload: { matric: '23005147', fullName: 'Testing1' }
+        payload: { matric: 'TEST9001', fullName: 'Testing1' }
       },
       ctx,
       secrets
