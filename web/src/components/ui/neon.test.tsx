@@ -47,4 +47,14 @@ describe('NeonSign & PixelPortraitFrame', () => {
     expect(frame.className).toContain('w-[160px]');
     expect(frame.className).toContain('shrink-0');
   });
+
+  it('pixel.css includes color-scheme and neon indicator filter for time and date inputs', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const cssPath = path.resolve(__dirname, '../../theme/pixel.css');
+    const css = fs.readFileSync(cssPath, 'utf8');
+    expect(css).toContain('input[type="time"]');
+    expect(css).toContain('color-scheme: dark');
+    expect(css).toContain('::-webkit-calendar-picker-indicator');
+  });
 });

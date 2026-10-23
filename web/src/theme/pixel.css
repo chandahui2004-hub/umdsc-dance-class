@@ -269,3 +269,15 @@ body, table, th, td, button, input, select, textarea, p, span, h1, h2, h3, h4, h
   }
 }
 
+/* Time & Date Picker Native Indicator Neon Theme */
+input[type="time"],
+input[type="date"] {
+  color-scheme: dark;
+}
+
+input[type="time"]::-webkit-calendar-picker-indicator,
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.85) sepia(100%) hue-rotate(130deg) saturate(300%) brightness(1.2);
+  cursor: pointer;
+}
+
