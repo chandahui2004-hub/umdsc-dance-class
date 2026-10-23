@@ -40,11 +40,33 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['events'] });
   const onError = (err: unknown) => setNote(errorMessage(err));
 
-  const sync = useMutation({
-    mutationFn: async () => (await call<SyncResult>('events.sync', { id: event.id, purgeRemoved: true, force: true })).data,
-    onSuccess: async r => {
-      await Promise.all([refresh(), queryClient.invalidateQueries({ queryKey: ['members'] })]);
-      setNote(r.message || `Synced: +${r.added} new, ${r.updated} updated`);
+  const syncAll = useMutation({
+    mutationFn: async () => {
+      const sheetResult = (await call<SyncResult>('events.sync', { id: event.id, purgeRemoved: true, force: true })).data;
+      let formResult: any = null;
+      try {
+        formResult = (await call<any>('events.syncFormSlots', { id: event.id })).data;
+      } catch (err) {
+        console.warn('Form sync failed during sync now:', err);
+      }
+      return { sheetResult, formResult };
+    },
+    onSuccess: async ({ sheetResult, formResult }) => {
+      await Promise.all([
+        refresh(),
+        queryClient.invalidateQueries({ queryKey: ['members'] }),
+        queryClient.invalidateQueries({ queryKey: ['attendance'] }),
+        queryClient.invalidateQueries({ queryKey: ['sessions'] })
+      ]);
+      const parts = [`Synced: +${sheetResult.added} new, ${sheetResult.updated} updated`];
+      if (formResult?.formClosed) {
+        parts.push('Google Form closed (FULL HOUSE)');
+      } else if (formResult?.fullStyleIds && formResult.fullStyleIds.length > 0) {
+        parts.push(`Google Form: ${formResult.fullStyleIds.length} style(s) full`);
+      } else if (formResult?.synced) {
+        parts.push('Google Form updated');
+      }
+      setNote(parts.join(' · '));
     },
     onError
   });
@@ -59,27 +81,6 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
     onSuccess: async () => {
       await refresh();
       setNote('Folder recreated.');
-    },
-    onError
-  });
-
-  const syncFormSlots = useMutation({
-    mutationFn: async () => (await call<any>('events.syncFormSlots', { id: event.id })).data,
-    onSuccess: async (data: any) => {
-      await refresh();
-      if (data?.discoveredStyleIds && data.discoveredStyleIds.length > 0) {
-        setNote(`Google Form synchronized: ${data.discoveredStyleIds.length} new style(s) discovered from form!`);
-      } else if (data?.formClosedManually) {
-        setNote('Google Form detected as manually closed by admin in Google Forms.');
-      } else if (data?.formClosed) {
-        setNote('Google Form closed: FULL HOUSE reached.');
-      } else if (data?.fullStyleIds && data.fullStyleIds.length > 0) {
-        setNote(`Google Form updated: ${data.fullStyleIds.length} full style(s) removed.`);
-      } else if (data?.synced) {
-        setNote('Google Form synchronized: choices up to date.');
-      } else {
-        setNote(data?.message || 'Form sync completed.');
-      }
     },
     onError
   });
@@ -234,17 +235,14 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
             <PixelButton size="md" variant="secondary" onClick={() => navigate(`/admin/events/${event.id}/edit`)}>
               EDIT
             </PixelButton>
-            <PixelButton size="md" variant="secondary" disabled={sync.isPending} onClick={() => sync.mutate()}>
-              {sync.isPending ? 'SYNCING…' : 'SYNC NOW'}
-            </PixelButton>
             <PixelButton
               size="md"
               variant="secondary"
-              disabled={syncFormSlots.isPending}
-              onClick={() => syncFormSlots.mutate()}
-              title="Synchronize slot limits directly to Google Form"
+              disabled={syncAll.isPending}
+              onClick={() => syncAll.mutate()}
+              title="Sync responses from Google Sheets and update Google Form slot gating"
             >
-              {syncFormSlots.isPending ? 'UPDATING FORM…' : 'SYNC FORM'}
+              {syncAll.isPending ? 'SYNCING…' : 'SYNC NOW'}
             </PixelButton>
             <PixelButton
               size="md"
