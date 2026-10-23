@@ -260,7 +260,7 @@ export const TitleScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={() => { setLoginMode('member'); setError(null); }}
-                className={`py-2 px-1 font-display text-[11px] tracking-wider text-center cursor-pointer transition-none ${
+                className={`min-h-[40px] py-2 px-1 flex items-center justify-center font-display text-[11px] tracking-wider text-center cursor-pointer transition-none ${
                   loginMode === 'member'
                     ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--outline)]'
                     : 'text-[var(--text-2)] hover:text-[var(--text-1)]'
@@ -271,7 +271,7 @@ export const TitleScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={() => { setLoginMode('walkin'); setError(null); }}
-                className={`py-2 px-1 font-display text-[11px] tracking-wider text-center cursor-pointer transition-none ${
+                className={`min-h-[40px] py-2 px-1 flex items-center justify-center font-display text-[11px] tracking-wider text-center cursor-pointer transition-none ${
                   loginMode === 'walkin'
                     ? 'bg-[var(--neon-cyan)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--outline)]'
                     : 'text-[var(--text-2)] hover:text-[var(--text-1)]'
@@ -305,7 +305,7 @@ export const TitleScreen: React.FC = () => {
                           localStorage.removeItem('umdsc_last_dancer');
                           setLastDancer(null);
                         }}
-                        className="text-[var(--text-3)] hover:text-[var(--text-1)] text-[10px] font-mono uppercase cursor-pointer"
+                        className="text-[var(--text-3)] hover:text-[var(--text-1)] text-[10px] font-mono uppercase cursor-pointer min-h-[36px] px-2 inline-flex items-center"
                         title="Forget this dancer"
                       >
                         [SWITCH]

@@ -257,7 +257,7 @@ export const ScheduleStep: React.FC<StepProps> = ({ draft, onChange, onNext, onB
         <PixelButton size="md" variant="secondary" onClick={onBack}>
           BACK
         </PixelButton>
-        <PixelButton size="md" variant="primary" disabled={emptyStyleIds.length > 0} onClick={onNext}>
+        <PixelButton size="md" variant="primary" onClick={onNext}>
           NEXT
         </PixelButton>
       </div>

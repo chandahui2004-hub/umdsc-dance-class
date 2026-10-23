@@ -24,7 +24,8 @@ test.describe('Registered dancers by event', () => {
     await expect(page.getByText('Oct Dancer').locator('visible=true').first()).toBeVisible();
     expect(calls.filter(c => c.action === 'members.list').at(-1)?.payload).toMatchObject({ eventId: 'evt-oct' });
 
-    await page.getByLabel('Current event').selectOption('evt-trial');
+    await page.getByRole('button', { name: /Current event/i }).click();
+    await page.getByRole('option', { name: /TRIAL CLASS/i }).click();
     await expect(page.getByText('Trial Dancer').locator('visible=true').first()).toBeVisible();
     expect(calls.filter(c => c.action === 'members.list').at(-1)?.payload).toMatchObject({ eventId: 'evt-trial' });
   });

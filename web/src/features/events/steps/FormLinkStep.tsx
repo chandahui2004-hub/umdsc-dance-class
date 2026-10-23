@@ -72,11 +72,23 @@ export const FormLinkStep: React.FC<StepProps> = ({ draft, onChange, onNext, isE
           value={draft.formUrl || ''}
           onChange={e => onChange({ formUrl: e.target.value })}
           placeholder="https://docs.google.com/forms/d/.../edit"
-          className="w-full min-h-[48px] px-3 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-mono text-[16px] text-[var(--text-1)] placeholder:text-[var(--text-3)]"
+          className="w-full min-h-[48px] px-3 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-mono text-[16px] text-[var(--text-1)] placeholder:text-[var(--text-3)] focus:border-[var(--neon-cyan)]"
         />
-        <span className="font-body text-[13px] text-[var(--text-2)]">
-          Paste or change the Google Form edit access link. This allows the system to automatically remove full dance style choices and close the form when capacity is reached.
-        </span>
+        <div className="space-y-1">
+          <span className="font-body text-[13px] text-[var(--text-2)] block">
+            Paste or change the Google Form edit access link. This allows the system to automatically remove full dance style choices and close the form when capacity is reached.
+          </span>
+          {draft.formUrl && draft.formUrl.includes('/viewform') && (
+            <span className="font-display text-[11px] text-[var(--neon-gold)] block">
+              💡 Tip: This looks like a viewform link. For automatic slot gating, make sure to paste the collaborator edit link ending with <code className="font-mono bg-[var(--night-2)] px-1 text-[var(--neon-cyan)]">/edit</code>.
+            </span>
+          )}
+          {draft.formUrl && draft.formUrl.includes('/edit') && (
+            <span className="font-display text-[11px] text-[var(--neon-green)] block">
+              ✓ Valid collaborator edit link detected.
+            </span>
+          )}
+        </div>
       </label>
 
       <PixelButton size="md" variant="secondary" disabled={!draft.sheetUrl.trim() || preview.isPending} onClick={() => preview.mutate()}>

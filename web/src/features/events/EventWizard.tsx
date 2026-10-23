@@ -27,6 +27,13 @@ export interface StepProps {
 }
 
 const STEPS = ['FORM LINK', 'DETAILS', 'STYLES', 'SCHEDULE', 'REVIEW'];
+const STEP_DESCRIPTIONS = [
+  'Connect your Google Form link & sync registration questions',
+  'Set event title, dates, venue, and WhatsApp group invitation link',
+  'Select dance styles, slot capacities, and Google Form choice matching',
+  'Configure weekly recurring class times, durations, and venues',
+  'Review all event details and save configuration'
+];
 
 /** New event (/admin/events/new) or edit an existing one (/admin/events/:id/edit). */
 export const EventWizard: React.FC = () => {
@@ -114,6 +121,14 @@ export const EventWizard: React.FC = () => {
         <p className="font-display text-[12px] text-[var(--text-1)] px-blink">LOADING EVENT…</p>
       ) : (
         <Panel title={`STEP ${step + 1}: ${STEPS[step]}`}>
+          <div className="mb-4 pb-3 border-b-2 border-[var(--outline)] flex flex-wrap items-center justify-between gap-2">
+            <span className="font-body text-[14px] text-[var(--neon-cyan)]">
+              {STEP_DESCRIPTIONS[step]}
+            </span>
+            <span className="font-mono text-[11px] text-[var(--text-3)] font-bold">
+              STEP {step + 1} OF {STEPS.length}
+            </span>
+          </div>
           {step === 0 && <FormLinkStep {...props} />}
           {step === 1 && <EventDetailsStep {...props} />}
           {step === 2 && <StylesStep {...props} />}

@@ -28,6 +28,23 @@ export const ClassesPage: React.FC = () => {
   const [editingSession, setEditingSession] = useState<ClassSession | null>(null);
   const [showAddClass, setShowAddClass] = useState(false);
 
+  // Detect mobile viewport (< 640px)
+  const [isMobile, setIsMobile] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return typeof window.innerWidth === 'number' ? window.innerWidth < 640 : false;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(max-width: 639.98px)');
+    const update = (e: MediaQueryListEvent | MediaQueryList) => setIsMobile(e.matches);
+    update(mq);
+    if (mq.addEventListener) {
+      mq.addEventListener('change', update);
+      return () => mq.removeEventListener('change', update);
+    }
+  }, []);
+
   // Open on the event's first month (or this month, if it is inside the event)
   useEffect(() => {
     if (!event) return;
@@ -230,7 +247,9 @@ export const ClassesPage: React.FC = () => {
         selected={selectedDate}
         onSelect={(date) => {
           setSelectedDate(date);
-          setDrawerOpen(true);
+          if (isMobile) {
+            setDrawerOpen(true);
+          }
         }}
         action={
           activeEvents.length > 0 ? (
@@ -241,24 +260,26 @@ export const ClassesPage: React.FC = () => {
         }
       />
 
-      {/* Adaptive 1/3-to-full Bottom Sheet (Mobile) / Slide-in Right Side Drawer (Desktop) */}
-      <DaySheet
-        isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        date={selectedDate}
-        sessions={isFiltered ? activeSessions.filter(matchesFilter) : activeSessions}
-        styles={allStyles}
-        instructors={instructors}
-        videos={dayVideos}
-        music={dayMusic}
-        events={events}
-        showAttendance={false}
-        sessionAction={(s) => (
-          <PixelButton size="sm" variant="secondary" onClick={() => { setDrawerOpen(false); setEditingSession(s); }}>
-            ✎ EDIT CLASS
-          </PixelButton>
-        )}
-      />
+      {/* Adaptive Bottom Sheet for mobile view */}
+      {isMobile && (
+        <DaySheet
+          isOpen={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          date={selectedDate}
+          sessions={isFiltered ? activeSessions.filter(matchesFilter) : activeSessions}
+          styles={allStyles}
+          instructors={instructors}
+          videos={dayVideos}
+          music={dayMusic}
+          events={events}
+          showAttendance={false}
+          sessionAction={(s) => (
+            <PixelButton size="sm" variant="secondary" onClick={() => { setDrawerOpen(false); setEditingSession(s); }}>
+              ✎ EDIT CLASS
+            </PixelButton>
+          )}
+        />
+      )}
 
       {/* Instructor Legend */}
       {instructors.length > 0 && (

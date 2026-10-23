@@ -208,11 +208,16 @@ test.describe('Dancer Portal: Home, DaySheet & Me Page', () => {
     // Click on 2026-10-08 to open Day Sheet
     await oct8Btn.click();
 
+    // If mobile, expand the compact day sheet to full mode to view detailed class card
+    if (await page.getByTestId('day-sheet-handle').isVisible()) {
+      await page.getByTestId('day-sheet-handle').click();
+    }
+
     // Day Sheet / Class Card should show details
     await expect(page.getByRole('heading', { name: /OCTOBER 8, 2026|8 OCT 2026|CLASS DETAILS/i }).or(page.getByText(/HIP HOP/i).first())).toBeVisible();
-    await expect(page.getByText('Alex Tan')).toBeVisible();
+    await expect(page.getByText('Alex Tan').first()).toBeVisible();
     await expect(page.getByText('Studio A')).toBeVisible();
-    await expect(page.getByText('20:00 - 22:00')).toBeVisible();
+    await expect(page.getByText('20:00 - 22:00').first()).toBeVisible();
     await expect(page.getByText('✓ ATTENDED')).toBeVisible();
 
     // Video section
@@ -265,6 +270,11 @@ test.describe('Dancer Portal: Home, DaySheet & Me Page', () => {
     // Open Day Sheet for Oct 8
     const oct8Btn = page.locator('button[data-date="2026-10-08"]');
     await oct8Btn.click();
+
+    // If mobile, expand the compact day sheet to full mode
+    if (await page.getByTestId('day-sheet-handle').isVisible()) {
+      await page.getByTestId('day-sheet-handle').click();
+    }
 
     // Recap video section is visible
     await expect(page.getByText('CLASS RECAP VIDEOS (1)')).toBeVisible();

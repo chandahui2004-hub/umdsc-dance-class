@@ -206,12 +206,12 @@ test.describe('Admin Master Data & Settings', () => {
     // Click EDIT STYLE
     await page.getByRole('button', { name: /EDIT/i }).first().click();
 
-    // Change venue
-    await page.getByLabel(/Default Venue/i).fill('Main Hall Room 2');
+    // Change aliases
+    await page.getByLabel(/Aliases/i).fill('locking, lock, campbellocking');
     await page.getByRole('button', { name: /SAVE STYLE/i }).click();
 
     expect(updatePayload).toBeDefined();
-    expect(updatePayload.defaultVenue).toBe('Main Hall Room 2');
+    expect(updatePayload.aliases).toEqual(['locking', 'lock', 'campbellocking']);
   });
 
   test('instructors list: add new instructor and verify', async ({ page }) => {
@@ -438,7 +438,7 @@ test.describe('Style / instructor relationship', () => {
     });
     await page.goto('/admin/styles');
     await page.getByRole('button', { name: /EDIT/i }).first().click();
-    await expect(page.getByLabel(/Default Venue/i)).toBeVisible();
+    await expect(page.getByLabel(/Style Name/i)).toBeVisible();
     await expect(page.getByText(/Default Instructor/i)).toHaveCount(0);
     await page.getByRole('button', { name: /SAVE STYLE/i }).click();
     await expect.poll(() => calls.some((c) => c.action === 'styles.update')).toBe(true);

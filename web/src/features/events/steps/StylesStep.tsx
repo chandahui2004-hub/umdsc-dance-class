@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { DanceStyle, Instructor } from '@umdsc/shared';
 import { call, errorMessage } from '../../../lib/api';
@@ -83,7 +84,7 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
   const missingStyleName = missingStyleId ? styles.find(s => s.id === missingStyleId)?.name || missingStyleId : '';
   const missingSlotStyleId = draft.styleIds.find(id => {
     const val = draft.styleSlots?.[id];
-    return val === undefined || isNaN(val) || val <= 0;
+    return val !== undefined && val !== null && typeof val === 'number' && (isNaN(val) || val < 0);
   });
   const missingSlotStyleName = missingSlotStyleId ? styles.find(s => s.id === missingSlotStyleId)?.name || missingSlotStyleId : '';
 
@@ -141,20 +142,20 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
               }}
             >
               {/* Card Header with Distinct Style Color Badge */}
-              <div
+              <label
+                htmlFor={`style-checkbox-${s.id}`}
                 className="p-3 flex items-center justify-between gap-3 border-b-2 cursor-pointer select-none transition-none"
                 style={{
                   borderBottomColor: isTicked ? accentColor : 'var(--outline)',
                   backgroundColor: isTicked ? 'rgba(255, 255, 255, 0.04)' : 'transparent'
                 }}
-                onClick={() => toggle(s.id)}
               >
                 <div className="flex items-center gap-3">
                   <input
+                    id={`style-checkbox-${s.id}`}
                     type="checkbox"
                     checked={isTicked}
                     onChange={() => toggle(s.id)}
-                    onClick={e => e.stopPropagation()}
                     className="w-5 h-5 accent-[var(--neon-gold)] cursor-pointer"
                   />
                   <span
@@ -168,11 +169,38 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-1.5 justify-end">
                   {draft.preview?.detectedStyleIds.includes(s.id) && (
                     <span className="font-mono text-[11px] text-[var(--neon-cyan)] px-1.5 py-0.5 border border-[var(--neon-cyan)] bg-[var(--night-1)]">
                       IN FORM
                     </span>
+                  )}
+                  {isTicked && (
+                    <>
+                      {draft.styleSlots?.[s.id] ? (
+                        <span
+                          className="font-mono text-[10px] text-[var(--neon-cyan)] px-1.5 py-0.5 border border-[var(--neon-cyan)] bg-[var(--night-1)] font-bold"
+                          title={`Capacity limited to ${draft.styleSlots[s.id]} slots`}
+                        >
+                          {draft.styleSlots[s.id]} SLOTS
+                        </span>
+                      ) : (
+                        <span
+                          className="font-mono text-[10px] text-[var(--text-3)] px-1.5 py-0.5 border border-[var(--outline)] bg-[var(--night-1)]"
+                          title="No capacity limit set (unlimited)"
+                        >
+                          UNLIMITED
+                        </span>
+                      )}
+                      {draft.styleFormLabels?.[s.id] && (
+                        <span
+                          className="font-mono text-[10px] text-[var(--neon-pink)] px-1.5 py-0.5 border border-[var(--neon-pink)] bg-[var(--night-1)] truncate max-w-[150px] font-bold"
+                          title={`Form choice label: "${draft.styleFormLabels[s.id]}"`}
+                        >
+                          FORM: {draft.styleFormLabels[s.id]}
+                        </span>
+                      )}
+                    </>
                   )}
                   <span
                     className={`font-mono text-[11px] font-bold px-2 py-0.5 border ${
@@ -184,7 +212,7 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
                     {isTicked ? '✓ ACTIVE' : '+ SELECT'}
                   </span>
                 </div>
-              </div>
+              </label>
 
               {/* Expanded Style Config for Ticked Styles */}
               {isTicked && (
@@ -196,10 +224,10 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
                         htmlFor={`slot-capacity-${s.id}`}
                         className="font-display text-[11px] text-[var(--neon-cyan)] font-bold block"
                       >
-                        SLOT CAPACITY (COMPULSORY):
+                        SLOT CAPACITY LIMIT:
                       </label>
                       <span className="font-body text-[12px] text-[var(--text-2)]">
-                        Target limit to trigger alert email & slot auto-removal
+                        Optional: Set limit to trigger alert email & auto-remove form choice when full
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -207,19 +235,19 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
                         id={`slot-capacity-${s.id}`}
                         type="number"
                         min="1"
-                        required
-                        placeholder="e.g. 30"
-                        value={draft.styleSlots?.[s.id] ?? ''}
+                        placeholder="Unlimited"
+                        value={draft.styleSlots?.[s.id] || ''}
                         onChange={e => {
                           const val = parseInt(e.target.value, 10);
-                          onChange({
-                            styleSlots: {
-                              ...(draft.styleSlots || {}),
-                              [s.id]: isNaN(val) ? 0 : val
-                            }
-                          });
+                          const nextSlots = { ...(draft.styleSlots || {}) };
+                          if (isNaN(val) || val <= 0) {
+                            delete nextSlots[s.id];
+                          } else {
+                            nextSlots[s.id] = val;
+                          }
+                          onChange({ styleSlots: nextSlots });
                         }}
-                        className="w-20 min-h-[38px] px-2 border-2 border-[var(--outline)] bg-[var(--night-2)] font-mono text-[14px] text-[var(--text-1)] text-right focus:border-[var(--neon-gold)]"
+                        className="w-24 min-h-[38px] px-2 border-2 border-[var(--outline)] bg-[var(--night-2)] font-mono text-[14px] text-[var(--text-1)] text-right placeholder:text-[var(--text-3)] focus:border-[var(--neon-gold)]"
                       />
                       <span className="font-mono text-[11px] text-[var(--text-3)]">slots</span>
                     </div>
@@ -463,7 +491,11 @@ const InstructorPicker: React.FC<InstructorPickerProps> = ({ style, instructors,
 
       {candidates.length === 0 && others.length === 0 ? (
         <p className="font-body text-[14px] text-[var(--neon-gold)]">
-          No instructor teaches {style.name} yet. You can add one below directly without leaving this page!
+          No instructor teaches {style.name} yet — add it on the{' '}
+          <Link to="/admin/instructors" target="_blank" rel="noreferrer" className="underline text-[var(--neon-cyan)]">
+            Instructors page
+          </Link>
+          , or add one below directly without leaving this page!
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-1">
@@ -488,7 +520,7 @@ const InstructorPicker: React.FC<InstructorPickerProps> = ({ style, instructors,
           {showAdd ? '✕ CLOSE' : '+ NEW INSTRUCTOR'}
         </PixelButton>
         <PixelButton size="sm" variant="ghost" onClick={onReload}>
-          ↻ RELOAD
+          ↻ RELOAD INSTRUCTORS
         </PixelButton>
       </div>
 

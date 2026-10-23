@@ -124,13 +124,9 @@ describe('MembersPage Component', () => {
       </QueryClientProvider>
     );
 
-    // Open style dropdown
-    const styleTrigger = await screen.findByRole('button', { name: /Choose dance style/i });
-    fireEvent.click(styleTrigger);
-
-    // Popping should be in the options, Hip Hop should NOT be
-    expect(screen.getByRole('option', { name: /Popping/i })).toBeInTheDocument();
-    expect(screen.queryByRole('option', { name: /Hip Hop/i })).not.toBeInTheDocument();
+    // Popping should be offered, Hip Hop should NOT be
+    expect(screen.getByRole('button', { name: /Popping/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Hip Hop/i })).not.toBeInTheDocument();
   });
 
   describe('for a user who may import dancers', () => {

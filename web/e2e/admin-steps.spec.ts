@@ -57,13 +57,17 @@ test.describe('Event (I) and dance style (II) steps', () => {
   });
 
   test('attendance: with no event chosen, step II waits for step I', async ({ page }) => {
-    await page.addInitScript(() => localStorage.setItem('umdsc:currentEvent', 'ALL'));
     await mockApi(page, BASE);
     await page.goto('/admin/attendance');
 
+    // Deselect event via dropdown
+    await page.getByRole('button', { name: /Current event/i }).click();
+    await page.getByRole('option', { name: /— Choose an event —/i }).click();
+
     await expect(page.getByTestId('step-II')).toHaveAttribute('aria-disabled', 'true');
     await expect(page.getByText('Choose an event first.')).toBeVisible();
-    await page.getByLabel('Current event').selectOption('evt-oct');
+    await page.getByRole('button', { name: /Current event/i }).click();
+    await page.getByRole('option', { name: 'OCT MONTHLY CLASS' }).click();
     await expect(page.getByRole('button', { name: 'Hip Hop', exact: true })).toBeVisible();
   });
 
