@@ -6,6 +6,7 @@ import { session } from '../../lib/session';
 import { useEvents } from '../../features/events/useCurrentEvent';
 import { useBootstrap } from '../../features/auth/useBootstrap';
 import { PixelButton } from './PixelButton';
+import { openInDriveUrl, previewUrl } from '../../lib/google/driveUrls';
 
 type AdminTabKey = 'new_dancers' | 'slot_progress' | 'system_audit';
 type DancerTabKey = 'my_classes' | 'upcoming' | 'practice';
@@ -30,6 +31,20 @@ export const NotificationWidget: React.FC = () => {
   const [dancerTab, setDancerTab] = useState<DancerTabKey>('my_classes');
   const [dancerSearch, setDancerSearch] = useState('');
   const [dismissedAlertIds, setDismissedAlertIds] = useState<Set<string>>(new Set());
+  const [collapsedVideoGroups, setCollapsedVideoGroups] = useState<Set<string>>(new Set());
+  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
+
+  const toggleVideoGroup = (groupId: string) => {
+    setCollapsedVideoGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+      return next;
+    });
+  };
 
   // Movable Floating Button State
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
@@ -287,6 +302,100 @@ export const NotificationWidget: React.FC = () => {
     if (!isDancer || !dancerBootstrap?.music) return [];
     return dancerBootstrap.music.filter(m => m.active);
   }, [isDancer, dancerBootstrap]);
+
+  const dancerEventsMap = useMemo(() => {
+    if (!dancerBootstrap?.events) return new Map();
+    return new Map(dancerBootstrap.events.map(e => [e.id, e]));
+  }, [dancerBootstrap]);
+
+  const dancerSessionsMap = useMemo(() => {
+    if (!dancerBootstrap?.sessions) return new Map();
+    return new Map(dancerBootstrap.sessions.map(s => [s.id, s]));
+  }, [dancerBootstrap]);
+
+  interface CategorizedVideoItem {
+    video: typeof dancerVideos[0];
+    className: string;
+    styleName: string;
+    date: string;
+    time: string;
+    instructorName: string;
+  }
+
+  interface VideoGroupPanel {
+    groupId: string;
+    styleName: string;
+    className: string;
+    items: CategorizedVideoItem[];
+  }
+
+  const groupedVideos = useMemo(() => {
+    if (!dancerVideos || dancerVideos.length === 0) return [];
+
+    const map = new Map<string, VideoGroupPanel>();
+
+    for (const vid of dancerVideos) {
+      const sess = vid.sessionId ? dancerSessionsMap.get(vid.sessionId) : null;
+      const ev =
+        (vid.eventId ? dancerEventsMap.get(vid.eventId) : null) ||
+        (sess?.eventId ? dancerEventsMap.get(sess.eventId) : null);
+      const st =
+        (vid.styleId ? dancerStylesMap.get(vid.styleId) : null) ||
+        (sess?.styleId ? dancerStylesMap.get(sess.styleId) : null);
+
+      const className = ev?.name || 'UMDSC Dance Class';
+      const styleName =
+        st?.name ||
+        (vid.styleId ? vid.styleId.replace(/^sty_|^st_/, '').toUpperCase() : 'Routine Practice');
+
+      let date = sess?.date || '';
+      if (!date && vid.updatedAt) {
+        date = vid.updatedAt.split('T')[0];
+      }
+      if (!date && ev?.startDate) {
+        date = ev.startDate;
+      }
+
+      let time = sess?.start
+        ? `${sess.start}${sess.end ? ` - ${sess.end}` : ''}`
+        : st?.defaultStart
+        ? `${st.defaultStart}${st.defaultEnd ? ` - ${st.defaultEnd}` : ''}`
+        : 'Scheduled Time';
+
+      let instructorName = '';
+      if (sess?.instructorId) {
+        instructorName = dancerInstructorsMap.get(sess.instructorId) || '';
+      }
+      if (!instructorName && st?.defaultInstructorId) {
+        instructorName = dancerInstructorsMap.get(st.defaultInstructorId) || '';
+      }
+      if (!instructorName) {
+        instructorName = 'UMDSC Instructor';
+      }
+
+      const groupId = st?.id || vid.styleId || ev?.id || 'general_style';
+
+      if (!map.has(groupId)) {
+        map.set(groupId, {
+          groupId,
+          styleName,
+          className,
+          items: []
+        });
+      }
+
+      map.get(groupId)!.items.push({
+        video: vid,
+        className,
+        styleName,
+        date,
+        time,
+        instructorName
+      });
+    }
+
+    return Array.from(map.values());
+  }, [dancerVideos, dancerSessionsMap, dancerEventsMap, dancerStylesMap, dancerInstructorsMap]);
 
   // Overall unread/alert count
   const alertCount = useMemo(() => {
@@ -586,32 +695,158 @@ export const NotificationWidget: React.FC = () => {
               {/* DANCER TAB 3: PRACTICE MEDIA */}
               {isDancer && dancerTab === 'practice' && (
                 <div className="space-y-4">
-                  {/* Routine Recap Videos */}
-                  <div className="space-y-2">
-                    <span className="font-display text-xs text-[var(--neon-magenta)] block">
-                      📹 ROUTINE RECAP VIDEOS ({dancerVideos.length})
-                    </span>
-                    {dancerVideos.length === 0 ? (
-                      <p className="font-mono text-xs text-[var(--text-3)]">No routine recap videos uploaded yet.</p>
+                  {/* Routine Recap Videos in Grouped Category Panels */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-display text-xs text-[var(--neon-magenta)] flex items-center gap-1.5 font-bold">
+                        📹 ROUTINE RECAP VIDEOS ({dancerVideos.length})
+                      </span>
+                      <span className="font-mono text-[10px] text-[var(--text-3)]">
+                        {groupedVideos.length} {groupedVideos.length === 1 ? 'category' : 'categories'}
+                      </span>
+                    </div>
+
+                    {groupedVideos.length === 0 ? (
+                      <div className="p-4 border-2 border-dashed border-[var(--outline)] text-center space-y-1">
+                        <p className="font-display text-xs text-[var(--text-2)]">NO RECAP VIDEOS</p>
+                        <p className="font-mono text-[11px] text-[var(--text-3)]">
+                          No routine recap videos uploaded for your enrolled styles yet.
+                        </p>
+                      </div>
                     ) : (
-                      dancerVideos.map(vid => (
-                        <div
-                          key={vid.id}
-                          className="p-2.5 border border-[var(--outline)] bg-[var(--night-2)] shadow-[2px_2px_0_var(--outline)] flex items-center justify-between gap-2"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <span className="font-display text-xs text-[var(--text-1)] block truncate font-bold">
-                              {vid.title}
-                            </span>
-                            <span className="font-mono text-[10px] text-[var(--neon-cyan)]">
-                              Drive Video · Ready for Practice
-                            </span>
+                      groupedVideos.map(group => {
+                        const isCollapsed = collapsedVideoGroups.has(group.groupId);
+                        return (
+                          <div
+                            key={group.groupId}
+                            data-testid={`video-group-panel-${group.groupId}`}
+                            className="border-2 border-[var(--outline)] bg-[var(--night-2)] shadow-[3px_3px_0_var(--outline)] overflow-hidden"
+                          >
+                            {/* Group Panel Header */}
+                            <button
+                              type="button"
+                              onClick={() => toggleVideoGroup(group.groupId)}
+                              className="w-full p-3 bg-[var(--night-3)] border-b-2 border-[var(--outline)] flex items-center justify-between text-left hover:bg-[var(--night-2)] transition-colors cursor-pointer select-none"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span className="text-base select-none">💃</span>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <h4 className="font-display text-xs font-bold text-[var(--neon-gold)] tracking-wide">
+                                      {group.styleName.toUpperCase()}
+                                    </h4>
+                                    <span className="font-display text-[9px] px-1.5 py-0.5 border border-[var(--outline)] bg-[var(--night-1)] text-[var(--neon-cyan)]">
+                                      {group.items.length} {group.items.length === 1 ? 'VIDEO' : 'VIDEOS'}
+                                    </span>
+                                  </div>
+                                  <p className="font-mono text-[10px] text-[var(--text-3)] truncate">
+                                    {group.className}
+                                  </p>
+                                </div>
+                              </div>
+                              <span className="font-display text-[10px] px-2 py-0.5 border border-[var(--outline)] bg-[var(--night-1)] text-[var(--text-2)] hover:text-white whitespace-nowrap ml-2">
+                                {isCollapsed ? '▼ EXPAND' : '▲ COLLAPSE'}
+                              </span>
+                            </button>
+
+                            {/* Group Panel Body: Video Cards */}
+                            {!isCollapsed && (
+                              <div className="p-3 space-y-3 bg-[var(--night-1)]">
+                                {group.items.map(({ video, className, styleName, date, time, instructorName }) => {
+                                  const isPlaying = playingVideoId === video.id;
+                                  return (
+                                    <div
+                                      key={video.id}
+                                      className="p-3 border-2 border-[var(--outline)] bg-[var(--night-2)] shadow-[2px_2px_0_var(--outline)] space-y-2.5"
+                                    >
+                                      {/* Header: Title & Badges */}
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0 flex-1">
+                                          <h5
+                                            className="font-display text-xs font-bold text-[var(--text-1)] truncate"
+                                            title={video.title}
+                                          >
+                                            {video.title}
+                                          </h5>
+                                          <span className="font-mono text-[10px] text-[var(--neon-cyan)]">
+                                            Drive Video · Ready for Practice
+                                          </span>
+                                        </div>
+                                        <span className="font-display text-[9px] px-1.5 py-0.5 border border-[var(--outline)] bg-[var(--night-3)] text-[var(--neon-gold)] font-bold flex-shrink-0">
+                                          {styleName.toUpperCase()}
+                                        </span>
+                                      </div>
+
+                                      {/* Metadata Grid: Class, Style, Date, Time, Instructor */}
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 p-2 bg-[var(--night-3)] border border-[var(--outline)] font-mono text-[10px]">
+                                        <div className="flex items-center gap-1.5 text-[var(--text-2)] truncate">
+                                          <span className="text-[var(--neon-cyan)] font-bold">🏷️ CLASS:</span>
+                                          <span className="text-[var(--text-1)] font-semibold truncate">{className}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-[var(--text-2)] truncate">
+                                          <span className="text-[var(--neon-gold)] font-bold">💃 STYLE:</span>
+                                          <span className="text-[var(--text-1)] font-semibold truncate">{styleName}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-[var(--text-2)] truncate">
+                                          <span className="text-[var(--neon-cyan)] font-bold">📅 DATE:</span>
+                                          <span className="text-[var(--text-1)] font-semibold">{date || 'Scheduled'}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-[var(--text-2)] truncate">
+                                          <span className="text-[var(--neon-gold)] font-bold">⏰ TIME:</span>
+                                          <span className="text-[var(--text-1)] font-semibold">{time}</span>
+                                        </div>
+                                        <div className="sm:col-span-2 flex items-center gap-1.5 text-[var(--text-2)] truncate pt-1 border-t border-[var(--outline)]/40">
+                                          <span className="text-[var(--neon-magenta)] font-bold">👤 INSTRUCTOR:</span>
+                                          <span className="text-white font-bold tracking-wide truncate">{instructorName}</span>
+                                        </div>
+                                      </div>
+
+                                      {/* Inline Video Player Preview */}
+                                      {isPlaying && (
+                                        <div className="space-y-1.5 pt-1">
+                                          <div className="relative aspect-video bg-black border-2 border-[var(--outline)] overflow-hidden">
+                                            <iframe
+                                              src={previewUrl(video.driveFileId)}
+                                              title={video.title}
+                                              className="w-full h-full border-0"
+                                              allow="autoplay; encrypted-media; fullscreen"
+                                              allowFullScreen
+                                            />
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Actions */}
+                                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                                        <button
+                                          type="button"
+                                          onClick={() => setPlayingVideoId(isPlaying ? null : video.id)}
+                                          className={`font-display text-[10px] px-3 py-1.5 border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] font-bold transition-all cursor-pointer ${
+                                            isPlaying
+                                              ? 'bg-[var(--neon-red)] text-white'
+                                              : 'bg-[var(--neon-magenta)] text-white hover:bg-[var(--neon-gold)] hover:text-[var(--on-neon)]'
+                                          }`}
+                                        >
+                                          {isPlaying ? '■ HIDE PLAYER' : '▶ WATCH VIDEO'}
+                                        </button>
+
+                                        <a
+                                          href={openInDriveUrl(video.driveFileId)}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="font-display text-[10px] px-3 py-1.5 border-2 border-dashed border-[var(--outline)] bg-[var(--night-3)] text-[var(--neon-cyan)] hover:bg-[var(--night-1)] flex items-center gap-1 cursor-pointer font-bold"
+                                        >
+                                          DRIVE ↗
+                                        </a>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
-                          <span className="font-display text-[9px] px-2 py-1 border border-[var(--outline)] bg-[var(--neon-magenta)] text-white flex-shrink-0">
-                            PLAY ▶
-                          </span>
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
 

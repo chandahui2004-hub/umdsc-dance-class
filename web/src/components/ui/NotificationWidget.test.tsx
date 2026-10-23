@@ -303,10 +303,27 @@ describe('NotificationWidget Floating Center and Role Modes', () => {
     expect(await screen.findByText(/Studio A/i)).toBeInTheDocument();
     expect(await screen.findByText(/Instructor Ken/i)).toBeInTheDocument();
 
-    // Switch to Tab 3 (PRACTICE): shows routine video and practice track
+    // Switch to Tab 3 (PRACTICE): shows routine video in categorized group panel and practice track
     fireEvent.click(screen.getByRole('tab', { name: /PRACTICE/i }));
-    expect(await screen.findByText('House Routine Part 1')).toBeInTheDocument();
-    expect(await screen.findByText('Deep House Groove')).toBeInTheDocument();
+    
+    // Group Panel Header
+    const houseBadges = await screen.findAllByText('HOUSE');
+    expect(houseBadges.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('1 VIDEO')).toBeInTheDocument();
+
+    // Video Card & Metadata Details
+    expect(screen.getByText('House Routine Part 1')).toBeInTheDocument();
+    expect(screen.getAllByText('House Foundation').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('2026-10-25')).toBeInTheDocument();
+    expect(screen.getByText('20:00 - 22:00')).toBeInTheDocument();
+    expect(screen.getByText('Instructor Ken')).toBeInTheDocument();
+    expect(screen.getByText('Deep House Groove')).toBeInTheDocument();
+
+    // Toggle Watch Video button to show inline player
+    const watchBtn = screen.getByRole('button', { name: /▶ WATCH VIDEO/i });
+    fireEvent.click(watchBtn);
+    expect(screen.getAllByTitle('House Routine Part 1').length).toBe(2);
+    expect(screen.getByRole('button', { name: /■ HIDE PLAYER/i })).toBeInTheDocument();
   });
 
   it('supports dragging the floating notification button across the screen', () => {
