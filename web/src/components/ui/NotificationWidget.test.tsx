@@ -24,9 +24,23 @@ const mockEvents: EventListItem[] = [
     memberCount: 28,
     version: 1,
     folderId: 'f1',
-    spreadsheetId: 's1',
+    sourceSheetId: 's1',
+    membersSpreadsheetId: 's1',
+    videoFolderId: 'v1',
+    columnMapJson: '{}',
+    classIndex: 0,
+    styleInstructors: {},
+    sourceRowCount: 28,
+    sourceLastRowHash: 'h1',
+    lastSyncAt: '2026-10-01T00:00:00Z',
+    lastSyncError: '',
+    nameKey: 'house foundation',
+    folderMissing: false,
     sourceTab: 'Form Responses 1',
-    notifiedFullStyles: []
+    notifiedFullStyles: [],
+    updatedBy: 'admin',
+    updatedAt: '2026-10-01T00:00:00Z',
+    active: true
   }
 ];
 

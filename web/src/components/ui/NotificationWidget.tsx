@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { EventListItem, Member } from '@umdsc/shared';
+import type { Member } from '@umdsc/shared';
 import { call } from '../../lib/api';
 import { useEvents } from '../../features/events/useCurrentEvent';
 import { PixelButton } from './PixelButton';

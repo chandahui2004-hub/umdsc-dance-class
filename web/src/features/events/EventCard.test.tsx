@@ -30,9 +30,23 @@ const dummyEvent: EventListItem = {
   memberCount: 25,
   version: 1,
   folderId: 'fld_1',
-  spreadsheetId: 'ss_1',
+  sourceSheetId: 'ss_1',
+  membersSpreadsheetId: 'ss_1',
+  videoFolderId: 'vld_1',
+  columnMapJson: '{}',
+  classIndex: 0,
+  styleInstructors: {},
+  sourceRowCount: 25,
+  sourceLastRowHash: 'h_1',
+  lastSyncAt: '2026-10-01T00:00:00Z',
+  lastSyncError: '',
+  nameKey: 'house foundation',
+  folderMissing: false,
   sourceTab: 'Form Responses 1',
-  notifiedFullStyles: []
+  notifiedFullStyles: [],
+  updatedBy: 'admin',
+  updatedAt: '2026-10-01T00:00:00Z',
+  active: true
 };
 
 const dummyStyles: DanceStyle[] = [

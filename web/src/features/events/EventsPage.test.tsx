@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { EventsPage } from './EventsPage';
@@ -21,10 +21,27 @@ vi.mock('../../lib/api', () => ({
   errorMessage: (err: any) => String(err)
 }));
 
+const baseEventProps = {
+  columnMapJson: '{}',
+  classIndex: 0,
+  styleInstructors: {},
+  sourceRowCount: 10,
+  sourceLastRowHash: 'h',
+  lastSyncAt: '',
+  lastSyncError: '',
+  folderMissing: false,
+  notifiedFullStyles: [],
+  updatedBy: 'admin',
+  updatedAt: '2026-10-01T00:00:00Z',
+  active: true
+};
+
 const mockEvents: EventListItem[] = [
   {
+    ...baseEventProps,
     id: 'ev-active-1',
     name: 'Active Class Alpha',
+    nameKey: 'active class alpha',
     type: 'monthly',
     startDate: '2026-10-01',
     endDate: '2026-10-31',
@@ -33,13 +50,16 @@ const mockEvents: EventListItem[] = [
     memberCount: 30,
     version: 1,
     folderId: 'f1',
-    spreadsheetId: 's1',
-    sourceTab: 'Form Responses 1',
-    notifiedFullStyles: []
+    videoFolderId: 'vf1',
+    sourceSheetId: 's1',
+    membersSpreadsheetId: 's1',
+    sourceTab: 'Form Responses 1'
   },
   {
+    ...baseEventProps,
     id: 'ev-active-2',
     name: 'Active Class Beta',
+    nameKey: 'active class beta',
     type: 'monthly',
     startDate: '2026-10-05',
     endDate: '2026-11-05',
@@ -48,13 +68,16 @@ const mockEvents: EventListItem[] = [
     memberCount: 20,
     version: 1,
     folderId: 'f2',
-    spreadsheetId: 's2',
-    sourceTab: 'Form Responses 1',
-    notifiedFullStyles: []
+    videoFolderId: 'vf2',
+    sourceSheetId: 's2',
+    membersSpreadsheetId: 's2',
+    sourceTab: 'Form Responses 1'
   },
   {
+    ...baseEventProps,
     id: 'ev-archived-2026',
     name: 'Old Workshop 2026',
+    nameKey: 'old workshop 2026',
     type: 'workshop',
     startDate: '2026-03-01',
     endDate: '2026-03-05',
@@ -63,13 +86,16 @@ const mockEvents: EventListItem[] = [
     memberCount: 15,
     version: 1,
     folderId: 'f3',
-    spreadsheetId: 's3',
-    sourceTab: 'Form Responses 1',
-    notifiedFullStyles: []
+    videoFolderId: 'vf3',
+    sourceSheetId: 's3',
+    membersSpreadsheetId: 's3',
+    sourceTab: 'Form Responses 1'
   },
   {
+    ...baseEventProps,
     id: 'ev-archived-2025',
     name: 'Historic Camp 2025',
+    nameKey: 'historic camp 2025',
     type: 'other',
     startDate: '2025-08-10',
     endDate: '2025-08-15',
@@ -78,9 +104,10 @@ const mockEvents: EventListItem[] = [
     memberCount: 40,
     version: 1,
     folderId: 'f4',
-    spreadsheetId: 's4',
-    sourceTab: 'Form Responses 1',
-    notifiedFullStyles: []
+    videoFolderId: 'vf4',
+    sourceSheetId: 's4',
+    membersSpreadsheetId: 's4',
+    sourceTab: 'Form Responses 1'
   }
 ];
 
