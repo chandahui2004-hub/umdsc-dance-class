@@ -1,14 +1,30 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NotificationWidget } from './NotificationWidget';
-import type { EventListItem, Member } from '@umdsc/shared';
+import type { EventListItem, Member, DancerBootstrap } from '@umdsc/shared';
 
 const mockCall = vi.fn();
 vi.mock('../../lib/api', () => ({
   call: (...args: any[]) => mockCall(...args),
   errorMessage: (err: any) => String(err)
+}));
+
+let mockRole: 'admin' | 'dancer' = 'admin';
+
+vi.mock('../../lib/session', () => ({
+  session: {
+    get: () => ({
+      token: 'mock-token',
+      claims: {
+        role: mockRole,
+        name: mockRole === 'admin' ? 'Admin' : 'Chan Da Hui',
+        sub: mockRole === 'admin' ? 'admin1' : 'M-23005147'
+      }
+    })
+  }
 }));
 
 const mockEvents: EventListItem[] = [
@@ -73,8 +89,119 @@ const mockAudit = [
   }
 ];
 
+const mockDancerBootstrap: DancerBootstrap = {
+  profile: { matricKey: '23005147', fullName: 'Chan Da Hui', eventIds: ['ev-1'], perms: {} },
+  events: [
+    {
+      id: 'ev-1',
+      name: 'House Foundation',
+      type: 'monthly',
+      startDate: '2026-10-01',
+      endDate: '2026-10-31',
+      status: 'active',
+      styleIds: ['st_house']
+    }
+  ],
+  styles: [
+    {
+      id: 'st_house',
+      name: 'House',
+      colorKey: 'gold',
+      aliases: [],
+      active: true,
+      attendanceFolderId: '',
+      videoFolderId: '',
+      defaultVenue: '',
+      defaultStart: '',
+      defaultEnd: '',
+      defaultInstructorId: '',
+      defaultWeekday: null,
+      updatedAt: '',
+      updatedBy: '',
+      version: 1
+    }
+  ],
+  instructors: [
+    {
+      id: 'ins_1',
+      name: 'Instructor Ken',
+      active: true,
+      contact: '0123456789',
+      styleIds: ['st_house'],
+      version: 1,
+      updatedBy: '',
+      updatedAt: ''
+    }
+  ],
+  sessions: [
+    {
+      id: 'ses_1',
+      eventId: 'ev-1',
+      styleId: 'st_house',
+      instructorId: 'ins_1',
+      date: '2026-10-25',
+      start: '20:00',
+      end: '22:00',
+      venue: 'Studio A',
+      status: 'scheduled',
+      active: true,
+      seq: 1,
+      note: '',
+      version: 1,
+      updatedBy: '',
+      updatedAt: ''
+    }
+  ],
+  attendance: [],
+  videos: [
+    {
+      id: 'vid_1',
+      eventId: 'ev-1',
+      sessionId: 'ses_1',
+      styleId: 'st_house',
+      title: 'House Routine Part 1',
+      driveFileId: 'drv_1',
+      mimeType: 'video/mp4',
+      sizeBytes: 100,
+      folderId: 'f1',
+      uploadedBy: 'admin',
+      source: 'upload',
+      active: true,
+      version: 1,
+      updatedBy: '',
+      updatedAt: ''
+    }
+  ],
+  music: [
+    {
+      id: 'mus_1',
+      eventId: 'ev-1',
+      sessionId: 'ses_1',
+      styleId: 'st_house',
+      title: 'Deep House Groove',
+      sourceType: 'youtube',
+      youtubeId: 'xyz123',
+      driveFileId: '',
+      soundcloudUrl: '',
+      spotifyUrl: '',
+      active: true,
+      version: 1,
+      updatedBy: '',
+      updatedAt: ''
+    }
+  ],
+  sections: []
+};
+
 vi.mock('../../features/events/useCurrentEvent', () => ({
   useEvents: () => ({ data: mockEvents, isLoading: false })
+}));
+
+vi.mock('../../features/auth/useBootstrap', () => ({
+  useBootstrap: (role: string) => ({
+    data: role === 'dancer' ? mockDancerBootstrap : undefined,
+    isLoading: false
+  })
 }));
 
 function renderWidget() {
@@ -88,9 +215,10 @@ function renderWidget() {
   );
 }
 
-describe('NotificationWidget Floating Center and 3-Tab Drawer', () => {
+describe('NotificationWidget Floating Center and Role Modes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRole = 'admin';
     mockCall.mockImplementation((action: string) => {
       if (action === 'members.list') {
         return Promise.resolve({ data: mockMembers });
@@ -98,17 +226,20 @@ describe('NotificationWidget Floating Center and 3-Tab Drawer', () => {
       if (action === 'audit.list') {
         return Promise.resolve({ data: mockAudit });
       }
-      return Promise.resolve({ data: [] });
     });
   });
 
-  it('renders floating bell button and toggles retro side drawer', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('renders floating bell button and toggles admin retro side drawer', () => {
+    mockRole = 'admin';
     renderWidget();
 
     // Floating bell button exists
     const bellBtn = screen.getByTestId('notification-bell-btn');
     expect(bellBtn).toBeInTheDocument();
-    expect(bellBtn.parentElement).toHaveClass('top-14', 'right-3');
 
     // Drawer is closed initially
     expect(screen.queryByTestId('notification-drawer')).not.toBeInTheDocument();
@@ -117,7 +248,7 @@ describe('NotificationWidget Floating Center and 3-Tab Drawer', () => {
     fireEvent.click(bellBtn);
     expect(screen.getByTestId('notification-drawer')).toBeInTheDocument();
 
-    // Three tabs exist
+    // Three admin tabs exist
     expect(screen.getByRole('tab', { name: /NEW DANCERS/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /SLOT PROGRESS/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /SYSTEM & AUDIT/i })).toBeInTheDocument();
@@ -128,25 +259,72 @@ describe('NotificationWidget Floating Center and 3-Tab Drawer', () => {
     expect(screen.queryByTestId('notification-drawer')).not.toBeInTheDocument();
   });
 
-  it('switches between the 3 tabs: NEW DANCERS, SLOT PROGRESS, and SYSTEM & AUDIT', async () => {
+  it('switches between the 3 admin tabs', async () => {
+    mockRole = 'admin';
     renderWidget();
 
     fireEvent.click(screen.getByTestId('notification-bell-btn'));
 
-    // Tab 1: NEW DANCERS (default active tab)
+    // Tab 1: NEW DANCERS
     expect(await screen.findByText('Chan Da Hui')).toBeInTheDocument();
 
     // Switch to Tab 2: SLOT PROGRESS
     const slotTab = screen.getByRole('tab', { name: /SLOT PROGRESS/i });
     fireEvent.click(slotTab);
-
     expect(await screen.findByText('House Foundation · HOUSE')).toBeInTheDocument();
-    expect(await screen.findByText(/28 \/ 30/i)).toBeInTheDocument();
+    expect(screen.getByText(/Filled:\s*28/i)).toBeInTheDocument();
+    expect(screen.getByText(/Capacity:\s*30/i)).toBeInTheDocument();
 
     // Switch to Tab 3: SYSTEM & AUDIT
     const auditTab = screen.getByRole('tab', { name: /SYSTEM & AUDIT/i });
     fireEvent.click(auditTab);
-
     expect(await screen.findByText(/events\.sync/i)).toBeInTheDocument();
+  });
+
+  it('renders dancer personal tabs (MY CLASSES, UPCOMING, PRACTICE) for dancer role', async () => {
+    mockRole = 'dancer';
+    renderWidget();
+
+    fireEvent.click(screen.getByTestId('notification-bell-btn'));
+
+    // Should display Dancer tabs, NOT admin tabs
+    expect(screen.getByRole('tab', { name: /MY CLASSES/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /UPCOMING/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /PRACTICE/i })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /NEW DANCERS/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /SYSTEM & AUDIT/i })).not.toBeInTheDocument();
+
+    // Tab 1 (MY CLASSES): shows enrolled event and style
+    expect(await screen.findByText('House Foundation')).toBeInTheDocument();
+    expect(await screen.findByText('House')).toBeInTheDocument();
+
+    // Switch to Tab 2 (UPCOMING): shows next session
+    fireEvent.click(screen.getByRole('tab', { name: /UPCOMING/i }));
+    expect(await screen.findByText(/Studio A/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Instructor Ken/i)).toBeInTheDocument();
+
+    // Switch to Tab 3 (PRACTICE): shows routine video and practice track
+    fireEvent.click(screen.getByRole('tab', { name: /PRACTICE/i }));
+    expect(await screen.findByText('House Routine Part 1')).toBeInTheDocument();
+    expect(await screen.findByText('Deep House Groove')).toBeInTheDocument();
+  });
+
+  it('supports dragging the floating notification button across the screen', () => {
+    renderWidget();
+
+    const bellContainer = screen.getByTestId('notification-bell-container');
+    const bellBtn = screen.getByTestId('notification-bell-btn');
+
+    // Initially position style is not custom inline
+    expect(bellContainer.style.left).toBe('');
+
+    // Simulate drag gesture
+    fireEvent.mouseDown(bellBtn, { clientX: 200, clientY: 100, button: 0 });
+    fireEvent.mouseMove(window, { clientX: 260, clientY: 180 });
+    fireEvent.mouseUp(window);
+
+    // Expect container to update position styles
+    expect(bellContainer.style.left).not.toBe('');
+    expect(bellContainer.style.top).not.toBe('');
   });
 });

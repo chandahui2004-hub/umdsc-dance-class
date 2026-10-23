@@ -121,8 +121,8 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
         <TabBar tabs={tabs} moreItems={moreItems} />
       </div>
 
-      {/* Floating Retro Notification Center (Admin only) */}
-      {isAdmin && <NotificationWidget />}
+      {/* Floating Retro Notification Center (Movable) */}
+      <NotificationWidget />
     </div>
   );
 };
