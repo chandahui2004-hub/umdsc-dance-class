@@ -133,6 +133,16 @@ export function getSettingsRoutes(): Record<string, Route> {
         }
         return rows.reverse();
       }
+    },
+
+    'audit.list': {
+      perm: 'members.view',
+      write: false,
+      handler: (ctx, auth, payload: any) => {
+        const limit = Number(payload?.limit) || 50;
+        const all = ctx.db.auditLog.all({ includeInactive: true });
+        return all.slice(-limit).reverse();
+      }
     }
   };
 }

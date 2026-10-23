@@ -5,6 +5,7 @@ import { LiveClock } from '../components/ui/LiveClock';
 import { LogoBadge } from '../components/ui/LogoBadge';
 import { SkylineStrip } from '../components/art/SkylineStrip';
 import { session } from '../lib/session';
+import { NotificationWidget } from '../components/ui/NotificationWidget';
 
 export interface PhoneShellProps {
   tabs: TabDef[];
@@ -119,6 +120,9 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
       <div className="w-full md:max-w-[560px] md:mx-auto">
         <TabBar tabs={tabs} moreItems={moreItems} />
       </div>
+
+      {/* Floating Retro Notification Center (Admin only) */}
+      {isAdmin && <NotificationWidget />}
     </div>
   );
 };

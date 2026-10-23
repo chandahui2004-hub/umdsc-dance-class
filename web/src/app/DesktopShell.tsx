@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sidebar } from '../components/ui/Sidebar';
 import { TabDef, NavSubItem } from '../components/ui/TabBar';
+import { NotificationWidget } from '../components/ui/NotificationWidget';
 
 export interface DesktopShellProps {
   nav: TabDef[];
@@ -35,6 +36,9 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         )}
         {children}
       </main>
+
+      {/* Floating Retro Notification Center */}
+      <NotificationWidget />
     </div>
   );
 };
