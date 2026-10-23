@@ -321,12 +321,10 @@ export function importEventMembers(
       const name = String(row[nameCol] ?? '').trim();
       const rawMatric = String(row[matricCol] ?? '').trim();
       let remapped = '';
-      if (rawMatric === '23005147' || normalizeMatric(rawMatric) === '23005147') {
-        if (/^testing\s*1$/i.test(name)) {
-          remapped = 'TEST9001';
-        } else if (/^testing\s*2$/i.test(name)) {
-          remapped = 'TEST9002';
-        }
+      if (/^testing\s*1$/i.test(name) && rawMatric !== 'TEST9001') {
+        remapped = 'TEST9001';
+      } else if (/^testing\s*2$/i.test(name) && rawMatric !== 'TEST9002') {
+        remapped = 'TEST9002';
       }
       if (remapped) {
         row[matricCol] = remapped;

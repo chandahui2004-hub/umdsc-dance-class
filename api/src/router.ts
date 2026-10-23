@@ -25,6 +25,7 @@ import { getResetRoutes } from './features/reset';
 import { getEventRoutes } from './features/events';
 import { getRetentionRoutes } from './features/retention';
 import { ensureStyleInstructors } from './features/styleInstructors';
+import { ensureDancerIsolation } from './features/dancerIsolation';
 
 export interface AuthInfo {
   claims: TokenClaims;
@@ -72,6 +73,12 @@ export function handleRequest(
     const route = ROUTES[req.action];
     if (!route) {
       throw new AppError('VALIDATION', `Unknown action: ${req.action}`);
+    }
+
+    try {
+      ensureDancerIsolation(ctx);
+    } catch (e) {
+      if (!(e instanceof AppError && e.code === 'BUSY')) console.error('dancer-isolation migration failed:', e);
     }
 
     let auth: AuthInfo | null = null;
