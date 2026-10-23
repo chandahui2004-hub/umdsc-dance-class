@@ -77,12 +77,31 @@ export const EventStep: React.FC<{ allowAll?: boolean }> = ({ allowAll = false }
 
   const active = events.filter(e => e.status === 'active');
   const archived = events.filter(e => e.status === 'archived');
+  const [showArchived, setShowArchived] = React.useState(false);
+  const [selectedYear, setSelectedYear] = React.useState<string | null>(null);
+
+  const archivedByYear = React.useMemo(() => {
+    const map = new Map<string, typeof archived>();
+    for (const ev of archived) {
+      const year = (ev as any).startDate ? String((ev as any).startDate).slice(0, 4) : 'Other';
+      if (!map.has(year)) map.set(year, []);
+      map.get(year)!.push(ev);
+    }
+    return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [archived]);
+
+  const availableYears = archivedByYear.map(([year]) => year);
+  const activeYear = selectedYear || availableYears[0] || '';
+  const eventsInYear = archivedByYear.find(([y]) => y === activeYear)?.[1] || [];
 
   const options: PixelDropdownOption[] = [
     { value: 'ALL', label: allowAll ? 'ALL EVENTS' : '— Choose an event —' },
-    ...active.map(e => ({ value: e.id, label: e.name })),
-    ...archived.map(e => ({ value: e.id, label: `[Archived] ${e.name}`, hint: 'Archived event' }))
+    ...active.map(e => ({ value: e.id, label: e.name }))
   ];
+
+  if (current && current.status === 'archived') {
+    options.push({ value: current.id, label: `[Archived] ${current.name}`, hint: 'Archived event' });
+  }
 
   return (
     <StepPanel numeral="I" title="CHOOSE EVENT" highlight={!chosen && !allowAll}>
@@ -93,6 +112,67 @@ export const EventStep: React.FC<{ allowAll?: boolean }> = ({ allowAll = false }
         onChange={val => setCurrentId(val)}
         maxVisibleItems={5}
       />
+
+      {archived.length > 0 && (
+        <div className="pt-2 border-t border-[var(--outline)] space-y-2">
+          <button
+            type="button"
+            onClick={() => setShowArchived(v => !v)}
+            className="w-full text-left font-display text-[11px] text-[var(--neon-gold)] hover:text-[var(--neon-cyan)] flex items-center justify-between py-1 px-1.5 border border-dashed border-[var(--outline)] bg-[var(--night-2)] hover:border-[var(--neon-cyan)] transition-colors"
+          >
+            <span>{showArchived ? '▼' : '▶'} 📁 ARCHIVED EVENTS ({archived.length})</span>
+            <span className="font-mono text-[10px] text-[var(--text-3)]">{showArchived ? 'HIDE' : 'SHOW'}</span>
+          </button>
+
+          {showArchived && (
+            <div className="space-y-2 p-2 bg-[var(--night-1)] border border-[var(--outline)]">
+              {/* Year tabs */}
+              <div className="flex flex-wrap gap-1.5 items-center">
+                <span className="font-display text-[10px] text-[var(--text-3)] mr-1">YEAR:</span>
+                {availableYears.map(year => {
+                  const isSelected = activeYear === year;
+                  return (
+                    <button
+                      key={year}
+                      type="button"
+                      onClick={() => setSelectedYear(year)}
+                      className={`px-2 py-0.5 font-display text-[11px] border shadow-[1px_1px_0_var(--outline)] transition-colors ${
+                        isSelected
+                          ? 'border-[var(--neon-cyan)] bg-[var(--neon-cyan)] text-[var(--on-neon)] font-bold'
+                          : 'border-[var(--outline)] bg-[var(--night-3)] text-[var(--text-2)] hover:text-[var(--neon-cyan)]'
+                      }`}
+                    >
+                      {year}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Events in selected year */}
+              <div className="space-y-1 max-h-36 overflow-y-auto pixel-scrollbar pr-1">
+                {eventsInYear.map(e => {
+                  const isChosen = current?.id === e.id;
+                  return (
+                    <button
+                      key={e.id}
+                      type="button"
+                      onClick={() => setCurrentId(e.id)}
+                      className={`w-full text-left px-2 py-1.5 text-xs font-display flex items-center justify-between border transition-colors ${
+                        isChosen
+                          ? 'border-[var(--neon-gold)] bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--outline)]'
+                          : 'border-[var(--outline)] bg-[var(--night-2)] text-[var(--text-1)] hover:bg-[var(--violet-2)] hover:text-[var(--neon-cyan)]'
+                      }`}
+                    >
+                      <span className="truncate pr-2">📁 {e.name}</span>
+                      {isChosen && <span className="font-mono text-[10px]">SELECTED</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </StepPanel>
   );
 };
@@ -118,6 +198,25 @@ export const StyleStep: React.FC<{
     <StepPanel numeral="II" title="CHOOSE DANCE STYLE" disabled={disabled} disabledNote="Choose an event first.">
       {options.length === 0 ? (
         <p className="font-body text-[16px] text-[var(--text-2)]">No dance styles in this event yet.</p>
+      ) : options.length <= 6 ? (
+        <div className="flex flex-wrap gap-2 pb-1">
+          {options.map(s => (
+            <button
+              key={s.id}
+              type="button"
+              aria-pressed={value === s.id}
+              onClick={() => onChange(s.id)}
+              disabled={disabled}
+              className={`min-h-[44px] px-3.5 border-2 border-[var(--outline)] font-display text-[12px] cursor-pointer select-none whitespace-nowrap transition-none ${
+                value === s.id
+                  ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold shadow-[2px_2px_0_var(--outline)]'
+                  : 'bg-[var(--night-1)] text-[var(--text-1)] hover:bg-[var(--violet-2)]'
+              }`}
+            >
+              {s.name}
+            </button>
+          ))}
+        </div>
       ) : (
         <PixelDropdown
           ariaLabel="Choose dance style"
