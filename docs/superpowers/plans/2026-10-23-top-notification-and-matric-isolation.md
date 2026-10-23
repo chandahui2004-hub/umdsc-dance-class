@@ -14,10 +14,10 @@
 - Modify: `web/src/components/ui/NotificationWidget.tsx`
 - Test: `web/src/components/ui/NotificationWidget.test.tsx`
 
-- [ ] **Step 1: Write failing test asserting top-right classes**
-- [ ] **Step 2: Update `NotificationWidget.tsx` styling**
-- [ ] **Step 3: Run test to verify it passes**
-- [ ] **Step 4: Commit**
+- [x] **Step 1: Write failing test asserting top-right classes**
+- [x] **Step 2: Update `NotificationWidget.tsx` styling**
+- [x] **Step 3: Run test to verify it passes**
+- [x] **Step 4: Commit**
 
 ---
 
@@ -27,13 +27,13 @@
 - Modify: `api/src/logic/buildMembers.ts`
 - Test: `api/test/logic/buildMembers.test.ts`
 
-- [ ] **Step 1: Update unit tests in `buildMembers.test.ts`**
+- [x] **Step 1: Update unit tests in `buildMembers.test.ts`**
   - Verify two rows with same matric merge into single member `M-${matricKey}` with union of styles.
-- [ ] **Step 2: Implement strict matricKey grouping in `buildMembers.ts`**
+- [x] **Step 2: Implement strict matricKey grouping in `buildMembers.ts`**
   - Group by `matricKey` only (`memberId: 'M-' + matricKey`).
   - Merge styles and flags. Preserve real dancer name if incoming row has test dummy name.
-- [ ] **Step 3: Run tests to verify all `buildMembers` tests pass**
-- [ ] **Step 4: Commit**
+- [x] **Step 3: Run tests to verify all `buildMembers` tests pass**
+- [x] **Step 4: Commit**
 
 ---
 
@@ -43,14 +43,14 @@
 - Modify: `api/src/features/eventImport.ts`
 - Test: `api/test/features/eventImport.test.ts`
 
-- [ ] **Step 1: Write test in `eventImport.test.ts`**
+- [x] **Step 1: Write test in `eventImport.test.ts`**
   - Row with name `Testing1` on `23005147` remapped to `TEST9001`.
   - Row with name `Testing2` on `23005147` remapped to `TEST9002`.
-- [ ] **Step 2: Implement remapping and sheet cell update in `eventImport.ts`**
+- [x] **Step 2: Implement remapping and sheet cell update in `eventImport.ts`**
   - Remap matric values and update sheet cells if matching `/^testing\s*1$/i` or `/^testing\s*2$/i` on matric `23005147`.
   - Purge stale split IDs `M-23005147-*` from `ctx.db.memberIndex`.
-- [ ] **Step 3: Run tests to verify they pass**
-- [ ] **Step 4: Commit**
+- [x] **Step 3: Run tests to verify they pass**
+- [x] **Step 4: Commit**
 
 ---
 
@@ -60,13 +60,13 @@
 - Modify: `api/src/features/auth.ts`
 - Test: `api/test/features/auth.test.ts`
 
-- [ ] **Step 1: Update tests in `auth.test.ts`**
+- [x] **Step 1: Update tests in `auth.test.ts`**
   - Assert `Chan Da Hui` logs in with matric `23005147`.
   - Assert `Testing1` logs in with matric `TEST9001`.
-- [ ] **Step 2: Update `auth.dancerLogin` in `api/src/features/auth.ts`**
+- [x] **Step 2: Update `auth.dancerLogin` in `api/src/features/auth.ts`**
   - Find dancer by `m.matricKey === matricKey && m.active`.
-- [ ] **Step 3: Run tests to verify they pass**
-- [ ] **Step 4: Commit**
+- [x] **Step 3: Run tests to verify they pass**
+- [x] **Step 4: Commit**
 
 ---
 
@@ -76,8 +76,8 @@
 - Modify: `docs/SETUP-VALUES.md`
 - Verification across test suites and production build
 
-- [ ] **Step 1: Run complete API Vitest suite**
-- [ ] **Step 2: Run complete Web Vitest suite**
-- [ ] **Step 3: Run `npm run build`**
-- [ ] **Step 4: Deploy API to Google Apps Script (Version 89)**
+- [x] **Step 1: Run complete API Vitest suite**
+- [x] **Step 2: Run complete Web Vitest suite**
+- [x] **Step 3: Run `npm run build`**
+- [x] **Step 4: Deploy API to Google Apps Script (Version 89)**
 - [ ] **Step 5: Merge into `main` and push to GitHub remote `origin`**
