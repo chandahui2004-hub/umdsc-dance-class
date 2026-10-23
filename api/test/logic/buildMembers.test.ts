@@ -153,10 +153,33 @@ describe('Build Members from Rows (logic/buildMembers)', () => {
     expect(result.countsByStyle['hh']).toBe(0);
   });
 
-  it('same matric with clearly distinct names → produces TWO separate dancers with unique memberIds and matricConflict warning', () => {
+  it('same matric number → merges into exactly ONE dancer (M-matric) with union of styles', () => {
     const rows = [
       ['2026-10-01 10:00:00', 'Chan Da Hui', '23005147', '0123456789', 'dahui@test.com', 'Popping'],
-      ['2026-10-02 12:00:00', 'Testing1', '23005147', '0198765432', 'testing1@test.com', 'Hip Hop']
+      ['2026-10-02 12:00:00', 'Chan Da Hui', '23005147', '0123456789', 'dahui@test.com', 'Hip Hop']
+    ];
+
+    const result = buildMembers({
+      headers,
+      rows,
+      map,
+      classIndex,
+      styles,
+      timestampIndex
+    });
+
+    expect(result.members.length).toBe(1);
+    const m = result.members[0];
+    expect(m.memberId).toBe('M-23005147');
+    expect(m.matricKey).toBe('23005147');
+    expect(m.styleIds.sort()).toEqual(['hh', 'pp'].sort());
+    expect(result.warnings.some(w => w.kind === 'duplicate')).toBe(true);
+  });
+
+  it('different matric numbers (real student 23005147 vs test dancer TEST9001) → produces separate dancers', () => {
+    const rows = [
+      ['2026-10-01 10:00:00', 'Chan Da Hui', '23005147', '0123456789', 'dahui@test.com', 'Popping'],
+      ['2026-10-02 12:00:00', 'Testing1', 'TEST9001', '0198765432', 'testing1@test.com', 'Hip Hop']
     ];
 
     const result = buildMembers({
@@ -169,26 +192,19 @@ describe('Build Members from Rows (logic/buildMembers)', () => {
     });
 
     expect(result.members.length).toBe(2);
-    const m1 = result.members.find(m => m.fullName === 'Chan Da Hui')!;
-    const m2 = result.members.find(m => m.fullName === 'Testing1')!;
+    const m1 = result.members.find(m => m.matricKey === '23005147')!;
+    const m2 = result.members.find(m => m.matricKey === 'TEST9001')!;
 
     expect(m1).toBeDefined();
-    expect(m2).toBeDefined();
-
-    // Both preserve the authentic matric number
-    expect(m1.matricKey).toBe('23005147');
-    expect(m2.matricKey).toBe('23005147');
-
-    // Internal memberIds are unique
+    expect(m1.fullName).toBe('Chan Da Hui');
     expect(m1.memberId).toBe('M-23005147');
-    expect(m2.memberId).not.toBe('M-23005147');
-    expect(m2.memberId).toContain('23005147');
 
-    // Emits matricConflict warning
-    expect(result.warnings.some(w => w.kind === 'matricConflict')).toBe(true);
+    expect(m2).toBeDefined();
+    expect(m2.fullName).toBe('Testing1');
+    expect(m2.memberId).toBe('M-TEST9001');
   });
 
-  it('same matric with minor name variations (spacing/casing/typo) → merged as one dancer with nameVariation warning', () => {
+  it('same matric with minor name variations → keeps authentic name and merges styles', () => {
     const rows = [
       ['2026-10-01 10:00:00', 'Chan Da Hui', '23005147', '0123456789', 'dahui@test.com', 'Popping'],
       ['2026-10-02 12:00:00', 'CHAN DAHUI', '23005147', '0123456789', 'dahui2@test.com', 'Hip Hop']
@@ -206,6 +222,5 @@ describe('Build Members from Rows (logic/buildMembers)', () => {
     expect(result.members.length).toBe(1);
     expect(result.members[0].matricKey).toBe('23005147');
     expect(result.members[0].styleIds.sort()).toEqual(['hh', 'pp'].sort());
-    expect(result.warnings.some(w => w.kind === 'nameVariation')).toBe(true);
   });
 });
