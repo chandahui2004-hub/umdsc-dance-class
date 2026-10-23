@@ -54,6 +54,25 @@ export const EventStep: React.FC<{ allowAll?: boolean }> = ({ allowAll = false }
   const { events, current, setCurrentId, isLoading, isAll } = useCurrentEvent();
   const chosen = !isAll && Boolean(current);
 
+  const active = React.useMemo(() => events.filter(e => e.status === 'active'), [events]);
+  const archived = React.useMemo(() => events.filter(e => e.status === 'archived'), [events]);
+  const [showArchived, setShowArchived] = React.useState(false);
+  const [selectedYear, setSelectedYear] = React.useState<string | null>(null);
+
+  const archivedByYear = React.useMemo(() => {
+    const map = new Map<string, typeof archived>();
+    for (const ev of archived) {
+      const year = (ev as any).startDate ? String((ev as any).startDate).slice(0, 4) : 'Other';
+      if (!map.has(year)) map.set(year, []);
+      map.get(year)!.push(ev);
+    }
+    return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [archived]);
+
+  const availableYears = archivedByYear.map(([year]) => year);
+  const activeYear = selectedYear || availableYears[0] || '';
+  const eventsInYear = archivedByYear.find(([y]) => y === activeYear)?.[1] || [];
+
   if (isLoading) {
     return (
       <StepPanel numeral="I" title="CHOOSE EVENT">
@@ -74,25 +93,6 @@ export const EventStep: React.FC<{ allowAll?: boolean }> = ({ allowAll = false }
       </StepPanel>
     );
   }
-
-  const active = events.filter(e => e.status === 'active');
-  const archived = events.filter(e => e.status === 'archived');
-  const [showArchived, setShowArchived] = React.useState(false);
-  const [selectedYear, setSelectedYear] = React.useState<string | null>(null);
-
-  const archivedByYear = React.useMemo(() => {
-    const map = new Map<string, typeof archived>();
-    for (const ev of archived) {
-      const year = (ev as any).startDate ? String((ev as any).startDate).slice(0, 4) : 'Other';
-      if (!map.has(year)) map.set(year, []);
-      map.get(year)!.push(ev);
-    }
-    return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
-  }, [archived]);
-
-  const availableYears = archivedByYear.map(([year]) => year);
-  const activeYear = selectedYear || availableYears[0] || '';
-  const eventsInYear = archivedByYear.find(([y]) => y === activeYear)?.[1] || [];
 
   const options: PixelDropdownOption[] = [
     { value: 'ALL', label: allowAll ? 'ALL EVENTS' : '— Choose an event —' },

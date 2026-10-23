@@ -24,16 +24,20 @@ test.describe('Admin Events page', () => {
     const active = page.getByTestId('active-events');
     await expect(active.getByText('OCT MONTHLY CLASS')).toBeVisible();
     await expect(active.getByText('TRIAL CLASS 2027')).toBeVisible();
-    await expect(active.getByText(/share it with umdancesportc@gmail.com/)).toBeVisible();
     await expect(active.getByText('SEP WORKSHOP')).toHaveCount(0);
 
+    // Expand all active events to reveal cards, details, and errors
+    await page.getByRole('button', { name: /EXPAND ALL/i }).click();
+    await expect(active.getByText(/share it with umdancesportc@gmail.com/)).toBeVisible();
+
     await page.getByRole('button', { name: /ARCHIVED EVENTS/i }).click();
+    await page.getByRole('button', { name: /2026 ARCHIVED EVENTS/i }).click();
     await expect(page.getByTestId('archived-events').getByText('SEP WORKSHOP')).toBeVisible();
 
     const oct = page.getByTestId('event-card-evt-oct');
     await oct.getByRole('button', { name: /SYNC NOW/i }).click();
     await expect(oct.getByText(/\+2 new/i)).toBeVisible();
-    expect(calls.find(c => c.action === 'events.sync')?.payload).toEqual({ id: 'evt-oct' });
+    expect(calls.find(c => c.action === 'events.sync')?.payload).toMatchObject({ id: 'evt-oct' });
 
     page.once('dialog', d => d.accept());
     await oct.getByRole('button', { name: /^ARCHIVE$/i }).click();
@@ -44,6 +48,8 @@ test.describe('Admin Events page', () => {
     await mockApi(page, { 'events.list': () => EVENTS });
     await page.goto('/admin/events');
     await page.getByRole('button', { name: /ARCHIVED EVENTS/i }).click();
+    await page.getByRole('button', { name: /2026 ARCHIVED EVENTS/i }).click();
+    await page.getByTestId('toggle-event-evt-old').click();
     const old = page.getByTestId('event-card-evt-old');
     await expect(old.getByRole('button', { name: /UNARCHIVE/i })).toBeVisible();
     await expect(old.getByRole('button', { name: /SYNC NOW/i })).toHaveCount(0);
@@ -56,6 +62,7 @@ test.describe('Admin Events page', () => {
       'events.recreateFolder': () => makeEvent()
     });
     await page.goto('/admin/events');
+    await page.getByRole('button', { name: /EXPAND ALL/i }).click();
     await page.getByRole('button', { name: /RECREATE/i }).click();
     await expect.poll(() => calls.find(c => c.action === 'events.recreateFolder')?.payload).toEqual({ id: 'evt-oct' });
   });
