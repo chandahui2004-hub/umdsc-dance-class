@@ -28,7 +28,7 @@ export const NotificationWidget: React.FC = () => {
   // Query members for all active events to populate new dancers and slot progress
   const { data: allMembers = [] } = useQuery<Member[]>({
     queryKey: ['notification_members', activeEvents.map(e => e.id).join(',')],
-    enabled: activeEvents.length > 0,
+    enabled: isOpen && activeEvents.length > 0,
     queryFn: async () => {
       const results = await Promise.all(
         activeEvents.map(async ev => {
@@ -51,6 +51,7 @@ export const NotificationWidget: React.FC = () => {
   // Query audit logs
   const { data: auditLogs = [] } = useQuery<AuditItem[]>({
     queryKey: ['notification_audit'],
+    enabled: isOpen,
     queryFn: async () => {
       try {
         const res = await call<AuditItem[]>('audit.list', { limit: 30 });
