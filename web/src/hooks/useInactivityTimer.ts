@@ -20,11 +20,21 @@ export function useInactivityTimer(timeoutMs = 5000): InactivityState {
 
   const isInactiveRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const danceIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const resetTimer = useCallback(() => {
+  const clearTimers = useCallback(() => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
+      timerRef.current = null;
     }
+    if (danceIntervalRef.current) {
+      clearInterval(danceIntervalRef.current);
+      danceIntervalRef.current = null;
+    }
+  }, []);
+
+  const resetTimer = useCallback(() => {
+    clearTimers();
 
     if (isInactiveRef.current) {
       isInactiveRef.current = false;
@@ -36,8 +46,15 @@ export function useInactivityTimer(timeoutMs = 5000): InactivityState {
       setIsInactive(true);
       const nextDance = Math.floor(Math.random() * 3) as 0 | 1 | 2;
       setActiveDanceIndex(nextDance);
+
+      // Periodically rotate dances while user remains waiting
+      danceIntervalRef.current = setInterval(() => {
+        if (isInactiveRef.current) {
+          setActiveDanceIndex(prev => ((prev + 1) % 3) as 0 | 1 | 2);
+        }
+      }, 4000);
     }, timeoutMs);
-  }, [timeoutMs]);
+  }, [timeoutMs, clearTimers]);
 
   useEffect(() => {
     resetTimer();
@@ -51,14 +68,12 @@ export function useInactivityTimer(timeoutMs = 5000): InactivityState {
     });
 
     return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
+      clearTimers();
       ACTIVITY_EVENTS.forEach(event => {
         window.removeEventListener(event, handleActivity);
       });
     };
-  }, [resetTimer]);
+  }, [resetTimer, clearTimers]);
 
   return {
     isInactive,

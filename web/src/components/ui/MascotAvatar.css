@@ -1,28 +1,28 @@
-/* Calm idle loop (3s): stands steady with open eyes on row 0, performs a quick natural eye blink, and stays centered (no side-swaying) */
+/* Calm idle loop (3.5s):
+   Uses Frame 0-1 (eyes open) and Frame 0-3 (eyes closed).
+   Both frames have identical head (127.5px) and foot (132.5px) centers.
+   The body stays completely motionless in place; ONLY the eyes blink.
+*/
 @keyframes mascot-idle-blink {
-  0%, 79.999% {
-    /* Frame 0: standing steady, eyes wide open */
-    background-position: 0% 0%;
-  }
-  80%, 89.999% {
-    /* Frame 1: subtle breath, eyes open */
+  0%, 88% {
+    /* Frame 0-1: eyes wide open, completely still */
     background-position: 33.3333% 0%;
   }
-  90%, 93.999% {
-    /* Frame 2: eyes half-closed */
+  88.001%, 91% {
+    /* Frame 0-2: eyes half-closed */
     background-position: 66.6667% 0%;
   }
-  94%, 97.999% {
-    /* Frame 3: eyes fully closed (blink) */
+  91.001%, 97% {
+    /* Frame 0-3: eyes fully closed (natural blink) */
     background-position: 100% 0%;
   }
-  98%, 100% {
-    /* Frame 2: eyes opening back up */
+  97.001%, 100% {
+    /* Frame 0-2: eyes reopening */
     background-position: 66.6667% 0%;
   }
 }
 
-/* Energetic 8-frame street dance loops at 8 fps (1000ms) */
+/* Full-energy 8-frame street dance loops (1000ms loop period, 8 fps) */
 @keyframes mascot-dance-loop {
   0%, 12.499% {
     background-position: 0% 0%;
@@ -58,21 +58,21 @@
 }
 
 .mascot-anim-idle {
-  background-image: url('/mascot/mascot-idle.webp'), url('/mascot/mascot-idle.png');
-  animation: mascot-idle-blink 3s steps(1) infinite;
+  background-image: url('/mascot/mascot-idle.webp');
+  animation: mascot-idle-blink 3.5s steps(1) infinite;
 }
 
 .mascot-anim-dance_1 {
-  background-image: url('/mascot/mascot-dance-1.webp'), url('/mascot/mascot-dance-1.png');
+  background-image: url('/mascot/mascot-dance-1.webp');
   animation: mascot-dance-loop 1s steps(1) infinite;
 }
 
 .mascot-anim-dance_2 {
-  background-image: url('/mascot/mascot-dance-2.webp'), url('/mascot/mascot-dance-2.png');
+  background-image: url('/mascot/mascot-dance-2.webp');
   animation: mascot-dance-loop 1s steps(1) infinite;
 }
 
 .mascot-anim-dance_3 {
-  background-image: url('/mascot/mascot-dance-3.webp'), url('/mascot/mascot-dance-3.png');
+  background-image: url('/mascot/mascot-dance-3.webp');
   animation: mascot-dance-loop 1s steps(1) infinite;
 }
