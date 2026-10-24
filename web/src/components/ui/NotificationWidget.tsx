@@ -9,6 +9,7 @@ import { PixelButton } from './PixelButton';
 import { openInDriveUrl, previewUrl } from '../../lib/google/driveUrls';
 import { MascotAvatar, type MascotAnimation } from './MascotAvatar';
 import { useInactivityTimer } from '../../hooks/useInactivityTimer';
+import { useOverlayOpen, subscribeOverlayOpen, getOverlayCount } from '../../app/useOverlayOpen';
 
 type AdminTabKey = 'new_dancers' | 'slot_progress' | 'system_audit';
 type DancerTabKey = 'my_classes' | 'upcoming' | 'practice';
@@ -55,6 +56,29 @@ export const NotificationWidget: React.FC = () => {
   const dragEndTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bellContainerRef = useRef<HTMLDivElement | null>(null);
 
+  useOverlayOpen(isOpen);
+
+  const [isOverlayActive, setIsOverlayActive] = useState(() => getOverlayCount() > 0 || isOpen);
+  const suppressClicksUntilRef = useRef<number>(0);
+
+  useEffect(() => {
+    return subscribeOverlayOpen((count) => {
+      const active = count > 0 || isOpen;
+      setIsOverlayActive(active);
+      if (!active) {
+        suppressClicksUntilRef.current = Date.now() + 450;
+      }
+    });
+  }, [isOpen]);
+
+  const prevIsOpenRef = useRef(isOpen);
+  useEffect(() => {
+    if (prevIsOpenRef.current && !isOpen) {
+      suppressClicksUntilRef.current = Date.now() + 450;
+    }
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen]);
+
   useEffect(() => {
     return () => {
       if (dragEndTimeoutRef.current) {
@@ -69,6 +93,8 @@ export const NotificationWidget: React.FC = () => {
 
   const startDrag = (clientX: number, clientY: number, button = 0) => {
     if (button !== 0) return;
+    if (isOverlayActive || isOpen) return;
+    if (Date.now() < suppressClicksUntilRef.current) return;
     const rect = bellContainerRef.current?.getBoundingClientRect();
     const initialX = rect && (rect.left || rect.x) ? (rect.left || rect.x) : (position?.x ?? 200);
     const initialY = rect && (rect.top || rect.y) ? (rect.top || rect.y) : (position?.y ?? 50);
@@ -537,24 +563,41 @@ export const NotificationWidget: React.FC = () => {
         data-testid="notification-bell-container"
         ref={bellContainerRef}
         style={position ? { left: `${position.x}px`, top: `${position.y}px` } : undefined}
-        className={`fixed z-40 touch-none select-none ${
+        className={`fixed z-40 select-none ${
           !position ? 'top-14 right-3 sm:top-5 sm:right-6' : ''
-        }`}
+        } ${isOverlayActive || isOpen ? 'pointer-events-none' : 'touch-none'}`}
       >
         <button
           type="button"
           data-testid="notification-bell-btn"
           aria-label="Open notifications"
-          onPointerDown={(e) => startDrag(e.clientX, e.clientY, e.button)}
-          onMouseDown={(e) => startDrag(e.clientX, e.clientY, e.button)}
-          onTouchStart={(e) => e.touches[0] && startDrag(e.touches[0].clientX, e.touches[0].clientY, 0)}
-          onClick={() => {
-            if (!isDraggingRef.current) {
-              resetTimer();
-              setIsOpen(v => !v);
-            }
+          disabled={isOverlayActive || isOpen}
+          onPointerDown={(e) => {
+            if (isOverlayActive || isOpen || Date.now() < suppressClicksUntilRef.current) return;
+            startDrag(e.clientX, e.clientY, e.button);
           }}
-          className="relative bg-transparent border-none p-0 outline-none select-none touch-none active:translate-x-[2px] active:translate-y-[2px]"
+          onMouseDown={(e) => {
+            if (isOverlayActive || isOpen || Date.now() < suppressClicksUntilRef.current) return;
+            startDrag(e.clientX, e.clientY, e.button);
+          }}
+          onTouchStart={(e) => {
+            if (isOverlayActive || isOpen || Date.now() < suppressClicksUntilRef.current) return;
+            if (e.touches[0]) startDrag(e.touches[0].clientX, e.touches[0].clientY, 0);
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (isDraggingRef.current) return;
+            if (isOverlayActive || isOpen) return;
+            if (Date.now() < suppressClicksUntilRef.current) return;
+
+            resetTimer();
+            setIsOpen(true);
+          }}
+          className={`relative bg-transparent border-none p-0 outline-none select-none ${
+            isOverlayActive || isOpen
+              ? 'pointer-events-none cursor-default'
+              : 'touch-none cursor-pointer active:translate-x-[2px] active:translate-y-[2px]'
+          }`}
         >
           <MascotAvatar
             animation={mascotAnimation}
@@ -571,12 +614,16 @@ export const NotificationWidget: React.FC = () => {
           {/* Backdrop */}
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
-            onClick={() => setIsOpen(false)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOpen(false);
+            }}
           />
 
           {/* Drawer Body */}
           <div
             data-testid="notification-drawer"
+            onClick={(e) => e.stopPropagation()}
             className="relative w-full max-w-md sm:max-w-lg h-full bg-[var(--night-1)] border-l-4 border-[var(--outline)] shadow-[-6px_0_0_var(--outline)] flex flex-col z-10"
           >
             {/* Drawer Header */}
@@ -595,7 +642,10 @@ export const NotificationWidget: React.FC = () => {
               <PixelButton
                 variant="secondary"
                 size="sm"
-                onClick={() => setIsOpen(false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(false);
+                }}
                 className="text-[11px]"
               >
                 ✕ CLOSE

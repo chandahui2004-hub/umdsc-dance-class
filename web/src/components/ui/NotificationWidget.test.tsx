@@ -425,5 +425,52 @@ describe('NotificationWidget Floating Center and Role Modes', () => {
       vi.useRealTimers();
     }
   });
+
+  it('does NOT stop dancing or reset timer when clicking inside or closing the notification drawer', () => {
+    vi.useFakeTimers();
+    try {
+      _resetInternalStateForTesting();
+      resetMascotToIdle(5000);
+      renderWidget();
+      const mascot = screen.getByTestId('mascot-avatar');
+      const bellBtn = screen.getByTestId('notification-bell-btn');
+
+      // Click to open notification drawer while idle
+      act(() => {
+        fireEvent.click(bellBtn);
+      });
+      expect(screen.getByTestId('notification-drawer')).toBeInTheDocument();
+
+      // Inactivity timeout triggers while drawer is open
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
+      expect(mascot).toHaveAttribute('data-animation', 'dance_1');
+
+      // Clicking tabs inside the drawer must NOT stop dancing
+      const slotTab = screen.getByRole('tab', { name: /SLOT PROGRESS/i });
+      act(() => {
+        fireEvent.click(slotTab);
+      });
+      expect(mascot).toHaveAttribute('data-animation', 'dance_1');
+
+      // Clicking CLOSE button on the drawer must NOT stop dancing or reset timer
+      const closeBtn = screen.getByRole('button', { name: /CLOSE/i });
+      act(() => {
+        fireEvent.click(closeBtn);
+      });
+      expect(screen.queryByTestId('notification-drawer')).not.toBeInTheDocument();
+      // Mascot MUST STILL BE DANCING
+      expect(mascot).toHaveAttribute('data-animation', 'dance_1');
+
+      // Time continues cycling to dance_2
+      act(() => {
+        vi.advanceTimersByTime(2500);
+      });
+      expect(mascot).toHaveAttribute('data-animation', 'dance_2');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 

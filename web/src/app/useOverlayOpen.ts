@@ -1,14 +1,29 @@
 import { useEffect } from 'react';
 
 let overlayCount = 0;
+type OverlayListener = (count: number) => void;
+const overlayListeners = new Set<OverlayListener>();
+
+export function subscribeOverlayOpen(fn: OverlayListener): () => void {
+  overlayListeners.add(fn);
+  return () => {
+    overlayListeners.delete(fn);
+  };
+}
+
+export function getOverlayCount(): number {
+  return overlayCount;
+}
 
 function syncDataset() {
-  if (typeof document === 'undefined') return;
-  if (overlayCount > 0) {
-    document.body.dataset.overlays = String(overlayCount);
-  } else {
-    delete document.body.dataset.overlays;
+  if (typeof document !== 'undefined') {
+    if (overlayCount > 0) {
+      document.body.dataset.overlays = String(overlayCount);
+    } else {
+      delete document.body.dataset.overlays;
+    }
   }
+  overlayListeners.forEach(fn => fn(overlayCount));
 }
 
 /**
