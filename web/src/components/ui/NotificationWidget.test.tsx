@@ -385,9 +385,9 @@ describe('NotificationWidget Floating Center and Role Modes', () => {
       const mascot = screen.getByTestId('mascot-avatar');
       expect(mascot).toHaveAttribute('data-animation', 'idle');
 
-      // Fast forward past 15 seconds
+      // Fast forward past 5 seconds
       act(() => {
-        vi.advanceTimersByTime(15000);
+        vi.advanceTimersByTime(5000);
       });
       const danceAnim = mascot.getAttribute('data-animation');
       expect(['dance_1', 'dance_2', 'dance_3']).toContain(danceAnim);

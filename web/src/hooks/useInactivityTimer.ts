@@ -14,7 +14,7 @@ const ACTIVITY_EVENTS: (keyof WindowEventMap)[] = [
   'scroll'
 ];
 
-export function useInactivityTimer(timeoutMs = 15000): InactivityState {
+export function useInactivityTimer(timeoutMs = 5000): InactivityState {
   const [isInactive, setIsInactive] = useState(false);
   const [activeDanceIndex, setActiveDanceIndex] = useState<0 | 1 | 2>(0);
 

@@ -63,7 +63,7 @@ export const NotificationWidget: React.FC = () => {
     };
   }, []);
 
-  const { isInactive, activeDanceIndex } = useInactivityTimer(15000);
+  const { isInactive, activeDanceIndex } = useInactivityTimer(5000);
   const danceRoutines: MascotAnimation[] = ['dance_1', 'dance_2', 'dance_3'];
   const currentDance = danceRoutines[activeDanceIndex] || 'dance_1';
   const mascotAnimation: MascotAnimation = isOpen ? 'idle' : (isInactive ? currentDance : 'idle');

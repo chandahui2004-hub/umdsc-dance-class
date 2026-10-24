@@ -13,15 +13,15 @@ describe('useInactivityTimer', () => {
   });
 
   it('initializes in active state (isInactive: false)', () => {
-    const { result } = renderHook(() => useInactivityTimer(15000));
+    const { result } = renderHook(() => useInactivityTimer());
     expect(result.current.isInactive).toBe(false);
   });
 
   it('triggers inactivity and picks random dance after timeout', () => {
-    const { result } = renderHook(() => useInactivityTimer(15000));
+    const { result } = renderHook(() => useInactivityTimer());
 
     act(() => {
-      vi.advanceTimersByTime(14999);
+      vi.advanceTimersByTime(4999);
     });
     expect(result.current.isInactive).toBe(false);
 
@@ -33,10 +33,10 @@ describe('useInactivityTimer', () => {
   });
 
   it('resets to active when pointermove or keydown occurs', () => {
-    const { result } = renderHook(() => useInactivityTimer(15000));
+    const { result } = renderHook(() => useInactivityTimer());
 
     act(() => {
-      vi.advanceTimersByTime(15000);
+      vi.advanceTimersByTime(5000);
     });
     expect(result.current.isInactive).toBe(true);
 
@@ -48,7 +48,7 @@ describe('useInactivityTimer', () => {
 
   it('cleans up event listeners on unmount', () => {
     const removeListenerSpy = vi.spyOn(window, 'removeEventListener');
-    const { unmount } = renderHook(() => useInactivityTimer(15000));
+    const { unmount } = renderHook(() => useInactivityTimer());
     unmount();
     expect(removeListenerSpy).toHaveBeenCalledWith('pointermove', expect.any(Function));
     expect(removeListenerSpy).toHaveBeenCalledWith('keydown', expect.any(Function));
@@ -57,10 +57,10 @@ describe('useInactivityTimer', () => {
   });
 
   it('allows manual resetTimer', () => {
-    const { result } = renderHook(() => useInactivityTimer(15000));
+    const { result } = renderHook(() => useInactivityTimer());
 
     act(() => {
-      vi.advanceTimersByTime(15000);
+      vi.advanceTimersByTime(5000);
     });
     expect(result.current.isInactive).toBe(true);
 
