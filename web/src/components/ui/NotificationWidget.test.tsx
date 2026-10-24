@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NotificationWidget } from './NotificationWidget';
-import type { EventListItem, Member, DancerBootstrap } from '@umdsc/shared';
+import type { EventListItem, Member, DancerBootstrap, AdminBootstrap } from '@umdsc/shared';
 
 const mockCall = vi.fn();
 vi.mock('../../lib/api', () => ({
@@ -193,13 +193,26 @@ const mockDancerBootstrap: DancerBootstrap = {
   sections: []
 };
 
+const mockAdminBootstrap: AdminBootstrap = {
+  profile: { username: 'admin', displayName: 'Admin', perms: {} as any },
+  styles: mockDancerBootstrap.styles,
+  instructors: mockDancerBootstrap.instructors,
+  sessions: mockDancerBootstrap.sessions,
+  events: mockEvents as any,
+  videos: [],
+  music: [],
+  sections: [],
+  settings: {},
+  roles: []
+};
+
 vi.mock('../../features/events/useCurrentEvent', () => ({
   useEvents: () => ({ data: mockEvents, isLoading: false })
 }));
 
 vi.mock('../../features/auth/useBootstrap', () => ({
   useBootstrap: (role: string) => ({
-    data: role === 'dancer' ? mockDancerBootstrap : undefined,
+    data: role === 'dancer' ? mockDancerBootstrap : mockAdminBootstrap,
     isLoading: false
   })
 }));
@@ -271,7 +284,7 @@ describe('NotificationWidget Floating Center and Role Modes', () => {
     // Switch to Tab 2: SLOT PROGRESS
     const slotTab = screen.getByRole('tab', { name: /SLOT PROGRESS/i });
     fireEvent.click(slotTab);
-    expect(await screen.findByText('House Foundation · HOUSE')).toBeInTheDocument();
+    expect(await screen.findByText('House Foundation · House')).toBeInTheDocument();
     expect(screen.getByText(/Filled:\s*28/i)).toBeInTheDocument();
     expect(screen.getByText(/Capacity:\s*30/i)).toBeInTheDocument();
 
@@ -343,5 +356,17 @@ describe('NotificationWidget Floating Center and Role Modes', () => {
     // Expect container to update position styles
     expect(bellContainer.style.left).not.toBe('');
     expect(bellContainer.style.top).not.toBe('');
+  });
+
+  it('resolves raw style IDs to readable dance style names in Slot Progress tab', async () => {
+    mockRole = 'admin';
+    renderWidget();
+
+    fireEvent.click(screen.getByTestId('notification-bell-btn'));
+    const slotTab = screen.getByRole('tab', { name: /SLOT PROGRESS/i });
+    fireEvent.click(slotTab);
+
+    // Should display human-readable style name 'House', not raw 'st_house' or uppercase hash
+    expect(await screen.findByText('House Foundation · House')).toBeInTheDocument();
   });
 });

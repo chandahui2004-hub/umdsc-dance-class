@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { Member } from '@umdsc/shared';
+import type { Member, DanceStyle } from '@umdsc/shared';
 import { call } from '../../lib/api';
 import { session } from '../../lib/session';
 import { useEvents } from '../../features/events/useCurrentEvent';
@@ -182,6 +182,35 @@ export const NotificationWidget: React.FC = () => {
     );
   }, [recentDancers, dancerSearch]);
 
+  // Admin Bootstrap and Styles
+  const { data: adminBootstrap } = useBootstrap('admin');
+
+  const { data: stylesList = [] } = useQuery<DanceStyle[]>({
+    queryKey: ['styles'],
+    enabled: isOpen && isAdmin && !adminBootstrap?.styles?.length,
+    queryFn: async () => {
+      try {
+        const res = await call<DanceStyle[]>('styles.list');
+        return res.data || [];
+      } catch {
+        return [];
+      }
+    }
+  });
+
+  const adminStylesMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (adminBootstrap?.styles) {
+      for (const s of adminBootstrap.styles) {
+        if (s.id && s.name) map.set(s.id, s.name);
+      }
+    }
+    for (const s of stylesList) {
+      if (s.id && s.name) map.set(s.id, s.name);
+    }
+    return map;
+  }, [adminBootstrap?.styles, stylesList]);
+
   // Admin Slot Progress
   const slotProgressList = useMemo(() => {
     if (!isAdmin) return [];
@@ -226,11 +255,14 @@ export const NotificationWidget: React.FC = () => {
         const percentage = capacity > 0 ? Math.min(100, Math.round((filled / capacity) * 100)) : 0;
         const isFull = capacity > 0 && filled >= capacity;
 
+        const styleName =
+          adminStylesMap.get(styleId) || styleId.replace(/^sty_|^st_/, '').toUpperCase();
+
         list.push({
           eventId: ev.id,
           eventName: ev.name,
           styleId,
-          styleName: styleId.replace(/^sty_|^st_/, '').toUpperCase(),
+          styleName,
           filled,
           capacity,
           percentage,
@@ -240,7 +272,7 @@ export const NotificationWidget: React.FC = () => {
       }
     }
     return list;
-  }, [activeEvents, allMembers, isAdmin]);
+  }, [activeEvents, allMembers, isAdmin, adminStylesMap]);
 
   // Admin System Alerts
   const systemAlerts = useMemo(() => {
