@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NotificationWidget } from './NotificationWidget';
 import type { EventListItem, Member, DancerBootstrap, AdminBootstrap } from '@umdsc/shared';
@@ -369,4 +369,37 @@ describe('NotificationWidget Floating Center and Role Modes', () => {
     // Should display human-readable style name 'House', not raw 'st_house' or uppercase hash
     expect(await screen.findByText('House Foundation · House')).toBeInTheDocument();
   });
+
+  it('renders MascotAvatar inside the floating notification button with idle animation by default', () => {
+    renderWidget();
+
+    const mascot = screen.getByTestId('mascot-avatar');
+    expect(mascot).toBeInTheDocument();
+    expect(mascot).toHaveAttribute('data-animation', 'idle');
+  });
+
+  it('switches mascot to dance animation on inactivity and reverts to idle on activity', () => {
+    vi.useFakeTimers();
+    try {
+      renderWidget();
+      const mascot = screen.getByTestId('mascot-avatar');
+      expect(mascot).toHaveAttribute('data-animation', 'idle');
+
+      // Fast forward past 15 seconds
+      act(() => {
+        vi.advanceTimersByTime(15000);
+      });
+      const danceAnim = mascot.getAttribute('data-animation');
+      expect(['dance_1', 'dance_2', 'dance_3']).toContain(danceAnim);
+
+      // User moves mouse: immediately resets to idle
+      act(() => {
+        fireEvent.pointerMove(window);
+      });
+      expect(mascot).toHaveAttribute('data-animation', 'idle');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
+

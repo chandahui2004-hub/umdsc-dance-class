@@ -7,6 +7,8 @@ import { useEvents } from '../../features/events/useCurrentEvent';
 import { useBootstrap } from '../../features/auth/useBootstrap';
 import { PixelButton } from './PixelButton';
 import { openInDriveUrl, previewUrl } from '../../lib/google/driveUrls';
+import { MascotAvatar, type MascotAnimation } from './MascotAvatar';
+import { useInactivityTimer } from '../../hooks/useInactivityTimer';
 
 type AdminTabKey = 'new_dancers' | 'slot_progress' | 'system_audit';
 type DancerTabKey = 'my_classes' | 'upcoming' | 'practice';
@@ -46,11 +48,17 @@ export const NotificationWidget: React.FC = () => {
     });
   };
 
-  // Movable Floating Button State
+  // Movable Floating Button State & Mascot Animation
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
+  const [isDraggingState, setIsDraggingState] = useState(false);
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef<{ startX: number; startY: number; initialX: number; initialY: number } | null>(null);
   const bellContainerRef = useRef<HTMLDivElement | null>(null);
+
+  const { isInactive, activeDanceIndex } = useInactivityTimer(15000);
+  const danceRoutines: MascotAnimation[] = ['dance_1', 'dance_2', 'dance_3'];
+  const currentDance = danceRoutines[activeDanceIndex] || 'dance_1';
+  const mascotAnimation: MascotAnimation = isOpen ? 'idle' : (isInactive ? currentDance : 'idle');
 
   const startDrag = (clientX: number, clientY: number, button = 0) => {
     if (button !== 0) return;
@@ -73,11 +81,12 @@ export const NotificationWidget: React.FC = () => {
 
       if (Math.hypot(deltaX, deltaY) > 4) {
         isDraggingRef.current = true;
+        setIsDraggingState(true);
       }
 
       if (isDraggingRef.current) {
-        const buttonWidth = 48;
-        const buttonHeight = 48;
+        const buttonWidth = 64;
+        const buttonHeight = 86;
         const margin = 8;
         const maxX = (window.innerWidth || 500) - buttonWidth - margin;
         const maxY = (window.innerHeight || 800) - buttonHeight - margin;
@@ -99,6 +108,7 @@ export const NotificationWidget: React.FC = () => {
       dragStartRef.current = null;
       setTimeout(() => {
         isDraggingRef.current = false;
+        setIsDraggingState(false);
       }, 50);
     };
 
@@ -512,7 +522,7 @@ export const NotificationWidget: React.FC = () => {
 
   return (
     <>
-      {/* Floating Retro Bell Button (Movable) */}
+      {/* Floating Retro Mascot Button (Movable) */}
       <div
         data-testid="notification-bell-container"
         ref={bellContainerRef}
@@ -531,24 +541,14 @@ export const NotificationWidget: React.FC = () => {
           onClick={() => {
             if (!isDraggingRef.current) setIsOpen(v => !v);
           }}
-          className={`relative w-12 h-12 flex items-center justify-center border-4 border-[var(--outline)] shadow-[4px_4px_0_var(--outline)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0_var(--outline)] transition-transform cursor-grab active:cursor-grabbing ${
-            hasErrors
-              ? 'bg-[var(--neon-red)] text-white animate-pulse'
-              : 'bg-[var(--neon-gold)] text-[var(--on-neon)] hover:scale-105'
-          }`}
+          className="relative bg-transparent border-none p-0 outline-none select-none touch-none active:translate-x-[2px] active:translate-y-[2px]"
         >
-          <span className="text-xl select-none">🔔</span>
-          {alertCount > 0 && (
-            <span
-              className={`absolute -top-2 -right-2 px-1.5 py-0.2 border-2 border-[var(--outline)] font-display text-[11px] font-bold shadow-[1px_1px_0_var(--outline)] ${
-                hasErrors
-                  ? 'bg-[var(--neon-red)] text-white'
-                  : 'bg-[var(--neon-cyan)] text-[var(--on-neon)]'
-              }`}
-            >
-              {alertCount > 99 ? '99+' : alertCount}
-            </span>
-          )}
+          <MascotAvatar
+            animation={mascotAnimation}
+            alertCount={alertCount}
+            hasErrors={hasErrors}
+            isDragging={isDraggingState}
+          />
         </button>
       </div>
 
