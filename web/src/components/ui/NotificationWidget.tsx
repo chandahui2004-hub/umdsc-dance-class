@@ -182,34 +182,90 @@ export const NotificationWidget: React.FC = () => {
     );
   }, [recentDancers, dancerSearch]);
 
-  // Admin Bootstrap and Styles
+  // Bootstrap data and Styles
   const { data: adminBootstrap } = useBootstrap('admin');
+  const { data: dancerBootstrap } = useBootstrap('dancer');
 
   const { data: stylesList = [] } = useQuery<DanceStyle[]>({
     queryKey: ['styles'],
-    enabled: isOpen && isAdmin && !adminBootstrap?.styles?.length,
     queryFn: async () => {
       try {
         const res = await call<DanceStyle[]>('styles.list');
-        return res.data || [];
+        return Array.isArray(res.data) ? res.data : [];
       } catch {
         return [];
       }
     }
   });
 
+  // Comprehensive Style Name Map with multiple resolution paths
   const adminStylesMap = useMemo(() => {
     const map = new Map<string, string>();
+
+    const register = (id: string | undefined | null, name: string | undefined | null) => {
+      if (!id || !name || !name.trim()) return;
+      const cleanName = name.trim();
+      const raw = id.trim();
+      const stripped = raw.replace(/^sty_|^st_/, '');
+      map.set(raw, cleanName);
+      map.set(raw.toLowerCase(), cleanName);
+      map.set(raw.toUpperCase(), cleanName);
+      map.set(stripped, cleanName);
+      map.set(stripped.toLowerCase(), cleanName);
+      map.set(stripped.toUpperCase(), cleanName);
+      map.set(`sty_${stripped.toLowerCase()}`, cleanName);
+      map.set(`st_${stripped.toLowerCase()}`, cleanName);
+    };
+
+    // 1. From adminBootstrap styles
     if (adminBootstrap?.styles) {
       for (const s of adminBootstrap.styles) {
-        if (s.id && s.name) map.set(s.id, s.name);
+        register(s.id, s.name);
       }
     }
-    for (const s of stylesList) {
-      if (s.id && s.name) map.set(s.id, s.name);
+
+    // 2. From dancerBootstrap styles
+    if (dancerBootstrap?.styles) {
+      for (const s of dancerBootstrap.styles) {
+        register(s.id, s.name);
+      }
     }
+
+    // 3. From live styles.list query
+    for (const s of stylesList) {
+      register(s.id, s.name);
+    }
+
+    // 4. From active events styleFormLabels
+    for (const ev of activeEvents) {
+      let labels: Record<string, string> = {};
+      if (ev.styleFormLabels && typeof ev.styleFormLabels === 'object') {
+        labels = ev.styleFormLabels;
+      } else if (ev.styleFormLabelsJson) {
+        try {
+          labels = JSON.parse(ev.styleFormLabelsJson);
+        } catch {
+          labels = {};
+        }
+      }
+      for (const [sId, label] of Object.entries(labels)) {
+        register(sId, label);
+      }
+    }
+
+    // 5. From member registrations (members have styleIds and corresponding styleNames)
+    for (const m of allMembers) {
+      if (Array.isArray(m.styleIds) && Array.isArray(m.styleNames)) {
+        m.styleIds.forEach((sId, idx) => {
+          if (m.styleNames[idx]) {
+            register(sId, m.styleNames[idx]);
+          }
+        });
+      }
+    }
+
     return map;
-  }, [adminBootstrap?.styles, stylesList]);
+  }, [adminBootstrap?.styles, dancerBootstrap?.styles, stylesList, activeEvents, allMembers]);
 
   // Admin Slot Progress
   const slotProgressList = useMemo(() => {
@@ -255,8 +311,23 @@ export const NotificationWidget: React.FC = () => {
         const percentage = capacity > 0 ? Math.min(100, Math.round((filled / capacity) * 100)) : 0;
         const isFull = capacity > 0 && filled >= capacity;
 
-        const styleName =
-          adminStylesMap.get(styleId) || styleId.replace(/^sty_|^st_/, '').toUpperCase();
+        // Multi-tier style name resolution:
+        // 1) Direct lookup in comprehensive map
+        // 2) Stripped prefix lookup
+        // 3) If single style event, fall back to event name
+        // 4) Ultimate fallback to formatted ID
+        let styleName =
+          adminStylesMap.get(styleId) ||
+          adminStylesMap.get(styleId.replace(/^sty_|^st_/, '')) ||
+          '';
+
+        if (!styleName && isSingleStyle) {
+          styleName = ev.name;
+        }
+
+        if (!styleName) {
+          styleName = styleId.replace(/^sty_|^st_/, '').toUpperCase();
+        }
 
         list.push({
           eventId: ev.id,
@@ -300,8 +371,7 @@ export const NotificationWidget: React.FC = () => {
     return alerts.filter(a => !dismissedAlertIds.has(a.id));
   }, [activeEvents, dismissedAlertIds, isAdmin]);
 
-  // --- Dancer Data via useBootstrap('dancer') ---
-  const { data: dancerBootstrap } = useBootstrap('dancer');
+  // --- Dancer Enrolled Events & Maps ---
 
   const dancerEnrolledEvents = useMemo(() => {
     if (!isDancer || !dancerBootstrap) return [];
@@ -993,7 +1063,9 @@ export const NotificationWidget: React.FC = () => {
                         <div className="flex items-center justify-between gap-2">
                           <div>
                             <span className="font-display text-xs text-[var(--text-1)] font-bold block">
-                              {slot.eventName} · {slot.styleName}
+                              {slot.isSingleStyle && (slot.eventName.trim().toLowerCase() === slot.styleName.trim().toLowerCase() || !slot.styleName)
+                                ? slot.eventName
+                                : `${slot.eventName} · ${slot.styleName}`}
                             </span>
                             <span className="font-mono text-[10px] text-[var(--text-3)]">
                               Capacity: {slot.capacity > 0 ? slot.capacity : 'Unlimited'}
