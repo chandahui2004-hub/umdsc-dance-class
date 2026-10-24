@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export interface InactivityState {
   isInactive: boolean;
@@ -6,78 +6,92 @@ export interface InactivityState {
   resetTimer: () => void;
 }
 
-const ACTIVITY_EVENTS: (keyof WindowEventMap)[] = [
-  'pointermove',
-  'pointerdown',
-  'keydown',
-  'touchstart',
-  'scroll'
-];
+// Module-level persistent state so route changes & modal opens don't interrupt the countdown or dancing
+type Listener = () => void;
+const listeners = new Set<Listener>();
+
+let isDancing = false;
+let currentDanceIndex: 0 | 1 | 2 = 0;
+let countdownTimer: ReturnType<typeof setTimeout> | null = null;
+let danceCycleInterval: ReturnType<typeof setInterval> | null = null;
+
+function notify() {
+  listeners.forEach(fn => fn());
+}
+
+function startDancing() {
+  if (isDancing) return;
+  isDancing = true;
+  currentDanceIndex = 0;
+  notify();
+
+  if (danceCycleInterval) clearInterval(danceCycleInterval);
+  // Sequentially cycle: Dance 1 -> Dance 2 -> Dance 3 -> Dance 1 every 2.5s (2.5 loops of 8-fps routine)
+  danceCycleInterval = setInterval(() => {
+    if (isDancing) {
+      currentDanceIndex = ((currentDanceIndex + 1) % 3) as 0 | 1 | 2;
+      notify();
+    }
+  }, 2500);
+}
+
+export function resetMascotToIdle(timeoutMs = 5000) {
+  isDancing = false;
+  if (danceCycleInterval) {
+    clearInterval(danceCycleInterval);
+    danceCycleInterval = null;
+  }
+  if (countdownTimer) {
+    clearTimeout(countdownTimer);
+    countdownTimer = null;
+  }
+  notify();
+
+  countdownTimer = setTimeout(() => {
+    startDancing();
+  }, timeoutMs);
+}
+
+// Testing helper to reset internal timers completely
+export function _resetInternalStateForTesting() {
+  isDancing = false;
+  currentDanceIndex = 0;
+  if (danceCycleInterval) {
+    clearInterval(danceCycleInterval);
+    danceCycleInterval = null;
+  }
+  if (countdownTimer) {
+    clearTimeout(countdownTimer);
+    countdownTimer = null;
+  }
+  listeners.clear();
+}
+
+// Initialize initial countdown if not already running
+if (!countdownTimer && !isDancing) {
+  countdownTimer = setTimeout(() => {
+    startDancing();
+  }, 5000);
+}
 
 export function useInactivityTimer(timeoutMs = 5000): InactivityState {
-  const [isInactive, setIsInactive] = useState(false);
-  const [activeDanceIndex, setActiveDanceIndex] = useState<0 | 1 | 2>(0);
+  const [, setTick] = useState(0);
 
-  const isInactiveRef = useRef(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const danceIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const clearTimers = useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-    if (danceIntervalRef.current) {
-      clearInterval(danceIntervalRef.current);
-      danceIntervalRef.current = null;
-    }
+  useEffect(() => {
+    const onStateChange = () => setTick(t => t + 1);
+    listeners.add(onStateChange);
+    return () => {
+      listeners.delete(onStateChange);
+    };
   }, []);
 
   const resetTimer = useCallback(() => {
-    clearTimers();
-
-    if (isInactiveRef.current) {
-      isInactiveRef.current = false;
-      setIsInactive(false);
-    }
-
-    timerRef.current = setTimeout(() => {
-      isInactiveRef.current = true;
-      setIsInactive(true);
-      const nextDance = Math.floor(Math.random() * 3) as 0 | 1 | 2;
-      setActiveDanceIndex(nextDance);
-
-      // Periodically rotate dances while user remains waiting
-      danceIntervalRef.current = setInterval(() => {
-        if (isInactiveRef.current) {
-          setActiveDanceIndex(prev => ((prev + 1) % 3) as 0 | 1 | 2);
-        }
-      }, 4000);
-    }, timeoutMs);
-  }, [timeoutMs, clearTimers]);
-
-  useEffect(() => {
-    resetTimer();
-
-    const handleActivity = () => {
-      resetTimer();
-    };
-
-    ACTIVITY_EVENTS.forEach(event => {
-      window.addEventListener(event, handleActivity, { passive: true });
-    });
-
-    return () => {
-      clearTimers();
-      ACTIVITY_EVENTS.forEach(event => {
-        window.removeEventListener(event, handleActivity);
-      });
-    };
-  }, [resetTimer, clearTimers]);
+    resetMascotToIdle(timeoutMs);
+  }, [timeoutMs]);
 
   return {
-    isInactive,
-    activeDanceIndex,
+    isInactive: isDancing,
+    activeDanceIndex: currentDanceIndex,
     resetTimer
   };
 }

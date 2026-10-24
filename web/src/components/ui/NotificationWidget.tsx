@@ -62,11 +62,10 @@ export const NotificationWidget: React.FC = () => {
       }
     };
   }, []);
-
-  const { isInactive, activeDanceIndex } = useInactivityTimer(5000);
+  const { isInactive, activeDanceIndex, resetTimer } = useInactivityTimer(5000);
   const danceRoutines: MascotAnimation[] = ['dance_1', 'dance_2', 'dance_3'];
   const currentDance = danceRoutines[activeDanceIndex] || 'dance_1';
-  const mascotAnimation: MascotAnimation = isOpen ? 'idle' : (isInactive ? currentDance : 'idle');
+  const mascotAnimation: MascotAnimation = isInactive ? currentDance : 'idle';
 
   const startDrag = (clientX: number, clientY: number, button = 0) => {
     if (button !== 0) return;
@@ -550,7 +549,10 @@ export const NotificationWidget: React.FC = () => {
           onMouseDown={(e) => startDrag(e.clientX, e.clientY, e.button)}
           onTouchStart={(e) => e.touches[0] && startDrag(e.touches[0].clientX, e.touches[0].clientY, 0)}
           onClick={() => {
-            if (!isDraggingRef.current) setIsOpen(v => !v);
+            if (!isDraggingRef.current) {
+              resetTimer();
+              setIsOpen(v => !v);
+            }
           }}
           className="relative bg-transparent border-none p-0 outline-none select-none touch-none active:translate-x-[2px] active:translate-y-[2px]"
         >

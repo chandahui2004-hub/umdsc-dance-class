@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NotificationWidget } from './NotificationWidget';
+import { _resetInternalStateForTesting, resetMascotToIdle } from '../../hooks/useInactivityTimer';
 import type { EventListItem, Member, DancerBootstrap, AdminBootstrap } from '@umdsc/shared';
 
 const mockCall = vi.fn();
@@ -231,6 +232,7 @@ function renderWidget() {
 describe('NotificationWidget Floating Center and Role Modes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    _resetInternalStateForTesting();
     mockRole = 'admin';
     mockCall.mockImplementation((action: string) => {
       if (action === 'members.list') {
@@ -244,6 +246,7 @@ describe('NotificationWidget Floating Center and Role Modes', () => {
 
   afterEach(() => {
     cleanup();
+    _resetInternalStateForTesting();
   });
 
   it('renders floating bell button and toggles admin retro side drawer', () => {
@@ -378,23 +381,44 @@ describe('NotificationWidget Floating Center and Role Modes', () => {
     expect(mascot).toHaveAttribute('data-animation', 'idle');
   });
 
-  it('switches mascot to dance animation on inactivity and reverts to idle on activity', () => {
+  it('switches mascot to dance animation after 5s inactivity, cycles dances sequentially, ignores mousemove, and reverts to idle only on mascot click', () => {
     vi.useFakeTimers();
     try {
+      _resetInternalStateForTesting();
+      resetMascotToIdle(5000);
       renderWidget();
       const mascot = screen.getByTestId('mascot-avatar');
+      const bellBtn = screen.getByTestId('notification-bell-btn');
       expect(mascot).toHaveAttribute('data-animation', 'idle');
 
-      // Fast forward past 5 seconds
+      // Fast forward 5 seconds of inactivity -> starts dance_1
       act(() => {
         vi.advanceTimersByTime(5000);
       });
-      const danceAnim = mascot.getAttribute('data-animation');
-      expect(['dance_1', 'dance_2', 'dance_3']).toContain(danceAnim);
+      expect(mascot).toHaveAttribute('data-animation', 'dance_1');
 
-      // User moves mouse: immediately resets to idle
+      // After 2.5s -> rotates to dance_2
+      act(() => {
+        vi.advanceTimersByTime(2500);
+      });
+      expect(mascot).toHaveAttribute('data-animation', 'dance_2');
+
+      // After 2.5s -> rotates to dance_3
+      act(() => {
+        vi.advanceTimersByTime(2500);
+      });
+      expect(mascot).toHaveAttribute('data-animation', 'dance_3');
+
+      // Arbitrary user interactions (mousemove, scroll) must NOT stop dancing
       act(() => {
         fireEvent.pointerMove(window);
+        fireEvent.scroll(window);
+      });
+      expect(mascot).toHaveAttribute('data-animation', 'dance_3');
+
+      // ONLY clicking on the mascot returns it back to idle mode
+      act(() => {
+        fireEvent.click(bellBtn);
       });
       expect(mascot).toHaveAttribute('data-animation', 'idle');
     } finally {
