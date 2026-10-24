@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { Member, DanceStyle } from '@umdsc/shared';
 import { call } from '../../lib/api';
@@ -48,12 +48,20 @@ export const NotificationWidget: React.FC = () => {
     });
   };
 
-  // Movable Floating Button State & Mascot Animation
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const [isDraggingState, setIsDraggingState] = useState(false);
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef<{ startX: number; startY: number; initialX: number; initialY: number } | null>(null);
+  const dragEndTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bellContainerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (dragEndTimeoutRef.current) {
+        clearTimeout(dragEndTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const { isInactive, activeDanceIndex } = useInactivityTimer(15000);
   const danceRoutines: MascotAnimation[] = ['dance_1', 'dance_2', 'dance_3'];
@@ -106,7 +114,10 @@ export const NotificationWidget: React.FC = () => {
       window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('touchend', onTouchEnd);
       dragStartRef.current = null;
-      setTimeout(() => {
+      if (dragEndTimeoutRef.current) {
+        clearTimeout(dragEndTimeoutRef.current);
+      }
+      dragEndTimeoutRef.current = setTimeout(() => {
         isDraggingRef.current = false;
         setIsDraggingState(false);
       }, 50);
