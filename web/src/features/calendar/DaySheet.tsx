@@ -136,6 +136,7 @@ export const DaySheet: React.FC<DaySheetProps> = ({
   return (
     <div
       role="dialog"
+      data-testid="day-sheet"
       aria-modal={!isQuarterMode}
       className={`fixed inset-0 z-[var(--z-overlay)] flex items-end sm:items-stretch sm:justify-end ${
         isQuarterMode ? 'pointer-events-none' : 'pointer-events-auto'

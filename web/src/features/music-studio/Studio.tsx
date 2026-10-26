@@ -252,7 +252,7 @@ export const Studio: React.FC = () => {
   }, [selectedVideoId, localVideoFile, activeDanceVideo]);
 
   return (
-    <div className="dancecue-root w-full">
+    <div data-testid="studio-container" className="dancecue-root w-full">
       {isFullscreen && (
         <FullscreenStudio
           master={player.master}
