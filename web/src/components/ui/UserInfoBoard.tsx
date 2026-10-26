@@ -164,7 +164,7 @@ export const UserInfoBoard: React.FC<UserInfoBoardProps> = ({
           ) : (
             <DancerFigureIcon className="w-3.5 h-3.5" />
           )}
-          <span>{isAdmin ? 'ADMIN' : 'DANCER'}</span>
+          <span>{(claims?.roleName || (isAdmin ? 'ADMIN' : 'DANCER')).toUpperCase()}</span>
         </span>
       </div>
 

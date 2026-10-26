@@ -57,7 +57,7 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
                     : 'bg-[var(--night-0)] text-[var(--neon-cyan)] border-[var(--neon-cyan)]'
                 }`}
               >
-                {isAdmin ? 'ADMIN' : 'DANCER'}
+                {claims?.roleName?.toUpperCase() || (isAdmin ? 'ADMIN' : 'DANCER')}
               </span>
             </div>
 

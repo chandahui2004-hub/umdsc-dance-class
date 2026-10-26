@@ -56,10 +56,15 @@ export function getAuthRoutes(): Record<string, Route> {
         const pv = Number(ctx.props.get('PERM_VERSION') || 1);
         const exp = Math.floor(ctx.now().getTime() / 1000) + 12 * 3600;
 
+        const roleInfo = directory.roles?.[admin.roleId] || ctx.db.roles.find(r => r.id === admin.roleId && r.active)[0];
+        const roleName = roleInfo?.name || 'Admin';
+
         const claims: TokenClaims = {
           sub: admin.username,
           role: 'admin',
           name: admin.displayName,
+          roleName,
+          roleId: admin.roleId,
           exp,
           pv,
           perms
@@ -147,6 +152,8 @@ export function getAuthRoutes(): Record<string, Route> {
           sub,
           role: 'dancer',
           name: dancer.fullName,
+          roleName: 'Dancer',
+          roleId: dancerRole.id,
           exp,
           pv,
           perms

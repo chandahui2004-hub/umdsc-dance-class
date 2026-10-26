@@ -83,7 +83,7 @@ export interface MusicItem extends RowMeta { styleId: string; eventId: string; s
 export interface Section extends RowMeta { musicId: string; name: string; startSec: number; endSec: number; videoId: string; videoStartSec: number|null }
 export interface Role extends RowMeta { name: string; description: string; loginType: 'admin'|'dancer'; isSystem: boolean; permissions: PermissionCode[] }
 export interface AdminUser extends RowMeta { username: string; displayName: string; roleId: string }
-export interface TokenClaims { sub: string; role: 'admin'|'dancer'; name: string; exp: number; pv: number; perms: PermMap }
+export interface TokenClaims { sub: string; role: 'admin'|'dancer'; name: string; roleName?: string; roleId?: string; exp: number; pv: number; perms: PermMap }
 export interface DancerBootstrap { profile: { matricKey: string; fullName: string; eventIds: string[]; perms: PermMap };
   events: EventSummary[]; styles: DanceStyle[]; instructors: Instructor[]; sessions: ClassSession[]; attendance: { sessionId: string; present: boolean }[];
   videos: VideoItem[]; music: MusicItem[]; sections: Section[] }

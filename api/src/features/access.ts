@@ -16,6 +16,32 @@ function generateSalt(): string {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
+export function ensureClassRepRole(ctx: any): any {
+  let cr = ctx.db.roles.find((r: any) => (r.id === 'role_class_rep' || r.name === 'Class Rep') && r.active)[0];
+  if (!cr) {
+    cr = ctx.db.roles.insert(
+      {
+        id: 'role_class_rep',
+        name: 'Class Rep',
+        description: 'Attendance Taker & Sheet Export',
+        loginType: 'admin',
+        isSystem: true
+      },
+      'system',
+      ctx.now()
+    );
+    const crPerms = ['attendance.view.all', 'attendance.edit', 'export.download'] as const;
+    for (const code of crPerms) {
+      ctx.db.rolePermissions.insert(
+        { roleId: cr.id, permission: code },
+        'system',
+        ctx.now()
+      );
+    }
+  }
+  return cr;
+}
+
 export function getAccessRoutes(): Record<string, Route> {
   return {
     'admins.list': {
@@ -185,6 +211,7 @@ export function getAccessRoutes(): Record<string, Route> {
       perm: 'roles.manage',
       write: false,
       handler: (ctx) => {
+        ensureClassRepRole(ctx);
         const roles = ctx.db.roles.find(r => r.active);
         const permsList = ctx.db.rolePermissions.find(rp => rp.active);
 

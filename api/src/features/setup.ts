@@ -85,6 +85,18 @@ export function getSetupRoutes(): Record<string, Route> {
           now
         );
 
+        const classRepRole = db.roles.insert(
+          {
+            id: 'role_class_rep',
+            name: 'Class Rep',
+            description: 'Attendance Taker & Sheet Export',
+            loginType: 'admin',
+            isSystem: true
+          },
+          'setup',
+          now
+        );
+
         const dancerRole = db.roles.insert(
           {
             name: 'Dancer',
@@ -100,6 +112,20 @@ export function getSetupRoutes(): Record<string, Route> {
         for (const p of PERMISSIONS) {
           db.rolePermissions.insert(
             { roleId: adminRole.id, permission: p.code },
+            'setup',
+            now
+          );
+        }
+
+        const classRepDefaultPerms = [
+          'attendance.view.all',
+          'attendance.edit',
+          'export.download'
+        ] as const;
+
+        for (const code of classRepDefaultPerms) {
+          db.rolePermissions.insert(
+            { roleId: classRepRole.id, permission: code },
             'setup',
             now
           );
@@ -242,6 +268,22 @@ export function getSetupRoutes(): Record<string, Route> {
             salt,
             iterations: PASSWORD_ITERATIONS,
             roleId: adminRole.id
+          },
+          'setup',
+          now
+        );
+
+        const crSalt = newId('salt');
+        const crPasswordHash = hashPassword('ClassRep123!', crSalt, PASSWORD_ITERATIONS, hmac);
+
+        db.admins.insert(
+          {
+            username: 'classrep',
+            displayName: 'Class Rep',
+            passwordHash: crPasswordHash,
+            salt: crSalt,
+            iterations: PASSWORD_ITERATIONS,
+            roleId: classRepRole.id
           },
           'setup',
           now

@@ -22,7 +22,32 @@ export async function loginAsAdmin(page: Page): Promise<void> {
             'members.import': '*', 'members.view': '*', 'styles.edit': '*', 'settings.edit': '*',
             'sessions.edit': '*', 'calendar.view': '*', 'attendance.edit': '*', 'attendance.view.all': '*',
             'export.download': '*', 'videos.upload': '*', 'videos.edit': '*', 'videos.view': '*',
-            'music.edit': '*', 'music.view': '*'
+            'music.edit': '*', 'music.view': '*', 'roles.manage': '*', 'admins.manage': '*'
+          }
+        }
+      })
+    );
+  });
+}
+
+/** Logs in as a class rep with attendance view, edit and export permissions only. */
+export async function loginAsClassRep(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'umdsc:session',
+      JSON.stringify({
+        token: 'classrep-tok',
+        claims: {
+          sub: 'classrep',
+          role: 'admin',
+          roleName: 'Class Rep',
+          name: 'Class Rep',
+          exp: Math.floor(Date.now() / 1000) + 36000,
+          pv: 1,
+          perms: {
+            'attendance.view.all': '*',
+            'attendance.edit': '*',
+            'export.download': '*'
           }
         }
       })

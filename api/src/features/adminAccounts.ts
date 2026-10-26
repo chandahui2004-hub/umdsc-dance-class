@@ -20,6 +20,7 @@ export interface LoginAccount {
 interface LoginDirectory {
   admins: LoginAccount[];
   rolePerms: Record<string, PermissionCode[]>;
+  roles?: Record<string, { name: string; loginType: string }>;
 }
 
 const SIX_HOURS = 6 * 3600;
@@ -42,7 +43,11 @@ function readDirectory(ctx: Ctx): LoginDirectory {
   for (const rp of ctx.db.rolePermissions.find(rp => rp.active && roleIds.has(rp.roleId))) {
     (rolePerms[rp.roleId] ||= []).push(rp.permission);
   }
-  return { admins, rolePerms };
+  const roles: Record<string, { name: string; loginType: string }> = {};
+  for (const r of ctx.db.roles.find(r => r.active && roleIds.has(r.id))) {
+    roles[r.id] = { name: r.name, loginType: r.loginType };
+  }
+  return { admins, rolePerms, roles };
 }
 
 export function loginDirectory(ctx: Ctx): LoginDirectory {

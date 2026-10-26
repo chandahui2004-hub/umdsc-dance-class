@@ -8,6 +8,7 @@ import { PixelButton } from '../../components/ui/PixelButton';
 import { Field } from '../../components/ui/Field';
 import { CityBackdrop } from '../../components/art/CityBackdrop';
 import { LogoBadge } from '../../components/ui/LogoBadge';
+import { canAccessRoute, getFirstPermittedAdminRoute } from '../../lib/permissions';
 import type { TokenClaims, AdminBootstrap } from '@umdsc/shared';
 
 interface AdminLoginResponse {
@@ -36,7 +37,11 @@ export const AdminLogin: React.FC = () => {
     const currentSession = session.get();
     if (currentSession && currentSession.claims?.role === 'admin' && !expired) {
       const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname;
-      navigate(from && from.startsWith('/admin') ? from : '/admin/calendar', { replace: true });
+      const target =
+        from && from.startsWith('/admin') && canAccessRoute(from, currentSession.claims?.perms)
+          ? from
+          : getFirstPermittedAdminRoute(currentSession.claims?.perms);
+      navigate(target, { replace: true });
     }
   }, [navigate, location, expired]);
 
@@ -71,7 +76,11 @@ export const AdminLogin: React.FC = () => {
 
       // Back to the page the admin was on (e.g. Attendance after an expired sign-in)
       const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname;
-      navigate(from && from.startsWith('/admin') ? from : '/admin/calendar', { replace: true });
+      const target =
+        from && from.startsWith('/admin') && canAccessRoute(from, claims?.perms)
+          ? from
+          : getFirstPermittedAdminRoute(claims?.perms);
+      navigate(target, { replace: true });
     } catch (err) {
       setError(errorMessage(err));
     } finally {

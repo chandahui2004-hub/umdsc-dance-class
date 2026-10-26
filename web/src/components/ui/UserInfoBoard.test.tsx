@@ -54,6 +54,28 @@ describe('UserInfoBoard', () => {
     expect(screen.getByTestId('user-matriks-display')).toHaveTextContent('STAFF (admin_boss)');
   });
 
+  it('renders custom role name (e.g. CLASS REP) when roleName is provided in claims', () => {
+    session.set('tok-classrep', {
+      sub: 'classrep_user',
+      role: 'admin',
+      roleName: 'Class Rep',
+      name: 'Class Representative',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      pv: 1,
+      perms: { 'attendance.view.all': '*', 'attendance.edit': '*' }
+    });
+
+    render(
+      <MemoryRouter>
+        <UserInfoBoard />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId('user-role-badge')).toHaveTextContent('CLASS REP');
+    expect(screen.getByTestId('user-name-display')).toHaveTextContent('Class Representative');
+    expect(screen.getByTestId('user-matriks-display')).toHaveTextContent('STAFF (classrep_user)');
+  });
+
   it('clicking sign out clears session', () => {
     session.set('tok-dancer', {
       sub: '17201234',

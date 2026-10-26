@@ -73,7 +73,7 @@ export function validateRolePermissions(
   perms: PermissionCode[]
 ): void {
   // Guard rail 1: Admin role must always keep roles.manage and admins.manage
-  if (role.name === 'Admin' || (role.isSystem && role.loginType === 'admin')) {
+  if (role.name === 'Admin') {
     if (!perms.includes('roles.manage') || !perms.includes('admins.manage')) {
       throw new AppError(
         'VALIDATION',

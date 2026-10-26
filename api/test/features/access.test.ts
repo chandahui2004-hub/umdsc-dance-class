@@ -251,4 +251,93 @@ describe('Feature: Access (Admins, Roles, Permissions, MemberRoles)', () => {
     expect(lastLog.action).toBe('roles.create');
     expect(lastLog.target).toBe('DJ');
   });
+
+  it('roles.list automatically provisions Class Rep system role with attendance and export permissions', () => {
+    const res = handleRequest(
+      {
+        action: 'roles.list',
+        token: adminToken
+      },
+      ctx,
+      secrets
+    );
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      const roles = res.data as any[];
+      const classRep = roles.find(r => r.name === 'Class Rep');
+      expect(classRep).toBeDefined();
+      expect(classRep.isSystem).toBe(true);
+      expect(classRep.loginType).toBe('admin');
+      expect(classRep.permissions).toContain('attendance.view.all');
+      expect(classRep.permissions).toContain('attendance.edit');
+      expect(classRep.permissions).toContain('export.download');
+    }
+  });
+
+  it('allows creating custom admin roles with custom permissions and assigning accounts', () => {
+    // 1. Create custom admin role
+    const createRoleRes = handleRequest(
+      {
+        action: 'roles.create',
+        token: adminToken,
+        payload: {
+          name: 'Media Specialist',
+          description: 'Manages videos and audio only',
+          loginType: 'admin'
+        }
+      },
+      ctx,
+      secrets
+    );
+    expect(createRoleRes.ok).toBe(true);
+    const roleId = (createRoleRes as any).data.id;
+
+    // Token with updated PERM_VERSION
+    const currentToken = () =>
+      signToken(
+        {
+          sub: 'superadmin',
+          role: 'admin',
+          name: 'Super Admin',
+          exp: Math.floor(ctx.now().getTime() / 1000) + 3600,
+          pv: Number(ctx.props.get('PERM_VERSION') || 1),
+          perms: { 'admins.manage': '*', 'roles.manage': '*' }
+        },
+        secrets.tokenSecret,
+        secrets.hmac
+      );
+
+    // 2. Set permissions for custom role
+    const setPermsRes = handleRequest(
+      {
+        action: 'roles.setPermissions',
+        token: currentToken(),
+        payload: {
+          roleId,
+          permissions: ['videos.view', 'videos.upload', 'music.view']
+        }
+      },
+      ctx,
+      secrets
+    );
+    expect(setPermsRes.ok).toBe(true);
+
+    // 3. Create admin user with this custom role
+    const createAdminRes = handleRequest(
+      {
+        action: 'admins.create',
+        token: currentToken(),
+        payload: {
+          username: 'mediapro',
+          displayName: 'Media Pro',
+          password: 'Password123!',
+          roleId
+        }
+      },
+      ctx,
+      secrets
+    );
+    expect(createAdminRes.ok).toBe(true);
+  });
 });

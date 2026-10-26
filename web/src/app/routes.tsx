@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useLayout } from './useLayout';
 import { PhoneShell } from './PhoneShell';
@@ -23,6 +23,13 @@ import { DancerHome } from '../features/calendar/DancerHome';
 import { MePage } from '../features/me/MePage';
 import { StudioPage } from '../features/music-studio/StudioPage';
 import { useEventAutoSync } from '../lib/useEventAutoSync';
+import { session } from '../lib/session';
+import {
+  canAccessRoute,
+  getFirstPermittedAdminRoute,
+  filterPermittedTabs,
+  filterPermittedMoreItems
+} from '../lib/permissions';
 
 import {
   PixelCalendarIcon as CalendarIcon,
@@ -86,11 +93,33 @@ export const ShellLayout: React.FC<{
   return <PhoneShell tabs={tabs} moreItems={moreItems} topBar={topBar}>{children}</PhoneShell>;
 };
 
-/** Admin shell: the 10-minute registration check. Pages that need an event show their own Step I picker. */
+const AdminRouteGuard: React.FC<{ path: string; children: React.ReactNode }> = ({ path, children }) => {
+  const currentSession = session.get();
+  const perms = currentSession?.claims?.perms;
+  if (!canAccessRoute(path, perms)) {
+    const fallback = getFirstPermittedAdminRoute(perms);
+    return <Navigate to={fallback} replace />;
+  }
+  return <>{children}</>;
+};
+
+const AdminWildcardRedirect: React.FC = () => {
+  const currentSession = session.get();
+  const perms = currentSession?.claims?.perms;
+  const fallback = getFirstPermittedAdminRoute(perms);
+  return <Navigate to={fallback} replace />;
+};
+
+/** Admin shell: dynamic permission-based tabs and 10-minute registration check. */
 const AdminShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   useEventAutoSync();
+  const currentSession = session.get();
+  const perms = currentSession?.claims?.perms;
+  const filteredTabs = useMemo(() => filterPermittedTabs(ADMIN_TABS, perms, ADMIN_MORE_ITEMS), [perms]);
+  const filteredMoreItems = useMemo(() => filterPermittedMoreItems(ADMIN_MORE_ITEMS, perms), [perms]);
+
   return (
-    <ShellLayout tabs={ADMIN_TABS} moreItems={ADMIN_MORE_ITEMS}>
+    <ShellLayout tabs={filteredTabs} moreItems={filteredMoreItems}>
       {children}
     </ShellLayout>
   );
@@ -112,21 +141,21 @@ export const AppRoutes: React.FC = () => {
           <RequireRole role="admin">
             <AdminShell>
               <Routes>
-                <Route path="today" element={<Navigate to="/admin/calendar" replace />} />
-                <Route path="calendar" element={<ClassesPage />} />
-                <Route path="attendance" element={<AttendancePage />} />
-                <Route path="media" element={<MediaPage />} />
-                <Route path="events" element={<EventsPage />} />
-                <Route path="events/new" element={<EventWizard />} />
-                <Route path="events/:id/edit" element={<EventWizard />} />
-                <Route path="members" element={<MembersPage />} />
-                <Route path="styles" element={<StylesPage />} />
-                <Route path="instructors" element={<InstructorsPage />} />
-                <Route path="settings" element={<SettingsPage />} />
-                <Route path="roles" element={<RolesPage />} />
-                <Route path="admins" element={<AdminsPage />} />
-                <Route path="more" element={<Navigate to="/admin/styles" replace />} />
-                <Route path="*" element={<Navigate to="/admin/calendar" replace />} />
+                <Route path="today" element={<AdminWildcardRedirect />} />
+                <Route path="calendar" element={<AdminRouteGuard path="/admin/calendar"><ClassesPage /></AdminRouteGuard>} />
+                <Route path="attendance" element={<AdminRouteGuard path="/admin/attendance"><AttendancePage /></AdminRouteGuard>} />
+                <Route path="media" element={<AdminRouteGuard path="/admin/media"><MediaPage /></AdminRouteGuard>} />
+                <Route path="events" element={<AdminRouteGuard path="/admin/events"><EventsPage /></AdminRouteGuard>} />
+                <Route path="events/new" element={<AdminRouteGuard path="/admin/events/new"><EventWizard /></AdminRouteGuard>} />
+                <Route path="events/:id/edit" element={<AdminRouteGuard path="/admin/events"><EventWizard /></AdminRouteGuard>} />
+                <Route path="members" element={<AdminRouteGuard path="/admin/members"><MembersPage /></AdminRouteGuard>} />
+                <Route path="styles" element={<AdminRouteGuard path="/admin/styles"><StylesPage /></AdminRouteGuard>} />
+                <Route path="instructors" element={<AdminRouteGuard path="/admin/instructors"><InstructorsPage /></AdminRouteGuard>} />
+                <Route path="settings" element={<AdminRouteGuard path="/admin/settings"><SettingsPage /></AdminRouteGuard>} />
+                <Route path="roles" element={<AdminRouteGuard path="/admin/roles"><RolesPage /></AdminRouteGuard>} />
+                <Route path="admins" element={<AdminRouteGuard path="/admin/admins"><AdminsPage /></AdminRouteGuard>} />
+                <Route path="more" element={<AdminWildcardRedirect />} />
+                <Route path="*" element={<AdminWildcardRedirect />} />
               </Routes>
             </AdminShell>
           </RequireRole>

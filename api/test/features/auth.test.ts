@@ -128,6 +128,8 @@ describe('Feature: Auth (Admin and Dancer Login)', () => {
       const claims = verifyToken(data.token, secrets.tokenSecret, nodeHmac, Math.floor(ctx.now().getTime() / 1000));
       expect(claims.role).toBe('admin');
       expect(claims.sub).toBe('clubadmin');
+      expect(claims.roleName).toBe('Admin');
+      expect(claims.roleId).toBe('role_admin');
       expect(claims.perms['admins.manage']).toBe('*');
     }
   });
