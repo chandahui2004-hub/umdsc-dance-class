@@ -7,7 +7,7 @@ import {
 import { Ctx } from './ports';
 import { AppError, toErrorBody } from './errors';
 import { verifyToken, signToken, Hmac } from './security/tokens';
-import { can } from './logic/permissions';
+import { can, resolvePermissions } from './logic/permissions';
 import { withScriptLock } from './db/lock';
 import { safeCachePut } from './logic/cache';
 import { getSetupRoutes } from './features/setup';
@@ -193,16 +193,42 @@ export function handleRequest(
       serverTime: now.toISOString()
     };
 
+    const callerPv = auth?.claims?.pv !== undefined ? auth.claims.pv : 1;
     if (
       auth &&
       auth.claims &&
-      auth.claims.pv !== undefined &&
-      auth.claims.pv < finalPv &&
+      callerPv < finalPv &&
       secrets.tokenSecret &&
       secrets.hmac
     ) {
+      let refreshedPerms = auth.claims.perms;
+      let refreshedRoleName = auth.claims.roleName;
+      let refreshedRoleId = auth.claims.roleId;
+
+      if (auth.claims.role === 'admin') {
+        const admin = ctx.db.admins.find(a => a.username === auth.claims.sub && a.active)[0];
+        if (admin) {
+          refreshedRoleId = admin.roleId;
+          const roleInfo = ctx.db.roles.find(r => r.id === admin.roleId && r.active)[0];
+          refreshedRoleName = roleInfo?.name || refreshedRoleName;
+          const rolePermsList = ctx.db.rolePermissions
+            .find(rp => rp.roleId === admin.roleId && rp.active)
+            .map(rp => rp.permission);
+          if (rolePermsList.length > 0) {
+            refreshedPerms = resolvePermissions({
+              roleIds: [admin.roleId],
+              memberRoles: [],
+              rolePerms: { [admin.roleId]: rolePermsList }
+            });
+          }
+        }
+      }
+
       const refreshedClaims: TokenClaims = {
         ...auth.claims,
+        roleId: refreshedRoleId,
+        roleName: refreshedRoleName,
+        perms: refreshedPerms,
         pv: finalPv
       };
       const refreshedToken = signToken(refreshedClaims, secrets.tokenSecret, secrets.hmac);

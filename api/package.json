@@ -5,7 +5,7 @@
   "scripts": {
     "build": "node build.mjs",
     "test": "vitest run",
-    "push": "npm run build && clasp push -f"
+    "push": "npm run build && clasp push -f && clasp deploy -i AKfycbz3zfWHdcl_3GuDsCf_ysLpH4XDNyklC87L9HuKpUVvhKrF-BU1M-QCf0PjPePAwwxIHA -d \"Live update\""
   },
   "devDependencies": {
     "@google/clasp": "^3.0.0",

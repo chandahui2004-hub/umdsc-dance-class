@@ -121,7 +121,16 @@ export async function call<T>(
 
       if (json.ok) {
         if ((json as any).refreshedToken && (json as any).refreshedClaims) {
-          const isRemember = Boolean(localStorage.getItem('umdsc:session'));
+          const raw = localStorage.getItem('umdsc:session') || sessionStorage.getItem('umdsc:session');
+          let isRemember = false;
+          try {
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              isRemember = Boolean(parsed.remember);
+            }
+          } catch {
+            // ignore
+          }
           session.set((json as any).refreshedToken, (json as any).refreshedClaims, isRemember);
         }
         return {
@@ -132,15 +141,28 @@ export async function call<T>(
 
       // Handle server error
       if (json.error.code === 'UNAUTHORIZED') {
-        const latestSession = session.get();
-        if (
-          json.error.message?.includes('permission update') &&
-          latestSession?.token &&
-          currentSession?.token &&
-          latestSession.token !== currentSession.token
-        ) {
-          // Token was refreshed by another concurrent mutation; retry with latest token
-          continue;
+        if (json.error.message?.includes('permission update')) {
+          // In case a concurrent mutation is in flight refreshing the token, poll briefly before giving up
+          for (let poll = 0; poll < 10; poll++) {
+            const latestSession = session.get();
+            if (
+              latestSession?.token &&
+              currentSession?.token &&
+              latestSession.token !== currentSession.token
+            ) {
+              break;
+            }
+            await wait(200);
+          }
+          const finalSession = session.get();
+          if (
+            finalSession?.token &&
+            currentSession?.token &&
+            finalSession.token !== currentSession.token
+          ) {
+            // Token was refreshed by another concurrent mutation; retry with latest token
+            continue;
+          }
         }
         session.notifyUnauthorized();
         throw new ApiError(json.error.code, json.error.message, json.error.retryable, json.error.latest);
