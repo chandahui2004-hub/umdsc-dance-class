@@ -35,13 +35,13 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
   maxDate,
   onSaved
 }) => {
-  const [date, setDate] = useState('');
-  const [start, setStart] = useState('20:00');
-  const [end, setEnd] = useState('22:00');
-  const [instructorId, setInstructorId] = useState('');
-  const [venue, setVenue] = useState('');
-  const [status, setStatus] = useState<'scheduled' | 'replacement' | 'cancelled'>('scheduled');
-  const [note, setNote] = useState('');
+  const [date, setDate] = useState(session?.date || '');
+  const [start, setStart] = useState(session?.start || '20:00');
+  const [end, setEnd] = useState(session?.end || '22:00');
+  const [instructorId, setInstructorId] = useState(session?.instructorId || '');
+  const [venue, setVenue] = useState(session?.venue || '');
+  const [status, setStatus] = useState<'scheduled' | 'replacement' | 'cancelled'>(session?.status || 'scheduled');
+  const [note, setNote] = useState(session?.note || '');
   const [currentWalkInCode, setCurrentWalkInCode] = useState(session?.walkInCode || '');
   const [regenerating, setRegenerating] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -239,12 +239,9 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
           label="Date"
           type="date"
           value={date}
-          min={minDate && date && date < minDate ? date : minDate}
-          max={maxDate && date && date > maxDate ? date : maxDate}
           onChange={(e) => setDate(e.target.value)}
           disabled={loading}
           helper={minDate && maxDate ? `Inside the event: ${minDate} to ${maxDate}` : undefined}
-          required
         />
 
         {/* Start and End Times */}

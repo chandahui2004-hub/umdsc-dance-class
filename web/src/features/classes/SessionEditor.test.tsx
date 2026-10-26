@@ -82,6 +82,11 @@ describe('SessionEditor instructor drop-down', () => {
       />
     );
 
+    const dateInput = screen.getByLabelText(/date/i);
+    // Ensure HTML5 constraint attributes are NOT set so Chromium never displays "Value must be 03/11/2026."
+    expect(dateInput.getAttribute('min')).toBeNull();
+    expect(dateInput.getAttribute('max')).toBeNull();
+
     const venueInput = screen.getByLabelText(/venue/i);
     fireEvent.change(venueInput, { target: { value: 'New Dance Hall' } });
 
@@ -96,6 +101,34 @@ describe('SessionEditor instructor drop-down', () => {
         })
       )
     );
+  });
+
+  it('shows in-app alert when user explicitly changes date outside event bounds', async () => {
+    render(
+      <SessionEditor
+        isOpen
+        onClose={() => {}}
+        session={session('inst-lam')} // date is 2026-10-05
+        styles={styles}
+        instructors={instructors}
+        allowedInstructorIds={['inst-lam']}
+        minDate="2026-10-01"
+        maxDate="2026-10-31"
+        onSaved={() => undefined}
+      />
+    );
+
+    const dateInput = screen.getByLabelText(/date/i);
+    fireEvent.change(dateInput, { target: { value: '2026-11-15' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Class date must be inside the event (2026-10-01 to 2026-10-31)'
+      );
+    });
+    expect(mockCall).not.toHaveBeenCalled();
   });
 });
 

@@ -605,8 +605,8 @@ export const ClassesPage: React.FC = () => {
                 ? (editingEvent.styleInstructors || {})[editingSession.styleId] ?? []
                 : []
             }
-            minDate={editingEvent?.startDate || targetEvent?.startDate}
-            maxDate={editingEvent?.endDate || targetEvent?.endDate}
+            minDate={editingEvent?.startDate}
+            maxDate={editingEvent?.endDate}
             onSaved={refetch}
           />
         );
