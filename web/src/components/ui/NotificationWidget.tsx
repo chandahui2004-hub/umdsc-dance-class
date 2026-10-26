@@ -54,21 +54,29 @@ export const NotificationWidget: React.FC = () => {
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef<{ startX: number; startY: number; initialX: number; initialY: number } | null>(null);
   const dragEndTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dragCleanupRef = useRef<(() => void) | null>(null);
   const bellContainerRef = useRef<HTMLDivElement | null>(null);
 
   useOverlayOpen(isOpen);
 
-  const [isOverlayActive, setIsOverlayActive] = useState(() => getOverlayCount() > 0 || isOpen);
+  const [isExternalOverlayActive, setIsExternalOverlayActive] = useState(() => {
+    return getOverlayCount() > (isOpen ? 1 : 0);
+  });
   const suppressClicksUntilRef = useRef<number>(0);
+  const prevExternalActiveRef = useRef(false);
 
   useEffect(() => {
-    return subscribeOverlayOpen((count) => {
-      const active = count > 0 || isOpen;
-      setIsOverlayActive(active);
-      if (!active) {
+    const syncOverlayState = (count: number) => {
+      const active = count > (isOpen ? 1 : 0);
+      setIsExternalOverlayActive(active);
+      if (prevExternalActiveRef.current && !active) {
         suppressClicksUntilRef.current = Date.now() + 450;
       }
-    });
+      prevExternalActiveRef.current = active;
+    };
+
+    syncOverlayState(getOverlayCount());
+    return subscribeOverlayOpen(syncOverlayState);
   }, [isOpen]);
 
   const prevIsOpenRef = useRef(isOpen);
@@ -81,6 +89,9 @@ export const NotificationWidget: React.FC = () => {
 
   useEffect(() => {
     return () => {
+      if (dragCleanupRef.current) {
+        dragCleanupRef.current();
+      }
       if (dragEndTimeoutRef.current) {
         clearTimeout(dragEndTimeoutRef.current);
       }
@@ -91,10 +102,12 @@ export const NotificationWidget: React.FC = () => {
   const currentDance = danceRoutines[activeDanceIndex] || 'dance_1';
   const mascotAnimation: MascotAnimation = isInactive ? currentDance : 'idle';
 
+  const isBlocked = isExternalOverlayActive || isOpen;
+
   const startDrag = (clientX: number, clientY: number, button = 0) => {
     if (button !== 0) return;
-    if (isOverlayActive || isOpen) return;
-    if (Date.now() < suppressClicksUntilRef.current) return;
+    if (isBlocked) return;
+    if (dragStartRef.current) return;
     const rect = bellContainerRef.current?.getBoundingClientRect();
     const initialX = rect && (rect.left || rect.x) ? (rect.left || rect.x) : (position?.x ?? 200);
     const initialY = rect && (rect.top || rect.y) ? (rect.top || rect.y) : (position?.y ?? 50);
@@ -131,13 +144,20 @@ export const NotificationWidget: React.FC = () => {
       }
     };
 
-    const onEnd = () => {
+    const cleanupListeners = () => {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerEnd);
+      window.removeEventListener('pointercancel', onPointerEnd);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseEnd);
       window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('touchcancel', onTouchEnd);
+      dragCleanupRef.current = null;
+    };
+
+    const onEnd = () => {
+      cleanupListeners();
       dragStartRef.current = null;
       if (dragEndTimeoutRef.current) {
         clearTimeout(dragEndTimeoutRef.current);
@@ -159,12 +179,16 @@ export const NotificationWidget: React.FC = () => {
     };
     const onTouchEnd = () => onEnd();
 
+    dragCleanupRef.current = cleanupListeners;
+
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerEnd);
+    window.addEventListener('pointercancel', onPointerEnd);
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseEnd);
     window.addEventListener('touchmove', onTouchMove, { passive: true });
     window.addEventListener('touchend', onTouchEnd);
+    window.addEventListener('touchcancel', onTouchEnd);
   };
 
   // --- Admin Queries ---
@@ -565,36 +589,36 @@ export const NotificationWidget: React.FC = () => {
         style={position ? { left: `${position.x}px`, top: `${position.y}px` } : undefined}
         className={`fixed z-40 select-none ${
           !position ? 'top-14 right-3 sm:top-5 sm:right-6' : ''
-        } ${isOverlayActive || isOpen ? 'pointer-events-none' : 'touch-none'}`}
+        } ${isBlocked ? 'pointer-events-none' : 'touch-none'}`}
       >
         <button
           type="button"
           data-testid="notification-bell-btn"
           aria-label="Open notifications"
-          disabled={isOverlayActive || isOpen}
+          disabled={isBlocked}
           onPointerDown={(e) => {
-            if (isOverlayActive || isOpen || Date.now() < suppressClicksUntilRef.current) return;
+            if (isBlocked) return;
             startDrag(e.clientX, e.clientY, e.button);
           }}
           onMouseDown={(e) => {
-            if (isOverlayActive || isOpen || Date.now() < suppressClicksUntilRef.current) return;
+            if (isBlocked) return;
             startDrag(e.clientX, e.clientY, e.button);
           }}
           onTouchStart={(e) => {
-            if (isOverlayActive || isOpen || Date.now() < suppressClicksUntilRef.current) return;
+            if (isBlocked) return;
             if (e.touches[0]) startDrag(e.touches[0].clientX, e.touches[0].clientY, 0);
           }}
           onClick={(e) => {
             e.stopPropagation();
             if (isDraggingRef.current) return;
-            if (isOverlayActive || isOpen) return;
+            if (isBlocked) return;
             if (Date.now() < suppressClicksUntilRef.current) return;
 
             resetTimer();
             setIsOpen(true);
           }}
           className={`relative bg-transparent border-none p-0 outline-none select-none ${
-            isOverlayActive || isOpen
+            isBlocked
               ? 'pointer-events-none cursor-default'
               : 'touch-none cursor-pointer active:translate-x-[2px] active:translate-y-[2px]'
           }`}

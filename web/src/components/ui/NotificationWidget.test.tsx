@@ -275,6 +275,78 @@ describe('NotificationWidget Floating Center and Role Modes', () => {
     expect(screen.queryByTestId('notification-drawer')).not.toBeInTheDocument();
   });
 
+  it('allows dragging the mascot after opening and closing the drawer in mobile or desktop mode', () => {
+    renderWidget();
+    const bellBtn = screen.getByTestId('notification-bell-btn');
+    const bellContainer = screen.getByTestId('notification-bell-container');
+
+    // Click to open drawer
+    fireEvent.click(bellBtn);
+    expect(screen.getByTestId('notification-drawer')).toBeInTheDocument();
+
+    // Close drawer
+    const closeBtn = screen.getByRole('button', { name: /CLOSE/i });
+    fireEvent.click(closeBtn);
+    expect(screen.queryByTestId('notification-drawer')).not.toBeInTheDocument();
+
+    // The mascot button and container should NOT be disabled or have pointer-events-none
+    expect(bellBtn).not.toBeDisabled();
+    expect(bellBtn).not.toHaveClass('pointer-events-none');
+    expect(bellContainer).not.toHaveClass('pointer-events-none');
+
+    // Simulate drag gesture (mouse)
+    fireEvent.mouseDown(bellBtn, { clientX: 200, clientY: 100, button: 0 });
+    fireEvent.mouseMove(window, { clientX: 260, clientY: 180 });
+    fireEvent.mouseUp(window);
+
+    expect(bellContainer.style.left).not.toBe('');
+    const prevLeft = bellContainer.style.left;
+
+    // Simulate mobile touch drag gesture immediately after
+    fireEvent.touchStart(bellBtn, { touches: [{ clientX: 260, clientY: 180 }] });
+    fireEvent.touchMove(window, { touches: [{ clientX: 310, clientY: 230 }] });
+    fireEvent.touchEnd(window);
+
+    expect(bellContainer.style.left).not.toBe(prevLeft);
+  });
+
+  it('suppresses accidental click-through within 450ms of closing, but allows opening again after 450ms', () => {
+    vi.useFakeTimers();
+    try {
+      renderWidget();
+      const bellBtn = screen.getByTestId('notification-bell-btn');
+
+      // Click to open
+      act(() => {
+        fireEvent.click(bellBtn);
+      });
+      expect(screen.getByTestId('notification-drawer')).toBeInTheDocument();
+
+      // Close drawer
+      const closeBtn = screen.getByRole('button', { name: /CLOSE/i });
+      act(() => {
+        fireEvent.click(closeBtn);
+      });
+      expect(screen.queryByTestId('notification-drawer')).not.toBeInTheDocument();
+
+      // Immediate click within 100ms should NOT re-open drawer (accidental click protection)
+      act(() => {
+        vi.advanceTimersByTime(100);
+        fireEvent.click(bellBtn);
+      });
+      expect(screen.queryByTestId('notification-drawer')).not.toBeInTheDocument();
+
+      // After 450ms delay, clicking opens the drawer again normally
+      act(() => {
+        vi.advanceTimersByTime(400);
+        fireEvent.click(bellBtn);
+      });
+      expect(screen.getByTestId('notification-drawer')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('switches between the 3 admin tabs', async () => {
     mockRole = 'admin';
     renderWidget();
