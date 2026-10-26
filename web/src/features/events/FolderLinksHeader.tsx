@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { call, errorMessage } from '../../lib/api';
 import { PixelButton } from '../../components/ui/PixelButton';
+import { session } from '../../lib/session';
+import { can } from '../../lib/permissions';
 
 interface FolderSetting {
   key: 'defaultAttendanceFolderId' | 'defaultVideoFolderId';
@@ -94,10 +96,16 @@ const FolderRow: React.FC<{ folder: FolderSetting; value?: string }> = ({ folder
 };
 
 export const AttendanceFolderHeader: React.FC = () => {
+  const currentSession = session.get();
+  const canEdit = can(currentSession?.claims?.perms, 'settings.edit');
+
   const { data: settings = {} } = useQuery({
     queryKey: ['settings'],
+    enabled: canEdit,
     queryFn: async () => (await call<Record<string, string>>('settings.get')).data || {}
   });
+
+  if (!canEdit) return null;
 
   return (
     <div className="px-panel p-3 space-y-2">
@@ -114,10 +122,16 @@ export const AttendanceFolderHeader: React.FC = () => {
 };
 
 export const VideoFolderHeader: React.FC = () => {
+  const currentSession = session.get();
+  const canEdit = can(currentSession?.claims?.perms, 'settings.edit');
+
   const { data: settings = {} } = useQuery({
     queryKey: ['settings'],
+    enabled: canEdit,
     queryFn: async () => (await call<Record<string, string>>('settings.get')).data || {}
   });
+
+  if (!canEdit) return null;
 
   return (
     <div className="px-panel p-3 space-y-2">

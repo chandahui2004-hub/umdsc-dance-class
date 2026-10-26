@@ -13,6 +13,8 @@ import { todayKL } from '../../lib/time';
 import { useCurrentEvent } from '../events/useCurrentEvent';
 import { AttendanceFolderHeader } from '../events/FolderLinksHeader';
 import { EventStep, StyleStep } from '../../components/ui/EventStyleSteps';
+import { session } from '../../lib/session';
+import { canAccessRoute } from '../../lib/permissions';
 import type { AttendanceGrid as AttendanceGridData, DanceStyle, Member } from '@umdsc/shared';
 
 function downloadXlsx(fileName: string, base64: string): void {
@@ -267,6 +269,7 @@ export const AttendancePage: React.FC = () => {
   }, [gridData?.members, eventMembers]);
 
   if (!eventsLoading && events.length === 0) {
+    const canCreateEvent = canAccessRoute('/admin/events/new', session.get()?.claims?.perms);
     return (
       <div className="space-y-6">
         <h1 className="font-display text-[24px] tracking-wider text-[var(--text-1)]">Attendance Tracker</h1>
@@ -274,14 +277,20 @@ export const AttendancePage: React.FC = () => {
         <EmptyState
           scene="rooftop"
           title="NO EVENTS YET"
-          description="Attendance is taken per event. Create an event from its registration form first."
+          description={
+            canCreateEvent
+              ? "Attendance is taken per event. Create an event from its registration form first."
+              : "No active events found. Ask an administrator to create or publish an event first."
+          }
           action={
-            <Link
-              to="/admin/events/new"
-              className="inline-flex items-center min-h-[44px] px-4 border-2 border-[var(--outline)] bg-[var(--neon-gold)] text-[var(--on-neon)] font-display text-[12px] no-underline shadow-[2px_2px_0_var(--outline)]"
-            >
-              CREATE AN EVENT
-            </Link>
+            canCreateEvent ? (
+              <Link
+                to="/admin/events/new"
+                className="inline-flex items-center min-h-[44px] px-4 border-2 border-[var(--outline)] bg-[var(--neon-gold)] text-[var(--on-neon)] font-display text-[12px] no-underline shadow-[2px_2px_0_var(--outline)]"
+              >
+                CREATE AN EVENT
+              </Link>
+            ) : undefined
           }
         />
       </div>

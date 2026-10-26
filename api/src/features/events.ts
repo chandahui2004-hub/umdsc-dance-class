@@ -85,7 +85,7 @@ interface SessionInput {
 export function getEventRoutes(): Record<string, Route> {
   return {
     'events.list': {
-      perm: 'members.view',
+      perm: 'signedIn',
       write: false,
       handler: (ctx, auth, payload: any) => {
         const includeArchived = Boolean(payload?.includeArchived);

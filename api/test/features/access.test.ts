@@ -275,6 +275,50 @@ describe('Feature: Access (Admins, Roles, Permissions, MemberRoles)', () => {
     }
   });
 
+  it('class rep role can call events.list to populate Attendance Tracker without requiring members.view', () => {
+    const classRepToken = signToken(
+      {
+        sub: 'rep1',
+        role: 'admin',
+        name: 'Class Rep',
+        exp: Math.floor(ctx.now().getTime() / 1000) + 3600,
+        pv: 1,
+        perms: {
+          'attendance.view.all': '*',
+          'attendance.edit': '*',
+          'export.download': '*'
+        }
+      },
+      secrets.tokenSecret,
+      secrets.hmac
+    );
+
+    const listEventsRes = handleRequest(
+      {
+        action: 'events.list',
+        token: classRepToken
+      },
+      ctx,
+      secrets
+    );
+
+    expect(listEventsRes.ok).toBe(true);
+
+    // Class rep still cannot call admin routes like admins.list
+    const listAdminsRes = handleRequest(
+      {
+        action: 'admins.list',
+        token: classRepToken
+      },
+      ctx,
+      secrets
+    );
+    expect(listAdminsRes.ok).toBe(false);
+    if (!listAdminsRes.ok) {
+      expect(listAdminsRes.error.code).toBe('FORBIDDEN');
+    }
+  });
+
   it('allows creating custom admin roles with custom permissions and assigning accounts', () => {
     // 1. Create custom admin role
     const createRoleRes = handleRequest(
