@@ -56,11 +56,17 @@ export const ClassesPage: React.FC = () => {
 
   const { data: allStyles = [] } = useQuery<DanceStyle[]>({
     queryKey: ['styles'],
-    queryFn: async () => (await call<DanceStyle[]>('styles.list')).data
+    queryFn: async () => {
+      const data = (await call<DanceStyle[]>('styles.list')).data;
+      return Array.isArray(data) ? data : [];
+    }
   });
   const { data: instructors = [] } = useQuery<Instructor[]>({
     queryKey: ['instructors'],
-    queryFn: async () => (await call<Instructor[]>('instructors.list')).data || []
+    queryFn: async () => {
+      const data = (await call<Instructor[]>('instructors.list')).data;
+      return Array.isArray(data) ? data : [];
+    }
   });
 
   const targetEventId = isAll
@@ -77,7 +83,10 @@ export const ClassesPage: React.FC = () => {
   const { data: sessions = [], isLoading, error, refetch } = useQuery({
     queryKey: ['sessions', eventId],
     enabled: Boolean(eventId),
-    queryFn: async () => (await call<ClassSession[]>('sessions.list', { eventId })).data || []
+    queryFn: async () => {
+      const data = (await call<ClassSession[]>('sessions.list', { eventId })).data;
+      return Array.isArray(data) ? data : [];
+    }
   });
 
   // Recap videos and music, shown on the selected day's class cards (as dancers see them)

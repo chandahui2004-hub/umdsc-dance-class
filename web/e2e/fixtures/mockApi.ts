@@ -75,6 +75,7 @@ export async function mockApi(
     'admin.bootstrap': () => adminBootstrap,
     'styles.list': () => adminBootstrap.styles,
     'events.list': () => [makeEvent()],
+    'sessions.list': () => [],
     'events.autoSync': () => ({ checked: [], changed: [], skipped: [], errors: [] }),
     'settings.get': () => ({ clubEmail: 'umdancesportc@gmail.com' }),
     'instructors.list': () => adminBootstrap.instructors

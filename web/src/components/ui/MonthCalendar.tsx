@@ -98,6 +98,7 @@ export const MonthCalendar: React.FC<MonthCalendarProps> = ({
   return (
     <div
       ref={containerRef}
+      data-testid="month-calendar"
       className="px-panel px-corners p-3 md:p-4 select-none w-full"
     >
       {/* Month Navigation Header */}
