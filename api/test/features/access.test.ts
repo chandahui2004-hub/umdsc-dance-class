@@ -340,4 +340,39 @@ describe('Feature: Access (Admins, Roles, Permissions, MemberRoles)', () => {
     );
     expect(createAdminRes.ok).toBe(true);
   });
+
+  it('returns refreshedToken and refreshedClaims when PERM_VERSION is bumped during a request', () => {
+    const createRoleRes = handleRequest(
+      {
+        action: 'roles.create',
+        token: adminToken,
+        payload: {
+          name: 'Class Coordinator',
+          description: 'Coordinates schedules',
+          loginType: 'admin'
+        }
+      },
+      ctx,
+      secrets
+    );
+
+    expect(createRoleRes.ok).toBe(true);
+    const refreshed = createRoleRes as any;
+    expect(refreshed.refreshedToken).toBeDefined();
+    expect(refreshed.refreshedClaims).toBeDefined();
+    expect(refreshed.refreshedClaims.pv).toBe(Number(ctx.props.get('PERM_VERSION')));
+    expect(refreshed.refreshedClaims.pv).toBeGreaterThan(1);
+
+    // Subsequent request with the refreshedToken succeeds without UNAUTHORIZED
+    const listRes = handleRequest(
+      {
+        action: 'roles.list',
+        token: refreshed.refreshedToken
+      },
+      ctx,
+      secrets
+    );
+    expect(listRes.ok).toBe(true);
+  });
 });
+

@@ -25,6 +25,7 @@ export const AdminsPage: React.FC = () => {
   // Form state for editing an admin (blank new password keeps the current one)
   const [editUsername, setEditUsername] = useState('');
   const [editDisplayName, setEditDisplayName] = useState('');
+  const [editRoleId, setEditRoleId] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
 
@@ -33,6 +34,7 @@ export const AdminsPage: React.FC = () => {
     setIsCreating(false);
     setEditUsername(admin.username);
     setEditDisplayName(admin.displayName);
+    setEditRoleId(admin.roleId);
     setNewPassword('');
     setShowNewPassword(false);
     setFormError(null);
@@ -99,6 +101,7 @@ export const AdminsPage: React.FC = () => {
         version: editingAdmin.version,
         username: editUsername.trim(),
         displayName: editDisplayName.trim(),
+        roleId: editRoleId,
         ...(newPassword ? { newPassword } : {})
       });
     },
@@ -366,6 +369,23 @@ export const AdminsPage: React.FC = () => {
                   className="w-full min-h-[44px] px-3 border-2 border-[var(--outline)] font-body text-base bg-[var(--night-1)] text-[var(--text-1)]"
                   required
                 />
+              </Field>
+
+              <Field label="Assigned Role" required>
+                <select
+                  id="edit-admin-role-id"
+                  aria-label="Assigned Role"
+                  value={editRoleId}
+                  onChange={(e) => setEditRoleId(e.target.value)}
+                  className="w-full min-h-[44px] px-2 border-2 border-[var(--outline)] font-body text-base bg-[var(--night-1)] text-[var(--text-1)]"
+                  required
+                >
+                  {adminRoles.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
               </Field>
 
               <Field label="New Password (leave blank to keep the current one)">

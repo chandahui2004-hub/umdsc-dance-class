@@ -6,7 +6,7 @@ import {
 } from '@umdsc/shared';
 import { Ctx } from './ports';
 import { AppError, toErrorBody } from './errors';
-import { verifyToken, Hmac } from './security/tokens';
+import { verifyToken, signToken, Hmac } from './security/tokens';
 import { can } from './logic/permissions';
 import { withScriptLock } from './db/lock';
 import { safeCachePut } from './logic/cache';
@@ -184,12 +184,33 @@ export function handleRequest(
     }
 
     const dataVersion = Number(ctx.props.get('DATA_VERSION') || 1);
-    return {
+    const finalPv = Number(ctx.props.get('PERM_VERSION') || 1);
+
+    const response: ApiResponse<any> = {
       ok: true,
       data: result,
       dataVersion,
       serverTime: now.toISOString()
     };
+
+    if (
+      auth &&
+      auth.claims &&
+      auth.claims.pv !== undefined &&
+      auth.claims.pv < finalPv &&
+      secrets.tokenSecret &&
+      secrets.hmac
+    ) {
+      const refreshedClaims: TokenClaims = {
+        ...auth.claims,
+        pv: finalPv
+      };
+      const refreshedToken = signToken(refreshedClaims, secrets.tokenSecret, secrets.hmac);
+      (response as any).refreshedToken = refreshedToken;
+      (response as any).refreshedClaims = refreshedClaims;
+    }
+
+    return response;
   } catch (err) {
     console.error('handleRequest error:', err);
     return {

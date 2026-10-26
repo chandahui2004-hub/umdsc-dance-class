@@ -247,4 +247,36 @@ describe('API Client & Session', () => {
     session.set('expired-tok', expiredClaims, true);
     expect(session.get()).toBeNull();
   });
+
+  it('updates session when response includes refreshedToken and refreshedClaims', async () => {
+    session.set('old-token', { ...dummyClaims, pv: 1 }, true);
+
+    const refreshedClaims: TokenClaims = {
+      ...dummyClaims,
+      pv: 2
+    };
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        data: { success: true },
+        dataVersion: 2,
+        serverTime: new Date().toISOString(),
+        refreshedToken: 'new-token',
+        refreshedClaims
+      })
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await call<{ success: boolean }>('roles.create', { name: 'New Role' });
+    expect(res.data).toEqual({ success: true });
+
+    // Session should have been updated immediately
+    const updated = session.get();
+    expect(updated).not.toBeNull();
+    expect(updated?.token).toBe('new-token');
+    expect(updated?.claims.pv).toBe(2);
+  });
 });
+

@@ -120,6 +120,10 @@ export async function call<T>(
       }
 
       if (json.ok) {
+        if ((json as any).refreshedToken && (json as any).refreshedClaims) {
+          const isRemember = Boolean(localStorage.getItem('umdsc:session'));
+          session.set((json as any).refreshedToken, (json as any).refreshedClaims, isRemember);
+        }
         return {
           data: json.data,
           dataVersion: json.dataVersion
@@ -128,6 +132,16 @@ export async function call<T>(
 
       // Handle server error
       if (json.error.code === 'UNAUTHORIZED') {
+        const latestSession = session.get();
+        if (
+          json.error.message?.includes('permission update') &&
+          latestSession?.token &&
+          currentSession?.token &&
+          latestSession.token !== currentSession.token
+        ) {
+          // Token was refreshed by another concurrent mutation; retry with latest token
+          continue;
+        }
         session.notifyUnauthorized();
         throw new ApiError(json.error.code, json.error.message, json.error.retryable, json.error.latest);
       }

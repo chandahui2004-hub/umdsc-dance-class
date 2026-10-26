@@ -159,6 +159,9 @@ export function getAccessRoutes(): Record<string, Route> {
 
         const updated = ctx.db.admins.update(id, version, updates, actor, ctx.now());
         forgetLoginDirectory(ctx);
+        if ((updates.roleId && updates.roleId !== existing.roleId) || updates.active === false) {
+          bumpPermVersion(ctx);
+        }
         logAudit(ctx, actor, 'admins.update', existing.username);
         const { passwordHash: _, salt: __, ...safe } = updated;
         return safe;
