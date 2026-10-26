@@ -66,5 +66,37 @@ describe('SessionEditor instructor drop-down', () => {
     await waitFor(() => expect(mockCall).toHaveBeenCalledWith('sessions.update', expect.anything()));
     await waitFor(() => expect(localStorage.getItem('boot:dancer:test')).toBeNull());
   });
+
+  it('allows changing venue even if minDate and maxDate differ from current session date', async () => {
+    render(
+      <SessionEditor
+        isOpen
+        onClose={() => {}}
+        session={session('inst-lam')} // date is 2026-10-05
+        styles={styles}
+        instructors={instructors}
+        allowedInstructorIds={['inst-lam']}
+        minDate="2026-11-03"
+        maxDate="2026-11-03"
+        onSaved={() => undefined}
+      />
+    );
+
+    const venueInput = screen.getByLabelText(/venue/i);
+    fireEvent.change(venueInput, { target: { value: 'New Dance Hall' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    await waitFor(() =>
+      expect(mockCall).toHaveBeenCalledWith(
+        'sessions.update',
+        expect.objectContaining({
+          venue: 'New Dance Hall',
+          date: '2026-10-05'
+        })
+      )
+    );
+  });
 });
+
 

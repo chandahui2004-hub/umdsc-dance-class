@@ -591,21 +591,26 @@ export const ClassesPage: React.FC = () => {
         onAdded={refetch}
       />
 
-      <SessionEditor
-        isOpen={!!editingSession}
-        onClose={() => setEditingSession(null)}
-        session={editingSession}
-        styles={allStyles}
-        instructors={instructors}
-        allowedInstructorIds={
-          editingSession
-            ? (events.find(e => e.id === editingSession.eventId)?.styleInstructors || {})[editingSession.styleId] ?? []
-            : []
-        }
-        minDate={targetEvent?.startDate}
-        maxDate={targetEvent?.endDate}
-        onSaved={refetch}
-      />
+      {(() => {
+        const editingEvent = editingSession ? events.find(e => e.id === editingSession.eventId) : undefined;
+        return (
+          <SessionEditor
+            isOpen={!!editingSession}
+            onClose={() => setEditingSession(null)}
+            session={editingSession}
+            styles={allStyles}
+            instructors={instructors}
+            allowedInstructorIds={
+              editingSession && editingEvent
+                ? (editingEvent.styleInstructors || {})[editingSession.styleId] ?? []
+                : []
+            }
+            minDate={editingEvent?.startDate || targetEvent?.startDate}
+            maxDate={editingEvent?.endDate || targetEvent?.endDate}
+            onSaved={refetch}
+          />
+        );
+      })()}
     </div>
   );
 };

@@ -24,7 +24,7 @@ export const MediaPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
-  const { current: event, isAll } = useCurrentEvent();
+  const { events, current: event, isAll } = useCurrentEvent();
   const [refreshing, setRefreshing] = useState(false);
   const eventId = event?.id || '';
   const [styleId, setStyleId] = useState<string>(searchParams.get('style') || '');
@@ -756,23 +756,28 @@ export const MediaPage: React.FC = () => {
       </>
       )}
 
-      <SessionEditor
-        isOpen={!!editingSession}
-        onClose={() => setEditingSession(null)}
-        session={editingSession}
-        styles={allStyles}
-        instructors={instructors}
-        allowedInstructorIds={editingSession ? ((event?.styleInstructors || {})[editingSession.styleId] ?? []) : []}
-        minDate={event?.startDate}
-        maxDate={event?.endDate}
-        onSaved={() =>
-          Promise.all(
-            [['sessions', eventId, styleId], ['videos', eventId, styleId], ['music', eventId, styleId]].map((queryKey) =>
-              queryClient.invalidateQueries({ queryKey })
-            )
-          )
-        }
-      />
+      {(() => {
+        const editingEvent = editingSession ? events.find(e => e.id === editingSession.eventId) || event : event;
+        return (
+          <SessionEditor
+            isOpen={!!editingSession}
+            onClose={() => setEditingSession(null)}
+            session={editingSession}
+            styles={allStyles}
+            instructors={instructors}
+            allowedInstructorIds={editingSession ? ((editingEvent?.styleInstructors || {})[editingSession.styleId] ?? []) : []}
+            minDate={editingEvent?.startDate}
+            maxDate={editingEvent?.endDate}
+            onSaved={() =>
+              Promise.all(
+                [['sessions', eventId, styleId], ['videos', eventId, styleId], ['music', eventId, styleId]].map((queryKey) =>
+                  queryClient.invalidateQueries({ queryKey })
+                )
+              )
+            }
+          />
+        );
+      })()}
 
       {/* Dialogs */}
       {showUploadVideo && activeStyle && (

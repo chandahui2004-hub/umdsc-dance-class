@@ -100,6 +100,15 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
   const title = `EDIT ${styleObj?.name?.toUpperCase() || 'CLASS'} SESSION ${session.seq}`;
 
   const handleSubmit = async (overrideVersion?: number) => {
+    if (!date) {
+      setError('Date is required');
+      return;
+    }
+    if (date !== session.date && minDate && maxDate && (date < minDate || date > maxDate)) {
+      setError(`Class date must be inside the event (${minDate} to ${maxDate})`);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -176,6 +185,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
   return (
     <Sheet isOpen={isOpen} onClose={onClose} title={title}>
       <form
+        noValidate
         onSubmit={(e) => {
           e.preventDefault();
           handleSubmit();
@@ -229,8 +239,8 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
           label="Date"
           type="date"
           value={date}
-          min={minDate}
-          max={maxDate}
+          min={minDate && date && date < minDate ? date : minDate}
+          max={maxDate && date && date > maxDate ? date : maxDate}
           onChange={(e) => setDate(e.target.value)}
           disabled={loading}
           helper={minDate && maxDate ? `Inside the event: ${minDate} to ${maxDate}` : undefined}
