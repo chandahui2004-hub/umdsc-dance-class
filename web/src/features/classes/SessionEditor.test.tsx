@@ -57,4 +57,14 @@ describe('SessionEditor instructor drop-down', () => {
     expect(screen.queryByRole('option', { name: /Removed instructor/ })).toBeNull();
     expect((document.getElementById('instructor-select') as HTMLSelectElement).value).toBe('inst-lam');
   });
+
+  it('invalidates cache and clears stale bootstrap on save', async () => {
+    localStorage.setItem('boot:dancer:test', JSON.stringify({ data: { sessions: [] } }));
+    renderEditor('inst-lam');
+
+    fireEvent.click(screen.getByRole('button', { name: /save/i }));
+    await waitFor(() => expect(mockCall).toHaveBeenCalledWith('sessions.update', expect.anything()));
+    await waitFor(() => expect(localStorage.getItem('boot:dancer:test')).toBeNull());
+  });
 });
+

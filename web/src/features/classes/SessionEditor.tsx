@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { call, ApiError, errorMessage } from '../../lib/api';
+import { queryClient } from '../../lib/queryClient';
+import { invalidateSessionCaches } from '../../lib/cacheInvalidation';
 import { Sheet } from '../../components/ui/Sheet';
 import { Field } from '../../components/ui/Field';
 import { PixelButton } from '../../components/ui/PixelButton';
@@ -74,6 +76,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
         version: session.version
       });
       setCurrentWalkInCode(res.data.walkInCode || '');
+      await invalidateSessionCaches(queryClient);
       await onSaved();
     } catch (err) {
       setError(errorMessage(err));
@@ -115,6 +118,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
         note
       });
 
+      await invalidateSessionCaches(queryClient);
       await onSaved();
       onClose();
     } catch (err) {
@@ -138,6 +142,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
     setError(null);
     try {
       await call('sessions.delete', { id: session.id, version: session.version });
+      await invalidateSessionCaches(queryClient);
       await onSaved();
       onClose();
     } catch (err) {

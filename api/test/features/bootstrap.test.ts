@@ -440,4 +440,45 @@ describe('Feature: Bootstrap with Caching (features/bootstrap)', () => {
     handleRequest({ action: 'auth.dancerLogin', payload: { matric: '22001111', fullName: 'Popper Ali' } }, ctx, secrets);
     expect(open).not.toHaveBeenCalledWith(event.membersSpreadsheetId);
   });
+
+  it('dancer.bootstrap returns updated session after sessions.update', async () => {
+    const { getSessionRoutes } = await import('../../src/features/sessions');
+    registerRoutes(getSessionRoutes());
+
+    // 1. Dancer loads bootstrap first time
+    const res1 = handleRequest({ action: 'dancer.bootstrap', token: dancerToken }, ctx, secrets);
+    expect(res1.ok).toBe(true);
+    const b1 = (res1 as any).data;
+    expect(b1.sessions[0].date).toBe(popSess.date);
+
+    // 2. Admin edits session date and venue
+    const adminEditToken = signToken(
+      { sub: 'admin1', role: 'admin', name: 'Admin One', exp: Math.floor(ctx.now().getTime() / 1000) + 3600, pv: 1, perms: { 'sessions.edit': '*' } },
+      secrets.tokenSecret,
+      secrets.hmac
+    );
+    const updateRes = handleRequest(
+      {
+        action: 'sessions.update',
+        token: adminEditToken,
+        payload: { id: popSess.id, version: popSess.version, date: '2026-10-20', venue: 'Studio New' }
+      },
+      ctx,
+      secrets
+    );
+    expect(updateRes.ok).toBe(true);
+
+    // 3. Dancer calls dancer.bootstrap (with or without sinceVersion)
+    const res2 = handleRequest(
+      { action: 'dancer.bootstrap', token: dancerToken, sinceVersion: res1.dataVersion },
+      ctx,
+      secrets
+    );
+    expect(res2.ok).toBe(true);
+    const b2 = (res2 as any).data;
+    expect(b2.notModified).toBeUndefined();
+    expect(b2.sessions[0].date).toBe('2026-10-20');
+    expect(b2.sessions[0].venue).toBe('Studio New');
+  });
 });
+

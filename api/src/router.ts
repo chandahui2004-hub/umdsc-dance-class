@@ -146,8 +146,17 @@ export function handleRequest(
         }
       }
 
+      const effectivePayload =
+        req.payload !== undefined && req.payload !== null
+          ? typeof req.payload === 'object' && req.sinceVersion !== undefined
+            ? { sinceVersion: req.sinceVersion, ...req.payload }
+            : req.payload
+          : req.sinceVersion !== undefined
+          ? { sinceVersion: req.sinceVersion }
+          : undefined;
+
       result = withScriptLock(ctx.lock, () => {
-        const res = route.handler(ctx, auth, req.payload);
+        const res = route.handler(ctx, auth, effectivePayload);
 
         if (route.bumpsData) {
           const nextDv = Number(ctx.props.get('DATA_VERSION') || 1) + 1;
@@ -163,7 +172,15 @@ export function handleRequest(
         return res;
       });
     } else {
-      result = route.handler(ctx, auth, req.payload);
+      const effectivePayload =
+        req.payload !== undefined && req.payload !== null
+          ? typeof req.payload === 'object' && req.sinceVersion !== undefined
+            ? { sinceVersion: req.sinceVersion, ...req.payload }
+            : req.payload
+          : req.sinceVersion !== undefined
+          ? { sinceVersion: req.sinceVersion }
+          : undefined;
+      result = route.handler(ctx, auth, effectivePayload);
     }
 
     const dataVersion = Number(ctx.props.get('DATA_VERSION') || 1);

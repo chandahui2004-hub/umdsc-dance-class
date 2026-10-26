@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { call, errorMessage } from '../../lib/api';
+import { queryClient } from '../../lib/queryClient';
+import { invalidateSessionCaches } from '../../lib/cacheInvalidation';
 import { Sheet } from '../../components/ui/Sheet';
 import { Field } from '../../components/ui/Field';
 import { PixelButton } from '../../components/ui/PixelButton';
@@ -116,6 +118,7 @@ export const AddClassDialog: React.FC<AddClassDialogProps> = ({
         venue: venue.trim(),
         note: note.trim()
       });
+      await invalidateSessionCaches(queryClient);
       await onAdded();
       onClose();
     } catch (err) {

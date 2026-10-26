@@ -32,12 +32,14 @@ export function useBootstrap<T extends 'dancer' | 'admin'>(role: T) {
   return useQuery({
     queryKey: ['bootstrap', role, sub],
     initialData: initial?.data,
+    initialDataUpdatedAt: 0,
     enabled: !!sub && currentSession?.claims?.role === role,
     queryFn: async (): Promise<T extends 'dancer' ? DancerBootstrap : AdminBootstrap> => {
       const cached = getCachedData();
       const action = role === 'dancer' ? 'dancer.bootstrap' : 'admin.bootstrap';
-      const res = await call<any>(action, undefined, {
-        sinceVersion: cached?.dataVersion
+      const sinceVer = cached?.dataVersion;
+      const res = await call<any>(action, { sinceVersion: sinceVer }, {
+        sinceVersion: sinceVer
       });
 
       if (res.data?.notModified && cached) {

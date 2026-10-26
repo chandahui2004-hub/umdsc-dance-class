@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useRef } from 'react';
-import type { Month, ISODate } from '@umdsc/shared';
+import type { Month, ISODate, ClassSession } from '@umdsc/shared';
+import { useQuery } from '@tanstack/react-query';
+import { call } from '../../lib/api';
 import { useBootstrap } from '../auth/useBootstrap';
 import { useDancerAttendance } from '../auth/useDancerAttendance';
 import { MonthCalendar, type CalendarMark } from '../../components/ui/MonthCalendar';
@@ -87,11 +89,27 @@ export const DancerHome: React.FC = () => {
     return months;
   }, [currentEvent]);
 
+  // Live sessions query for the current event, matching admin calendar query key and structure
+  const { data: liveSessions } = useQuery<ClassSession[]>({
+    queryKey: ['sessions', currentEvent?.id],
+    enabled: Boolean(currentEvent?.id),
+    queryFn: async () => {
+      const res = await call<ClassSession[]>('sessions.list', { eventId: currentEvent?.id });
+      return Array.isArray(res.data) ? res.data : [];
+    },
+    initialData: () => {
+      if (!currentEvent?.id || !bootstrap?.sessions) return undefined;
+      return bootstrap.sessions.filter((s) => s.eventId === currentEvent.id);
+    },
+    initialDataUpdatedAt: 0
+  });
+
+  const activeEventSessions = liveSessions ?? (currentEvent ? sessions.filter((s) => s.eventId === currentEvent.id) : sessions);
+
   // Filter sessions by active event
   const filteredSessions = useMemo(() => {
-    if (!currentEvent) return sessions;
-    return sessions.filter((s) => s.eventId === currentEvent.id);
-  }, [sessions, currentEvent]);
+    return activeEventSessions;
+  }, [activeEventSessions]);
 
   // Build calendar marks
   const calendarMarks = useMemo(() => {
