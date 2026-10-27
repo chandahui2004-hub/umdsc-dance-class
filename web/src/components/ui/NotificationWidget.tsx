@@ -10,6 +10,7 @@ import { openInDriveUrl, previewUrl } from '../../lib/google/driveUrls';
 import { MascotAvatar, type MascotAnimation } from './MascotAvatar';
 import { useInactivityTimer } from '../../hooks/useInactivityTimer';
 import { useOverlayOpen, subscribeOverlayOpen, getOverlayCount } from '../../app/useOverlayOpen';
+import { parseFlexibleTimestamp, formatRegistrationDate } from '../../lib/time';
 
 type AdminTabKey = 'new_dancers' | 'slot_progress' | 'system_audit';
 type DancerTabKey = 'my_classes' | 'upcoming' | 'practice';
@@ -197,7 +198,8 @@ export const NotificationWidget: React.FC = () => {
 
   const { data: allMembers = [] } = useQuery<Member[]>({
     queryKey: ['notification_members', activeEvents.map(e => e.id).join(',')],
-    enabled: isOpen && isAdmin && activeEvents.length > 0,
+    enabled: isAdmin && activeEvents.length > 0,
+    refetchInterval: 60_000,
     queryFn: async () => {
       const results = await Promise.all(
         activeEvents.map(async ev => {
@@ -230,16 +232,51 @@ export const NotificationWidget: React.FC = () => {
     }
   });
 
-  // Admin New dancers within the last 14 days
+  // Admin New events created/added within the last 7 days
+  const recentEvents = useMemo(() => {
+    if (!isAdmin) return [];
+    const sevenDaysAgo = Date.now() - 7 * 24 * 3600 * 1000;
+    return activeEvents.filter(ev => {
+      const updatedTs = ev.updatedAt ? parseFlexibleTimestamp(ev.updatedAt) : null;
+      if (updatedTs && updatedTs >= sevenDaysAgo) return true;
+      return false;
+    });
+  }, [activeEvents, isAdmin]);
+
+  const recentEventIds = useMemo(() => new Set(recentEvents.map(e => e.id)), [recentEvents]);
+
+  // Admin New dancers within the last 7 days, OR belonging to a newly added event
   const recentDancers = useMemo(() => {
     if (!isAdmin) return [];
-    const fourteenDaysAgo = Date.now() - 14 * 24 * 3600 * 1000;
-    return allMembers.filter(m => {
-      if (!m.sourceTimestamp) return false;
-      const ts = new Date(m.sourceTimestamp).getTime();
-      return !isNaN(ts) && ts >= fourteenDaysAgo;
+    const sevenDaysAgo = Date.now() - 7 * 24 * 3600 * 1000;
+    const seen = new Set<string>();
+
+    const matched = allMembers.filter(m => {
+      const eventId = (m as any)._eventId;
+      const isFromRecentEvent = Boolean(eventId && recentEventIds.has(eventId));
+      const ts = parseFlexibleTimestamp(m.sourceTimestamp);
+      const isRecentlyRegistered = ts !== null && ts >= sevenDaysAgo;
+
+      return isFromRecentEvent || isRecentlyRegistered;
     });
-  }, [allMembers, isAdmin]);
+
+    const unique: Member[] = [];
+    for (const m of matched) {
+      const key = `${(m as any)._eventId || ''}-${m.memberId}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(m);
+      }
+    }
+
+    unique.sort((a, b) => {
+      const tsA = parseFlexibleTimestamp(a.sourceTimestamp) || 0;
+      const tsB = parseFlexibleTimestamp(b.sourceTimestamp) || 0;
+      return tsB - tsA;
+    });
+
+    return unique;
+  }, [allMembers, isAdmin, recentEventIds]);
 
   const filteredDancers = useMemo(() => {
     if (!dancerSearch.trim()) return recentDancers;
@@ -248,6 +285,7 @@ export const NotificationWidget: React.FC = () => {
       d =>
         d.fullName.toLowerCase().includes(q) ||
         d.matricKey.toLowerCase().includes(q) ||
+        ((d as any)._eventName && (d as any)._eventName.toLowerCase().includes(q)) ||
         (d.styleNames || []).some(s => s.toLowerCase().includes(q))
     );
   }, [recentDancers, dancerSearch]);
@@ -572,11 +610,11 @@ export const NotificationWidget: React.FC = () => {
   // Overall unread/alert count
   const alertCount = useMemo(() => {
     if (isAdmin) {
-      return systemAlerts.length + recentDancers.length;
+      return systemAlerts.length + recentDancers.length + recentEvents.length;
     }
     // For dancer: upcoming sessions + available videos + music
     return dancerUpcomingSessions.length + dancerVideos.length;
-  }, [isAdmin, systemAlerts, recentDancers, dancerUpcomingSessions, dancerVideos]);
+  }, [isAdmin, systemAlerts, recentDancers, recentEvents, dancerUpcomingSessions, dancerVideos]);
 
   const hasErrors = isAdmin && systemAlerts.some(a => a.type === 'error' || a.type === 'conflict');
 
@@ -1073,10 +1111,46 @@ export const NotificationWidget: React.FC = () => {
               {/* ADMIN TAB 1: NEW DANCERS */}
               {isAdmin && adminTab === 'new_dancers' && (
                 <div className="space-y-3">
+                  {/* Newly Added Events Announcement */}
+                  {recentEvents.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1.5 font-display text-[10px] text-[var(--neon-gold)] font-bold tracking-wider uppercase">
+                        <span>🎉</span> NEW EVENT ADDED ({recentEvents.length})
+                      </div>
+                      {recentEvents.map(ev => {
+                        const count = ev.memberCount || allMembers.filter(m => (m as any)._eventId === ev.id).length;
+                        return (
+                          <div
+                            key={ev.id}
+                            className="p-3 border-2 border-[var(--neon-gold)] bg-[var(--night-2)] shadow-[3px_3px_0_var(--outline)] space-y-1.5"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <span className="font-display text-xs text-[var(--neon-gold)] font-bold block">
+                                  {ev.name}
+                                </span>
+                                <span className="font-mono text-[10px] text-[var(--text-3)]">
+                                  {ev.startDate} to {ev.endDate}
+                                </span>
+                              </div>
+                              <span className="font-display text-[9px] px-2 py-0.5 border border-[var(--outline)] bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold uppercase">
+                                {ev.type}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between pt-1 border-t border-[var(--outline)]/40 font-mono text-[11px]">
+                              <span className="text-[var(--text-2)]">Registered Dancers:</span>
+                              <span className="text-[var(--neon-cyan)] font-bold">{count} dancers</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between gap-2">
                     <input
                       type="text"
-                      placeholder="Search name, matric, style..."
+                      placeholder="Search name, matric, style, event..."
                       value={dancerSearch}
                       onChange={e => setDancerSearch(e.target.value)}
                       className="flex-1 px-3 py-1.5 bg-[var(--night-2)] border-2 border-[var(--outline)] font-mono text-xs text-white placeholder-[var(--text-3)] outline-none focus:border-[var(--neon-cyan)]"
@@ -1088,42 +1162,52 @@ export const NotificationWidget: React.FC = () => {
 
                   {filteredDancers.length === 0 ? (
                     <div className="p-4 border-2 border-dashed border-[var(--outline)] text-center text-[var(--text-3)] font-mono text-xs">
-                      No dancers registered in the last 14 days.
+                      No dancers registered in the last 7 days.
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {filteredDancers.map(d => (
-                        <div
-                          key={d.memberId}
-                          className="p-3 border-2 border-[var(--outline)] bg-[var(--night-2)] shadow-[2px_2px_0_var(--outline)] space-y-1.5"
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <span className="font-display text-xs text-[var(--text-1)] font-bold block">
-                                {d.fullName}
-                              </span>
-                              <span className="font-mono text-[11px] text-[var(--neon-cyan)]">
-                                {d.matricKey}
+                      {filteredDancers.map(d => {
+                        const eventName = (d as any)._eventName;
+                        return (
+                          <div
+                            key={`${(d as any)._eventId || ''}-${d.memberId}`}
+                            className="p-3 border-2 border-[var(--outline)] bg-[var(--night-2)] shadow-[2px_2px_0_var(--outline)] space-y-1.5"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <span className="font-display text-xs text-[var(--text-1)] font-bold block">
+                                  {d.fullName}
+                                </span>
+                                <span className="font-mono text-[11px] text-[var(--neon-cyan)]">
+                                  {d.matricKey}
+                                </span>
+                              </div>
+                              <span className="font-mono text-[10px] text-[var(--text-3)]">
+                                {formatRegistrationDate(d.sourceTimestamp)}
                               </span>
                             </div>
-                            <span className="font-mono text-[10px] text-[var(--text-3)]">
-                              {d.sourceTimestamp
-                                ? new Date(d.sourceTimestamp).toLocaleDateString()
-                                : ''}
-                            </span>
+
+                            {/* Event Name Tag */}
+                            {eventName && (
+                              <div className="flex items-center gap-1 font-mono text-[10px] text-[var(--neon-pink)]">
+                                <span className="font-bold">EVENT:</span>
+                                <span className="truncate">{eventName}</span>
+                              </div>
+                            )}
+
+                            <div className="flex flex-wrap gap-1 pt-1">
+                              {(d.styleNames || []).map(st => (
+                                <span
+                                  key={st}
+                                  className="font-display text-[9px] px-1.5 py-0.5 border border-[var(--outline)] bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold"
+                                >
+                                  {st}
+                                </span>
+                              ))}
+                            </div>
                           </div>
-                          <div className="flex flex-wrap gap-1 pt-1">
-                            {(d.styleNames || []).map(st => (
-                              <span
-                                key={st}
-                                className="font-display text-[9px] px-1.5 py-0.5 border border-[var(--outline)] bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold"
-                              >
-                                {st}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NotificationWidget } from './NotificationWidget';
 import { _resetInternalStateForTesting, resetMascotToIdle } from '../../hooks/useInactivityTimer';
@@ -207,8 +207,10 @@ const mockAdminBootstrap: AdminBootstrap = {
   roles: []
 };
 
+let currentMockEvents = [...mockEvents];
+
 vi.mock('../../features/events/useCurrentEvent', () => ({
-  useEvents: () => ({ data: mockEvents, isLoading: false })
+  useEvents: () => ({ data: currentMockEvents, isLoading: false })
 }));
 
 vi.mock('../../features/auth/useBootstrap', () => ({
@@ -233,6 +235,7 @@ describe('NotificationWidget Floating Center and Role Modes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     _resetInternalStateForTesting();
+    currentMockEvents = [...mockEvents];
     mockRole = 'admin';
     mockCall.mockImplementation((action: string) => {
       if (action === 'members.list') {
@@ -273,6 +276,119 @@ describe('NotificationWidget Floating Center and Role Modes', () => {
     const closeBtn = screen.getByRole('button', { name: /CLOSE/i });
     fireEvent.click(closeBtn);
     expect(screen.queryByTestId('notification-drawer')).not.toBeInTheDocument();
+  });
+
+  it('shows mascot alert badge for new dancers while the drawer is closed', async () => {
+    mockRole = 'admin';
+    renderWidget();
+
+    // Drawer is closed
+    expect(screen.queryByTestId('notification-drawer')).not.toBeInTheDocument();
+
+    // Mascot badge should query in background and display new dancers count (1 dancer in mockMembers)
+    await waitFor(() => {
+      const badge = screen.getByTestId('mascot-badge');
+      expect(badge).toBeInTheDocument();
+      expect(badge).toHaveTextContent('1');
+    });
+  });
+
+  it('recognizes Malaysian DD/MM/YYYY format timestamps and displays Event Name on dancer card', async () => {
+    mockRole = 'admin';
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    const malaysianDate = `${day}/${month}/${year} 15:30:00`;
+
+    mockCall.mockImplementation((action: string) => {
+      if (action === 'members.list') {
+        return Promise.resolve({
+          data: [
+            {
+              ...mockMembers[0],
+              sourceTimestamp: malaysianDate
+            }
+          ]
+        });
+      }
+      return Promise.resolve({ data: [] });
+    });
+
+    renderWidget();
+
+    // Open drawer
+    fireEvent.click(screen.getByTestId('notification-bell-btn'));
+    await waitFor(() => {
+      expect(screen.getByTestId('notification-drawer')).toBeInTheDocument();
+    });
+
+    // Dancer tab shows 1 dancer
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /NEW DANCERS \(1\)/i })).toBeInTheDocument();
+    });
+
+    // Dancer card shows event name
+    expect(screen.getByText(/House Foundation/i)).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(`${day}/${month}/${year}`, 'i'))).toBeInTheDocument();
+  });
+
+  it('announces newly added events with banner and includes their pre-registered dancers', async () => {
+    mockRole = 'admin';
+    const recentEvent = {
+      ...mockEvents[0],
+      id: 'ev-new-workshop',
+      name: 'Autumn Special Workshop',
+      updatedAt: new Date().toISOString(),
+      memberCount: 2
+    };
+
+    currentMockEvents = [recentEvent];
+
+    const preRegisteredDancers: Member[] = [
+      {
+        memberId: 'M-99001122',
+        matricKey: '99001122',
+        matricRaw: '99001122',
+        fullName: 'New Dancer One',
+        nameKey: 'new dancer one',
+        email: 'dancer1@test.com',
+        contact: '0111111111',
+        gender: 'F',
+        nationality: 'Malaysian',
+        styleIds: ['st_house'],
+        styleNames: ['House'],
+        flags: [],
+        sourceTimestamp: '' // Even if timestamp is empty, included because event is newly added!
+      }
+    ];
+
+    mockCall.mockImplementation((action: string, payload?: any) => {
+      if (action === 'members.list') {
+        if (payload?.eventId === 'ev-new-workshop') {
+          return Promise.resolve({ data: preRegisteredDancers });
+        }
+        return Promise.resolve({ data: [] });
+      }
+      return Promise.resolve({ data: [] });
+    });
+
+    renderWidget();
+
+    // Open drawer
+    fireEvent.click(screen.getByTestId('notification-bell-btn'));
+    await waitFor(() => {
+      expect(screen.getByTestId('notification-drawer')).toBeInTheDocument();
+    });
+
+    // Check for NEW EVENT announcement banner
+    await waitFor(() => {
+      expect(screen.getByText(/NEW EVENT ADDED/i)).toBeInTheDocument();
+      expect(screen.getByText(/Autumn Special Workshop/i)).toBeInTheDocument();
+    });
+
+    // The pre-registered dancer is included in the list
+    expect(screen.getByText('New Dancer One')).toBeInTheDocument();
   });
 
   it('allows dragging the mascot after opening and closing the drawer in mobile or desktop mode', () => {
