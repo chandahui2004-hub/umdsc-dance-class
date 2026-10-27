@@ -12,6 +12,66 @@ import { eventYear, findStyleEventFolder } from './eventSheets';
 const sessionStyle = (ctx: Ctx, id: unknown) => ctx.db.sessions.find(s => s.id === id && s.active)[0]?.styleId;
 const videoStyle = (ctx: Ctx, id: unknown) => ctx.db.videos.find(v => v.id === id && v.active)[0]?.styleId;
 
+function sendRecapNotification(
+  ctx: Ctx,
+  session: any,
+  videoCount: number = 1
+): { notifiedCount: number; recipientCount: number } {
+  try {
+    const event = getEvent(ctx, session.eventId);
+    const style = ctx.db.styles.find(s => s.id === session.styleId && s.active)[0];
+    const styleName = style?.name || 'Class';
+    const allStyles = ctx.db.styles.find(s => s.active);
+    const members = readEventMembers(ctx, event);
+    const enrolled = members.filter(m => isMemberEnrolledInStyle(m, session.styleId, allStyles));
+    const sentEmails = new Set<string>();
+
+    const count = Math.max(1, Math.floor(videoCount) || 1);
+    const isPlural = count > 1;
+
+    const subject = isPlural
+      ? `[UMDSC] ${count} Class Recap Videos Uploaded - ${styleName} (Class #${session.seq} - ${session.date})`
+      : `[UMDSC] Class Recap Video Uploaded - ${styleName} (Class #${session.seq} - ${session.date})`;
+
+    const headlineText = isPlural
+      ? `${count} new class recap videos for ${styleName} Class #${session.seq} (${session.date}) have been uploaded and are now available to watch!`
+      : `The class recap video for ${styleName} Class #${session.seq} (${session.date}) has been uploaded and is now available to watch!`;
+
+    const headlineHtml = isPlural
+      ? `<strong>${count} new class recap videos</strong> for <strong>${styleName} Class #${session.seq} (${session.date})</strong> have been uploaded and are now available to watch!`
+      : `The class recap video for <strong>${styleName} Class #${session.seq} (${session.date})</strong> has been uploaded and is now available to watch!`;
+
+    const buttonLabel = isPlural ? 'WATCH CLASS RECAPS' : 'WATCH CLASS RECAP';
+
+    for (const dancer of enrolled) {
+      const to = String(dancer.email || '').trim().toLowerCase();
+      if (!to || !to.includes('@') || sentEmails.has(to)) continue;
+      sentEmails.add(to);
+
+      const name = dancer.fullName || 'Dancer';
+      const body = `Hi ${name},\n\n${headlineText}\n\nAccess your class recap and practice music here:\nhttps://umdsc-dance-class.umdancesportc.workers.dev\n\nKeep dancing!\nUniversiti Malaya Dance Sport Club (UMDSC)`;
+      const htmlBody = `<div style="font-family: sans-serif; line-height: 1.6; color: #222;">
+  <h2 style="color: #6366f1;">UMDSC Dance Class System</h2>
+  <p>Hi <strong>${name}</strong>,</p>
+  <p>${headlineHtml}</p>
+  <p style="margin: 24px 0;">
+    <a href="https://umdsc-dance-class.umdancesportc.workers.dev" style="background-color: #6366f1; color: #fff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;">${buttonLabel}</a>
+  </p>
+  <p style="color: #666; font-size: 13px;">Or open: <a href="https://umdsc-dance-class.umdancesportc.workers.dev">https://umdsc-dance-class.umdancesportc.workers.dev</a></p>
+  <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+  <p style="font-size: 12px; color: #888;">Universiti Malaya Dance Sport Club (UMDSC)</p>
+</div>`;
+
+      ctx.mail.sendEmail({ to, subject, body, htmlBody });
+    }
+
+    return { notifiedCount: count, recipientCount: sentEmails.size };
+  } catch (err) {
+    console.warn('[sendRecapNotification] Failed to dispatch recap notification emails:', err);
+    return { notifiedCount: 0, recipientCount: 0 };
+  }
+}
+
 export function getVideoRoutes(): Record<string, Route> {
   return {
     'videos.list': {
@@ -152,42 +212,40 @@ export function getVideoRoutes(): Record<string, Route> {
         logAudit(ctx, actor, 'videos.register', inserted.id, inserted.title);
 
         if (payload?.notifyDancers !== false) {
-          try {
-            const style = ctx.db.styles.find(s => s.id === session.styleId && s.active)[0];
-            const styleName = style?.name || 'Class';
-            const allStyles = ctx.db.styles.find(s => s.active);
-            const members = readEventMembers(ctx, event);
-            const enrolled = members.filter(m => isMemberEnrolledInStyle(m, session.styleId, allStyles));
-            const sentEmails = new Set<string>();
-
-            for (const dancer of enrolled) {
-              const to = String(dancer.email || '').trim().toLowerCase();
-              if (!to || !to.includes('@') || sentEmails.has(to)) continue;
-              sentEmails.add(to);
-
-              const name = dancer.fullName || 'Dancer';
-              const subject = `[UMDSC] Class Recap Video Uploaded - ${styleName} (Class #${session.seq} - ${session.date})`;
-              const body = `Hi ${name},\n\nThe class recap video for ${styleName} Class #${session.seq} (${session.date}) has been uploaded and is now available to watch!\n\nAccess your class recap and practice music here:\nhttps://umdsc-dance-class.umdancesportc.workers.dev\n\nKeep dancing!\nUniversiti Malaya Dance Sport Club (UMDSC)`;
-              const htmlBody = `<div style="font-family: sans-serif; line-height: 1.6; color: #222;">
-  <h2 style="color: #6366f1;">UMDSC Dance Class System</h2>
-  <p>Hi <strong>${name}</strong>,</p>
-  <p>The class recap video for <strong>${styleName} Class #${session.seq} (${session.date})</strong> has been uploaded and is now available to watch!</p>
-  <p style="margin: 24px 0;">
-    <a href="https://umdsc-dance-class.umdancesportc.workers.dev" style="background-color: #6366f1; color: #fff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;">WATCH CLASS RECAP</a>
-  </p>
-  <p style="color: #666; font-size: 13px;">Or open: <a href="https://umdsc-dance-class.umdancesportc.workers.dev">https://umdsc-dance-class.umdancesportc.workers.dev</a></p>
-  <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
-  <p style="font-size: 12px; color: #888;">Universiti Malaya Dance Sport Club (UMDSC)</p>
-</div>`;
-
-              ctx.mail.sendEmail({ to, subject, body, htmlBody });
-            }
-          } catch (err) {
-            console.warn('[videos.register] Failed to dispatch recap notification emails:', err);
-          }
+          sendRecapNotification(ctx, session, 1);
         }
 
         return inserted;
+      }
+    },
+
+    'videos.notifyBatch': {
+      perm: 'videos.upload',
+      write: true,
+      styleOf: (p: any, ctx) => sessionStyle(ctx, p?.sessionId),
+      bumpsData: false,
+      handler: (ctx, auth, payload: any) => {
+        const { sessionId, videoCount } = payload || {};
+        if (!sessionId) {
+          throw new AppError('VALIDATION', 'sessionId is required');
+        }
+
+        const session = ctx.db.sessions.find(s => s.id === sessionId && s.active)[0];
+        if (!session) {
+          throw new AppError('NOT_FOUND', `Session not found: ${sessionId}`);
+        }
+
+        if (auth && !can(auth.claims.perms, 'videos.upload', session.styleId)) {
+          throw new AppError('FORBIDDEN', 'Permission denied for style: ' + session.styleId);
+        }
+
+        const count = typeof videoCount === 'number' && videoCount > 0 ? videoCount : 1;
+        const result = sendRecapNotification(ctx, session, count);
+
+        const actor = auth?.claims.sub || 'system';
+        logAudit(ctx, actor, 'videos.notifyBatch', session.id, `${count} videos notified to ${result.recipientCount} dancers`);
+
+        return result;
       }
     },
 

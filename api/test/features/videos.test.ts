@@ -448,6 +448,177 @@ describe('Feature: Videos (features/videos)', () => {
     });
   });
 
+  describe('recap video batch email notifications on videos.notifyBatch', () => {
+    it('sends a singular email when videoCount is 1', () => {
+      const poppingDancer = {
+        memberId: 'm_pop_batch_1',
+        fullName: 'Ali Popping',
+        email: 'ali_batch1@example.com',
+        styleIds: ['st_popping'],
+        styleNames: ['Popping']
+      };
+      const customEvent = seedEvent(ctx, {
+        name: 'OCT DANCE BATCH',
+        styleIds: ['st_popping'],
+        members: [poppingDancer]
+      });
+      const popSession = ctx.db.sessions.insert(
+        {
+          eventId: customEvent.id,
+          styleId: 'st_popping',
+          seq: 1,
+          date: '2026-10-06',
+          start: '20:00',
+          end: '22:00',
+          instructorId: '',
+          venue: 'Studio A',
+          status: 'scheduled',
+          note: ''
+        },
+        'system',
+        ctx.now()
+      );
+
+      ctx.mail.reset();
+
+      const res = handleRequest(
+        {
+          action: 'videos.notifyBatch',
+          token: adminToken,
+          payload: { sessionId: popSession.id, videoCount: 1 }
+        },
+        ctx,
+        secrets
+      );
+
+      expect(res.ok).toBe(true);
+      expect(ctx.mail.sent.length).toBe(1);
+      const email = ctx.mail.sent[0];
+      expect(email.to).toBe('ali_batch1@example.com');
+      expect(email.subject).toBe('[UMDSC] Class Recap Video Uploaded - Popping (Class #1 - 2026-10-06)');
+      expect(email.body).toContain('The class recap video for Popping Class #1 (2026-10-06) has been uploaded');
+      expect(email.body).toContain('https://umdsc-dance-class.umdancesportc.workers.dev');
+    });
+
+    it('sends a plural email with video count when videoCount > 1', () => {
+      const poppingDancer1 = {
+        memberId: 'm_pop_batch_2',
+        fullName: 'Ali Popping',
+        email: 'ali_batch2@example.com',
+        styleIds: ['st_popping'],
+        styleNames: ['Popping']
+      };
+      const poppingDancer2DuplicateEmail = {
+        memberId: 'm_pop_batch_3',
+        fullName: 'Ali Alternate',
+        email: 'ali_batch2@example.com', // Duplicate email address
+        styleIds: ['st_popping'],
+        styleNames: ['Popping']
+      };
+      const hipHopDancer = {
+        memberId: 'm_hip_batch',
+        fullName: 'Bala HipHop',
+        email: 'bala_batch@example.com',
+        styleIds: ['st_hiphop'],
+        styleNames: ['Hip Hop']
+      };
+
+      const customEvent = seedEvent(ctx, {
+        name: 'OCT DANCE BATCH 8',
+        styleIds: ['st_popping', 'st_hiphop'],
+        members: [poppingDancer1, poppingDancer2DuplicateEmail, hipHopDancer]
+      });
+      const popSession = ctx.db.sessions.insert(
+        {
+          eventId: customEvent.id,
+          styleId: 'st_popping',
+          seq: 2,
+          date: '2026-10-13',
+          start: '20:00',
+          end: '22:00',
+          instructorId: '',
+          venue: 'Studio A',
+          status: 'scheduled',
+          note: ''
+        },
+        'system',
+        ctx.now()
+      );
+
+      ctx.mail.reset();
+
+      const res = handleRequest(
+        {
+          action: 'videos.notifyBatch',
+          token: adminToken,
+          payload: { sessionId: popSession.id, videoCount: 8 }
+        },
+        ctx,
+        secrets
+      );
+
+      expect(res.ok).toBe(true);
+      // Deduplicated: ali_batch2@example.com only receives 1 email, hipHopDancer is not enrolled
+      expect(ctx.mail.sent.length).toBe(1);
+      const email = ctx.mail.sent[0];
+      expect(email.to).toBe('ali_batch2@example.com');
+      expect(email.subject).toBe('[UMDSC] 8 Class Recap Videos Uploaded - Popping (Class #2 - 2026-10-13)');
+      expect(email.body).toContain('8 new class recap videos for Popping Class #2 (2026-10-13) have been uploaded');
+      expect(email.htmlBody).toContain('8 new class recap videos');
+      expect(email.htmlBody).toContain('Popping Class #2 (2026-10-13)');
+      expect(email.htmlBody).toContain('WATCH CLASS RECAP');
+    });
+
+    it('requires videos.upload permission for the session style', () => {
+      const customEvent = seedEvent(ctx, { name: 'OCT EVENT', styleIds: ['st_popping'] });
+      const popSession = ctx.db.sessions.insert(
+        {
+          eventId: customEvent.id,
+          styleId: 'st_popping',
+          seq: 3,
+          date: '2026-10-20',
+          start: '20:00',
+          end: '22:00',
+          instructorId: '',
+          venue: 'Studio A',
+          status: 'scheduled',
+          note: ''
+        },
+        'system',
+        ctx.now()
+      );
+
+      // Create token with permission only for st_hiphop
+      const unauthHipHopToken = signToken(
+        {
+          sub: 'usr_hip',
+          role: 'admin',
+          name: 'Hip Lead',
+          exp: Math.floor(ctx.now().getTime() / 1000) + 3600,
+          pv: 1,
+          perms: {
+            'videos.upload': ['st_hiphop']
+          }
+        },
+        secrets.tokenSecret,
+        secrets.hmac
+      );
+
+      const res = handleRequest(
+        {
+          action: 'videos.notifyBatch',
+          token: unauthHipHopToken,
+          payload: { sessionId: popSession.id, videoCount: 3 }
+        },
+        ctx,
+        secrets
+      );
+
+      expect(res.ok).toBe(false);
+      expect((res as any).error.code).toBe('FORBIDDEN');
+    });
+  });
+
   describe('videos.deactivate also removes the file from Google Drive', () => {
     const registerVideo = (fileId: string, extra: Record<string, unknown> = {}) => {
       (ctx.drive as any).items.set(fileId, {
