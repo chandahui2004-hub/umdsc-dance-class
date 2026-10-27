@@ -33,7 +33,7 @@
 - Modify: `web/src/lib/time.ts`
 - Test: `web/src/lib/time.test.ts`
 
-- [ ] **Step 1: Write failing tests for flexible timestamp parsing**
+- [x] **Step 1: Write failing tests for flexible timestamp parsing**
   In `web/src/lib/time.test.ts`, add test cases for `parseFlexibleTimestamp` and `formatRegistrationDate`:
   - Parses `DD/MM/YYYY HH:mm:ss` (e.g. `26/10/2026 21:04:12`).
   - Parses `D/M/YYYY H:mm:ss` (e.g. `5/10/2026 9:30:00`).
@@ -43,18 +43,18 @@
   - Returns `null` for empty or invalid strings.
   - Formats date cleanly as `DD/MM/YYYY, HH:mm` (or `DD/MM/YYYY` if no time).
 
-- [ ] **Step 2: Run tests to confirm failure**
+- [x] **Step 2: Run tests to confirm failure**
   Run: `npm test -w web web/src/lib/time.test.ts`
   Verify tests fail because functions are not implemented.
 
-- [ ] **Step 3: Implement `parseFlexibleTimestamp` and `formatRegistrationDate` in `web/src/lib/time.ts`**
+- [x] **Step 3: Implement `parseFlexibleTimestamp` and `formatRegistrationDate` in `web/src/lib/time.ts`**
   Implement the parsing and formatting logic handling Malaysian and ISO date strings.
 
-- [ ] **Step 4: Run tests to confirm pass**
+- [x] **Step 4: Run tests to confirm pass**
   Run: `npm test -w web web/src/lib/time.test.ts`
   Confirm all tests pass.
 
-- [ ] **Step 5: Commit changes**
+- [x] **Step 5: Commit changes**
   Commit message: `feat(web): add flexible timestamp parser and formatter for Google Form dates`
 
 ---
@@ -65,7 +65,7 @@
 - Modify: `web/src/components/ui/NotificationWidget.tsx`
 - Test: `web/src/components/ui/NotificationWidget.test.tsx`
 
-- [ ] **Step 1: Write failing tests in `NotificationWidget.test.tsx`**
+- [x] **Step 1: Write failing tests in `NotificationWidget.test.tsx`**
   Add unit and component tests:
   - Mascot badge displays new dancers count even when drawer is closed (`isOpen === false`).
   - Recognizes dancers with `DD/MM/YYYY` timestamps within the last 7 days.
@@ -73,11 +73,11 @@
   - Includes pre-registered dancers from newly added events even if dancer timestamp is missing or earlier.
   - Dancer card displays Event Name badge alongside matric and full name.
 
-- [ ] **Step 2: Run tests to confirm failure**
+- [x] **Step 2: Run tests to confirm failure**
   Run: `npm test -w web web/src/components/ui/NotificationWidget.test.tsx`
   Verify the new test assertions fail.
 
-- [ ] **Step 3: Update `NotificationWidget.tsx`**
+- [x] **Step 3: Update `NotificationWidget.tsx`**
   - Enable `allMembers` query in the background: `enabled: isAdmin && activeEvents.length > 0` with `refetchInterval: 60_000`.
   - Calculate `recentEvents` using 7-day window on `ev.updatedAt` or `ev.startDate`.
   - Calculate `recentDancers` using `parseFlexibleTimestamp` with 7-day window, plus all dancers belonging to `recentEvents`.
@@ -86,11 +86,11 @@
   - Display formatted registration timestamp using `formatRegistrationDate(d.sourceTimestamp)`.
   - Update `alertCount` to include `recentDancers.length + recentEvents.length + systemAlerts.length`.
 
-- [ ] **Step 4: Run tests to confirm pass**
+- [x] **Step 4: Run tests to confirm pass**
   Run: `npm test -w web web/src/components/ui/NotificationWidget.test.tsx`
   Confirm all tests pass.
 
-- [ ] **Step 5: Commit changes**
+- [x] **Step 5: Commit changes**
   Commit message: `feat(web): enhance mascot notifications for new dancers, new events, and background alerts`
 
 ---
@@ -100,15 +100,15 @@
 **Files:**
 - None (workspace verification)
 
-- [ ] **Step 1: Run full Web test suite**
+- [x] **Step 1: Run full Web test suite**
   Run: `npm test -w web`
   Ensure all 72+ test files pass.
 
-- [ ] **Step 2: Run full API test suite**
+- [x] **Step 2: Run full API test suite**
   Run: `npm test -w api`
   Ensure all backend tests pass.
 
-- [ ] **Step 3: Run production build**
+- [x] **Step 3: Run production build**
   Run: `npm run build`
   Ensure build completes with 0 errors.
 
@@ -119,9 +119,9 @@
 **Files:**
 - Deployment to Cloudflare Workers
 
-- [ ] **Step 1: Push changes to Git remote**
+- [x] **Step 1: Push changes to Git remote**
   Run: `git push origin main`
   Confirm Cloudflare Workers deploys the updated frontend.
 
-- [ ] **Step 2: Verify live deployment**
+- [x] **Step 2: Verify live deployment**
   Verify the live deployment on `https://umdsc-dance-class.umdancesportc.workers.dev`.
