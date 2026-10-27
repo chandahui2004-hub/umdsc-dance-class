@@ -343,9 +343,13 @@ describe('UploadDialog Gating and Video Compression', () => {
       await waitFor(() => expect(mockUploadResumable).toHaveBeenCalled());
     });
 
-    it('includes notifyDancers: true by default when registering video', async () => {
+    it('registers each video with notifyDancers: false and calls videos.notifyBatch once after all files succeed', async () => {
       renderDialog();
-      chooseFile(videoFile());
+      const file1 = new File([new Uint8Array(10)], 'video1.mp4', { type: 'video/mp4' });
+      const file2 = new File([new Uint8Array(10)], 'video2.mp4', { type: 'video/mp4' });
+      fireEvent.change(document.querySelector('input[type="file"]') as HTMLInputElement, {
+        target: { files: [file1, file2] }
+      });
       const checkbox = screen.getByRole('checkbox', {
         name: /Send email notification to registered class dancers/i
       });
@@ -353,13 +357,21 @@ describe('UploadDialog Gating and Video Compression', () => {
       fireEvent.click(screen.getByRole('button', { name: /^START UPLOAD/ }));
       await waitFor(() =>
         expect(mockPost).toHaveBeenCalledWith(
-          'videos.register',
-          expect.objectContaining({ notifyDancers: true })
+          'videos.notifyBatch',
+          expect.objectContaining({ sessionId: 's1', videoCount: 2 })
         )
+      );
+      expect(mockPost).toHaveBeenCalledWith(
+        'videos.register',
+        expect.objectContaining({ title: 'video1.mp4', notifyDancers: false })
+      );
+      expect(mockPost).toHaveBeenCalledWith(
+        'videos.register',
+        expect.objectContaining({ title: 'video2.mp4', notifyDancers: false })
       );
     });
 
-    it('includes notifyDancers: false when user unchecks notification checkbox', async () => {
+    it('does not call videos.notifyBatch when user unchecks notification checkbox', async () => {
       renderDialog();
       chooseFile(videoFile());
       const checkbox = screen.getByRole('checkbox', {
@@ -374,6 +386,18 @@ describe('UploadDialog Gating and Video Compression', () => {
           expect.objectContaining({ notifyDancers: false })
         )
       );
+      expect(mockPost).not.toHaveBeenCalledWith('videos.notifyBatch', expect.anything());
+    });
+
+    it('does not call videos.notifyBatch if an upload error occurs', async () => {
+      mockUploadResumable.mockRejectedValueOnce(new Error('Network error uploading video'));
+      renderDialog();
+      chooseFile(videoFile());
+      fireEvent.click(screen.getByRole('button', { name: /^START UPLOAD/ }));
+      await waitFor(() =>
+        expect(screen.getByRole('alert')).toHaveTextContent(/Network error uploading video/)
+      );
+      expect(mockPost).not.toHaveBeenCalledWith('videos.notifyBatch', expect.anything());
     });
   });
 

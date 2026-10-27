@@ -228,7 +228,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
             sessionId: selectedSessionId,
             title: curFile.name,
             eventFolderId: folders.eventFolderId,
-            notifyDancers
+            notifyDancers: false
           });
         } else {
           await api.post('music.create', {
@@ -239,6 +239,18 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
             sourceType: 'mp3',
             driveFileId: uploaded.id
           });
+        }
+      }
+
+      if (type === 'video' && notifyDancers && files.length > 0) {
+        setUploadStatus('Notifying dancers via email...');
+        try {
+          await api.post('videos.notifyBatch', {
+            sessionId: selectedSessionId,
+            videoCount: files.length
+          });
+        } catch (notifyErr) {
+          console.warn('[UploadDialog] Failed to send batch notification email:', notifyErr);
         }
       }
 
