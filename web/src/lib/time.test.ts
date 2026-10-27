@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { monthGrid, todayKL, addMonths, formatDayLabel, getMonthsRange, getDatesBetween } from './time';
+import {
+  monthGrid,
+  todayKL,
+  addMonths,
+  formatDayLabel,
+  getMonthsRange,
+  getDatesBetween,
+  parseFlexibleTimestamp,
+  formatRegistrationDate
+} from './time';
 
 describe('time logic', () => {
   it('generates full-week monthGrid starting on Monday', () => {
@@ -47,5 +56,48 @@ describe('time logic', () => {
       '2026-10-04',
       '2026-10-05'
     ]);
+  });
+
+  describe('parseFlexibleTimestamp & formatRegistrationDate', () => {
+    it('parses Malaysian Google Form timestamp format DD/MM/YYYY HH:mm:ss', () => {
+      const ts = parseFlexibleTimestamp('26/10/2026 21:04:12');
+      expect(ts).not.toBeNull();
+      const d = new Date(ts!);
+      expect(d.getFullYear()).toBe(2026);
+      expect(d.getMonth()).toBe(9); // 0-indexed October
+      expect(d.getDate()).toBe(26);
+      expect(d.getHours()).toBe(21);
+      expect(d.getMinutes()).toBe(4);
+    });
+
+    it('parses single digit D/M/YYYY H:mm:ss', () => {
+      const ts = parseFlexibleTimestamp('5/10/2026 9:30:00');
+      expect(ts).not.toBeNull();
+      const d = new Date(ts!);
+      expect(d.getFullYear()).toBe(2026);
+      expect(d.getMonth()).toBe(9);
+      expect(d.getDate()).toBe(5);
+      expect(d.getHours()).toBe(9);
+    });
+
+    it('parses ISO date and datetime strings', () => {
+      const ts = parseFlexibleTimestamp('2026-10-26T12:00:00.000Z');
+      expect(ts).not.toBeNull();
+      expect(typeof ts).toBe('number');
+    });
+
+    it('returns null for empty, missing, or invalid values', () => {
+      expect(parseFlexibleTimestamp('')).toBeNull();
+      expect(parseFlexibleTimestamp(null)).toBeNull();
+      expect(parseFlexibleTimestamp(undefined)).toBeNull();
+      expect(parseFlexibleTimestamp('not-a-date')).toBeNull();
+    });
+
+    it('formats registration date cleanly', () => {
+      expect(formatRegistrationDate('26/10/2026 21:04:12')).toBe('26/10/2026, 21:04');
+      expect(formatRegistrationDate('26/10/2026')).toBe('26/10/2026');
+      expect(formatRegistrationDate('')).toBe('');
+      expect(formatRegistrationDate(null)).toBe('');
+    });
   });
 });
