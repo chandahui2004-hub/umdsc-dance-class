@@ -556,7 +556,8 @@ export const NotificationWidget: React.FC = () => {
       const className = ev?.name || 'UMDSC Dance Class';
       const styleName =
         st?.name ||
-        (vid.styleId ? vid.styleId.replace(/^sty_|^st_/, '').toUpperCase() : 'Routine Practice');
+        (vid.styleId ? adminStylesMap.get(vid.styleId) : '') ||
+        'Routine Practice';
 
       let date = sess?.date || '';
       if (!date && vid.updatedAt) {
@@ -605,7 +606,7 @@ export const NotificationWidget: React.FC = () => {
     }
 
     return Array.from(map.values());
-  }, [dancerVideos, dancerSessionsMap, dancerEventsMap, dancerStylesMap, dancerInstructorsMap]);
+  }, [dancerVideos, dancerSessionsMap, dancerEventsMap, dancerStylesMap, dancerInstructorsMap, adminStylesMap]);
 
   // Overall unread/alert count
   const alertCount = useMemo(() => {
@@ -846,15 +847,15 @@ export const NotificationWidget: React.FC = () => {
 
                         {/* Styles Enrolled */}
                         <div className="flex flex-wrap gap-1.5 pt-1">
-                          {ev.styleIds.map(stId => {
-                            const styleObj = dancerStylesMap.get(stId);
-                            const name = styleObj?.name || stId.replace('sty_', '').toUpperCase();
+                          {ev.styleIds.filter(stId => Boolean(dancerStylesMap.get(stId)?.name)).map(stId => {
+                            const styleObj = dancerStylesMap.get(stId)!;
+
                             return (
                               <span
                                 key={stId}
                                 className="font-display text-[10px] px-2 py-0.5 border border-[var(--outline)] bg-[var(--night-1)] text-[var(--neon-gold)]"
                               >
-                                {name}
+                                {styleObj.name}
                               </span>
                             );
                           })}
@@ -886,8 +887,8 @@ export const NotificationWidget: React.FC = () => {
                     </div>
                   ) : (
                     dancerUpcomingSessions.map(ses => {
-                      const styleObj = dancerStylesMap.get(ses.styleId);
-                      const styleName = styleObj?.name || ses.styleId.replace('sty_', '').toUpperCase();
+
+                      const styleName = dancerStylesMap.get(ses.styleId)?.name || adminStylesMap.get(ses.styleId) || 'Dance Class';
                       const instructorName = dancerInstructorsMap.get(ses.instructorId) || 'Instructor';
 
                       return (

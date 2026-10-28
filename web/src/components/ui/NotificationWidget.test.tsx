@@ -208,6 +208,7 @@ const mockAdminBootstrap: AdminBootstrap = {
 };
 
 let currentMockEvents = [...mockEvents];
+let currentMockDancerBootstrap: DancerBootstrap = mockDancerBootstrap;
 
 vi.mock('../../features/events/useCurrentEvent', () => ({
   useEvents: () => ({ data: currentMockEvents, isLoading: false })
@@ -215,7 +216,7 @@ vi.mock('../../features/events/useCurrentEvent', () => ({
 
 vi.mock('../../features/auth/useBootstrap', () => ({
   useBootstrap: (role: string) => ({
-    data: role === 'dancer' ? mockDancerBootstrap : mockAdminBootstrap,
+    data: role === 'dancer' ? currentMockDancerBootstrap : mockAdminBootstrap,
     isLoading: false
   })
 }));
@@ -236,6 +237,7 @@ describe('NotificationWidget Floating Center and Role Modes', () => {
     vi.clearAllMocks();
     _resetInternalStateForTesting();
     currentMockEvents = [...mockEvents];
+    currentMockDancerBootstrap = mockDancerBootstrap;
     mockRole = 'admin';
     mockCall.mockImplementation((action: string) => {
       if (action === 'members.list') {
@@ -528,6 +530,26 @@ describe('NotificationWidget Floating Center and Role Modes', () => {
     fireEvent.click(watchBtn);
     expect(screen.getAllByTitle('House Routine Part 1').length).toBe(2);
     expect(screen.getByRole('button', { name: /■ HIDE PLAYER/i })).toBeInTheDocument();
+  });
+
+  it('filters out unenrolled styles and never displays raw style ID codes in Dancer MY CLASSES tab', async () => {
+    mockRole = 'dancer';
+    currentMockDancerBootstrap = {
+      ...mockDancerBootstrap,
+      events: [
+        {
+          ...mockDancerBootstrap.events[0],
+          styleIds: ['st_house', 'sty_EAfjAzVOI7', 'sty_50WspbOjYQ']
+        }
+      ]
+    };
+
+    renderWidget();
+    fireEvent.click(screen.getByTestId('notification-bell-btn'));
+
+    expect(await screen.findByText('House')).toBeInTheDocument();
+    expect(screen.queryByText('EAFJAZVOI7')).not.toBeInTheDocument();
+    expect(screen.queryByText('50WSPBOJYQ')).not.toBeInTheDocument();
   });
 
   it('supports dragging the floating notification button across the screen', () => {

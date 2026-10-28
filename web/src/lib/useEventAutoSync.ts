@@ -3,8 +3,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { call } from './api';
 
 const FIRST_CHECK_MS = 4_000;
-const INTERVAL_MS = 600_000;
-const REFRESHED_QUERIES = ['events', 'members', 'attendance', 'sessions', 'bootstrap'];
+const INTERVAL_MS = 60_000;
+const REFRESHED_QUERIES = ['events', 'members', 'attendance', 'sessions', 'bootstrap', 'notification_members'];
 
 interface AutoSyncResult {
   checked: string[];

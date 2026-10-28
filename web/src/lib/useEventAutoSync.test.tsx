@@ -29,14 +29,14 @@ describe('useEventAutoSync', () => {
     vi.useRealTimers();
   });
 
-  it('checks 4 s after mount and then every 10 minutes', async () => {
+  it('checks 4 s after mount and then every 1 minute', async () => {
     renderHook(() => useEventAutoSync(), { wrapper });
 
     await vi.advanceTimersByTimeAsync(3_999);
     expect(vi.mocked(call)).toHaveBeenCalledTimes(0);
     await vi.advanceTimersByTimeAsync(1);
     expect(vi.mocked(call)).toHaveBeenCalledWith('events.autoSync', {});
-    await vi.advanceTimersByTimeAsync(600_000);
+    await vi.advanceTimersByTimeAsync(60_000);
     expect(vi.mocked(call)).toHaveBeenCalledTimes(2);
   });
 
@@ -44,7 +44,7 @@ describe('useEventAutoSync', () => {
     renderHook(() => useEventAutoSync(), { wrapper });
     await vi.advanceTimersByTimeAsync(4_000);
     setVisibility('hidden');
-    await vi.advanceTimersByTimeAsync(600_000);
+    await vi.advanceTimersByTimeAsync(60_000);
     expect(vi.mocked(call)).toHaveBeenCalledTimes(1);
   });
 
@@ -55,8 +55,8 @@ describe('useEventAutoSync', () => {
     expect(spy).not.toHaveBeenCalled();
 
     vi.mocked(call).mockResolvedValue({ data: { checked: [], changed: ['e1'], skipped: [], errors: [] }, dataVersion: 2 } as any);
-    await vi.advanceTimersByTimeAsync(600_000);
+    await vi.advanceTimersByTimeAsync(60_000);
     const keys = spy.mock.calls.map(c => (c[0] as any).queryKey[0]);
-    expect(keys).toEqual(expect.arrayContaining(['events', 'members', 'attendance', 'sessions', 'bootstrap']));
+    expect(keys).toEqual(expect.arrayContaining(['events', 'members', 'attendance', 'sessions', 'bootstrap', 'notification_members']));
   });
 });
