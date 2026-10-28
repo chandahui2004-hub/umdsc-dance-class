@@ -1,151 +1,74 @@
-import React, { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { call, errorMessage } from '../../lib/api';
-import { PixelButton } from '../../components/ui/PixelButton';
+import React from 'react';
+import { useBootstrap } from '../auth/useBootstrap';
+import { useCurrentEvent } from './useCurrentEvent';
 import { session } from '../../lib/session';
 import { can } from '../../lib/permissions';
 
-interface FolderSetting {
-  key: 'defaultAttendanceFolderId' | 'defaultVideoFolderId';
-  label: string;
-  button: string;
-}
+/**
+ * Top-of-page links to the Google Drive folders and sheets for the chosen event.
+ * Gated by permissions so view-only roles do not see raw Drive/Sheet links.
+ */
+export const FolderLinksHeader: React.FC = () => {
+  const { current: event, isAll } = useCurrentEvent();
+  const { data: bootstrap } = useBootstrap('admin');
+  const perms = session.get()?.claims?.perms;
 
-const FOLDERS: FolderSetting[] = [
-  { key: 'defaultAttendanceFolderId', label: 'Attendance master folder', button: 'CHANGE ATTENDANCE FOLDER' },
-  { key: 'defaultVideoFolderId', label: 'Video master folder', button: 'CHANGE VIDEO FOLDER' }
-];
+  const canEventFolder =
+    can(perms, 'sessions.edit') || can(perms, 'members.import') || can(perms, 'settings.edit');
+  const canAttFolder =
+    can(perms, 'attendance.edit') || can(perms, 'settings.edit');
+  const canMembersSheet =
+    can(perms, 'members.import') || can(perms, 'settings.edit');
 
-interface SetLinkResult {
-  moved?: number;
-  created?: number;
-  reused?: number;
-  failed?: { eventName: string; message: string }[];
-}
+  const masterFolderId = bootstrap?.settings?.DRIVE_MASTER_FOLDER_ID || '';
+  const eventFolderId = canEventFolder && !isAll && event?.folderId ? event.folderId : '';
+  const attFolderId = canAttFolder ? (eventFolderId || masterFolderId) : '';
+  const membersSpreadsheetId = canMembersSheet && !isAll ? event?.membersSpreadsheetId || '' : '';
 
-const FolderRow: React.FC<{ folder: FolderSetting; value?: string }> = ({ folder, value }) => {
-  const queryClient = useQueryClient();
-  const [editing, setEditing] = useState(false);
-  const [url, setUrl] = useState('');
-  const [note, setNote] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [failed, setFailed] = useState<{ eventName: string; message: string }[]>([]);
-
-  const save = useMutation({
-    mutationFn: async () => (await call<SetLinkResult>('settings.setLink', { key: folder.key, url: url.trim() })).data,
-    onSuccess: async r => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['settings'] }),
-        queryClient.invalidateQueries({ queryKey: ['events'] })
-      ]);
-      setEditing(false);
-      setError(null);
-      setFailed(r.failed || []);
-      setNote(
-        r.moved !== undefined
-          ? `Moved ${r.moved}, created ${r.created}, reused ${r.reused} event folders`
-          : 'Saved.'
-      );
-    },
-    onError: err => setError(errorMessage(err))
-  });
+  if (!eventFolderId && !attFolderId && !membersSpreadsheetId) return null;
 
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-2 font-body text-[14px] text-[var(--text-1)]">
-        <strong>{folder.label}:</strong>
-        {value ? (
-          <a href={`https://drive.google.com/drive/folders/${value}`} target="_blank" rel="noreferrer" className="underline text-[var(--neon-cyan)]">
-            open ↗
-          </a>
-        ) : (
-          <span className="font-bold text-[var(--neon-red)]">not set</span>
-        )}
-        <PixelButton size="md" variant="secondary" onClick={() => setEditing(v => !v)}>
-          {editing ? 'CLOSE' : folder.button}
-        </PixelButton>
-      </div>
-      {editing && (
-        <div className="flex flex-col sm:flex-row gap-2">
-          <input
-            aria-label={`${folder.label} link`}
-            value={url}
-            onChange={e => setUrl(e.target.value)}
-            placeholder="https://drive.google.com/drive/folders/…"
-            className="flex-1 min-h-[48px] px-3 border-2 border-[var(--outline)] bg-[var(--night-1)] px-well font-mono text-[16px] text-[var(--text-1)] placeholder:text-[var(--text-3)]"
-          />
-          <PixelButton size="md" variant="primary" disabled={!url.trim() || save.isPending} onClick={() => save.mutate()}>
-            {save.isPending ? 'SAVING…' : 'SAVE'}
-          </PixelButton>
-        </div>
+    <div
+      data-testid="folder-links-header"
+      className="px-panel p-2.5 bg-[var(--night-2)] border-2 border-[var(--outline)] flex flex-wrap items-center gap-2 shadow-[2px_2px_0_var(--outline)]"
+    >
+      {eventFolderId && (
+        <a
+          href={`https://drive.google.com/drive/folders/${eventFolderId}`}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 min-h-[36px] px-3 border-2 border-[var(--outline)] bg-[var(--night-1)] hover:bg-[var(--violet-2)] text-[var(--neon-gold)] font-display text-[11px] font-bold no-underline shadow-[1px_1px_0_var(--outline)]"
+        >
+          <span>📁</span>
+          <span>EVENT FOLDER ↗</span>
+        </a>
       )}
-      {note && <p className="font-body text-[14px] font-bold text-[var(--neon-green)]">{note}</p>}
-      {failed.length > 0 && (
-        <div role="alert" className="p-2 border-2 border-[var(--neon-red)] bg-[var(--night-1)] font-body text-[14px] text-[var(--neon-red)] space-y-1">
-          {failed.map(f => (
-            <p key={f.eventName}>
-              Could not move {f.eventName}: {f.message}
-            </p>
-          ))}
-          <p className="font-bold">Fix the folder&apos;s sharing, then save the same link again to retry.</p>
-        </div>
+      {attFolderId && (
+        <a
+          href={`https://drive.google.com/drive/folders/${attFolderId}`}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 min-h-[36px] px-3 border-2 border-[var(--outline)] bg-[var(--night-1)] hover:bg-[var(--violet-2)] text-[var(--neon-cyan)] font-display text-[11px] font-bold no-underline shadow-[1px_1px_0_var(--outline)]"
+        >
+          <span>📋</span>
+          <span>ATTENDANCE FOLDER ↗</span>
+        </a>
       )}
-      {error && <p role="alert" className="font-body text-[14px] font-bold text-[var(--neon-red)]">⚠ {error}</p>}
+      {membersSpreadsheetId && (
+        <a
+          href={`https://docs.google.com/spreadsheets/d/${membersSpreadsheetId}`}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 min-h-[36px] px-3 border-2 border-[var(--outline)] bg-[var(--night-1)] hover:bg-[var(--violet-2)] text-[var(--neon-green)] font-display text-[11px] font-bold no-underline shadow-[1px_1px_0_var(--outline)]"
+        >
+          <span>📊</span>
+          <span>MEMBERS SHEET ↗</span>
+        </a>
+      )}
     </div>
   );
 };
 
-export const AttendanceFolderHeader: React.FC = () => {
-  const currentSession = session.get();
-  const canEdit = can(currentSession?.claims?.perms, 'settings.edit');
+export const AttendanceFolderHeader = FolderLinksHeader;
 
-  const { data: settings = {} } = useQuery({
-    queryKey: ['settings'],
-    enabled: canEdit,
-    queryFn: async () => (await call<Record<string, string>>('settings.get')).data || {}
-  });
-
-  if (!canEdit) return null;
-
-  return (
-    <div className="px-panel p-3 space-y-2">
-      <FolderRow
-        folder={{
-          key: 'defaultAttendanceFolderId',
-          label: 'Attendance master folder',
-          button: 'CHANGE ATTENDANCE FOLDER'
-        }}
-        value={settings.defaultAttendanceFolderId}
-      />
-    </div>
-  );
-};
-
-export const VideoFolderHeader: React.FC = () => {
-  const currentSession = session.get();
-  const canEdit = can(currentSession?.claims?.perms, 'settings.edit');
-
-  const { data: settings = {} } = useQuery({
-    queryKey: ['settings'],
-    enabled: canEdit,
-    queryFn: async () => (await call<Record<string, string>>('settings.get')).data || {}
-  });
-
-  if (!canEdit) return null;
-
-  return (
-    <div className="px-panel p-3 space-y-2">
-      <FolderRow
-        folder={{
-          key: 'defaultVideoFolderId',
-          label: 'Video master folder',
-          button: 'CHANGE VIDEO FOLDER'
-        }}
-        value={settings.defaultVideoFolderId}
-      />
-    </div>
-  );
-};
-
-export { FolderRow, FOLDERS };
-export type { FolderSetting };
+export default FolderLinksHeader;

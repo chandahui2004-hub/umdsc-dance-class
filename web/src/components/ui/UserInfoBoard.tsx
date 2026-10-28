@@ -81,6 +81,7 @@ export const UserInfoBoard: React.FC<UserInfoBoardProps> = ({
   const role = claims?.role || 'dancer';
   const isAdmin = role === 'admin';
   const username = claims?.name || claims?.sub || 'Guest';
+  const roleLabel = (claims?.roleName || (isAdmin ? 'ADMIN' : 'DANCER')).toUpperCase();
 
   // Matriks number: For dancers, strip leading 'M-' if present. For admin, show STAFF / Admin username.
   const matriksNumber = claims?.sub
@@ -107,7 +108,7 @@ export const UserInfoBoard: React.FC<UserInfoBoardProps> = ({
         <div
           data-testid="user-role-avatar-compact"
           aria-label={isAdmin ? 'Admin Profile' : 'Dancer Profile'}
-          title={`${username} (${isAdmin ? 'ADMIN' : 'DANCER'} - ${matriksNumber})`}
+          title={`${username} (${roleLabel} - ${matriksNumber})`}
           className={`w-9 h-9 border-2 border-[var(--outline)] flex items-center justify-center select-none shadow-[2px_2px_0_var(--shadow-hard)] ${
             isAdmin
               ? 'bg-[var(--neon-gold)] text-[var(--on-neon)]'
@@ -144,52 +145,54 @@ export const UserInfoBoard: React.FC<UserInfoBoardProps> = ({
   return (
     <div
       data-testid="user-info-board"
-      className={`px-panel p-3 space-y-3 ${className}`}
+      className={`px-panel p-3 space-y-3 overflow-hidden ${className}`}
     >
-      {/* Board Header & Role Badge */}
-      <div className="flex items-center justify-between border-b-2 border-[var(--outline)] pb-2">
+      {/* Board Header & Stacked Full-Width Role Badge */}
+      <div className="flex flex-col gap-1.5 border-b-2 border-[var(--outline)] pb-2 min-w-0">
         <span className="font-display text-[11px] text-[var(--text-2)] tracking-wider uppercase">
           PLAYER PROFILE
         </span>
         <span
           data-testid="user-role-badge"
-          className={`font-display text-[11px] uppercase px-2 py-0.5 border-2 border-[var(--outline)] flex items-center gap-1.5 ${
+          title={roleLabel}
+          className={`w-full font-display text-[10px] leading-snug uppercase px-2 py-1 border-2 border-[var(--outline)] flex items-center justify-center gap-1.5 text-center break-words min-w-0 ${
             isAdmin
               ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold'
               : 'bg-[var(--violet-2)] text-[var(--neon-cyan)] font-bold'
           }`}
         >
           {isAdmin ? (
-            <AdminCrownIcon className="w-3.5 h-3.5" />
+            <AdminCrownIcon className="w-3.5 h-3.5 shrink-0" />
           ) : (
-            <DancerFigureIcon className="w-3.5 h-3.5" />
+            <DancerFigureIcon className="w-3.5 h-3.5 shrink-0" />
           )}
-          <span>{(claims?.roleName || (isAdmin ? 'ADMIN' : 'DANCER')).toUpperCase()}</span>
+          <span className="min-w-0 break-words">{roleLabel}</span>
         </span>
       </div>
 
       {/* User Information Details */}
-      <div className="space-y-1.5 font-display text-xs">
-        <div className="flex items-start gap-2">
-          <span className="text-[var(--text-2)] text-[11px] w-[88px] shrink-0 whitespace-nowrap uppercase pt-0.5">
+      <div className="space-y-1.5 font-display text-xs min-w-0">
+        <div className="flex items-start gap-2 min-w-0">
+          <span className="text-[var(--text-2)] text-[10px] w-[72px] shrink-0 whitespace-nowrap uppercase pt-0.5">
             USER:
           </span>
           <span
             data-testid="user-name-display"
-            className="text-[var(--text-1)] font-bold truncate flex-1"
+            className="text-[var(--text-1)] font-bold min-w-0 flex-1 break-words leading-snug"
             title={username}
           >
             {username}
           </span>
         </div>
 
-        <div className="flex items-start gap-2">
-          <span className="text-[var(--text-2)] text-[11px] w-[88px] shrink-0 whitespace-nowrap uppercase pt-0.5">
+        <div className="flex items-start gap-2 min-w-0">
+          <span className="text-[var(--text-2)] text-[10px] w-[72px] shrink-0 whitespace-nowrap uppercase pt-0.5">
             MATRIKS:
           </span>
           <span
             data-testid="user-matriks-display"
-            className="text-[var(--neon-cyan)] font-mono text-base font-bold tracking-wider min-w-0 break-all"
+            className="text-[var(--neon-cyan)] font-mono text-sm font-bold tracking-wider min-w-0 flex-1 break-words leading-snug"
+            title={matriksNumber}
           >
             {matriksNumber}
           </span>
@@ -219,3 +222,4 @@ export const UserInfoBoard: React.FC<UserInfoBoardProps> = ({
     </div>
   );
 };
+export default UserInfoBoard;

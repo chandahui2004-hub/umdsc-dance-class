@@ -76,6 +76,35 @@ describe('UserInfoBoard', () => {
     expect(screen.getByTestId('user-matriks-display')).toHaveTextContent('STAFF (classrep_user)');
   });
 
+  it('stacks long role names onto a full-width wrapping row and wraps long usernames/matriks inside the frame', () => {
+    session.set('tok-viewer', {
+      sub: 'mda_long_username_account',
+      role: 'admin',
+      roleName: 'Attendance Viewer',
+      name: 'Very Long Username Display String',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      pv: 1,
+      perms: { 'attendance.view.all': '*' }
+    });
+
+    render(
+      <MemoryRouter>
+        <UserInfoBoard />
+      </MemoryRouter>
+    );
+
+    const badge = screen.getByTestId('user-role-badge');
+    expect(badge).toHaveTextContent('ATTENDANCE VIEWER');
+    expect(badge.className).toContain('w-full');
+    expect(badge.className).toContain('break-words');
+    expect(badge.parentElement?.className).toContain('flex-col');
+
+    const nameEl = screen.getByTestId('user-name-display');
+    const matriksEl = screen.getByTestId('user-matriks-display');
+    expect(nameEl.className).toContain('break-words');
+    expect(matriksEl.className).toContain('break-words');
+  });
+
   it('clicking sign out clears session', () => {
     session.set('tok-dancer', {
       sub: '17201234',

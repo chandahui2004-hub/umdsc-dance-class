@@ -198,5 +198,19 @@ describe('MembersPage Component', () => {
         expect(mockCall).toHaveBeenCalledWith('members.edit', { eventId: 'evt1', memberId: 'M-26006146', matricRaw: '26006145' })
       );
     });
+
+    it('hides EXPORT CSV when the user only has members.view (no export.download or members.import)', async () => {
+      localStorage.setItem(
+        'umdsc:session',
+        JSON.stringify({
+          token: 't',
+          claims: { sub: 'viewer', role: 'admin', name: 'Viewer', exp: 9999999999, pv: 1, perms: { 'members.view': '*' } }
+        })
+      );
+      renderPage();
+      await waitFor(() => expect(screen.getAllByText('Deepa S').length).toBeGreaterThan(0));
+      expect(screen.queryByRole('button', { name: /EXPORT CSV/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^EDIT$/i })).not.toBeInTheDocument();
+    });
   });
 });

@@ -17,6 +17,8 @@ import { SectionsEditor } from './SectionsEditor';
 import { ClassLeadVideoFoldersPanel } from './ClassLeadVideoFoldersPanel';
 import { SessionEditor } from '../classes/SessionEditor';
 import { EventStep, StyleStep } from '../../components/ui/EventStyleSteps';
+import { session } from '../../lib/session';
+import { can } from '../../lib/permissions';
 import type { ClassSession, DanceStyle, Instructor, Video, Music } from '@umdsc/shared';
 
 export const MediaPage: React.FC = () => {
@@ -90,6 +92,24 @@ export const MediaPage: React.FC = () => {
   }, [styleId, setSearchParams]);
 
   const ready = Boolean(eventId && styleId);
+  const perms = session.get()?.claims?.perms;
+  const scopedStyleId = styleId || undefined;
+  const canManageFolders = can(perms, 'styles.edit') || can(perms, 'videos.upload', scopedStyleId);
+  const canEditSessions = can(perms, 'sessions.edit', scopedStyleId);
+  const canCreateEvents = can(perms, 'members.import');
+  const canViewVideos =
+    can(perms, 'videos.view', scopedStyleId) ||
+    can(perms, 'videos.upload', scopedStyleId) ||
+    can(perms, 'videos.edit', scopedStyleId);
+  const canUploadVideos = can(perms, 'videos.upload', scopedStyleId);
+  const canEditVideos = can(perms, 'videos.edit', scopedStyleId);
+  const canViewMusic =
+    can(perms, 'music.view', scopedStyleId) ||
+    can(perms, 'music.edit', scopedStyleId) ||
+    can(perms, 'sections.edit', scopedStyleId);
+  const canEditMusic = can(perms, 'music.edit', scopedStyleId);
+  const canEditSections =
+    can(perms, 'sections.edit', scopedStyleId) || can(perms, 'music.edit', scopedStyleId);
 
   // The event's classes for this style
   const { data: instructors = [] } = useQuery<Instructor[]>({
@@ -126,14 +146,14 @@ export const MediaPage: React.FC = () => {
   const { data: videos = [] } = useQuery<Video[]>({
     queryKey: ['videos', eventId, styleId],
     queryFn: async () => (await api.post<Video[]>('videos.list', { eventId, styleId, includeOrphans: true })).data,
-    enabled: ready
+    enabled: ready && canViewVideos
   });
 
   // Fetch music
   const { data: musicList = [] } = useQuery<Music[]>({
     queryKey: ['music', eventId, styleId],
     queryFn: async () => (await api.post<Music[]>('music.list', { eventId, styleId, includeOrphans: true })).data,
-    enabled: ready
+    enabled: ready && canViewMusic
   });
 
   // Delete Video mutation: the video leaves the website only once its Drive file is in the trash
@@ -181,8 +201,8 @@ export const MediaPage: React.FC = () => {
   // Media left behind by a deleted class: dancers no longer see it, so it is listed separately for cleanup
   const isOrphan = (item: { sessionId?: string }) =>
     sessionsLoaded && Boolean(item.sessionId) && !sessions.some((s) => s.id === item.sessionId);
-  const orphanVideos = videos.filter(isOrphan);
-  const orphanMusic = musicList.filter(isOrphan);
+  const orphanVideos = canEditVideos ? videos.filter(isOrphan) : [];
+  const orphanMusic = canEditMusic ? musicList.filter(isOrphan) : [];
 
   const filteredVideos = useMemo(() => {
     if (!selectedSessionId) return videos.filter((v) => !isOrphan(v));
@@ -233,7 +253,7 @@ export const MediaPage: React.FC = () => {
           }}
           disabled={!eventChosen}
           note={
-            activeStyle && !activeStyle.videoFolderId ? (
+            canUploadVideos && activeStyle && !activeStyle.videoFolderId ? (
               <p className="font-display text-[10px] text-[var(--neon-red)] font-bold uppercase tracking-tight">
                 ⚠ FOLDER LINK NOT INSERTED FOR {activeStyle.name.toUpperCase()} — UPLOADS BLOCKED
               </p>
@@ -244,15 +264,23 @@ export const MediaPage: React.FC = () => {
 
       {eventChosen && (
       <>
-      <ClassLeadVideoFoldersPanel
-        event={event}
-        styles={styles}
-        headerAction={
+      {canManageFolders ? (
+        <ClassLeadVideoFoldersPanel
+          event={event}
+          styles={styles}
+          headerAction={
+            <PixelButton size="sm" variant="secondary" disabled={refreshing} onClick={refreshAll}>
+              {refreshing ? 'REFRESHING…' : '↻ REFRESH'}
+            </PixelButton>
+          }
+        />
+      ) : (
+        <div className="flex justify-end">
           <PixelButton size="sm" variant="secondary" disabled={refreshing} onClick={refreshAll}>
             {refreshing ? 'REFRESHING…' : '↻ REFRESH'}
           </PixelButton>
-        }
-      />
+        </div>
+      )}
 
       {/* 4-CLASS SESSIONS SECTION (Class 1 to 4) */}
       <Panel
@@ -269,13 +297,15 @@ export const MediaPage: React.FC = () => {
             }
             description="Media is stored per class. Add classes to the event first."
             action={
-              <PixelButton
-                size="md"
-                variant="primary"
-                onClick={() => navigate(event ? `/admin/events/${event.id}/edit` : '/admin/events/new')}
-              >
-                ADD CLASSES IN EVENTS › EDIT
-              </PixelButton>
+              canEditSessions || canCreateEvents ? (
+                <PixelButton
+                  size="md"
+                  variant="primary"
+                  onClick={() => navigate(event ? `/admin/events/${event.id}/edit` : '/admin/events/new')}
+                >
+                  ADD CLASSES IN EVENTS › EDIT
+                </PixelButton>
+              ) : undefined
             }
           />
         ) : (
@@ -335,15 +365,17 @@ export const MediaPage: React.FC = () => {
                       </span>
                     </div>
                   </button>
-                  <PixelButton
-                    size="sm"
-                    variant="secondary"
-                    aria-label={`Edit class ${sess.seq}`}
-                    className="self-end"
-                    onClick={() => setEditingSession(sess)}
-                  >
-                    ✎ EDIT
-                  </PixelButton>
+                  {can(perms, 'sessions.edit', sess.styleId) && (
+                    <PixelButton
+                      size="sm"
+                      variant="secondary"
+                      aria-label={`Edit class ${sess.seq}`}
+                      className="self-end"
+                      onClick={() => setEditingSession(sess)}
+                    >
+                      ✎ EDIT
+                    </PixelButton>
+                  )}
                   </div>
                 );
               })}
@@ -423,8 +455,9 @@ export const MediaPage: React.FC = () => {
       )}
 
       {/* Main Grid: Videos and Music for Selected Class */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className={`grid grid-cols-1 ${canViewVideos && canViewMusic ? 'lg:grid-cols-2' : ''} gap-6`}>
         {/* Videos Section */}
+        {canViewVideos && (
         <Panel
           title={`CLASS RECAP VIDEOS (${filteredVideos.length})`}
           className="px-corners bg-[var(--night-2)] space-y-4"
@@ -444,28 +477,34 @@ export const MediaPage: React.FC = () => {
                 </PixelButton>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <PixelButton
-                size="sm"
-                variant="secondary"
-                onClick={() => setShowScan(true)}
-                disabled={!activeStyle || !activeStyle.videoFolderId}
-                title="Add videos already in the class lead's Drive folder"
-              >
-                SCAN DRIVE FOLDER
-              </PixelButton>
-              <PixelButton
-                size="md"
-                variant="secondary"
-                onClick={() => setShowUploadVideo(true)}
-                disabled={!activeStyle || !activeStyle.videoFolderId}
-              >
-                + ADD RECAP {selectedSession ? `FOR CLASS #${selectedSession.seq}` : ''}
-              </PixelButton>
-            </div>
+            {(canEditVideos || canUploadVideos) && (
+              <div className="flex flex-wrap items-center gap-2">
+                {canEditVideos && (
+                  <PixelButton
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setShowScan(true)}
+                    disabled={!activeStyle || !activeStyle.videoFolderId}
+                    title="Add videos already in the class lead's Drive folder"
+                  >
+                    SCAN DRIVE FOLDER
+                  </PixelButton>
+                )}
+                {canUploadVideos && (
+                  <PixelButton
+                    size="md"
+                    variant="secondary"
+                    onClick={() => setShowUploadVideo(true)}
+                    disabled={!activeStyle || !activeStyle.videoFolderId}
+                  >
+                    + ADD RECAP {selectedSession ? `FOR CLASS #${selectedSession.seq}` : ''}
+                  </PixelButton>
+                )}
+              </div>
+            )}
           </div>
 
-          {activeStyle && !activeStyle.videoFolderId && (
+          {canUploadVideos && activeStyle && !activeStyle.videoFolderId && (
             <div className="p-3 bg-[var(--neon-red)]/10 border-2 border-[var(--neon-red)] flex items-center gap-2">
               <span className="font-display text-[11px] text-[var(--neon-red)] font-bold">
                 ⚠ Class lead video folder link not inserted for {activeStyle.name}. Videos cannot be uploaded until a folder link is added above.
@@ -479,14 +518,16 @@ export const MediaPage: React.FC = () => {
               title="NO RECAP VIDEO FOR THIS CLASS YET"
               description="Upload your class routine video so dancers can practise at home."
               action={
-                <PixelButton
-                  size="md"
-                  variant="primary"
-                  onClick={() => setShowUploadVideo(true)}
-                  disabled={!activeStyle || !activeStyle.videoFolderId}
-                >
-                  ADD RECAP NOW
-                </PixelButton>
+                canUploadVideos ? (
+                  <PixelButton
+                    size="md"
+                    variant="primary"
+                    onClick={() => setShowUploadVideo(true)}
+                    disabled={!activeStyle || !activeStyle.videoFolderId}
+                  >
+                    ADD RECAP NOW
+                  </PixelButton>
+                ) : undefined
               }
             />
           ) : (
@@ -532,22 +573,24 @@ export const MediaPage: React.FC = () => {
                         >
                           Drive ↗
                         </a>
-                        <PixelButton
-                          size="sm"
-                          variant="danger"
-                          disabled={deleteVideoMutation.isPending}
-                          onClick={() =>
-                            window.confirm(`Delete "${vid.title}"? It will also be moved to the Google Drive trash (you can restore it from there for 30 days).`) &&
-                            deleteVideoMutation.mutate({
-                              id: vid.id,
-                              version: vid.version,
-                              driveFileId: vid.driveFileId,
-                              title: vid.title
-                            })
-                          }
-                        >
-                          {deleteVideoMutation.isPending && deleteVideoMutation.variables?.id === vid.id ? 'DELETING…' : 'DEL'}
-                        </PixelButton>
+                        {canEditVideos && (
+                          <PixelButton
+                            size="sm"
+                            variant="danger"
+                            disabled={deleteVideoMutation.isPending}
+                            onClick={() =>
+                              window.confirm(`Delete "${vid.title}"? It will also be moved to the Google Drive trash (you can restore it from there for 30 days).`) &&
+                              deleteVideoMutation.mutate({
+                                id: vid.id,
+                                version: vid.version,
+                                driveFileId: vid.driveFileId,
+                                title: vid.title
+                              })
+                            }
+                          >
+                            {deleteVideoMutation.isPending && deleteVideoMutation.variables?.id === vid.id ? 'DELETING…' : 'DEL'}
+                          </PixelButton>
+                        )}
                       </div>
                     </div>
                   );
@@ -599,22 +642,24 @@ export const MediaPage: React.FC = () => {
                       >
                         OPEN IN DRIVE ↗
                       </a>
-                      <PixelButton
-                        size="md"
-                        variant="danger"
-                        disabled={deleteVideoMutation.isPending}
-                        onClick={() =>
-                          window.confirm(`Delete "${vid.title}"? It will also be moved to the Google Drive trash (you can restore it from there for 30 days).`) &&
-                          deleteVideoMutation.mutate({
-                            id: vid.id,
-                            version: vid.version,
-                            driveFileId: vid.driveFileId,
-                            title: vid.title
-                          })
-                        }
-                      >
-                        {deleteVideoMutation.isPending && deleteVideoMutation.variables?.id === vid.id ? 'DELETING…' : 'DELETE'}
-                      </PixelButton>
+                      {canEditVideos && (
+                        <PixelButton
+                          size="md"
+                          variant="danger"
+                          disabled={deleteVideoMutation.isPending}
+                          onClick={() =>
+                            window.confirm(`Delete "${vid.title}"? It will also be moved to the Google Drive trash (you can restore it from there for 30 days).`) &&
+                            deleteVideoMutation.mutate({
+                              id: vid.id,
+                              version: vid.version,
+                              driveFileId: vid.driveFileId,
+                              title: vid.title
+                            })
+                          }
+                        >
+                          {deleteVideoMutation.isPending && deleteVideoMutation.variables?.id === vid.id ? 'DELETING…' : 'DELETE'}
+                        </PixelButton>
+                      )}
                     </div>
                   </div>
                 );
@@ -622,8 +667,10 @@ export const MediaPage: React.FC = () => {
             </div>
           )}
         </Panel>
+        )}
 
         {/* Music Section */}
+        {canViewMusic && (
         <Panel
           title={`PRACTICE MUSIC (${filteredMusic.length})`}
           className="px-corners bg-[var(--night-2)] space-y-4"
@@ -632,24 +679,26 @@ export const MediaPage: React.FC = () => {
             <span className="font-display text-xs text-[var(--text-1)]">
               {selectedSession ? `Class #${selectedSession.seq} Tracks` : 'All Tracks'}
             </span>
-            <div className="flex gap-2">
-              <PixelButton
-                size="md"
-                variant="secondary"
-                onClick={() => setShowAddMusic(true)}
-                disabled={!activeStyle}
-              >
-                + MUSIC LINK
-              </PixelButton>
-              <PixelButton
-                size="md"
-                variant="secondary"
-                onClick={() => setShowUploadMp3(true)}
-                disabled={!activeStyle}
-              >
-                + MP3
-              </PixelButton>
-            </div>
+            {canEditMusic && (
+              <div className="flex gap-2">
+                <PixelButton
+                  size="md"
+                  variant="secondary"
+                  onClick={() => setShowAddMusic(true)}
+                  disabled={!activeStyle}
+                >
+                  + MUSIC LINK
+                </PixelButton>
+                <PixelButton
+                  size="md"
+                  variant="secondary"
+                  onClick={() => setShowUploadMp3(true)}
+                  disabled={!activeStyle}
+                >
+                  + MP3
+                </PixelButton>
+              </div>
+            )}
           </div>
 
           {filteredMusic.length === 0 ? (
@@ -658,24 +707,26 @@ export const MediaPage: React.FC = () => {
               title="NO MUSIC TRACKS ADDED YET"
               description="Add YouTube audio links or upload MP3s for Studio practice."
               action={
-                <div className="flex justify-center gap-2 pt-1">
-                  <PixelButton
-                    size="md"
-                    variant="secondary"
-                    onClick={() => setShowAddMusic(true)}
-                    disabled={!activeStyle}
-                  >
-                    ADD MUSIC LINK
-                  </PixelButton>
-                  <PixelButton
-                    size="md"
-                    variant="secondary"
-                    onClick={() => setShowUploadMp3(true)}
-                    disabled={!activeStyle}
-                  >
-                    UPLOAD MP3
-                  </PixelButton>
-                </div>
+                canEditMusic ? (
+                  <div className="flex justify-center gap-2 pt-1">
+                    <PixelButton
+                      size="md"
+                      variant="secondary"
+                      onClick={() => setShowAddMusic(true)}
+                      disabled={!activeStyle}
+                    >
+                      ADD MUSIC LINK
+                    </PixelButton>
+                    <PixelButton
+                      size="md"
+                      variant="secondary"
+                      onClick={() => setShowUploadMp3(true)}
+                      disabled={!activeStyle}
+                    >
+                      UPLOAD MP3
+                    </PixelButton>
+                  </div>
+                ) : undefined
               }
             />
           ) : (
@@ -723,34 +774,41 @@ export const MediaPage: React.FC = () => {
                       </div>
                     ) : null}
 
-                    <div className="flex justify-between items-center gap-2 pt-1 border-t border-[var(--outline)]">
-                      <PixelButton
-                        size="md"
-                        variant="secondary"
-                        onClick={() => setActiveMusicForSections(item)}
-                      >
-                        MANAGE SECTIONS
-                      </PixelButton>
-                      <PixelButton
-                        size="md"
-                        variant="danger"
-                        disabled={deleteMusicMutation.isPending}
-                        onClick={() =>
-                          deleteMusicMutation.mutate({
-                            id: item.id,
-                            version: item.version
-                          })
-                        }
-                      >
-                        {deleteMusicMutation.isPending && deleteMusicMutation.variables?.id === item.id ? 'DELETING…' : 'DELETE'}
-                      </PixelButton>
-                    </div>
+                    {(canEditSections || canEditMusic) && (
+                      <div className="flex justify-between items-center gap-2 pt-1 border-t border-[var(--outline)]">
+                        {canEditSections ? (
+                          <PixelButton
+                            size="md"
+                            variant="secondary"
+                            onClick={() => setActiveMusicForSections(item)}
+                          >
+                            MANAGE SECTIONS
+                          </PixelButton>
+                        ) : <span />}
+                        {canEditMusic && (
+                          <PixelButton
+                            size="md"
+                            variant="danger"
+                            disabled={deleteMusicMutation.isPending}
+                            onClick={() =>
+                              deleteMusicMutation.mutate({
+                                id: item.id,
+                                version: item.version
+                              })
+                            }
+                          >
+                            {deleteMusicMutation.isPending && deleteMusicMutation.variables?.id === item.id ? 'DELETING…' : 'DELETE'}
+                          </PixelButton>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
           )}
         </Panel>
+        )}
       </div>
 
       </>

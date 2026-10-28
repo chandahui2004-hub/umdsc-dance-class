@@ -16,10 +16,16 @@ import { todayKL, formatDayLabel } from '../../lib/time';
 import { getInstructorColor } from '../../theme/colors';
 import { useCurrentEvent } from '../events/useCurrentEvent';
 import { resolveInstructor, getInstructorPhotoUrl, getDriveThumbnailUrl } from '../../lib/instructorPhotos';
+import { session } from '../../lib/session';
+import { can } from '../../lib/permissions';
 import type { ClassSession, DanceStyle, Instructor, ISODate, Month, VideoItem, MusicItem } from '@umdsc/shared';
 
 export const ClassesPage: React.FC = () => {
   const { events, current: event, isLoading: eventsLoading, isAll } = useCurrentEvent();
+  const perms = session.get()?.claims?.perms;
+  const canEditAnySession = can(perms, 'sessions.edit');
+  const canEditSession = (sId?: string) => can(perms, 'sessions.edit', sId);
+  const canCreateEvent = can(perms, 'members.import');
   const eventId = isAll ? 'ALL' : (event?.id || '');
 
   const [currentMonth, setCurrentMonth] = useState<Month>(todayKL().slice(0, 7));
@@ -205,9 +211,9 @@ export const ClassesPage: React.FC = () => {
           title="NO EVENTS YET"
           description="Classes belong to an event. Create one from its registration form first."
           action={
-            <Link to="/admin/events/new" className="inline-flex items-center min-h-[44px] px-4 border-2 border-[var(--outline)] bg-[var(--neon-gold)] text-[var(--on-neon)] font-display text-[12px] no-underline shadow-[2px_2px_0_var(--outline)]">
+            canCreateEvent ? <Link to="/admin/events/new" className="inline-flex items-center min-h-[44px] px-4 border-2 border-[var(--outline)] bg-[var(--neon-gold)] text-[var(--on-neon)] font-display text-[12px] no-underline shadow-[2px_2px_0_var(--outline)]">
               CREATE AN EVENT
-            </Link>
+            </Link> : undefined
           }
         />
       </div>
@@ -261,10 +267,11 @@ export const ClassesPage: React.FC = () => {
           }
         }}
         action={
-          activeEvents.length > 0 ? (
+          activeEvents.length > 0 && canEditAnySession ? (
             <PixelButton size="sm" variant="primary" onClick={() => setShowAddClass(true)}>
               + ADD CLASS
             </PixelButton>
+
           ) : undefined
         }
       />
@@ -283,9 +290,9 @@ export const ClassesPage: React.FC = () => {
           events={events}
           showAttendance={false}
           sessionAction={(s) => (
-            <PixelButton size="sm" variant="secondary" onClick={() => { setDrawerOpen(false); setEditingSession(s); }}>
-              ✎ EDIT CLASS
-            </PixelButton>
+            canEditSession(s.styleId) ? <PixelButton size="sm" variant="secondary" onClick={() => { setDrawerOpen(false); setEditingSession(s); }}>✎ EDIT CLASS</PixelButton> : null
+
+
           )}
         />
       )}
@@ -359,9 +366,9 @@ export const ClassesPage: React.FC = () => {
                             eventName={isAll ? getEvent(s.eventId)?.name : undefined}
                             showAttendance={false}
                             action={
-                              <PixelButton size="sm" variant="secondary" onClick={() => setEditingSession(s)}>
-                                ✎ EDIT CLASS
-                              </PixelButton>
+                              canEditSession(s.styleId) ? <PixelButton size="sm" variant="secondary" onClick={() => setEditingSession(s)}>✎ EDIT CLASS</PixelButton> : undefined
+                  
+                  
                             }
                           />
                         );
@@ -509,6 +516,7 @@ export const ClassesPage: React.FC = () => {
             >
               RESET FILTERS
             </PixelButton>
+
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -520,7 +528,9 @@ export const ClassesPage: React.FC = () => {
                 <button
                   key={s.id}
                   type="button"
-                  onClick={() => setEditingSession(s)}
+                  onClick={() => {
+                    if (canEditSession(s.styleId)) setEditingSession(s);
+                  }}
                   className="text-left p-3 bg-[var(--night-2)] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)] hover:bg-[var(--violet-2)] space-y-2 transition-none cursor-pointer"
                 >
                   <div className="flex flex-wrap justify-between items-start gap-1">

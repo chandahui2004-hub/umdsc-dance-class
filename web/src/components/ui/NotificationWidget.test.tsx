@@ -14,6 +14,13 @@ vi.mock('../../lib/api', () => ({
 }));
 
 let mockRole: 'admin' | 'dancer' = 'admin';
+let mockPerms: Record<string, any> = {
+  'members.view': '*',
+  'members.import': '*',
+  'calendar.view': '*',
+  'sessions.edit': '*',
+  'settings.edit': '*'
+};
 
 vi.mock('../../lib/session', () => ({
   session: {
@@ -22,7 +29,8 @@ vi.mock('../../lib/session', () => ({
       claims: {
         role: mockRole,
         name: mockRole === 'admin' ? 'Admin' : 'Chan Da Hui',
-        sub: mockRole === 'admin' ? 'admin1' : 'M-23005147'
+        sub: mockRole === 'admin' ? 'admin1' : 'M-23005147',
+        perms: mockPerms
       }
     })
   }
@@ -239,6 +247,13 @@ describe('NotificationWidget Floating Center and Role Modes', () => {
     currentMockEvents = [...mockEvents];
     currentMockDancerBootstrap = mockDancerBootstrap;
     mockRole = 'admin';
+    mockPerms = {
+      'members.view': '*',
+      'members.import': '*',
+      'calendar.view': '*',
+      'sessions.edit': '*',
+      'settings.edit': '*'
+    };
     mockCall.mockImplementation((action: string) => {
       if (action === 'members.list') {
         return Promise.resolve({ data: mockMembers });
@@ -256,6 +271,13 @@ describe('NotificationWidget Floating Center and Role Modes', () => {
 
   it('renders floating bell button and toggles admin retro side drawer', () => {
     mockRole = 'admin';
+    mockPerms = {
+      'members.view': '*',
+      'members.import': '*',
+      'calendar.view': '*',
+      'sessions.edit': '*',
+      'settings.edit': '*'
+    };
     renderWidget();
 
     // Floating bell button exists
@@ -282,6 +304,13 @@ describe('NotificationWidget Floating Center and Role Modes', () => {
 
   it('shows mascot alert badge for new dancers while the drawer is closed', async () => {
     mockRole = 'admin';
+    mockPerms = {
+      'members.view': '*',
+      'members.import': '*',
+      'calendar.view': '*',
+      'sessions.edit': '*',
+      'settings.edit': '*'
+    };
     renderWidget();
 
     // Drawer is closed
@@ -297,6 +326,13 @@ describe('NotificationWidget Floating Center and Role Modes', () => {
 
   it('recognizes Malaysian DD/MM/YYYY format timestamps and displays Event Name on dancer card', async () => {
     mockRole = 'admin';
+    mockPerms = {
+      'members.view': '*',
+      'members.import': '*',
+      'calendar.view': '*',
+      'sessions.edit': '*',
+      'settings.edit': '*'
+    };
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
     const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -337,6 +373,13 @@ describe('NotificationWidget Floating Center and Role Modes', () => {
 
   it('announces newly added events with banner and includes their pre-registered dancers', async () => {
     mockRole = 'admin';
+    mockPerms = {
+      'members.view': '*',
+      'members.import': '*',
+      'calendar.view': '*',
+      'sessions.edit': '*',
+      'settings.edit': '*'
+    };
     const recentEvent = {
       ...mockEvents[0],
       id: 'ev-new-workshop',
@@ -467,6 +510,13 @@ describe('NotificationWidget Floating Center and Role Modes', () => {
 
   it('switches between the 3 admin tabs', async () => {
     mockRole = 'admin';
+    mockPerms = {
+      'members.view': '*',
+      'members.import': '*',
+      'calendar.view': '*',
+      'sessions.edit': '*',
+      'settings.edit': '*'
+    };
     renderWidget();
 
     fireEvent.click(screen.getByTestId('notification-bell-btn'));
@@ -573,6 +623,13 @@ describe('NotificationWidget Floating Center and Role Modes', () => {
 
   it('resolves raw style IDs to readable dance style names in Slot Progress tab', async () => {
     mockRole = 'admin';
+    mockPerms = {
+      'members.view': '*',
+      'members.import': '*',
+      'calendar.view': '*',
+      'sessions.edit': '*',
+      'settings.edit': '*'
+    };
     renderWidget();
 
     fireEvent.click(screen.getByTestId('notification-bell-btn'));
@@ -634,6 +691,27 @@ describe('NotificationWidget Floating Center and Role Modes', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('hides the notification widget completely for an admin-login role with no permitted notification tabs (e.g. ATTENDANCE VIEWER)', () => {
+    mockRole = 'admin';
+    mockPerms = { 'attendance.view.all': '*' };
+    renderWidget();
+
+    expect(screen.queryByTestId('notification-bell-btn')).not.toBeInTheDocument();
+  });
+
+  it('hides unauthorized admin tabs (e.g. SYSTEM & AUDIT) when the admin role only has members.view', () => {
+    mockRole = 'admin';
+    mockPerms = { 'members.view': '*' };
+    renderWidget();
+
+    const bellBtn = screen.getByTestId('notification-bell-btn');
+    fireEvent.click(bellBtn);
+
+    expect(screen.getByRole('tab', { name: /NEW DANCERS/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /SLOT PROGRESS/i })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /SYSTEM & AUDIT/i })).not.toBeInTheDocument();
   });
 
   it('does NOT stop dancing or reset timer when clicking inside or closing the notification drawer', () => {

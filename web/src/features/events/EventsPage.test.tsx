@@ -4,6 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { EventsPage } from './EventsPage';
+import { session } from '../../lib/session';
 import type { EventListItem } from '@umdsc/shared';
 
 const mockNavigate = vi.fn();
@@ -133,6 +134,14 @@ function renderPage() {
 
 describe('EventsPage Collapsible Accordions and Year-Based Archive', () => {
   beforeEach(() => {
+    session.set('tok-admin', {
+      sub: 'admin',
+      role: 'admin',
+      name: 'Admin',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      pv: 1,
+      perms: { 'calendar.view': '*', 'sessions.edit': '*', 'members.import': '*', 'attendance.view.all': '*' }
+    });
     vi.clearAllMocks();
     mockCall.mockResolvedValue({ data: [] });
   });
@@ -204,5 +213,27 @@ describe('EventsPage Collapsible Accordions and Year-Based Archive', () => {
     // Expand Old Workshop 2026
     fireEvent.click(workshopToggle);
     expect(screen.getByTestId('event-card-ev-archived-2026')).toBeInTheDocument();
+  });
+
+  it('hides + NEW EVENT and event edit/sync/archive/delete/sheet actions when user only has calendar.view', () => {
+    session.set('tok-viewer', {
+      sub: 'viewer',
+      role: 'admin',
+      name: 'Viewer',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      pv: 1,
+      perms: { 'calendar.view': '*' }
+    });
+
+    renderPage();
+
+    expect(screen.queryByRole('button', { name: /\+ NEW EVENT/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('toggle-event-ev-active-1'));
+    expect(screen.getByTestId('event-card-ev-active-1')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^EDIT$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /SYNC NOW/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^ARCHIVE$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^DELETE$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /RESPONSE SHEET/i })).not.toBeInTheDocument();
   });
 });

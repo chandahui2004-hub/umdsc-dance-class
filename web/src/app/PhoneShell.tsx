@@ -51,7 +51,7 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
               </span>
               <span
                 data-testid="mobile-role-badge"
-                className={`font-display text-[11px] uppercase px-1.5 py-0.5 border border-[var(--outline)] shrink-0 ${
+                className={`font-display text-[11px] uppercase px-1.5 py-0.5 border border-[var(--outline)] shrink-0 max-w-[140px] truncate ${
                   isAdmin
                     ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold'
                     : 'bg-[var(--night-0)] text-[var(--neon-cyan)] border-[var(--neon-cyan)]'

@@ -5,6 +5,8 @@ import type { DanceStyle, EventListItem } from '@umdsc/shared';
 import { call, errorMessage } from '../../lib/api';
 import { PixelButton } from '../../components/ui/PixelButton';
 import { useCurrentEvent } from './useCurrentEvent';
+import { session } from '../../lib/session';
+import { can, canAccessRoute } from '../../lib/permissions';
 
 const TYPE_LABEL: Record<string, string> = {
   monthly: 'Monthly class',
@@ -36,6 +38,12 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
   const { setCurrentId } = useCurrentEvent();
   const [note, setNote] = useState<string | null>(null);
   const archived = event.status === 'archived';
+  const perms = session.get()?.claims?.perms;
+
+  const canManageEvent = can(perms, 'members.import');
+  const canEditEvent = canManageEvent || can(perms, 'sessions.edit');
+  const canViewSheetLinks = canManageEvent || can(perms, 'settings.edit');
+  const canOpenAttendance = canAccessRoute('/admin/attendance', perms);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['events'] });
   const onError = (err: unknown) => setNote(errorMessage(err));
@@ -117,6 +125,7 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
 
   const totalSlots = Object.values(styleSlots).reduce((acc, v) => acc + (Number(v) || 0), 0);
   const singleStyle = event.styleIds.length === 1;
+  const hasActions = Boolean(canOpenAttendance || canEditEvent || canManageEvent);
 
   return (
     <div
@@ -178,25 +187,29 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
 
       <div className="space-y-1.5 pt-1">
         <div className="flex flex-wrap items-center gap-2">
-          <a
-            href={`https://docs.google.com/spreadsheets/d/${event.sourceSheetId}`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 min-h-[36px] bg-[var(--night-1)] text-[var(--neon-cyan)] border-2 border-[var(--outline)] hover:border-[var(--neon-cyan)] font-display text-[11px] font-bold shadow-[1px_1px_0_var(--outline)]"
-          >
-            <span>📊</span>
-            <span>RESPONSE SHEET ↗</span>
-          </a>
-          {Boolean(event.formUrl || event.formId) && (
-            <a
-              href={event.formUrl || (event.formId ? `https://docs.google.com/forms/d/${event.formId}/edit` : '#')}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 min-h-[36px] bg-[var(--night-1)] text-[var(--neon-gold)] border-2 border-[var(--outline)] hover:border-[var(--neon-gold)] font-display text-[11px] font-bold shadow-[1px_1px_0_var(--outline)]"
-            >
-              <span>📝</span>
-              <span>GOOGLE FORM ↗</span>
-            </a>
+          {canViewSheetLinks && (
+            <>
+              <a
+                href={`https://docs.google.com/spreadsheets/d/${event.sourceSheetId}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 min-h-[36px] bg-[var(--night-1)] text-[var(--neon-cyan)] border-2 border-[var(--outline)] hover:border-[var(--neon-cyan)] font-display text-[11px] font-bold shadow-[1px_1px_0_var(--outline)]"
+              >
+                <span>📊</span>
+                <span>RESPONSE SHEET ↗</span>
+              </a>
+              {Boolean(event.formUrl || event.formId) && (
+                <a
+                  href={event.formUrl || (event.formId ? `https://docs.google.com/forms/d/${event.formId}/edit` : '#')}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 min-h-[36px] bg-[var(--night-1)] text-[var(--neon-gold)] border-2 border-[var(--outline)] hover:border-[var(--neon-gold)] font-display text-[11px] font-bold shadow-[1px_1px_0_var(--outline)]"
+                >
+                  <span>📝</span>
+                  <span>GOOGLE FORM ↗</span>
+                </a>
+              )}
+            </>
           )}
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 min-h-[36px] bg-[var(--night-1)] text-[var(--text-2)] border-2 border-[var(--outline)] font-mono text-[13px]">
             <span>🔄</span>
@@ -211,75 +224,85 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
         {event.folderMissing && (
           <p className="font-bold text-sm text-[var(--neon-red)] flex flex-wrap items-center gap-2">
             ⚠ Folder missing in Drive.
-            <PixelButton size="md" variant="danger" disabled={recreate.isPending} onClick={() => recreate.mutate()}>
-              {recreate.isPending ? 'RECREATING…' : 'RECREATE'}
-            </PixelButton>
+            {canManageEvent && (
+              <PixelButton size="md" variant="danger" disabled={recreate.isPending} onClick={() => recreate.mutate()}>
+                {recreate.isPending ? 'RECREATING…' : 'RECREATE'}
+              </PixelButton>
+            )}
           </p>
         )}
         {note && <p className="font-bold text-sm text-[var(--neon-green)]">{note}</p>}
       </div>
 
-      <div className="flex flex-wrap gap-2 pt-2 border-t-2 border-[var(--outline)]">
-        <PixelButton
-          size="md"
-          variant="secondary"
-          onClick={() => {
-            setCurrentId(event.id);
-            navigate('/admin/attendance');
-          }}
-        >
-          OPEN
-        </PixelButton>
-        {!archived && (
-          <>
-            <PixelButton size="md" variant="secondary" onClick={() => navigate(`/admin/events/${event.id}/edit`)}>
-              EDIT
-            </PixelButton>
+      {hasActions && (
+        <div className="flex flex-wrap gap-2 pt-2 border-t-2 border-[var(--outline)]">
+          {canOpenAttendance && (
             <PixelButton
               size="md"
               variant="secondary"
-              disabled={syncAll.isPending}
-              onClick={() => syncAll.mutate()}
-              title="Sync responses from Google Sheets and update Google Form slot gating"
+              onClick={() => {
+                setCurrentId(event.id);
+                navigate('/admin/attendance');
+              }}
             >
-              {syncAll.isPending ? 'SYNCING…' : 'SYNC NOW'}
+              OPEN
             </PixelButton>
+          )}
+          {!archived && canEditEvent && (
+            <PixelButton size="md" variant="secondary" onClick={() => navigate(`/admin/events/${event.id}/edit`)}>
+              EDIT
+            </PixelButton>
+          )}
+          {!archived && canManageEvent && (
+            <>
+              <PixelButton
+                size="md"
+                variant="secondary"
+                disabled={syncAll.isPending}
+                onClick={() => syncAll.mutate()}
+                title="Sync responses from Google Sheets and update Google Form slot gating"
+              >
+                {syncAll.isPending ? 'SYNCING…' : 'SYNC NOW'}
+              </PixelButton>
+              <PixelButton
+                size="md"
+                variant="ghost"
+                disabled={setStatus.isPending}
+                onClick={() => {
+                  if (window.confirm(`Archive "${event.name}"? It stops syncing but stays viewable.`)) {
+                    setStatus.mutate('events.archive');
+                  }
+                }}
+              >
+                {setStatus.isPending ? 'ARCHIVING…' : 'ARCHIVE'}
+              </PixelButton>
+            </>
+          )}
+          {archived && canManageEvent && (
+            <PixelButton size="md" variant="secondary" disabled={setStatus.isPending} onClick={() => setStatus.mutate('events.unarchive')}>
+              {setStatus.isPending ? 'UNARCHIVING…' : 'UNARCHIVE'}
+            </PixelButton>
+          )}
+          {canManageEvent && (
             <PixelButton
               size="md"
               variant="ghost"
-              disabled={setStatus.isPending}
+              disabled={deleteEvent.isPending}
               onClick={() => {
-                if (window.confirm(`Archive "${event.name}"? It stops syncing but stays viewable.`)) {
-                  setStatus.mutate('events.archive');
-                }
+                setDeleteError(null);
+                setShowDeleteConfirm(true);
               }}
+              className="!text-[var(--neon-red)] hover:!bg-[var(--violet-2)] border-[var(--neon-red)]"
+              title="Permanently delete this event and all associated data"
             >
-              {setStatus.isPending ? 'ARCHIVING…' : 'ARCHIVE'}
+              DELETE
             </PixelButton>
-          </>
-        )}
-        {archived && (
-          <PixelButton size="md" variant="secondary" disabled={setStatus.isPending} onClick={() => setStatus.mutate('events.unarchive')}>
-            {setStatus.isPending ? 'UNARCHIVING…' : 'UNARCHIVE'}
-          </PixelButton>
-        )}
-        <PixelButton
-          size="md"
-          variant="ghost"
-          disabled={deleteEvent.isPending}
-          onClick={() => {
-            setDeleteError(null);
-            setShowDeleteConfirm(true);
-          }}
-          className="!text-[var(--neon-red)] hover:!bg-[var(--violet-2)] border-[var(--neon-red)]"
-          title="Permanently delete this event and all associated data"
-        >
-          DELETE
-        </PixelButton>
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Double-Confirmation Permanent Deletion Warning Modal */}
-      {showDeleteConfirm && (
+      {canManageEvent && showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div
             role="alertdialog"

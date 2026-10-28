@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { ClassesPage } from './ClassesPage';
+import { session } from '../../lib/session';
 
 const mockCall = vi.fn();
 vi.mock('../../lib/api', () => ({
@@ -85,6 +86,14 @@ describe('ClassesPage Filter Component', () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
+    session.set('tok-admin', {
+      sub: 'admin',
+      role: 'admin',
+      name: 'Admin',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      pv: 1,
+      perms: { 'calendar.view': '*', 'sessions.edit': '*', 'members.import': '*' }
+    });
     vi.clearAllMocks();
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } }
@@ -218,5 +227,25 @@ describe('ClassesPage Filter Component', () => {
     expect(select.value).toBe('');
     expect(screen.queryByText(/Default instructor for/i)).not.toBeInTheDocument();
     expect(Array.from(select.options).map(o => o.textContent)).toEqual(['Select Instructor...', 'Lam Hong Woh', 'Newstyle Kelvin']);
+  });
+
+  it('hides + ADD CLASS and prevents opening session editor when user only has calendar.view (no sessions.edit)', async () => {
+    session.set('tok-cal-viewer', {
+      sub: 'viewer',
+      role: 'admin',
+      name: 'Calendar Viewer',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      pv: 1,
+      perms: { 'calendar.view': '*' }
+    });
+
+    renderComponent();
+    await waitFor(() => expect(screen.getAllByText(/Popping Class 1/i)[0]).toBeInTheDocument());
+
+    expect(screen.queryByRole('button', { name: /\+ ADD CLASS/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /EDIT CLASS/i })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByText(/Popping Class 1/i)[0]);
+    expect(screen.queryByLabelText(/^Instructor$/i)).not.toBeInTheDocument();
   });
 });

@@ -28,6 +28,7 @@ export const MembersPage: React.FC = () => {
   const [editing, setEditing] = useState<AugmentedMember | null>(null);
   const [syncing, setSyncing] = useState(false);
   const canImport = can(session.get()?.claims.perms, 'members.import');
+  const canExport = can(session.get()?.claims.perms, 'export.download') || canImport;
 
   // Members of the event chosen in the picker, or all events combined
   const {
@@ -396,14 +397,16 @@ export const MembersPage: React.FC = () => {
               placeholder="Search dancer..."
               className="min-h-[44px] px-3 bg-[var(--night-1)] border-2 border-[var(--outline)] font-body text-[16px] text-[var(--text-1)] px-well placeholder:text-[var(--text-3)]"
             />
-            <PixelButton
-              variant="secondary"
-              size="md"
-              onClick={handleExportCsv}
-              disabled={filteredMembers.length === 0}
-            >
-              EXPORT CSV
-            </PixelButton>
+            {canExport && (
+              <PixelButton
+                variant="secondary"
+                size="md"
+                onClick={handleExportCsv}
+                disabled={filteredMembers.length === 0}
+              >
+                EXPORT CSV
+              </PixelButton>
+            )}
             <PixelButton
               variant="secondary"
               size="md"
@@ -565,15 +568,17 @@ export const MembersPage: React.FC = () => {
             {isRefetching || syncing ? 'REFRESHING...' : 'REFRESH'}
           </PixelButton>
 
-          <PixelButton
-            variant="secondary"
-            size="sm"
-            onClick={handleExportCsv}
-            disabled={filteredMembers.length === 0}
-            className="flex items-center gap-1.5"
-          >
-            EXPORT CSV
-          </PixelButton>
+          {canExport && (
+            <PixelButton
+              variant="secondary"
+              size="sm"
+              onClick={handleExportCsv}
+              disabled={filteredMembers.length === 0}
+              className="flex items-center gap-1.5"
+            >
+              EXPORT CSV
+            </PixelButton>
+          )}
 
           <PixelButton
             variant="secondary"

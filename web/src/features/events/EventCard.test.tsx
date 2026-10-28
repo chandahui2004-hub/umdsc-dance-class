@@ -4,6 +4,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { EventCard } from './EventCard';
+import { session } from '../../lib/session';
 import type { EventListItem, DanceStyle } from '@umdsc/shared';
 
 const mockCall = vi.fn();
@@ -66,6 +67,14 @@ function renderWithClient(ui: React.ReactElement) {
 
 describe('EventCard Unified Sync Now', () => {
   beforeEach(() => {
+    session.set('tok-admin', {
+      sub: 'admin',
+      role: 'admin',
+      name: 'Admin',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      pv: 1,
+      perms: { 'calendar.view': '*', 'sessions.edit': '*', 'members.import': '*', 'attendance.view.all': '*' }
+    });
     vi.clearAllMocks();
   });
 

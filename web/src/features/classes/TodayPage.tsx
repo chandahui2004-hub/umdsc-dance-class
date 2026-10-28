@@ -13,12 +13,15 @@ import { getInstructorColor } from '../../theme/colors';
 import type { TodayClass } from '@umdsc/shared';
 import { useCurrentEvent } from '../events/useCurrentEvent';
 import { resolveInstructor, getInstructorPhotoUrl } from '../../lib/instructorPhotos';
+import { session as authSession } from '../../lib/session';
+import { can } from '../../lib/permissions';
 
 export const TodayPage: React.FC = () => {
   const navigate = useNavigate();
   const today = todayKL();
   const { data: bootstrap } = useBootstrap('admin');
   const { setCurrentId } = useCurrentEvent();
+  const perms = authSession.get()?.claims?.perms;
 
   const {
     data: sessions = [],
@@ -92,6 +95,8 @@ export const TodayPage: React.FC = () => {
             const instructor = resolveInstructor(session, style, bootstrap?.instructors || []);
             const photoUrl = getInstructorPhotoUrl(instructor);
             const colorVar = getInstructorColor(instructor, session.styleId);
+            const canEditAtt = can(perms, 'attendance.edit', session.styleId);
+            const canViewAtt = canEditAtt || can(perms, 'attendance.view.all', session.styleId);
 
             return (
               <Panel
@@ -145,19 +150,21 @@ export const TodayPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="pt-2">
-                  <PixelButton
-                    variant="primary"
-                    size="md"
-                    onClick={() => {
-                      setCurrentId(session.eventId);
-                      navigate(`/admin/attendance?sessionId=${session.id}&styleId=${session.styleId}`);
-                    }}
-                    className="w-full"
-                  >
-                    TAKE ATTENDANCE
-                  </PixelButton>
-                </div>
+                {canViewAtt && (
+                  <div className="pt-2">
+                    <PixelButton
+                      variant="primary"
+                      size="md"
+                      onClick={() => {
+                        setCurrentId(session.eventId);
+                        navigate(`/admin/attendance?sessionId=${session.id}&styleId=${session.styleId}`);
+                      }}
+                      className="w-full"
+                    >
+                      {canEditAtt ? 'TAKE ATTENDANCE' : 'VIEW ATTENDANCE'}
+                    </PixelButton>
+                  </div>
+                )}
               </Panel>
             );
           })}

@@ -14,7 +14,7 @@ import { useCurrentEvent } from '../events/useCurrentEvent';
 import { AttendanceFolderHeader } from '../events/FolderLinksHeader';
 import { EventStep, StyleStep } from '../../components/ui/EventStyleSteps';
 import { session } from '../../lib/session';
-import { canAccessRoute } from '../../lib/permissions';
+import { can, canAccessRoute } from '../../lib/permissions';
 import type { AttendanceGrid as AttendanceGridData, DanceStyle, Member } from '@umdsc/shared';
 
 function downloadXlsx(fileName: string, base64: string): void {
@@ -35,10 +35,15 @@ export const AttendancePage: React.FC = () => {
   const queryClient = useQueryClient();
   const { events, current: event, isLoading: eventsLoading, isAll } = useCurrentEvent();
   const eventId = event?.id || '';
+  const perms = session.get()?.claims?.perms;
 
   // The Today page links here with styleId and sessionId
   const [styleId, setStyleId] = useState<string>(searchParams.get('style') || searchParams.get('styleId') || '');
   const [activeSessionId, setActiveSessionId] = useState<string | null>(searchParams.get('sessionId'));
+
+  const canEdit = can(perms, 'attendance.edit', styleId || undefined);
+  const canExport = can(perms, 'export.download', styleId || undefined);
+  const canViewMembers = can(perms, 'members.view', styleId || undefined);
 
   // Ticks are only allowed while editing, and are sent to Google Sheets on SUBMIT.
   const [editing, setEditing] = useState(false);
@@ -103,7 +108,7 @@ export const AttendancePage: React.FC = () => {
 
   const { data: eventMembers = [] } = useQuery<Member[]>({
     queryKey: ['members', eventId, styleId],
-    enabled: Boolean(ready && (!gridData?.members || gridData.members.length === 0)),
+    enabled: Boolean(ready && canViewMembers && (!gridData?.members || gridData.members.length === 0)),
     queryFn: async () => (await api.post<Member[]>('members.list', { eventId, styleId })).data
   });
 
@@ -146,7 +151,7 @@ export const AttendancePage: React.FC = () => {
   }, [ready, eventId, styleId, gridData?.version, refetch]);
 
   const handleToggle = (memberId: string, sessionId: string, nextPresent: boolean) => {
-    if (!editing || submitMutation.isPending) return;
+    if (!canEdit || !editing || submitMutation.isPending) return;
     setLocalPresent(prev => {
       const cur = prev[memberId] || [];
       return {
@@ -232,6 +237,7 @@ export const AttendancePage: React.FC = () => {
   };
 
   const openFullscreen = () => {
+    if (!canEdit) return;
     const today = todayKL();
     const next = sessions.find(s => s.date >= today) || sessions[sessions.length - 1];
     if (next) setActiveSessionId(next.id);
@@ -269,7 +275,7 @@ export const AttendancePage: React.FC = () => {
   }, [gridData?.members, eventMembers]);
 
   if (!eventsLoading && events.length === 0) {
-    const canCreateEvent = canAccessRoute('/admin/events/new', session.get()?.claims?.perms);
+    const canCreateEvent = can(perms, 'members.import') && canAccessRoute('/admin/events/new', perms);
     return (
       <div className="space-y-6">
         <h1 className="font-display text-[24px] tracking-wider text-[var(--text-1)]">Attendance Tracker</h1>
@@ -298,6 +304,9 @@ export const AttendancePage: React.FC = () => {
   }
 
   const eventChosen = Boolean(event) && !isAll;
+  const hasRosterTools = Boolean(
+    canEdit || canExport || (canEdit && gridData?.spreadsheetId)
+  );
 
   return (
     <div className="space-y-6">
@@ -335,7 +344,9 @@ export const AttendancePage: React.FC = () => {
                   : `EDITING — ${unsavedChanges.length} UNSAVED CHANGE${unsavedChanges.length === 1 ? '' : 'S'}`
                 : sessions.length === 0 || members.length === 0
                 ? 'NO CLASSES OR DANCERS YET'
-                : 'SAVED ATTENDANCE — PRESS EDIT TO CHANGE TICKS'}
+                : canEdit
+                ? 'SAVED ATTENDANCE — PRESS EDIT TO CHANGE TICKS'
+                : 'SAVED ATTENDANCE — VIEW ONLY'}
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               {pendingCount > 0 && (
@@ -346,25 +357,27 @@ export const AttendancePage: React.FC = () => {
               <PixelButton size="sm" variant="secondary" disabled={refreshing || submitMutation.isPending} onClick={refreshAll}>
                 {refreshing ? 'REFRESHING…' : '↻ REFRESH'}
               </PixelButton>
-              {editing ? (
-                <>
-                  <PixelButton size="md" variant="secondary" disabled={submitMutation.isPending} onClick={cancelEdit}>
-                    CANCEL
+              {canEdit && (
+                editing ? (
+                  <>
+                    <PixelButton size="md" variant="secondary" disabled={submitMutation.isPending} onClick={cancelEdit}>
+                      CANCEL
+                    </PixelButton>
+                    <PixelButton
+                      size="md"
+                      variant="primary"
+                      disabled={submitMutation.isPending || unsavedChanges.length === 0}
+                      onClick={() => submitMutation.mutate()}
+                    >
+                      {submitMutation.isPending ? 'SUBMITTING…' : 'SUBMIT'}
+                    </PixelButton>
+                  </>
+                ) : sessions.length > 0 && members.length > 0 ? (
+                  <PixelButton size="md" variant="primary" onClick={() => setEditing(true)}>
+                    EDIT
                   </PixelButton>
-                  <PixelButton
-                    size="md"
-                    variant="primary"
-                    disabled={submitMutation.isPending || unsavedChanges.length === 0}
-                    onClick={() => submitMutation.mutate()}
-                  >
-                    {submitMutation.isPending ? 'SUBMITTING…' : 'SUBMIT'}
-                  </PixelButton>
-                </>
-              ) : sessions.length > 0 && members.length > 0 ? (
-                <PixelButton size="md" variant="primary" onClick={() => setEditing(true)}>
-                  EDIT
-                </PixelButton>
-              ) : null}
+                ) : null
+              )}
             </div>
           </div>
 
@@ -375,34 +388,40 @@ export const AttendancePage: React.FC = () => {
           )}
 
           <Panel title="SESSION ATTENDANCE ROSTER" className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Roster tools">
-              <PixelButton
-                size="sm"
-                variant="secondary"
-                disabled={!ready || sessions.length === 0}
-                onClick={openFullscreen}
-              >
-                ⛶ FULL SCREEN
-              </PixelButton>
-              <PixelButton
-                size="sm"
-                variant="secondary"
-                disabled={exportMutation.isPending || !ready || sessions.length === 0}
-                onClick={() => exportMutation.mutate()}
-              >
-                {exportMutation.isPending ? 'EXPORTING…' : 'EXPORT XLSX'}
-              </PixelButton>
-              {gridData?.spreadsheetId && (
-                <a
-                  href={`https://docs.google.com/spreadsheets/d/${gridData.spreadsheetId}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center min-h-[44px] px-3 border-2 border-[var(--outline)] bg-[var(--night-2)] hover:bg-[var(--violet-2)] text-[var(--neon-cyan)] font-display text-[10px] no-underline shadow-[2px_2px_0_var(--outline)]"
-                >
-                  OPEN {activeStyle?.name.toUpperCase() || 'STYLE'} SHEET ↗
-                </a>
-              )}
-            </div>
+            {hasRosterTools && (
+              <div className="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Roster tools">
+                {canEdit && (
+                  <PixelButton
+                    size="sm"
+                    variant="secondary"
+                    disabled={!ready || sessions.length === 0}
+                    onClick={openFullscreen}
+                  >
+                    ⛶ FULL SCREEN
+                  </PixelButton>
+                )}
+                {canExport && (
+                  <PixelButton
+                    size="sm"
+                    variant="secondary"
+                    disabled={exportMutation.isPending || !ready || sessions.length === 0}
+                    onClick={() => exportMutation.mutate()}
+                  >
+                    {exportMutation.isPending ? 'EXPORTING…' : 'EXPORT XLSX'}
+                  </PixelButton>
+                )}
+                {canEdit && gridData?.spreadsheetId && (
+                  <a
+                    href={`https://docs.google.com/spreadsheets/d/${gridData.spreadsheetId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center min-h-[44px] px-3 border-2 border-[var(--outline)] bg-[var(--night-2)] hover:bg-[var(--violet-2)] text-[var(--neon-cyan)] font-display text-[10px] no-underline shadow-[2px_2px_0_var(--outline)]"
+                  >
+                    OPEN {activeStyle?.name.toUpperCase() || 'STYLE'} SHEET ↗
+                  </a>
+                )}
+              </div>
+            )}
 
             <div className="block lg:hidden">
               <RosterList
@@ -412,7 +431,7 @@ export const AttendancePage: React.FC = () => {
                 activeSessionId={activeSessionId}
                 onSelectSession={setActiveSessionId}
                 onToggle={handleToggle}
-                readOnly={!editing || submitMutation.isPending}
+                readOnly={!canEdit || !editing || submitMutation.isPending}
               />
             </div>
 
@@ -422,13 +441,13 @@ export const AttendancePage: React.FC = () => {
                 members={members}
                 presentMap={localPresent}
                 onToggle={handleToggle}
-                readOnly={!editing || submitMutation.isPending}
+                readOnly={!canEdit || !editing || submitMutation.isPending}
               />
             </div>
           </Panel>
 
           {/* Full-screen tick mode */}
-          {isFullscreen && (
+          {canEdit && isFullscreen && (
             <FullscreenRoster
               eventName={event?.name || ''}
               styleName={activeStyle?.name || ''}

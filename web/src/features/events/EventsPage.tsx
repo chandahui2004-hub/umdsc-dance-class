@@ -7,6 +7,8 @@ import { PixelButton } from '../../components/ui/PixelButton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { useEvents } from './useCurrentEvent';
 import { EventCard } from './EventCard';
+import { session } from '../../lib/session';
+import { can } from '../../lib/permissions';
 
 const TYPE_LABEL: Record<string, string> = {
   monthly: 'Monthly class',
@@ -71,6 +73,8 @@ const CollapsibleEventItem: React.FC<CollapsibleEventItemProps> = ({
 
 export const EventsPage: React.FC = () => {
   const navigate = useNavigate();
+  const perms = session.get()?.claims?.perms;
+  const canCreateEvent = can(perms, 'members.import');
   const { data: events = [], isLoading } = useEvents();
   const { data: styles = [] } = useQuery<DanceStyle[]>({
     queryKey: ['styles'],
@@ -140,9 +144,11 @@ export const EventsPage: React.FC = () => {
             Monthly classes, trial classes and workshops — one registration form each.
           </p>
         </div>
-        <PixelButton size="md" variant="primary" onClick={() => navigate('/admin/events/new')}>
-          + NEW EVENT
-        </PixelButton>
+        {canCreateEvent && (
+          <PixelButton size="md" variant="primary" onClick={() => navigate('/admin/events/new')}>
+            + NEW EVENT
+          </PixelButton>
+        )}
       </div>
 
       <section data-testid="active-events" className="space-y-3">
@@ -165,9 +171,11 @@ export const EventsPage: React.FC = () => {
             title="NO ACTIVE EVENTS"
             description="Create an event from its Google Form response sheet."
             action={
-              <PixelButton size="md" variant="primary" onClick={() => navigate('/admin/events/new')}>
-                + NEW EVENT
-              </PixelButton>
+              canCreateEvent ? (
+                <PixelButton size="md" variant="primary" onClick={() => navigate('/admin/events/new')}>
+                  + NEW EVENT
+                </PixelButton>
+              ) : undefined
             }
           />
         ) : (

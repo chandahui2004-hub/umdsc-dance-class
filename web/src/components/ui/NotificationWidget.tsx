@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { Member, DanceStyle } from '@umdsc/shared';
 import { call } from '../../lib/api';
 import { session } from '../../lib/session';
+import { can } from '../../lib/permissions';
 import { useEvents } from '../../features/events/useCurrentEvent';
 import { useBootstrap } from '../../features/auth/useBootstrap';
 import { PixelButton } from './PixelButton';
@@ -29,14 +30,36 @@ export const NotificationWidget: React.FC = () => {
   const role = currentSession?.claims?.role || 'dancer';
   const isDancer = role === 'dancer';
   const isAdmin = role === 'admin';
+  const perms = currentSession?.claims?.perms;
+  const canNewDancersTab = can(perms, 'members.view') || can(perms, 'members.import');
+  const canSlotProgressTab =
+    can(perms, 'members.view') ||
+    can(perms, 'members.import') ||
+    can(perms, 'calendar.view') ||
+    can(perms, 'sessions.edit');
+  const canSystemAuditTab = can(perms, 'settings.edit') || can(perms, 'members.import');
+  const hasAnyAdminTab = canNewDancersTab || canSlotProgressTab || canSystemAuditTab;
 
   const [isOpen, setIsOpen] = useState(false);
-  const [adminTab, setAdminTab] = useState<AdminTabKey>('new_dancers');
+  const [adminTab, setAdminTab] = useState<AdminTabKey>(
+    canNewDancersTab ? 'new_dancers' : canSlotProgressTab ? 'slot_progress' : 'system_audit'
+  );
   const [dancerTab, setDancerTab] = useState<DancerTabKey>('my_classes');
   const [dancerSearch, setDancerSearch] = useState('');
   const [dismissedAlertIds, setDismissedAlertIds] = useState<Set<string>>(new Set());
   const [collapsedVideoGroups, setCollapsedVideoGroups] = useState<Set<string>>(new Set());
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isAdmin || !hasAnyAdminTab) return;
+    if (adminTab === 'new_dancers' && !canNewDancersTab) {
+      setAdminTab(canSlotProgressTab ? 'slot_progress' : 'system_audit');
+    } else if (adminTab === 'slot_progress' && !canSlotProgressTab) {
+      setAdminTab(canNewDancersTab ? 'new_dancers' : 'system_audit');
+    } else if (adminTab === 'system_audit' && !canSystemAuditTab) {
+      setAdminTab(canNewDancersTab ? 'new_dancers' : 'slot_progress');
+    }
+  }, [isAdmin, hasAnyAdminTab, adminTab, canNewDancersTab, canSlotProgressTab, canSystemAuditTab]);
 
   const toggleVideoGroup = (groupId: string) => {
     setCollapsedVideoGroups(prev => {
@@ -198,7 +221,7 @@ export const NotificationWidget: React.FC = () => {
 
   const { data: allMembers = [] } = useQuery<Member[]>({
     queryKey: ['notification_members', activeEvents.map(e => e.id).join(',')],
-    enabled: isAdmin && activeEvents.length > 0,
+    enabled: isAdmin && (canNewDancersTab || canSlotProgressTab) && can(perms, 'members.view') && activeEvents.length > 0,
     refetchInterval: 60_000,
     queryFn: async () => {
       const results = await Promise.all(
@@ -221,7 +244,7 @@ export const NotificationWidget: React.FC = () => {
 
   const { data: auditLogs = [] } = useQuery<AuditItem[]>({
     queryKey: ['notification_audit'],
-    enabled: isOpen && isAdmin,
+    enabled: isOpen && isAdmin && canSystemAuditTab,
     queryFn: async () => {
       try {
         const res = await call<AuditItem[]>('audit.list', { limit: 30 });
@@ -234,20 +257,20 @@ export const NotificationWidget: React.FC = () => {
 
   // Admin New events created/added within the last 7 days
   const recentEvents = useMemo(() => {
-    if (!isAdmin) return [];
+    if (!isAdmin || !canNewDancersTab) return [];
     const sevenDaysAgo = Date.now() - 7 * 24 * 3600 * 1000;
     return activeEvents.filter(ev => {
       const updatedTs = ev.updatedAt ? parseFlexibleTimestamp(ev.updatedAt) : null;
       if (updatedTs && updatedTs >= sevenDaysAgo) return true;
       return false;
     });
-  }, [activeEvents, isAdmin]);
+  }, [activeEvents, isAdmin, canNewDancersTab]);
 
   const recentEventIds = useMemo(() => new Set(recentEvents.map(e => e.id)), [recentEvents]);
 
   // Admin New dancers within the last 7 days, OR belonging to a newly added event
   const recentDancers = useMemo(() => {
-    if (!isAdmin) return [];
+    if (!isAdmin || !canNewDancersTab) return [];
     const sevenDaysAgo = Date.now() - 7 * 24 * 3600 * 1000;
     const seen = new Set<string>();
 
@@ -276,7 +299,7 @@ export const NotificationWidget: React.FC = () => {
     });
 
     return unique;
-  }, [allMembers, isAdmin, recentEventIds]);
+  }, [allMembers, isAdmin, canNewDancersTab, recentEventIds]);
 
   const filteredDancers = useMemo(() => {
     if (!dancerSearch.trim()) return recentDancers;
@@ -377,7 +400,7 @@ export const NotificationWidget: React.FC = () => {
 
   // Admin Slot Progress
   const slotProgressList = useMemo(() => {
-    if (!isAdmin) return [];
+    if (!isAdmin || !canSlotProgressTab) return [];
     const list: Array<{
       eventId: string;
       eventName: string;
@@ -451,11 +474,11 @@ export const NotificationWidget: React.FC = () => {
       }
     }
     return list;
-  }, [activeEvents, allMembers, isAdmin, adminStylesMap]);
+  }, [activeEvents, allMembers, isAdmin, canSlotProgressTab, adminStylesMap]);
 
   // Admin System Alerts
   const systemAlerts = useMemo(() => {
-    if (!isAdmin) return [];
+    if (!isAdmin || !canSystemAuditTab) return [];
     const alerts: Array<{ id: string; type: 'warn' | 'error' | 'conflict'; title: string; detail: string }> = [];
 
     for (const ev of activeEvents) {
@@ -477,7 +500,7 @@ export const NotificationWidget: React.FC = () => {
       }
     }
     return alerts.filter(a => !dismissedAlertIds.has(a.id));
-  }, [activeEvents, dismissedAlertIds, isAdmin]);
+  }, [activeEvents, dismissedAlertIds, isAdmin, canSystemAuditTab]);
 
   // --- Dancer Enrolled Events & Maps ---
 
@@ -619,6 +642,10 @@ export const NotificationWidget: React.FC = () => {
 
   const hasErrors = isAdmin && systemAlerts.some(a => a.type === 'error' || a.type === 'conflict');
 
+  if (isAdmin && !hasAnyAdminTab) {
+    return null;
+  }
+
   return (
     <>
       {/* Floating Retro Mascot Button (Movable) */}
@@ -719,45 +746,51 @@ export const NotificationWidget: React.FC = () => {
             <div className="flex border-b-2 border-[var(--outline)] bg-[var(--night-2)]">
               {isAdmin ? (
                 <>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={adminTab === 'new_dancers'}
-                    onClick={() => setAdminTab('new_dancers')}
-                    className={`flex-1 py-2.5 px-2 font-display text-[10px] sm:text-xs text-center border-r-2 border-[var(--outline)] transition-colors ${
-                      adminTab === 'new_dancers'
-                        ? 'bg-[var(--neon-cyan)] text-[var(--on-neon)] font-bold'
-                        : 'text-[var(--text-2)] hover:bg-[var(--night-1)] hover:text-white'
-                    }`}
-                  >
-                    NEW DANCERS ({recentDancers.length})
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={adminTab === 'slot_progress'}
-                    onClick={() => setAdminTab('slot_progress')}
-                    className={`flex-1 py-2.5 px-2 font-display text-[10px] sm:text-xs text-center border-r-2 border-[var(--outline)] transition-colors ${
-                      adminTab === 'slot_progress'
-                        ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold'
-                        : 'text-[var(--text-2)] hover:bg-[var(--night-1)] hover:text-white'
-                    }`}
-                  >
-                    SLOT PROGRESS
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={adminTab === 'system_audit'}
-                    onClick={() => setAdminTab('system_audit')}
-                    className={`flex-1 py-2.5 px-2 font-display text-[10px] sm:text-xs text-center transition-colors ${
-                      adminTab === 'system_audit'
-                        ? 'bg-[var(--neon-magenta)] text-white font-bold'
-                        : 'text-[var(--text-2)] hover:bg-[var(--night-1)] hover:text-white'
-                    }`}
-                  >
-                    SYSTEM & AUDIT {systemAlerts.length > 0 && `(${systemAlerts.length})`}
-                  </button>
+                  {canNewDancersTab && (
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={adminTab === 'new_dancers'}
+                      onClick={() => setAdminTab('new_dancers')}
+                      className={`flex-1 py-2.5 px-2 font-display text-[10px] sm:text-xs text-center border-r-2 border-[var(--outline)] transition-colors ${
+                        adminTab === 'new_dancers'
+                          ? 'bg-[var(--neon-cyan)] text-[var(--on-neon)] font-bold'
+                          : 'text-[var(--text-2)] hover:bg-[var(--night-1)] hover:text-white'
+                      }`}
+                    >
+                      NEW DANCERS ({recentDancers.length})
+                    </button>
+                  )}
+                  {canSlotProgressTab && (
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={adminTab === 'slot_progress'}
+                      onClick={() => setAdminTab('slot_progress')}
+                      className={`flex-1 py-2.5 px-2 font-display text-[10px] sm:text-xs text-center border-r-2 border-[var(--outline)] transition-colors ${
+                        adminTab === 'slot_progress'
+                          ? 'bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold'
+                          : 'text-[var(--text-2)] hover:bg-[var(--night-1)] hover:text-white'
+                      }`}
+                    >
+                      SLOT PROGRESS
+                    </button>
+                  )}
+                  {canSystemAuditTab && (
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={adminTab === 'system_audit'}
+                      onClick={() => setAdminTab('system_audit')}
+                      className={`flex-1 py-2.5 px-2 font-display text-[10px] sm:text-xs text-center transition-colors ${
+                        adminTab === 'system_audit'
+                          ? 'bg-[var(--neon-magenta)] text-white font-bold'
+                          : 'text-[var(--text-2)] hover:bg-[var(--night-1)] hover:text-white'
+                      }`}
+                    >
+                      SYSTEM & AUDIT {systemAlerts.length > 0 && `(${systemAlerts.length})`}
+                    </button>
+                  )}
                 </>
               ) : (
                 <>
@@ -1110,7 +1143,7 @@ export const NotificationWidget: React.FC = () => {
               )}
 
               {/* ADMIN TAB 1: NEW DANCERS */}
-              {isAdmin && adminTab === 'new_dancers' && (
+              {isAdmin && canNewDancersTab && adminTab === 'new_dancers' && (
                 <div className="space-y-3">
                   {/* Newly Added Events Announcement */}
                   {recentEvents.length > 0 && (
@@ -1215,7 +1248,7 @@ export const NotificationWidget: React.FC = () => {
               )}
 
               {/* ADMIN TAB 2: SLOT PROGRESS */}
-              {isAdmin && adminTab === 'slot_progress' && (
+              {isAdmin && canSlotProgressTab && adminTab === 'slot_progress' && (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-xs font-mono text-[var(--text-3)]">
                     <span>CAPACITY FILL STATUS</span>
@@ -1281,7 +1314,7 @@ export const NotificationWidget: React.FC = () => {
               )}
 
               {/* ADMIN TAB 3: SYSTEM & AUDIT */}
-              {isAdmin && adminTab === 'system_audit' && (
+              {isAdmin && canSystemAuditTab && adminTab === 'system_audit' && (
                 <div className="space-y-4">
                   {/* System Alerts */}
                   <div className="space-y-2">
