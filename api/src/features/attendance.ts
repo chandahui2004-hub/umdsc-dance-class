@@ -115,9 +115,11 @@ export function getAttendanceRoutes(): Record<string, Route> {
 
             for (let r = 2; r < data.length; r++) {
               const row = data[r];
-              const mId = row[memberIdColIdx];
-              if (!mId) continue;
-              grid.members.push({ memberId: mId, fullName: row[fullNameColIdx] || '', matric: row[matricColIdx] || '' });
+              const mId = (row[memberIdColIdx] || '').trim();
+              const fullName = (row[fullNameColIdx] || '').trim();
+              const matric = (row[matricColIdx] || '').trim();
+              if (!mId || (!fullName && !matric)) continue;
+              grid.members.push({ memberId: mId, fullName, matric });
               grid.present[mId] = sessionCols.filter(sc => row[sc.colIdx] === '/').map(sc => sc.id);
             }
           }
@@ -201,10 +203,12 @@ export function getAttendanceRoutes(): Record<string, Route> {
 
         // Who the page shows: dancers registered in the style, and anyone already on its sheet
         // (e.g. moved to another style after attending here). One refusal fails the whole batch.
+        const enrolledMembers = readEventMembers(ctx, event).filter(m =>
+          isMemberEnrolledInStyle(m, styleId, allStyles)
+        );
+        const enrolledById = new Map(enrolledMembers.map(m => [m.memberId, m]));
         const validMemberIds = new Set([
-          ...readEventMembers(ctx, event)
-            .filter(m => isMemberEnrolledInStyle(m, styleId, allStyles))
-            .map(m => m.memberId),
+          ...enrolledMembers.map(m => m.memberId),
           ...data.slice(2).map((r: string[]) => r[memberIdColIdx]).filter(Boolean)
         ]);
         for (const m of marks) {
@@ -234,7 +238,15 @@ export function getAttendanceRoutes(): Record<string, Route> {
             }
 
             if (data.findIndex((r: string[], idx: number) => idx >= 2 && r[memberIdColIdx] === mark.memberId) === -1) {
-              const newRow = [mark.memberId, '', '', '', '', ''];
+              const enrolled = enrolledById.get(mark.memberId);
+              const newRow = [
+                mark.memberId,
+                enrolled?.fullName || '',
+                enrolled?.matricRaw || enrolled?.matricKey || '',
+                enrolled?.contact || '',
+                enrolled?.gender || '',
+                enrolled?.nationality || ''
+              ];
               while (newRow.length < keyRow.length) newRow.push('');
               sheet.appendRows([newRow]);
               data.push(newRow);

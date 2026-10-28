@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AudioPlayer } from './dancecue/components/AudioPlayer';
 import { YouTubePlayer } from './dancecue/components/YouTubePlayer';
 import { SoundCloudPlayer } from './dancecue/components/SoundCloudPlayer';
@@ -24,6 +24,7 @@ export const Studio: React.FC = () => {
   const musicParam = searchParams.get('music');
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  const queryClient = useQueryClient();
   const currentSession = session.get();
   const claims = currentSession?.claims;
   const isAdmin = claims?.role === 'admin';
@@ -171,7 +172,8 @@ export const Studio: React.FC = () => {
       startSec,
       endSec
     });
-    // Trigger refetch of bootstrap
+    // Trigger refetch of sections and bootstrap
+    await queryClient.invalidateQueries({ queryKey: ['sections'] });
     if (isAdmin) {
       await adminBoot.refetch();
     } else {

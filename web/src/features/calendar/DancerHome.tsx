@@ -129,7 +129,7 @@ export const DancerHome: React.FC = () => {
       let kind: 'present' | 'absent' | 'upcoming' = 'upcoming';
       if (isAttended === true) {
         kind = 'present';
-      } else if (isPast && !attendanceLoading) {
+      } else if (session.status !== 'cancelled' && isPast && !attendanceLoading) {
         kind = 'absent';
       }
 

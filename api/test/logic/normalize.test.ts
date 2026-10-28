@@ -17,9 +17,13 @@ describe('normalize', () => {
     expect(normalizeMatric('')).toBe('');
   });
 
-  it('generates name keys correctly', () => {
+  it('generates name keys correctly and keeps numeric suffixes distinct', () => {
     expect(nameKey('  AHMAD Fiqri  bin Mohd  ')).toBe('ahmad fiqri bin mohd');
     expect(nameKey('José')).toBe('jose');
+    expect(nameKey('testing1')).toBe('testing1');
+    expect(nameKey('Testing 1')).toBe('testing1');
+    expect(nameKey('testing2')).toBe('testing2');
+    expect(nameKey('testing1')).not.toBe(nameKey('testing2'));
   });
 
   it('normalizes phone numbers and flags repaired ones', () => {
@@ -56,6 +60,12 @@ describe('normalize', () => {
       ['محمد علي', 'محمد علي', true],
       // Mixed: the Latin part is what counts, as before
       ['tan wei ming', 'TAN WEI MING 陈伟明', true],
+      // Test dancer numeric suffixes must match their own number and never collide
+      ['testing1', 'TESTING1', true],
+      ['testing1', 'Testing 1', true],
+      ['testing2', 'TESTING2', true],
+      ['testing1', 'TESTING2', false],
+      ['testing', 'TESTING1', false],
     ])('fullNameMatches(%j, %j) = %s', (typed, registered, expected) => {
       expect(fullNameMatches(typed, registered)).toBe(expected);
     });

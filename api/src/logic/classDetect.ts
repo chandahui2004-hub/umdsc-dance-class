@@ -86,17 +86,29 @@ export function parseStyles(
     if (!norm) continue;
 
     let matchedStyleId: string | null = null;
+    // Pass 1: exact match against style name or alias across all styles first
     for (const style of styles) {
-      const styleAliases = (style.aliases || []).map(lettersOnly);
+      const styleAliases = (style.aliases || []).map(lettersOnly).filter(Boolean);
       const styleNameNorm = lettersOnly(style.name);
 
       if (styleAliases.includes(norm) || norm === styleNameNorm) {
         matchedStyleId = style.id;
         break;
       }
-      if (styleAliases.some(alias => norm.includes(alias) || alias.includes(norm))) {
-        matchedStyleId = style.id;
-        break;
+    }
+    // Pass 2: substring match across all styles only when no exact match was found
+    if (!matchedStyleId) {
+      for (const style of styles) {
+        const styleAliases = (style.aliases || []).map(lettersOnly).filter(Boolean);
+        const styleNameNorm = lettersOnly(style.name);
+
+        if (
+          (styleNameNorm && (norm.includes(styleNameNorm) || styleNameNorm.includes(norm))) ||
+          styleAliases.some(alias => norm.includes(alias) || alias.includes(norm))
+        ) {
+          matchedStyleId = style.id;
+          break;
+        }
       }
     }
 

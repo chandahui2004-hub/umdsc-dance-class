@@ -343,13 +343,15 @@ export function getVideoRoutes(): Record<string, Route> {
         }
 
         const allFiles = ctx.drive.listFilesRecursive(rootFolderId);
-        const existingFileIds = new Set(
-          ctx.db.videos.find(v => v.styleId === styleId && v.eventId === eventId && v.active).map(v => v.driveFileId)
-        );
+        const existingFileIds = new Set([
+          ...ctx.db.videos.find(v => v.styleId === styleId && v.eventId === eventId && v.active).map(v => v.driveFileId),
+          ...ctx.db.music.find(m => m.styleId === styleId && m.eventId === eventId && m.active).map(m => m.driveFileId)
+        ]);
 
         const mediaFiles = allFiles.filter(
           f =>
             !existingFileIds.has(f.id) &&
+            f.parentName?.toLowerCase() !== 'music' &&
             (f.mimeType.startsWith('video/') ||
               f.mimeType.startsWith('audio/') ||
               /\.(mp4|mov|m4v|webm|avi|mp3|m4a|wav)$/i.test(f.name))

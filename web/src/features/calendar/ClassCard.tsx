@@ -95,6 +95,10 @@ export const ClassCard: React.FC<ClassCardProps> = ({
         <div>
           {!showAttendance ? (
             action ?? null
+          ) : session.status === 'cancelled' ? (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--night-2)] text-[var(--text-3)] border-2 border-[var(--outline)] font-display text-[11px] md:text-[12px] font-bold">
+              CANCELLED
+            </span>
           ) : attendancePresent === true ? (
             <span className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--neon-green)] text-[var(--on-neon)] border-2 border-[var(--outline)] font-display text-[11px] md:text-[12px] font-bold">
               ✓ ATTENDED

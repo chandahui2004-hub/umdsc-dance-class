@@ -401,5 +401,83 @@ describe('importEventMembers', () => {
     expect(src.getDisplayValues()[2][2]).toBe('TEST9001');
     expect(src.getDisplayValues()[3][2]).toBe('TEST9002');
   });
+
+  it('ignores a new incomplete row while admin is typing in Google Sheets, then imports it once completed', () => {
+    const { event, sourceId } = makeEvent([
+      row('Ali', '22001111', 'Popping')
+    ]);
+    importEventMembers(ctx, event, { full: true });
+    ctx.mail.reset();
+
+    // Admin starts typing a new row in Google Sheets (missing dance class)
+    const src = source(sourceId);
+    src.appendRows([['2026-10-05 11:00:00', 'Half Typed Dancer', '24008888', '0123456789', 'half@test.com', '']]);
+
+    const midEditRes = importEventMembers(ctx, fresh(event), { full: false, purgeRemoved: true });
+    expect(midEditRes.added).toBe(0);
+    expect(readEventMembers(ctx, fresh(event)).map(m => m.fullName)).toEqual(['Ali']);
+    expect(ctx.mail.sent.length).toBe(0);
+    // Hash must not be locked as clean while incomplete rows exist
+    expect(sourceUnchanged(ctx, fresh(event))).toBe(false);
+
+    // Admin finishes typing the class cell in Google Sheets
+    src.setValues(3, 6, [['Hip Hop']]);
+    const finalRes = importEventMembers(ctx, fresh(event), { full: false, purgeRemoved: true });
+    expect(finalRes.added).toBe(1);
+    expect(readEventMembers(ctx, fresh(event)).map(m => m.fullName)).toEqual(['Ali', 'Half Typed Dancer']);
+    expect(ctx.mail.sent.length).toBe(1);
+    expect(ctx.mail.sent[0].to).toBe('half@test.com');
+  });
+
+  it('preserves existing members and does not purge or flag them when an admin is mid-edit on an existing row in Google Sheets', () => {
+    const { event, sourceId } = makeEvent([
+      row('Ali', '22001111', 'Popping'),
+      row('Bala', '22002222', 'Hip Hop')
+    ]);
+    importEventMembers(ctx, event, { full: true });
+
+    // Admin temporarily clears Bala's matric cell while editing in Google Sheets
+    const src = source(sourceId);
+    src.setValues(3, 3, [['']]);
+
+    const res = importEventMembers(ctx, fresh(event), { full: true, purgeRemoved: true });
+    expect(res.purged).toBe(0);
+    expect(res.flaggedRemoved).toBe(0);
+
+    const members = readEventMembers(ctx, fresh(event));
+    expect(members.map(m => m.fullName)).toEqual(['Ali', 'Bala']);
+    expect(members.find(m => m.fullName === 'Bala')!.flags).not.toContain('removed-from-form');
+  });
+
+  it('readEventMembers skips rows in Members sheet that are missing fullName or matric', () => {
+    const { event } = makeEvent([row('Ali', '22001111', 'Popping')]);
+    importEventMembers(ctx, event, { full: true });
+    const ev = fresh(event);
+    const membersSheet = (drive.openSpreadsheet(ev.membersSpreadsheetId) as FakeSpreadsheet).sheet('Members') as FakeSheet;
+    // Admin types half-empty rows directly into Members sheet (missing fullName or missing matric)
+    membersSheet.appendRows([
+      ['M-99999999', '', '22009999', '22009999', '', '', '', '', '', 'st_popping', 'Popping', '', ''],
+      ['M-99999998', 'Half Typed Name', '', '', '', '', '', '', '', 'st_popping', 'Popping', '', '']
+    ]);
+    membersChangedAndClearCache();
+
+    function membersChangedAndClearCache() {
+      ctx.props.set('MEMBERS_V_' + ev.id, '999');
+    }
+
+    const members = readEventMembers(ctx, ev);
+    expect(members.map(m => m.fullName)).toEqual(['Ali']);
+  });
+
+  it('preserves custom matric edits on testing1 and testing2 when their matric is not the conflicting 23005147', () => {
+    const { event } = makeEvent([
+      row('testing1', 'TEST9003', 'Popping'),
+      row('testing2', 'TEST9004', 'Hip Hop')
+    ]);
+    importEventMembers(ctx, event, { full: true });
+    const members = readEventMembers(ctx, fresh(event));
+    expect(members.find(m => m.fullName === 'testing1')?.matricKey).toBe('TEST9003');
+    expect(members.find(m => m.fullName === 'testing2')?.matricKey).toBe('TEST9004');
+  });
 });
 

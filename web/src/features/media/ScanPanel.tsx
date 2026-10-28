@@ -52,8 +52,8 @@ export const ScanPanel: React.FC<ScanPanelProps> = ({
   });
 
   const registerMutation = useMutation({
-    mutationFn: async ({ fileId, name }: { fileId: string; name: string }) => {
-      const sId = selectedSessions[fileId] || sessions[0]?.id;
+    mutationFn: async ({ fileId, name, sessionId }: { fileId: string; name: string; sessionId?: string }) => {
+      const sId = sessionId || selectedSessions[fileId] || sessions[0]?.id;
       if (!sId) {
         throw new Error('Please select a session for this video');
       }
@@ -166,7 +166,8 @@ export const ScanPanel: React.FC<ScanPanelProps> = ({
                         onClick={() =>
                           registerMutation.mutate({
                             fileId: item.fileId,
-                            name: item.name
+                            name: item.name,
+                            sessionId: assignedSession
                           })
                         }
                       >

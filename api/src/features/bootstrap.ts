@@ -106,7 +106,7 @@ function loadDancerIndex(ctx: Ctx, matricKey: string): any {
 }
 
 /** The dancer's events, and which styles they take in each (limited by calendar.view). */
-function resolveDancerEventStyles(
+export function resolveDancerEventStyles(
   ctx: Ctx,
   dancer: any,
   matricKey: string,

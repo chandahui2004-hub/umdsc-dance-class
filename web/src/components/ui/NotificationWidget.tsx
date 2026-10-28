@@ -522,7 +522,7 @@ export const NotificationWidget: React.FC = () => {
   const dancerUpcomingSessions = useMemo(() => {
     if (!isDancer || !dancerBootstrap?.sessions) return [];
     return [...dancerBootstrap.sessions]
-      .filter(s => s.active)
+      .filter(s => s.active && s.status !== 'cancelled')
       .sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
   }, [isDancer, dancerBootstrap]);
 

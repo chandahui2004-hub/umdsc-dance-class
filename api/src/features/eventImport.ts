@@ -27,7 +27,7 @@ export interface ImportResult {
 export const REMOVED_FLAG = 'removed-from-form';
 /** Member fields refreshed from the form on every sync that reads it. */
 const REFRESHED_FIELDS: (keyof Member)[] = [
-  'fullName', 'nameKey', 'contact', 'email', 'gender', 'nationality', 'styleIds', 'styleNames'
+  'fullName', 'matricRaw', 'matricKey', 'nameKey', 'contact', 'email', 'gender', 'nationality', 'styleIds', 'styleNames'
 ];
 /** Fixed (non-tick) attendance columns refreshed by Sync now. */
 const ATTENDANCE_FIXED: [string, (m: Member) => string][] = [
@@ -58,8 +58,12 @@ export function parseColumnMap(json: string, headers: string[]): Record<Field, n
 function buildEventMembers(ctx: Ctx, event: EventItem, data: string[][]) {
   const headers = data[0] || [];
   const rows = data.slice(1);
-  const styles = ctx.db.styles.find(s => event.styleIds.includes(s.id));
-  const { members, timestampsByMember } = buildMembers({
+  const formLabels = event.styleFormLabels || (event.styleFormLabelsJson ? JSON.parse(event.styleFormLabelsJson) : {});
+  const styles = ctx.db.styles.find(s => event.styleIds.includes(s.id)).map(s => {
+    const customLabel = String(formLabels[s.id] || '').trim();
+    return customLabel ? { ...s, aliases: Array.from(new Set([...(s.aliases || []), customLabel])) } : s;
+  });
+  const { members, timestampsByMember, incompleteRowCount } = buildMembers({
     headers,
     rows,
     map: parseColumnMap(event.columnMapJson, headers),
@@ -77,7 +81,7 @@ function buildEventMembers(ctx: Ctx, event: EventItem, data: string[][]) {
       m.flags = m.flags.filter(f => f !== 'noStyle');
     }
   }
-  return { members, timestampsByMember, unknownClasses: countUnknownClasses(rows, event.classIndex, styles) };
+  return { members, timestampsByMember, incompleteRowCount, unknownClasses: countUnknownClasses(rows, event.classIndex, styles) };
 }
 
 export function refreshAttendanceFixedColumns(ctx: Ctx, event: EventItem, changed: Map<string, Member>): void {
@@ -320,10 +324,11 @@ export function importEventMembers(
       const row = data[r];
       const name = String(row[nameCol] ?? '').trim();
       const rawMatric = String(row[matricCol] ?? '').trim();
+      const normMatric = normalizeMatric(rawMatric);
       let remapped = '';
-      if (/^testing\s*1$/i.test(name) && rawMatric !== 'TEST9001') {
+      if (/^testing\s*1$/i.test(name) && (normMatric === '23005147' || !normMatric)) {
         remapped = 'TEST9001';
-      } else if (/^testing\s*2$/i.test(name) && rawMatric !== 'TEST9002') {
+      } else if (/^testing\s*2$/i.test(name) && (normMatric === '23005147' || normMatric === '23005148' || !normMatric)) {
         remapped = 'TEST9002';
       }
       if (remapped) {
@@ -337,7 +342,8 @@ export function importEventMembers(
     }
   }
 
-  const { members, timestampsByMember, unknownClasses } = buildEventMembers(ctx, event, data);
+  const { members, timestampsByMember, incompleteRowCount, unknownClasses } = buildEventMembers(ctx, event, data);
+  const hasIncompleteRows = incompleteRowCount > 0;
   const incoming = new Map(members.map(m => [m.memberId, m]));
 
   // Members sheet: rewrite changed rows in one write, append new members in one write
@@ -370,12 +376,12 @@ export function importEventMembers(
   const listed = body
     .filter(row => row[col('memberId')])
     .map(row => ({ memberId: row[col('memberId')], sourceTimestamp: row[col('sourceTimestamp')] }));
-  const corrections = findCorrections(gone, members, timestampsByMember, known, listed);
+  const corrections = hasIncompleteRows ? new Map<string, Member>() : findCorrections(gone, members, timestampsByMember, known, listed);
   const correctionsHeld = !opts.force && !opts.purgeRemoved && tooManyCorrections(corrections.size, members.length);
   if (correctionsHeld) corrections.clear();
   const placed = new Set<string>();
 
-  if (opts.purgeRemoved) {
+  if (opts.purgeRemoved && !hasIncompleteRows) {
     for (const g of gone) {
       if (!corrections.has(g.memberId)) {
         dropEventFromIndex(ctx, event, g.matricKey);
@@ -391,6 +397,7 @@ export function importEventMembers(
     const flags = String(row[col('flags')] || '').split(',').filter(Boolean);
     const m = incoming.get(id);
     if (!m) {
+      if (hasIncompleteRows) return;
       const target = corrections.get(id);
       if (target) {
         // A corrected matric: this row becomes the dancer's row, or is emptied when she already has one
@@ -403,7 +410,7 @@ export function importEventMembers(
         bodyChanged = true;
         return;
       }
-      if (opts.purgeRemoved) {
+      if (opts.purgeRemoved && !hasIncompleteRows) {
         body[i] = MEMBERS_COLUMNS.map(() => '');
         purged++;
         bodyChanged = true;
@@ -419,6 +426,7 @@ export function importEventMembers(
     // The whole form was read, so refresh known members too (e.g. a second
     // submission adding a style); this writes only when something differs.
     const prevStyles = String(row[col('styleIds')] || '').split(',').filter(Boolean);
+    const prevEmail = String(row[col('email')] || '').trim();
     const next = cellsOf(m);
     const differs = REFRESHED_FIELDS.some(f => next[col(f)] !== row[col(f)]);
     const hadDuplicateFlag = flags.includes('duplicate');
@@ -429,19 +437,28 @@ export function importEventMembers(
         updated++;
         refreshed.set(id, m);
         const hasNewStyles = m.styleIds.some(s => !prevStyles.includes(s));
-        if (hasNewStyles) {
+        const emailJustCompleted = !prevEmail.includes('@') && String(m.email || '').includes('@');
+        if (hasNewStyles || emailJustCompleted) {
           stylesAddedMembers.push(m);
         }
       }
     }
   });
 
-  if (opts.purgeRemoved) {
+  if (existing.length === 0 || (existing[0] || []).indexOf('memberId') === -1) {
+    membersSheet.setHeaderRow([...MEMBERS_COLUMNS]);
+  }
+
+  if (opts.purgeRemoved && !hasIncompleteRows) {
+    const beforeLen = body.length;
     body = body.filter(r => r[col('memberId')]);
+    if (body.length !== beforeLen) {
+      bodyChanged = true;
+    }
   }
 
   if (bodyChanged) {
-    if (opts.purgeRemoved) {
+    if (opts.purgeRemoved && !hasIncompleteRows) {
       membersSheet.clearBody();
       if (body.length > 0) membersSheet.setValues(2, 1, body);
     } else {
@@ -530,7 +547,7 @@ export function importEventMembers(
   saveEventFields(ctx, event.id, {
     sourceTab: tab,
     sourceRowCount: lastRow,
-    sourceLastRowHash: hash,
+    sourceLastRowHash: hasIncompleteRows ? '' : hash,
     memberCount,
     lastSyncAt: ctx.now().toISOString(),
     lastSyncError: correctionsHeld
@@ -663,6 +680,10 @@ export function checkAndNotifySlotCapacities(
         alreadyNotified.delete(styleId);
         newlyNotified = true;
       }
+    } else if (alreadyNotified.has(styleId)) {
+      // Re-arm if slot limit was removed (set back to Unlimited)
+      alreadyNotified.delete(styleId);
+      newlyNotified = true;
     }
   }
 
@@ -671,6 +692,7 @@ export function checkAndNotifySlotCapacities(
     event.notifiedFullStyles = notifiedList;
     event.notifiedFullStylesJson = JSON.stringify(notifiedList);
     saveEventFields(ctx, event.id, {
+      notifiedFullStyles: notifiedList,
       notifiedFullStylesJson: event.notifiedFullStylesJson
     });
   }

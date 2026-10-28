@@ -531,6 +531,18 @@ export const MembersPage: React.FC = () => {
             </div>
           )}
         </Sheet>
+
+        {editing && (
+          <EditDancerDialog
+            member={editing}
+            eventIds={editableEventIds(editing)}
+            onClose={() => setEditing(null)}
+            onSaved={() => {
+              setEditing(null);
+              void refetch();
+            }}
+          />
+        )}
       </div>
     );
   }

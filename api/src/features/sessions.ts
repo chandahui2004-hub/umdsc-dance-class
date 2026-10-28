@@ -5,6 +5,7 @@ import { ClassSession, EventItem, TodayClass } from '@umdsc/shared';
 import { logAudit } from '../logic/audit';
 import { todayKL } from '../logic/events';
 import { getEvent, dancerStylesInEvent } from './eventMembers';
+import { resolveDancerEventStyles } from './bootstrap';
 import { assertClassInstructor, firstInstructor } from './styleInstructors';
 
 type SessionListener = (ctx: Ctx, s: ClassSession) => void;
@@ -87,22 +88,11 @@ export function getSessionRoutes(): Record<string, Route> {
             const targetEventIds = isAll ? mi.eventIds : (mi.eventIds.includes(eventId) ? [eventId] : []);
             if (targetEventIds.length === 0) return [];
 
-            sessions = sessions.filter(s => targetEventIds.includes(s.eventId));
-
-            const eventMap = new Map<string, string[]>();
-            const calPerm = auth.claims.perms['calendar.view'];
-
+            const { eventStylesMap } = resolveDancerEventStyles(ctx, mi, matricKey, auth.claims.perms);
             sessions = sessions.filter(s => {
-              let allowed = eventMap.get(s.eventId);
-              if (!allowed) {
-                const ev = ctx.db.events.find(e => e.id === s.eventId && e.active)[0];
-                allowed = ev ? dancerStylesInEvent(ctx, ev, matricKey) : [];
-                if (Array.isArray(calPerm)) {
-                  allowed = allowed.filter(id => calPerm.includes(id));
-                }
-                eventMap.set(s.eventId, allowed);
-              }
-              return allowed.includes(s.styleId);
+              if (!targetEventIds.includes(s.eventId)) return false;
+              const allowed = eventStylesMap.get(s.eventId);
+              return allowed ? allowed.has(s.styleId) : false;
             });
           }
         }
@@ -134,6 +124,7 @@ export function getSessionRoutes(): Record<string, Route> {
 
     'sessions.create': {
       perm: 'sessions.edit',
+      styleOf: (p: any) => p?.styleId,
       write: true,
       bumpsData: true,
       handler: (ctx, auth, payload: any) => {
@@ -177,6 +168,7 @@ export function getSessionRoutes(): Record<string, Route> {
 
     'sessions.update': {
       perm: 'sessions.edit',
+      styleOf: (p: any, ctx) => ctx.db.sessions.find(s => s.id === p?.id && s.active)[0]?.styleId,
       write: true,
       bumpsData: true,
       handler: (ctx, auth, payload: any) => {
@@ -220,6 +212,7 @@ export function getSessionRoutes(): Record<string, Route> {
 
     'sessions.cancel': {
       perm: 'sessions.edit',
+      styleOf: (p: any, ctx) => ctx.db.sessions.find(s => s.id === p?.id && s.active)[0]?.styleId,
       write: true,
       bumpsData: true,
       handler: (ctx, auth, payload: any) => {
@@ -251,6 +244,7 @@ export function getSessionRoutes(): Record<string, Route> {
     // attendance column are kept.
     'sessions.delete': {
       perm: 'sessions.edit',
+      styleOf: (p: any, ctx) => ctx.db.sessions.find(s => s.id === p?.id && s.active)[0]?.styleId,
       write: true,
       bumpsData: true,
       handler: (ctx, auth, payload: any) => {
@@ -352,6 +346,7 @@ export function getSessionRoutes(): Record<string, Route> {
 
     'sessions.regenerateWalkInCode': {
       perm: 'sessions.edit',
+      styleOf: (p: any, ctx) => ctx.db.sessions.find(s => s.id === p?.id && s.active)[0]?.styleId,
       write: true,
       bumpsData: true,
       handler: (ctx, auth, payload: any) => {

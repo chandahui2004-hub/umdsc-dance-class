@@ -62,12 +62,18 @@ export function readEventMembers(ctx: Ctx, event: EventItem): Member[] {
   const members: Member[] = [];
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
-    if (!get(r, 'memberId')) continue;
+    const memberId = get(r, 'memberId').trim();
+    const fullName = get(r, 'fullName').trim();
+    const matricRaw = get(r, 'matricRaw').trim();
+    const matricKey = get(r, 'matricKey').trim();
+    const isRetentionWiped = memberId.startsWith('X-') || fullName === 'Removed dancer';
+    if (!memberId || !fullName) continue;
+    if (memberId.startsWith('M-') && !isRetentionWiped && !matricKey && !matricRaw) continue;
     members.push({
-      memberId: get(r, 'memberId'),
-      fullName: get(r, 'fullName'),
-      matricRaw: get(r, 'matricRaw'),
-      matricKey: get(r, 'matricKey'),
+      memberId,
+      fullName,
+      matricRaw,
+      matricKey,
       nameKey: get(r, 'nameKey'),
       contact: get(r, 'contact'),
       email: get(r, 'email'),

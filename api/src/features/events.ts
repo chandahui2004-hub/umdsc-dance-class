@@ -2,7 +2,7 @@ import { Route } from '../router';
 import { AppError } from '../errors';
 import { EventItem, EventListItem, EventStatus, EventType } from '@umdsc/shared';
 import { Ctx } from '../ports';
-import { validateEventFields, eventNameKey, classesOutsideRange, todayKL } from '../logic/events';
+import { validateEventFields, eventNameKey, classesOutsideRange, todayKL, hashSheet } from '../logic/events';
 import { isDue } from '../logic/retention';
 import { validateLink } from '../logic/linkValidation';
 import { logAudit } from '../logic/audit';
@@ -208,8 +208,24 @@ export function getEventRoutes(): Record<string, Route> {
           patch.styleFormLabels = labels;
           patch.styleFormLabelsJson = JSON.stringify(labels);
         }
-        if (payload.columnMap !== undefined) patch.columnMapJson = JSON.stringify(payload.columnMap || {});
-        if (payload.classIndex !== undefined) patch.classIndex = Number(payload.classIndex);
+        if (payload.columnMap !== undefined) {
+          patch.columnMapJson = JSON.stringify(payload.columnMap || {});
+          patch.sourceRowCount = 0;
+          patch.sourceLastRowHash = '';
+        }
+        if (payload.classIndex !== undefined) {
+          patch.classIndex = Number(payload.classIndex);
+          patch.sourceRowCount = 0;
+          patch.sourceLastRowHash = '';
+        }
+        if (
+          next.styleIds.length !== existing.styleIds.length ||
+          next.styleIds.some((s: string) => !existing.styleIds.includes(s)) ||
+          payload.styleFormLabels !== undefined
+        ) {
+          patch.sourceRowCount = 0;
+          patch.sourceLastRowHash = '';
+        }
         if (payload.formUrl !== undefined) {
           const formUrl = String(payload.formUrl || '').trim();
           patch.formUrl = formUrl;
@@ -337,12 +353,13 @@ export function getEventRoutes(): Record<string, Route> {
       }
     },
 
-    // Runs every 10 minutes from any open admin page. Registered as a read route:
+    // Runs every 1 minute from any open admin page. Registered as a read route:
     // it takes the script lock itself, and only when a form actually changed.
     'events.autoSync': {
       perm: 'members.import',
       write: false,
-      handler: (ctx) => {
+      handler: (ctx, _auth, payload: any) => {
+        const stabilize = Boolean(payload?.stabilize);
         const result = { checked: [] as string[], changed: [] as string[], skipped: [] as string[], errors: [] as { eventId: string; message: string }[] };
 
         const today = todayKL(ctx.now());
@@ -354,8 +371,10 @@ export function getEventRoutes(): Record<string, Route> {
           }
           ctx.cache.put(checkKey, '1', AUTO_SYNC_SECONDS);
 
+          const pendingKey = `sync:pendingHash:${event.id}`;
           try {
             if (sourceUnchanged(ctx, event)) {
+              ctx.cache.remove(pendingKey);
               // Check if any unnotified style has reached slot capacity
               const slotCap = event.styleSlots || (event.styleSlotsJson ? JSON.parse(event.styleSlotsJson) : {});
               const hasUnnotifiedCaps = (event.styleIds || []).some(
@@ -372,6 +391,17 @@ export function getEventRoutes(): Record<string, Route> {
               }
               result.checked.push(event.id);
               continue;
+            }
+
+            if (stabilize) {
+              const { sheet } = openSourceTab(ctx, event.sourceSheetId, event.sourceTab);
+              const currentHash = hashSheet(sheet.getDisplayValues());
+              if (ctx.cache.get(pendingKey) !== currentHash) {
+                ctx.cache.put(pendingKey, currentHash, 600);
+                result.checked.push(event.id);
+                continue;
+              }
+              ctx.cache.remove(pendingKey);
             }
           } catch (err) {
             const message = errorText(err);

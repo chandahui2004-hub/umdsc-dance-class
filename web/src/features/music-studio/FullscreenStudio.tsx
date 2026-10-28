@@ -234,6 +234,11 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
     return () => video.removeEventListener('timeupdate', handleLoopCheck);
   }, [isVideoOnly, isLooping, loopMarker, markerDraftRange, activeVideoRef]);
 
+  // Effective progress values
+  const effectiveIsPlaying = isVideoOnly ? videoPlaybackState.isPlaying : isPlaying;
+  const effectiveCurrentTime = isVideoOnly ? videoPlaybackState.currentTime : currentTime;
+  const effectiveDuration = isVideoOnly ? videoPlaybackState.duration : duration;
+
   // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -264,12 +269,7 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showLoopsPanel, onExitFullscreen, onSetInPoint, onSetOutPoint, onToggleLoop]);
-
-  // Effective progress values
-  const effectiveIsPlaying = isVideoOnly ? videoPlaybackState.isPlaying : isPlaying;
-  const effectiveCurrentTime = isVideoOnly ? videoPlaybackState.currentTime : currentTime;
-  const effectiveDuration = isVideoOnly ? videoPlaybackState.duration : duration;
+  }, [showLoopsPanel, effectiveIsPlaying, onExitFullscreen, onSetInPoint, onSetOutPoint, onToggleLoop]);
 
   const handlePlay = () => {
     if (isVideoOnly && activeVideoRef.current) {

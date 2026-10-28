@@ -44,4 +44,15 @@ describe('Class Column Detection & Style Parsing (logic/classDetect)', () => {
     const detected = detectClassColumn(rows, styles, ['Name', 'Other']);
     expect(detected).toBeNull();
   });
+
+  it('matches exact style name on later style (K-Pop) instead of substring alias on earlier style (Popping -> pop)', () => {
+    const stylesWithShortAlias = [
+      { id: 'st_popping', name: 'Popping', aliases: ['popping', 'pop'] },
+      { id: 'st_kpop', name: 'K-Pop', aliases: ['kpop', 'k-pop'] }
+    ];
+    expect(parseStyles('K-Pop (RM40)', stylesWithShortAlias)).toEqual({
+      styleIds: ['st_kpop'],
+      unknownTokens: []
+    });
+  });
 });

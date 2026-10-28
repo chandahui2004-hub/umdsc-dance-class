@@ -165,7 +165,7 @@ export class GasDriveAdapter implements DrivePort {
     try {
       // Use advanced Drive service (v3) to get metadata & capabilities
       const file = (Drive as any).Files.get(id, {
-        fields: 'id,name,mimeType,trashed,capabilities(canEdit)'
+        fields: 'id,name,mimeType,trashed,size,parents,capabilities(canEdit)'
       });
       if (file.trashed) {
         // Drive still returns binned items; they would be purged after 30 days
@@ -185,8 +185,10 @@ export class GasDriveAdapter implements DrivePort {
         kind,
         name: file.name || '',
         canEdit: Boolean(file.capabilities?.canEdit),
-        mimeType: mime
-      };
+        mimeType: mime,
+        sizeBytes: Number(file.size || 0),
+        parentId: Array.isArray(file.parents) && file.parents.length > 0 ? file.parents[0] : ''
+      } as any;
     } catch {
       return { exists: false, kind: 'file', name: '', canEdit: false };
     }
@@ -248,6 +250,7 @@ export class GasDriveAdapter implements DrivePort {
       const files = folder.getFiles();
       while (files.hasNext()) {
         const file = files.next();
+        if (file.isTrashed()) continue;
         results.push({
           id: file.getId(),
           name: file.getName(),
@@ -260,12 +263,19 @@ export class GasDriveAdapter implements DrivePort {
       }
       const subs = folder.getFolders();
       while (subs.hasNext()) {
-        collect(subs.next());
+        const sub = subs.next();
+        if (sub.isTrashed()) continue;
+        collect(sub);
       }
     };
 
-    const rootFolder = DriveApp.getFolderById(folderId);
-    collect(rootFolder);
+    try {
+      const rootFolder = DriveApp.getFolderById(folderId);
+      if (rootFolder.isTrashed()) return [];
+      collect(rootFolder);
+    } catch {
+      return [];
+    }
     return results;
   }
 

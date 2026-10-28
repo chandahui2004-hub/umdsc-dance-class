@@ -237,7 +237,7 @@ export function syncGoogleFormSlotChoices(
           styleIds: nextStyleIds,
           styleSlots: currentSlots,
           styleSlotsJson: event.styleSlotsJson
-        }, 'form-sync', ctx.now());
+        }, 'form-sync', ctx.now(), { keepVersion: true });
         const fresh = ctx.db.events.get(event.id);
         if (fresh) {
           event.version = fresh.version;
@@ -326,7 +326,7 @@ export function syncGoogleFormSlotChoices(
   // 5. Manage choices on the style question (only for multi-style events)
   let remainingChoices: string[] = [];
 
-  if (!isSingleStyle && validStyleQuestion) {
+  if (styleIds.length > 1 && validStyleQuestion) {
     const lettersOnly = (str: string) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const cleanChoice = (str: string) =>
       str.replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').replace(/\bclasses?\b/gi, '').trim();

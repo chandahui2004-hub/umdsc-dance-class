@@ -223,4 +223,39 @@ describe('Build Members from Rows (logic/buildMembers)', () => {
     expect(result.members[0].matricKey).toBe('23005147');
     expect(result.members[0].styleIds.sort()).toEqual(['hh', 'pp'].sort());
   });
+
+  it('skips incomplete rows being edited directly in Google Sheets and reports incompleteRowCount', () => {
+    const rows = [
+      // Complete row
+      ['2026-10-01 10:00:00', 'Chan Da Hui', '23005147', '0123456789', 'dahui@test.com', 'Popping'],
+      // Missing fullName
+      ['2026-10-01 10:05:00', '', '23009999', '0123456789', 'noname@test.com', 'Popping'],
+      // Partial matric (< 4 chars while typing)
+      ['2026-10-01 10:06:00', 'Half Matric', '23', '0123456789', 'half@test.com', 'Popping'],
+      // Missing class cell when classIndex >= 0
+      ['2026-10-01 10:07:00', 'No Class Yet', '23008888', '0123456789', 'noclass@test.com', ''],
+      // Half-typed email containing @ without domain dot
+      ['2026-10-01 10:08:00', 'Half Email', '23007777', '0123456789', 'chandahui2004@', 'Popping'],
+      // Half-typed phone (< 6 digits)
+      ['2026-10-01 10:09:00', 'Half Phone', '23006666', '012', 'phone@test.com', 'Popping'],
+      // Manual row without timestamp missing email or contact
+      ['', 'Manual Incomplete', '23005555', '0123456789', '', 'Popping'],
+      // Completely blank row (ignored, not counted as incomplete)
+      ['', '', '', '', '', '']
+    ];
+
+    const result = buildMembers({
+      headers,
+      rows,
+      map,
+      classIndex,
+      styles,
+      timestampIndex
+    });
+
+    expect(result.members.length).toBe(1);
+    expect(result.members[0].matricKey).toBe('23005147');
+    expect(result.incompleteRowCount).toBe(6);
+    expect(result.warnings.filter(w => w.kind === 'incompleteRow').length).toBe(6);
+  });
 });

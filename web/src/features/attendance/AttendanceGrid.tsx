@@ -44,7 +44,7 @@ export const AttendanceGrid: React.FC<AttendanceGridProps> = ({
       >
         <thead className="sticky top-0 z-30 bg-[var(--night-2)] border-b-2 border-[var(--neon-cyan)] shadow-[0_2px_0_var(--outline)]">
           <tr className="border-b-2 border-[var(--neon-cyan)] bg-[var(--night-2)] font-display text-[12px] text-[var(--text-1)]">
-            <th className="sticky top-0 left-0 z-40 bg-[var(--night-2)] p-3 border-r-2 border-[var(--outline)] min-w-[220px]">
+            <th className="sticky top-0 left-0 z-40 bg-[var(--night-2)] p-3 border-r-2 border-[var(--outline)] min-w-[220px] max-w-[220px] sm:max-w-[280px]">
               DANCER NAME / MATRIC
             </th>
             {sessions.map((s) => (
@@ -81,11 +81,11 @@ export const AttendanceGrid: React.FC<AttendanceGridProps> = ({
                   key={m.memberId}
                   className="min-h-[48px] h-12 odd:bg-[var(--night-2)] even:bg-[var(--violet-1)] hover:bg-[var(--violet-2)] transition-none"
                 >
-                  <td className="sticky left-0 z-10 bg-inherit p-3 border-r-2 border-[var(--outline)]">
-                    <div className="font-display text-[12px] text-[var(--text-1)] font-bold truncate">
+                  <td className="sticky left-0 z-10 bg-inherit p-3 border-r-2 border-[var(--outline)] max-w-[220px] sm:max-w-[280px]">
+                    <div className="font-display text-[12px] text-[var(--text-1)] font-bold truncate" title={m.fullName}>
                       {m.fullName}
                     </div>
-                    <div className="font-mono text-[12px] text-[var(--text-2)]">
+                    <div className="font-mono text-[12px] text-[var(--text-2)] truncate" title={m.matric}>
                       {m.matric}
                     </div>
                   </td>

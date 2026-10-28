@@ -22,7 +22,8 @@ export function nameKey(raw: string): string {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .replace(/[^a-z\s]/g, ' ')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/([a-z])\s+(\d+)/g, '$1$2')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -116,9 +117,14 @@ export function fullNameMatches(typed: string, registered: string): boolean {
     if (regWord.length < 5) {
       return false; // Short words must match exactly
     }
+    const regDigits = regWord.replace(/\D/g, '');
     let matched = false;
     for (let t = 0; t < typedTokens.length; t++) {
       if (!usedTypedIndices.has(t)) {
+        const typedDigits = typedTokens[t].replace(/\D/g, '');
+        if ((regDigits || typedDigits) && regDigits !== typedDigits) {
+          continue;
+        }
         if (levenshtein(typedTokens[t], regWord) <= 1) {
           usedTypedIndices.add(t);
           matched = true;

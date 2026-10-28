@@ -41,9 +41,28 @@ export function resolvePermissions(input: {
     }
   }
 
-  // 3. Implication: attendance.edit implies attendance.view.all with the same scope
+  // 3. Implications: write permissions imply corresponding read/calendar permissions with the same scope
   if (result['attendance.edit']) {
     addPerm('attendance.view.all', result['attendance.edit']);
+  }
+  if (result['videos.upload']) {
+    addPerm('videos.view', result['videos.upload']);
+    addPerm('calendar.view', result['videos.upload']);
+  }
+  if (result['videos.edit']) {
+    addPerm('videos.view', result['videos.edit']);
+    addPerm('calendar.view', result['videos.edit']);
+  }
+  if (result['music.edit']) {
+    addPerm('music.view', result['music.edit']);
+    addPerm('calendar.view', result['music.edit']);
+  }
+  if (result['sections.edit']) {
+    addPerm('music.view', result['sections.edit']);
+    addPerm('calendar.view', result['sections.edit']);
+  }
+  if (result['sessions.edit']) {
+    addPerm('calendar.view', result['sessions.edit']);
   }
 
   return result;

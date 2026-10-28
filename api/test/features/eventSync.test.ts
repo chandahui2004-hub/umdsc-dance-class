@@ -674,5 +674,37 @@ describe('Feature: event auto-sync and sync now', () => {
       const ev = ctx.db.events.get(eventId)!;
       expect(ev.memberCount).toBe(1);
     });
+
+    it('waits for 2 consecutive identical checks when events.autoSync is called with stabilize: true', () => {
+      const e = createEvent('OCT');
+      ctx.mail.sent = [];
+
+      // Admin begins typing a dancer in Google Sheets ("Chan")
+      sourceTab(e.sourceId).appendRows([['2026-10-02', 'Chan', '23005147', '0123456789', 'chan@test.com', 'Popping']]);
+
+      // 1st autoSync check with stabilize: true records pending hash and waits
+      const first = call('events.autoSync', { stabilize: true });
+      expect(first.ok && (first.data as any).changed).toEqual([]);
+      expect(names(e.id)).toEqual(['Ali']);
+      expect(ctx.mail.sent.length).toBe(0);
+
+      // Admin continues typing ("Chan Da Hui") before next check
+      ctx.cache.remove(`sync:check:${e.id}`);
+      sourceTab(e.sourceId).setValues(3, 2, [['Chan Da Hui']]);
+
+      // 2nd autoSync check sees hash changed again -> updates pending hash and still waits
+      const second = call('events.autoSync', { stabilize: true });
+      expect(second.ok && (second.data as any).changed).toEqual([]);
+      expect(names(e.id)).toEqual(['Ali']);
+      expect(ctx.mail.sent.length).toBe(0);
+
+      // 3rd autoSync check sees the exact same hash (admin finished editing) -> imports and sends 1 email!
+      ctx.cache.remove(`sync:check:${e.id}`);
+      const third = call('events.autoSync', { stabilize: true });
+      expect(third.ok && (third.data as any).changed).toEqual([e.id]);
+      expect(names(e.id)).toEqual(['Ali', 'Chan Da Hui']);
+      expect(ctx.mail.sent.length).toBe(1);
+      expect(ctx.mail.sent[0].body).toContain('Hi Chan Da Hui,');
+    });
   });
 });

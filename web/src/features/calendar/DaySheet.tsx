@@ -237,7 +237,9 @@ export const DaySheet: React.FC<DaySheetProps> = ({
               const instructor = resolveInstructor(session, style, instructors);
               const att = attendance.find((a) => a.sessionId === session.id);
               const classVideos = videos.filter((v) => v.sessionId === session.id);
-              const classMusic = music.filter((m) => m.sessionId === session.id);
+              const classMusic = music.filter(
+                (m) => m.sessionId === session.id || (!m.sessionId && m.eventId === session.eventId && m.styleId === session.styleId)
+              );
               const ev = events.find((e) => e.id === session.eventId);
               const colorVar = getInstructorColor(instructor, session.styleId);
 

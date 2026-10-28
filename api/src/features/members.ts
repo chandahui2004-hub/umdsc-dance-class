@@ -81,7 +81,13 @@ export function getMemberRoutes(): Record<string, Route> {
             }
             // Signed up elsewhere under another name: a different dancer, whose sign-in this would break
             const signIn = ctx.db.memberIndex.find(m => m.matricKey === newKey && m.active)[0];
-            if (signIn && signIn.eventIds.length > 0 && signIn.nameKey !== member.nameKey) {
+            const incomingNameKey = payload.fullName !== undefined ? nameKey(String(payload.fullName || '').trim()) : member.nameKey;
+            if (
+              signIn &&
+              signIn.eventIds.length > 0 &&
+              signIn.nameKey !== member.nameKey &&
+              signIn.nameKey !== incomingNameKey
+            ) {
               throw new AppError('VALIDATION', `Matric ${value} already belongs to ${signIn.fullName}`);
             }
           }
@@ -288,6 +294,8 @@ export function getMemberRoutes(): Record<string, Route> {
           sub: 'M-' + newMatricKey,
           role: 'dancer',
           name: newFullName,
+          roleName: auth.claims.roleName,
+          roleId: auth.claims.roleId,
           exp,
           pv,
           perms: auth.claims.perms

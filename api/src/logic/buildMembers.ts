@@ -4,7 +4,14 @@ import { normalizeMatric, nameKey, normalizePhone } from './normalize';
 import { parseStyles } from './classDetect';
 
 export interface ImportWarning {
-  kind: 'noStyle' | 'unknownClass' | 'duplicate' | 'missingName' | 'missingMatric' | 'phoneRepaired';
+  kind:
+    | 'noStyle'
+    | 'unknownClass'
+    | 'duplicate'
+    | 'missingName'
+    | 'missingMatric'
+    | 'phoneRepaired'
+    | 'incompleteRow';
   row: number;
   detail: string;
 }
@@ -22,9 +29,12 @@ export function buildMembers(input: {
   countsByStyle: Record<string, number>;
   /** Every response timestamp behind each member (a dancer may have answered more than once). */
   timestampsByMember: Record<string, string[]>;
+  /** Number of non-blank rows skipped because required fields were still incomplete/mid-edit. */
+  incompleteRowCount: number;
 } {
   const { rows, map, classIndex, styles, timestampIndex } = input;
   const warnings: ImportWarning[] = [];
+  let incompleteRowCount = 0;
 
   const styleNameById = new Map<string, string>();
   for (const s of styles) {
@@ -48,6 +58,9 @@ export function buildMembers(input: {
 
   for (let r = 0; r < rows.length; r++) {
     const row = rows[r];
+    if (!row || row.every(cell => !String(cell ?? '').trim())) {
+      continue;
+    }
     const rowNum = r + 2;
 
     const matricRaw = map.matric !== null && map.matric !== undefined ? String(row[map.matric] ?? '').trim() : '';
@@ -56,11 +69,18 @@ export function buildMembers(input: {
     const email = map.email !== null && map.email !== undefined ? String(row[map.email] ?? '').trim() : '';
     const gender = map.gender !== null && map.gender !== undefined ? String(row[map.gender] ?? '').trim() : '';
     const nationality = map.nationality !== null && map.nationality !== undefined ? String(row[map.nationality] ?? '').trim() : '';
-    const sourceTimestamp = timestampIndex !== null && timestampIndex !== undefined ? String(row[timestampIndex] ?? '').trim() : '';
+    const sourceTimestamp = timestampIndex !== null && timestampIndex !== undefined && timestampIndex >= 0 ? String(row[timestampIndex] ?? '').trim() : '';
+    const classCell = classIndex !== null && classIndex !== undefined && classIndex >= 0 ? String(row[classIndex] ?? '').trim() : '';
 
     if (!matricRaw) {
+      incompleteRowCount++;
       warnings.push({
         kind: 'missingMatric',
+        row: rowNum,
+        detail: `Row ${rowNum} has empty matric number`
+      });
+      warnings.push({
+        kind: 'incompleteRow',
         row: rowNum,
         detail: `Row ${rowNum} has empty matric number`
       });
@@ -69,20 +89,89 @@ export function buildMembers(input: {
 
     const matricKey = normalizeMatric(matricRaw);
     if (!matricKey) {
+      incompleteRowCount++;
       warnings.push({
         kind: 'missingMatric',
+        row: rowNum,
+        detail: `Row ${rowNum} has invalid matric number "${matricRaw}"`
+      });
+      warnings.push({
+        kind: 'incompleteRow',
         row: rowNum,
         detail: `Row ${rowNum} has invalid matric number "${matricRaw}"`
       });
       continue;
     }
 
+    if (matricKey.length < 4) {
+      incompleteRowCount++;
+      warnings.push({
+        kind: 'incompleteRow',
+        row: rowNum,
+        detail: `Row ${rowNum} has incomplete matric number "${matricRaw}"`
+      });
+      continue;
+    }
+
     if (!fullNameRaw) {
+      incompleteRowCount++;
       warnings.push({
         kind: 'missingName',
         row: rowNum,
         detail: `Row ${rowNum} has empty name`
       });
+      warnings.push({
+        kind: 'incompleteRow',
+        row: rowNum,
+        detail: `Row ${rowNum} has empty name`
+      });
+      continue;
+    }
+
+    if (classIndex !== null && classIndex !== undefined && classIndex >= 0 && !classCell) {
+      incompleteRowCount++;
+      warnings.push({
+        kind: 'incompleteRow',
+        row: rowNum,
+        detail: `Row ${rowNum} has empty class selection`
+      });
+      continue;
+    }
+
+    if (contactRaw.length > 0 && contactRaw.replace(/\D/g, '').length < 6) {
+      incompleteRowCount++;
+      warnings.push({
+        kind: 'incompleteRow',
+        row: rowNum,
+        detail: `Row ${rowNum} has incomplete contact number "${contactRaw}"`
+      });
+      continue;
+    }
+
+    if (email.length > 0 && !/^(n\/?a|-+|none|nil)$/i.test(email) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      incompleteRowCount++;
+      warnings.push({
+        kind: 'incompleteRow',
+        row: rowNum,
+        detail: `Row ${rowNum} has incomplete email "${email}"`
+      });
+      continue;
+    }
+
+    const hasTimestampCol = timestampIndex !== null && timestampIndex !== undefined && timestampIndex >= 0;
+    if (
+      hasTimestampCol &&
+      !sourceTimestamp &&
+      ((map.contact !== null && map.contact !== undefined && !contactRaw) ||
+        (map.email !== null && map.email !== undefined && !email))
+    ) {
+      incompleteRowCount++;
+      warnings.push({
+        kind: 'incompleteRow',
+        row: rowNum,
+        detail: `Row ${rowNum} is a manual sheet entry missing contact or email`
+      });
+      continue;
     }
 
     const flags: string[] = [];
@@ -99,7 +188,6 @@ export function buildMembers(input: {
     }
 
     // Class styles parsing
-    const classCell = classIndex !== null && classIndex !== undefined ? String(row[classIndex] ?? '') : '';
     const { styleIds, unknownTokens } = parseStyles(classCell, styles);
 
     for (const token of unknownTokens) {
@@ -204,6 +292,7 @@ export function buildMembers(input: {
     members,
     warnings,
     countsByStyle,
-    timestampsByMember
+    timestampsByMember,
+    incompleteRowCount
   };
 }
