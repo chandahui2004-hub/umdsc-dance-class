@@ -18,7 +18,7 @@ import { withScriptLock } from '../db/lock';
 import { assertSchemaReady } from './reset';
 import { cleanStyleInstructors, firstInstructor, assertClassInstructor } from './styleInstructors';
 
-const AUTO_SYNC_SECONDS = 600;
+const AUTO_SYNC_SECONDS = 60;
 const SYNC_NOW_SECONDS = 60;
 
 export const RETENTION_NO_SYNC =

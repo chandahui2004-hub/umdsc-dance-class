@@ -369,7 +369,7 @@ describe('Feature: event auto-sync and sync now', () => {
     expect(dataVersion()).toBe(dv);
   });
 
-  it('second call within 10 minutes skips', () => {
+  it('second call within 1 minute skips', () => {
     const e = createEvent('OCT');
     call('events.autoSync', {});
     const res = call('events.autoSync', {});

@@ -57,7 +57,7 @@ export function getAdminBootstrap(
     const sections = ctx.db.sections.find(s => s.active);
 
     sharedData = { styles, instructors, sessions, roles: roles as any, events, settings, videos, music, sections };
-    safeCachePut(ctx.cache, cacheKey, JSON.stringify(sharedData), 600);
+    safeCachePut(ctx.cache, cacheKey, JSON.stringify(sharedData), 60);
   }
 
   return {
@@ -101,7 +101,7 @@ function loadDancerIndex(ctx: Ctx, matricKey: string): any {
   if (!dancer) {
     throw new AppError('NOT_FOUND', 'Dancer record not found');
   }
-  safeCachePut(ctx.cache, miKey, JSON.stringify(dancer), 600);
+  safeCachePut(ctx.cache, miKey, JSON.stringify(dancer), 60);
   return dancer;
 }
 
@@ -271,7 +271,7 @@ export function getDancerAttendance(
             ctx.cache,
             `att:${eventId}:${styleId}:${curAttVer}`,
             JSON.stringify({ present: presentMap, sessions: gridSessions }),
-            600
+            60
           );
         }
       }
@@ -321,7 +321,7 @@ export function getDancerChunk(ctx: Ctx, eventId: string, styleId: string, dataV
     music: chunkMusic,
     sections: ctx.db.sections.find(sec => musicIds.has(sec.musicId) && sec.active)
   };
-  safeCachePut(ctx.cache, chunkKey, JSON.stringify(chunkData), 600);
+  safeCachePut(ctx.cache, chunkKey, JSON.stringify(chunkData), 60);
   return chunkData;
 }
 
@@ -401,7 +401,13 @@ export function getDancerBootstrap(
       perms
     },
     events: dancerEvents.map(e => ({
-      id: e.id, name: e.name, type: e.type, startDate: e.startDate, endDate: e.endDate, status: e.status, styleIds: e.styleIds
+      id: e.id,
+      name: e.name,
+      type: e.type,
+      startDate: e.startDate,
+      endDate: e.endDate,
+      status: e.status,
+      styleIds: (e.styleIds || []).filter(sId => eventStylesMap.get(e.id)?.has(sId))
     })),
     styles: styles.map(withoutUploaderEmail),
     instructors,
@@ -412,7 +418,7 @@ export function getDancerBootstrap(
     sections: Array.from(sectionsMap.values())
   };
 
-  safeCachePut(ctx.cache, dancerBootKey, JSON.stringify(result), 300);
+  safeCachePut(ctx.cache, dancerBootKey, JSON.stringify(result), 60);
 
   return result;
 }

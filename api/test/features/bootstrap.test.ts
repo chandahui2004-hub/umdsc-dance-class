@@ -121,6 +121,7 @@ describe('Feature: Bootstrap with Caching (features/bootstrap)', () => {
       expect(b.videos.map((v: any) => v.title)).toEqual(['Popping Class 1 Video']);
       expect(b.music.map((m: any) => m.title)).toEqual(['Popping Song']);
       expect(b.events.map((e: any) => e.name)).toEqual(['OCT MONTHLY CLASS']);
+      expect(b.events[0].styleIds).toEqual(['st_popping']);
     }
   });
 

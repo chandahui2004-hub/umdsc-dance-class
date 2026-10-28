@@ -80,7 +80,7 @@ export function readEventMembers(ctx: Ctx, event: EventItem): Member[] {
     });
   }
 
-  safeCachePut(ctx.cache, cacheKey, JSON.stringify(members), 600);
+  safeCachePut(ctx.cache, cacheKey, JSON.stringify(members), 60);
   return members;
 }
 
