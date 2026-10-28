@@ -45,3 +45,4 @@
 - Unit tests in `web/src/lib/useEventAutoSync.test.tsx` verify 1-minute (`60_000` ms) polling and `'notification_members'` invalidation.
 - Unit tests in `api/test/features/bootstrap.test.ts` and `api/test/features/eventSync.test.ts` verify scoped `styleIds` on `dancer.bootstrap` events and 60s cache/sync behavior.
 - Both `api` (clasp deploy) and `web` (Cloudflare Workers via `git push origin main`) are deployed and verified against live endpoints.
+
