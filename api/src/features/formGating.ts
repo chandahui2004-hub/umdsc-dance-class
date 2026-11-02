@@ -295,11 +295,11 @@ export function syncGoogleFormSlotChoices(
     console.warn(`[syncGoogleFormSlotChoices] Failed to check accepting state on form ${form.getId()}:`, err);
   }
 
-    const isFullHouse = (styleIds.length === 1 && fullStyleIds.length === 1) ||
+  const isFullHouse = (styleIds.length === 1 && fullStyleIds.length === 1) ||
     (styleIds.length > 1 && availableStyleIds.length === 0 && fullStyleIds.length > 0);
 
   const overrideKey = `sync:adminOverride:${event.id}`;
-  const hadAdminOverride = ctx.cache.get(overrideKey) === '1' || Boolean(event.formClosed && isCurrentlyAccepting);
+  const hadAdminOverride = ctx.props.get(overrideKey) === '1' || ctx.cache.get(overrideKey) === '1' || Boolean(event.formClosed && isCurrentlyAccepting);
   
   let formClosed = false;
   let formClosedManually = false;
@@ -319,8 +319,10 @@ export function syncGoogleFormSlotChoices(
     } else {
       // Form is open. If admin re-opened it, keep open even if isFullHouse (admin intent precedence).
       if (hadAdminOverride && isFullHouse) {
-        ctx.cache.put(overrideKey, '1', 86400 * 30);
+        ctx.props.set(overrideKey, '1');
+        ctx.cache.put(overrideKey, '1', 21600);
       } else if (!isFullHouse) {
+        ctx.props.set(overrideKey, '');
         ctx.cache.remove(overrideKey);
       }
       formClosed = false;
@@ -328,6 +330,8 @@ export function syncGoogleFormSlotChoices(
     }
   } else {
     // Form is currently NOT accepting responses in Google Forms
+    ctx.props.set(overrideKey, '');
+    ctx.cache.remove(overrideKey);
     if (!isFullHouse && currentClosedMsg === FULL_HOUSE_CLOSED_MESSAGE) {
       // Previously closed by system for full house, but now capacity expanded: re-open it!
       try {
@@ -465,17 +469,17 @@ export function syncGoogleFormSlotChoices(
     }
 
     // Record any current choice mappings
-    for (const choice of question.choices) {
+    for (const choice of validStyleQuestion.choices) {
       const sid = matchChoiceToStyleId(choice);
       if (sid) {
         rememberedLabels[sid] = choice;
       }
     }
-    ctx.cache.put(cacheKey, JSON.stringify(rememberedLabels), 86400 * 30);
+    ctx.cache.put(cacheKey, JSON.stringify(rememberedLabels), 21600);
 
     // Filter question choices:
     // Drop full styles. Keep available styles and unrecognized choices.
-    const filteredChoices = question.choices.filter(choice => {
+    const filteredChoices = validStyleQuestion.choices.filter(choice => {
       const matchedSid = matchChoiceToStyleId(choice);
       if (!matchedSid) return true;
       return availableStyleIds.includes(matchedSid);
@@ -495,8 +499,8 @@ export function syncGoogleFormSlotChoices(
     }
 
     // If all styles are full but form is kept open by admin override, retain choices so users can register
-    if (filteredChoices.length === 0 && question.choices.length > 0) {
-      for (const ch of question.choices) {
+    if (filteredChoices.length === 0 && validStyleQuestion.choices.length > 0) {
+      for (const ch of validStyleQuestion.choices) {
         filteredChoices.push(ch);
       }
     }

@@ -224,7 +224,7 @@ const defaultCodecs = {
       styleIds: parseList(c.styleIds),
       formUrl: c.formUrl || '',
       formId: c.formId || '',
-      formClosed: c.formClosed === '' ? undefined : parseBool(c.formClosed),
+      formClosed: !c.formClosed ? undefined : parseBool(c.formClosed),
       formClosedAt: c.formClosedAt || undefined,
       formClosedReason: (c.formClosedReason as any) || undefined,
       styleInstructors: parseStyleInstructors(c.styleInstructorsJson),

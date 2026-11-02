@@ -374,7 +374,8 @@ export class GasCacheAdapter implements CachePort {
   }
 
   put(key: string, value: string, ttlSec: number): void {
-    this.cache.put(key, value, ttlSec);
+    const clampedTtl = Math.min(Math.max(1, ttlSec), 21600);
+    this.cache.put(key, value, clampedTtl);
   }
 
   remove(key: string): void {
