@@ -105,6 +105,9 @@ export interface EventItem extends RowMeta {
   lastSyncAt: string; lastSyncError: string; memberCount: number;
   formUrl?: string;
   formId?: string;
+  formClosed?: boolean;
+  formClosedAt?: string;
+  formClosedReason?: 'manual' | 'capacity' | 'none';
   styleSlots?: Record<string, number>;
   styleSlotsJson?: string;
   styleFormLabels?: Record<string, string>;

@@ -81,6 +81,20 @@ describe('eventDraft', () => {
     expect(draftFromEvent(eventWithOnlyId, []).formUrl).toBe('https://docs.google.com/forms/d/11ZZM4qFUc1jj9LSqUXSzbr0y2-e4xziO8w4YSc4ze0I/edit');
   });
 
+  it('draftFromEvent preserves formClosed, formClosedAt, and formClosedReason', () => {
+    const closedEvent = {
+      id: 'e3', name: 'OCT 3', type: 'monthly', startDate: '2026-10-01', endDate: '2026-10-31',
+      sourceSheetId: 'src', columnMapJson: '{}', classIndex: -1, styleIds: [],
+      formClosed: true,
+      formClosedAt: '2026-10-15T10:00:00.000Z',
+      formClosedReason: 'capacity'
+    } as unknown as EventItem;
+    const draft = draftFromEvent(closedEvent, []);
+    expect(draft.formClosed).toBe(true);
+    expect(draft.formClosedAt).toBe('2026-10-15T10:00:00.000Z');
+    expect(draft.formClosedReason).toBe('capacity');
+  });
+
   it('emptyDraft has no style instructors', () => {
     expect(emptyDraft('2026-09-30').styleInstructors).toEqual({});
   });

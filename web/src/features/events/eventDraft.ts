@@ -32,6 +32,9 @@ export interface EventDraft {
   styleFormLabels?: Record<string, string>;
   /** Optional direct Google Form link */
   formUrl?: string;
+  formClosed?: boolean;
+  formClosedAt?: string;
+  formClosedReason?: 'manual' | 'capacity' | 'none';
   schedule: Record<string, ScheduledClass[]>;
 }
 
@@ -99,6 +102,9 @@ export function draftFromEvent(e: EventItem, sessions: ClassSession[]): EventDra
     styleSlots: e.styleSlots || (e.styleSlotsJson ? JSON.parse(e.styleSlotsJson) : {}),
     styleFormLabels: e.styleFormLabels || (e.styleFormLabelsJson ? JSON.parse(e.styleFormLabelsJson) : {}),
     formUrl: e.formUrl || (e.formId ? `https://docs.google.com/forms/d/${e.formId}/edit` : '') || '',
+    formClosed: e.formClosed,
+    formClosedAt: e.formClosedAt,
+    formClosedReason: e.formClosedReason,
     schedule
   };
 }
