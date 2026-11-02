@@ -173,22 +173,22 @@
 **Files:**
 - Entire repository
 
-- [ ] **Step 1: Run full test suite across workspace**
+- [x] **Step 1: Run full test suite across workspace**
   - Run: `npm test -w api`
   - Run: `npm test -w web`
   - Expected: ALL tests pass.
 
-- [ ] **Step 2: Build web project**
+- [x] **Step 2: Build web project**
   - Run: `npm run build -w web`
   - Expected: Build succeeds without errors.
 
-- [ ] **Step 3: Deploy backend to Google Apps Script**
+- [x] **Step 3: Deploy backend to Google Apps Script**
   - Run: `npm run push -w api`
   - Expected: Clasp push and deploy succeed.
 
-- [ ] **Step 4: Live verification via Production API**
+- [x] **Step 4: Live verification via Production API**
   - Test live endpoint for active event `testing1` (`evt_T2Z7Wt1hUJ`) and verify `formClosed` status resolution.
 
-- [ ] **Step 5: Push commits to GitHub repository**
+- [x] **Step 5: Push commits to GitHub repository**
   - Run: `git push origin main`
 
