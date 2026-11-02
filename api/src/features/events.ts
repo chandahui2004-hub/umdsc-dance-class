@@ -10,7 +10,7 @@ import { previewSource, openSourceTab } from './eventSource';
 import { ensureEventFolder, ensureMembersSheet, ensureEventSheets, saveEventFields, eventYear, refileEventYear, renameStyleVideoFolders } from './eventSheets';
 import { getEvent, readEventMembers } from './eventMembers';
 import { importEventMembers, sourceUnchanged, checkAndNotifySlotCapacities } from './eventImport';
-import { syncGoogleFormSlotChoices } from './formGating';
+import { syncGoogleFormSlotChoices, checkEventFormStatus } from './formGating';
 import { extractGoogleFormId } from '../logic/googleForm';
 
 export { extractGoogleFormId };
@@ -364,6 +364,28 @@ export function getEventRoutes(): Record<string, Route> {
 
         const today = todayKL(ctx.now());
         for (const event of ctx.db.events.find(e => e.active && e.status === 'active' && !pastRetention(e, today))) {
+          // Check Google Form accepting status every 10 minutes for active events with a form link
+          const hasForm = Boolean(event.formId || event.formUrl);
+          if (hasForm) {
+            const formCheckKey = `sync:formCheck:${event.id}`;
+            if (ctx.cache.get(formCheckKey) === null) {
+              ctx.cache.put(formCheckKey, '1', 600);
+              try {
+                const prevClosed = Boolean(event.formClosed);
+                const prevReason = event.formClosedReason;
+                const formRes = checkEventFormStatus(ctx, event);
+                if (formRes.synced) {
+                  if (formRes.formClosed !== prevClosed || formRes.formClosedReason !== prevReason) {
+                    if (!result.changed.includes(event.id)) {
+                      result.changed.push(event.id);
+                    }
+                  }
+                }
+              } catch (formErr) {
+                console.warn(`[events.autoSync] Form status check failed for ${event.id}:`, formErr);
+              }
+            }
+          }
           const checkKey = `sync:check:${event.id}`;
           if (ctx.cache.get(checkKey) !== null) {
             result.skipped.push(event.id);
@@ -484,8 +506,14 @@ export function getEventRoutes(): Record<string, Route> {
       write: true,
       handler: (ctx, auth, payload: any) => {
         const event = getEvent(ctx, String(payload?.id || ''));
+        const prevClosed = Boolean(event.formClosed);
+        const prevReason = event.formClosedReason;
         const result = syncGoogleFormSlotChoices(ctx, event);
-        if (result.discoveredStyleIds && result.discoveredStyleIds.length > 0) {
+        const changed =
+          (result.discoveredStyleIds && result.discoveredStyleIds.length > 0) ||
+          result.formClosed !== prevClosed ||
+          result.formClosedReason !== prevReason;
+        if (changed) {
           ctx.props.set('DATA_VERSION', String(Number(ctx.props.get('DATA_VERSION') || 1) + 1));
         }
         logAudit(ctx, auth?.claims.sub || 'system', 'events.syncFormSlots', event.id, JSON.stringify(result));

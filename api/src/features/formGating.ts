@@ -3,6 +3,7 @@ import { EventItem, Member } from '@umdsc/shared';
 import { readEventMembers } from './eventMembers';
 import { REMOVED_FLAG } from './eventImport';
 import { extractGoogleFormId, isResponderFormLink } from '../logic/googleForm';
+import { logAudit } from '../logic/audit';
 
 export const FULL_HOUSE_CLOSED_MESSAGE =
   'Sorry, we have reached FULL HOUSE for this event! Registration is now closed to prevent over-registration. Thank you for your interest and support! Keep dancing! — Universiti Malaya Dance Sport Club (UMDSC)';
@@ -12,6 +13,7 @@ export interface FormGatingResult {
   formId?: string;
   formClosed: boolean;
   formClosedManually?: boolean;
+  formClosedReason?: 'manual' | 'capacity' | 'none';
   fullStyleIds: string[];
   availableStyleIds: string[];
   remainingChoices?: string[];
@@ -28,8 +30,9 @@ export interface FormGatingResult {
  *    in Google Forms and respects that closure (never re-opens an admin-closed form).
  * 3. Dynamic Choice Removal: Removes styles that reached slot limits and updates question help notice.
  * 4. Full House Auto-Closure: Closes the form with a polite message when all styles or a single-style event fills up.
- * 5. Auto Re-Opening: Automatically re-opens the form if capacity is increased or cancellations occur
- *    (only if the closure was due to full house).
+ * 5. Auto Re-Opening & Admin Override: Automatically re-opens the form if capacity is increased or cancellations occur
+ *    (only if the closure was due to full house). If an admin manually re-opens a form directly in Google Forms,
+ *    respects admin intent and does NOT force-close the form even if member count >= slot limit.
  */
 export function syncGoogleFormSlotChoices(
   ctx: Ctx,
@@ -41,6 +44,7 @@ export function syncGoogleFormSlotChoices(
       synced: false,
       formClosed: false,
       formClosedManually: false,
+      formClosedReason: 'none',
       fullStyleIds: [],
       availableStyleIds: [],
       message: 'No form port available on context'
@@ -56,6 +60,7 @@ export function syncGoogleFormSlotChoices(
       synced: false,
       formClosed: false,
       formClosedManually: false,
+      formClosedReason: 'none',
       fullStyleIds: [],
       availableStyleIds: [],
       message: 'Google Form edit link required (e.g. https://docs.google.com/forms/d/.../edit). Responder /viewform links cannot be edited by Google Apps Script.'
@@ -69,6 +74,7 @@ export function syncGoogleFormSlotChoices(
       synced: false,
       formClosed: false,
       formClosedManually: false,
+      formClosedReason: 'none',
       fullStyleIds: [],
       availableStyleIds: [],
       message: 'No Google Form edit link linked to event'
@@ -91,6 +97,7 @@ export function syncGoogleFormSlotChoices(
       synced: false,
       formClosed: false,
       formClosedManually: false,
+      formClosedReason: 'none',
       fullStyleIds: [],
       availableStyleIds: [],
       message: userMsg
@@ -102,6 +109,7 @@ export function syncGoogleFormSlotChoices(
       synced: false,
       formClosed: false,
       formClosedManually: false,
+      formClosedReason: 'none',
       fullStyleIds: [],
       availableStyleIds: [],
       message: `Google Form could not be found at ${formTarget}. Ensure umdancesportc@gmail.com is added as an Editor (Collaborator) on the form.`
@@ -115,7 +123,6 @@ export function syncGoogleFormSlotChoices(
   const formLabels: Record<string, string> =
     event.styleFormLabels || (event.styleFormLabelsJson ? JSON.parse(event.styleFormLabelsJson) : {});
 
-  const isSingleStyle = (event.styleIds || []).length === 1;
   const NON_DANCE_CHOICES = new Set(['yes', 'no', 'true', 'false', 'maybe', 'na', 'none', 'male', 'female', 'other', 'student', 'staff']);
 
   const allActiveStyles = ctx.db.styles.find(s => s.active);
@@ -278,49 +285,110 @@ export function syncGoogleFormSlotChoices(
     }
   }
 
-  // 3. Check if Full House:
-  // - Single-style event and that style is full
-  // - Multi-style event and ALL configured styles with cap are full (no available styles remaining)
-  const isFullHouse = (styleIds.length === 1 && fullStyleIds.length === 1) ||
+  // 3. Resolve live accepting status & admin override logic
+  let isCurrentlyAccepting = true;
+  let currentClosedMsg = '';
+  try {
+    isCurrentlyAccepting = form.isAcceptingResponses();
+    currentClosedMsg = form.getCustomClosedFormMessage() || '';
+  } catch (err) {
+    console.warn(`[syncGoogleFormSlotChoices] Failed to check accepting state on form ${form.getId()}:`, err);
+  }
+
+    const isFullHouse = (styleIds.length === 1 && fullStyleIds.length === 1) ||
     (styleIds.length > 1 && availableStyleIds.length === 0 && fullStyleIds.length > 0);
 
-  if (isFullHouse) {
-    try {
-      form.setAcceptingResponses(false);
-      form.setCustomClosedFormMessage(FULL_HOUSE_CLOSED_MESSAGE);
-    } catch (err) {
-      console.warn(`[syncGoogleFormSlotChoices] Failed to close form ${form.getId()}:`, err);
-    }
+  const overrideKey = `sync:adminOverride:${event.id}`;
+  const hadAdminOverride = ctx.cache.get(overrideKey) === '1' || Boolean(event.formClosed && isCurrentlyAccepting);
+  
+  let formClosed = false;
+  let formClosedManually = false;
+  let formClosedReason: 'manual' | 'capacity' | 'none' = 'none';
 
+  if (isCurrentlyAccepting) {
+    if (isFullHouse && !hadAdminOverride) {
+      // Reached full house for the first time without admin re-opening
+      try {
+        form.setAcceptingResponses(false);
+        form.setCustomClosedFormMessage(FULL_HOUSE_CLOSED_MESSAGE);
+      } catch (err) {
+        console.warn(`[syncGoogleFormSlotChoices] Failed to close form ${form.getId()}:`, err);
+      }
+      formClosed = true;
+      formClosedReason = 'capacity';
+    } else {
+      // Form is open. If admin re-opened it, keep open even if isFullHouse (admin intent precedence).
+      if (hadAdminOverride && isFullHouse) {
+        ctx.cache.put(overrideKey, '1', 86400 * 30);
+      } else if (!isFullHouse) {
+        ctx.cache.remove(overrideKey);
+      }
+      formClosed = false;
+      formClosedReason = 'none';
+    }
+  } else {
+    // Form is currently NOT accepting responses in Google Forms
+    if (!isFullHouse && currentClosedMsg === FULL_HOUSE_CLOSED_MESSAGE) {
+      // Previously closed by system for full house, but now capacity expanded: re-open it!
+      try {
+        form.setAcceptingResponses(true);
+        form.setCustomClosedFormMessage('');
+      } catch (err) {
+        console.warn(`[syncGoogleFormSlotChoices] Failed to re-open form ${form.getId()}:`, err);
+      }
+      formClosed = false;
+      formClosedReason = 'none';
+      ctx.cache.remove(overrideKey);
+    } else {
+      formClosed = true;
+      if (currentClosedMsg === FULL_HOUSE_CLOSED_MESSAGE) {
+        formClosedReason = 'capacity';
+      } else {
+        formClosedReason = 'manual';
+        formClosedManually = true;
+      }
+      ctx.cache.remove(overrideKey);
+    }
+  }
+
+  // 4. Check if event's stored formClosed or formClosedReason differs from the live status; persist to DB
+  const prevClosed = Boolean(event.formClosed);
+  const prevReason = event.formClosedReason;
+  const statusChanged = prevClosed !== formClosed || prevReason !== formClosedReason;
+
+  if (statusChanged) {
+    const formClosedAt = formClosed ? (event.formClosedAt || ctx.now().toISOString()) : '';
+    try {
+      ctx.db.events.update(event.id, event.version, {
+        formClosed,
+        formClosedAt,
+        formClosedReason
+      }, 'form-sync', ctx.now(), { keepVersion: true });
+      const fresh = ctx.db.events.get(event.id);
+      if (fresh) {
+        event.version = fresh.version;
+        event.formClosed = fresh.formClosed;
+        event.formClosedAt = fresh.formClosedAt;
+        event.formClosedReason = fresh.formClosedReason;
+      }
+      logAudit(ctx, 'form-sync', 'events.formStatusChanged', event.id, JSON.stringify({ formClosed, formClosedReason }));
+    } catch (updateErr) {
+      console.warn(`[syncGoogleFormSlotChoices] Failed to update event with form status:`, updateErr);
+    }
+  }
+
+  if (formClosed && isFullHouse && !hadAdminOverride) {
     return {
       synced: true,
       formId: form.getId(),
       formClosed: true,
       formClosedManually: false,
+      formClosedReason: 'capacity',
       fullStyleIds,
       availableStyleIds: [],
       remainingChoices: [],
       discoveredStyleIds
     };
-  }
-
-  // 4. Not Full House: Check if form was manually closed by admin in Google Forms
-  let formClosedManually = false;
-  try {
-    const isCurrentlyAccepting = form.isAcceptingResponses();
-    if (!isCurrentlyAccepting) {
-      const currentClosedMsg = form.getCustomClosedFormMessage();
-      if (currentClosedMsg === FULL_HOUSE_CLOSED_MESSAGE) {
-        // Previously closed by system for full house, but now capacity expanded: re-open it!
-        form.setAcceptingResponses(true);
-        form.setCustomClosedFormMessage('');
-      } else {
-        // Admin manually turned off responses in Google Forms: respect and preserve!
-        formClosedManually = true;
-      }
-    }
-  } catch (err) {
-    console.warn(`[syncGoogleFormSlotChoices] Failed to check accepting state on form ${form.getId()}:`, err);
   }
 
   // 5. Manage choices on the style question (only for multi-style events)
@@ -426,6 +494,13 @@ export function syncGoogleFormSlotChoices(
       }
     }
 
+    // If all styles are full but form is kept open by admin override, retain choices so users can register
+    if (filteredChoices.length === 0 && question.choices.length > 0) {
+      for (const ch of question.choices) {
+        filteredChoices.push(ch);
+      }
+    }
+
     // Preserve original choices order if possible
     const choiceOrder = Object.values(rememberedLabels);
     if (choiceOrder.length > 0) {
@@ -468,11 +543,16 @@ export function syncGoogleFormSlotChoices(
   return {
     synced: true,
     formId: form.getId(),
-    formClosed: formClosedManually,
+    formClosed,
     formClosedManually,
+    formClosedReason,
     fullStyleIds,
     availableStyleIds,
     remainingChoices,
     discoveredStyleIds
   };
+}
+
+export function checkEventFormStatus(ctx: Ctx, event: EventItem): FormGatingResult {
+  return syncGoogleFormSlotChoices(ctx, event);
 }

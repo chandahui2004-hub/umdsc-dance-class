@@ -327,4 +327,83 @@ describe('Google Form Automated Slot Gating (syncGoogleFormSlotChoices)', () => 
     expect(result.formClosed).toBe(true);
     expect(form.isAcceptingResponses()).toBe(false);
   });
+
+  it('detects when Google Form is manually closed by admin and persists formClosed: true and formClosedReason: manual on event', () => {
+    const { event, formId } = makeEvent([], {
+      styleSlots: { st_hiphop: 10 }
+    });
+
+    const form = ctx.form.openForm(formId)!;
+    form.setAcceptingResponses(false);
+    form.setCustomClosedFormMessage('Registrations temporarily paused by club admin');
+
+    const result = syncGoogleFormSlotChoices(ctx, event, []);
+
+    expect(result.synced).toBe(true);
+    expect(result.formClosed).toBe(true);
+    expect(result.formClosedReason).toBe('manual');
+
+    const refreshed = ctx.db.events.get(event.id)!;
+    expect(refreshed.formClosed).toBe(true);
+    expect(refreshed.formClosedReason).toBe('manual');
+    expect(refreshed.formClosedAt).toBeDefined();
+  });
+
+  it('persists formClosed: false, formClosedReason: none and does NOT re-close form when re-opened by admin even if member count >= slot limit', () => {
+    const { event, formId } = makeEvent([], {
+      styleSlots: { st_hiphop: 1, st_popping: 1, st_locking: 1 },
+      formClosed: true,
+      formClosedReason: 'capacity'
+    });
+
+    const form = ctx.form.openForm(formId)!;
+    form.setAcceptingResponses(true);
+    form.setCustomClosedFormMessage('');
+
+    const members: Member[] = [
+      { memberId: 'm1', fullName: 'Alice', matricRaw: '2301', matricKey: '2301', nameKey: 'alice', styleIds: ['st_hiphop'], styleNames: ['Hip Hop'] },
+      { memberId: 'm2', fullName: 'Bob', matricRaw: '2302', matricKey: '2302', nameKey: 'bob', styleIds: ['st_popping'], styleNames: ['Popping'] },
+      { memberId: 'm3', fullName: 'Charlie', matricRaw: '2303', matricKey: '2303', nameKey: 'charlie', styleIds: ['st_locking'], styleNames: ['Locking'] }
+    ];
+
+    const result = syncGoogleFormSlotChoices(ctx, event, members);
+
+    expect(result.synced).toBe(true);
+    expect(result.formClosed).toBe(false);
+    expect(result.formClosedReason).toBe('none');
+    expect(form.isAcceptingResponses()).toBe(true);
+
+    const refreshed = ctx.db.events.get(event.id)!;
+    expect(refreshed.formClosed).toBe(false);
+    expect(refreshed.formClosedReason).toBe('none');
+  });
+
+  it('closes form and sets formClosed: true with formClosedReason: capacity when slot capacity is reached and form was not manually re-opened', () => {
+    const { event, formId } = makeEvent([], {
+      styleSlots: { st_hiphop: 1, st_popping: 1, st_locking: 1 },
+      formClosed: false
+    });
+
+    const form = ctx.form.openForm(formId)!;
+    expect(form.isAcceptingResponses()).toBe(true);
+
+    const members: Member[] = [
+      { memberId: 'm1', fullName: 'Alice', matricRaw: '2301', matricKey: '2301', nameKey: 'alice', styleIds: ['st_hiphop'], styleNames: ['Hip Hop'] },
+      { memberId: 'm2', fullName: 'Bob', matricRaw: '2302', matricKey: '2302', nameKey: 'bob', styleIds: ['st_popping'], styleNames: ['Popping'] },
+      { memberId: 'm3', fullName: 'Charlie', matricRaw: '2303', matricKey: '2303', nameKey: 'charlie', styleIds: ['st_locking'], styleNames: ['Locking'] }
+    ];
+
+    const result = syncGoogleFormSlotChoices(ctx, event, members);
+
+    expect(result.synced).toBe(true);
+    expect(result.formClosed).toBe(true);
+    expect(result.formClosedReason).toBe('capacity');
+    expect(form.isAcceptingResponses()).toBe(false);
+    expect(form.getCustomClosedFormMessage()).toBe(FULL_HOUSE_CLOSED_MESSAGE);
+
+    const refreshed = ctx.db.events.get(event.id)!;
+    expect(refreshed.formClosed).toBe(true);
+    expect(refreshed.formClosedReason).toBe('capacity');
+    expect(refreshed.formClosedAt).toBeDefined();
+  });
 });

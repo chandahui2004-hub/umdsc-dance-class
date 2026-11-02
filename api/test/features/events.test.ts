@@ -510,4 +510,38 @@ describe('Feature: events (features/events)', () => {
     expect(dbEvent.styleSlots).toEqual({ st_popping: 35, st_hiphop: 20 });
     expect(JSON.parse(dbEvent.styleSlotsJson!)).toEqual({ st_popping: 35, st_hiphop: 20 });
   });
+  it('events.autoSync polls form status and bumps DATA_VERSION when formClosed changes', () => {
+    const res = call('events.create', createPayload());
+    expect(res.ok).toBe(true);
+    const event = res.ok ? (res.data as any).event : null;
+
+    const formId = 'auto_sync_form_test';
+    const form = ctx.form.createForm(formId);
+    ctx.form.setLinkedForm(event.sourceSheetId, `https://docs.google.com/forms/d/${formId}/edit`);
+
+    // Ensure event has formId set and starts open
+    ctx.db.events.update(event.id, event.version, {
+      formId,
+      formClosed: false,
+      formClosedReason: 'none'
+    }, 'test', ctx.now());
+
+    ctx.props.set('DATA_VERSION', '1');
+
+    // Admin closes form directly in Google Forms
+    form.setAcceptingResponses(false);
+    form.setCustomClosedFormMessage('Paused by admin');
+
+    // Call events.autoSync
+    const syncRes = call('events.autoSync', {});
+    expect(syncRes.ok).toBe(true);
+    if (syncRes.ok) {
+      expect((syncRes.data as any).changed).toContain(event.id);
+    }
+
+    const updated = ctx.db.events.get(event.id)!;
+    expect(updated.formClosed).toBe(true);
+    expect(updated.formClosedReason).toBe('manual');
+    expect(Number(ctx.props.get('DATA_VERSION'))).toBeGreaterThan(1);
+  });
 });

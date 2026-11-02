@@ -38,20 +38,20 @@
 - Produces: `EventItem.formClosed?: boolean`, `EventItem.formClosedAt?: string`, `EventItem.formClosedReason?: 'manual' | 'capacity' | 'none'`
 - Consumes: `EventItem` in `shared` and `web`
 
-- [ ] **Step 1: Update `EventItem` in `shared/src/types.ts`**
+- [x] **Step 1: Update `EventItem` in `shared/src/types.ts`**
   Add `formClosed?: boolean;`, `formClosedAt?: string;`, `formClosedReason?: 'manual' | 'capacity' | 'none';` to `EventItem`.
 
-- [ ] **Step 2: Update `EventDraft` in `web/src/features/events/eventDraft.ts`**
+- [x] **Step 2: Update `EventDraft` in `web/src/features/events/eventDraft.ts`**
   Preserve `formClosed`, `formClosedAt`, `formClosedReason` when converting draft from event.
 
-- [ ] **Step 3: Write test in `web/src/features/events/eventDraft.test.ts`**
+- [x] **Step 3: Write test in `web/src/features/events/eventDraft.test.ts`**
   Verify `draftFromEvent` preserves `formClosed` and `formClosedReason`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
   Run: `npm test -w web -- src/features/events/eventDraft.test.ts`
   Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   ```bash
   git add shared/src/types.ts web/src/features/events/eventDraft.ts web/src/features/events/eventDraft.test.ts
   git commit -m "feat(types): add formClosed and formClosedReason to EventItem"
@@ -72,16 +72,16 @@
 - Updates: `Events` table with `formClosed`, `formClosedAt`, `formClosedReason`
 - Modifies: `events.autoSync` to check form status every 10 minutes and bump `DATA_VERSION` on change
 
-- [ ] **Step 1: Write failing tests in `api/test/features/formGating.test.ts`**
+- [x] **Step 1: Write failing tests in `api/test/features/formGating.test.ts`**
   - Test A: Detects when Google Form is manually closed by admin and persists `formClosed: true` and `formClosedReason: 'manual'`.
   - Test B: When Google Form is re-opened in Google Forms by admin, persists `formClosed: false` and does NOT re-close it even if member count >= slot limit.
   - Test C: When slot capacity is reached and form was not manually re-opened, closes form and sets `formClosed: true` with `formClosedReason: 'capacity'`.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
   Run: `npm test -w api -- test/features/formGating.test.ts`
   Expected: FAIL
 
-- [ ] **Step 3: Implement `checkEventFormStatus` and update `syncGoogleFormSlotChoices` in `api/src/features/formGating.ts`**
+- [x] **Step 3: Implement `checkEventFormStatus` and update `syncGoogleFormSlotChoices` in `api/src/features/formGating.ts`**
   - Check `form.isAcceptingResponses()`.
   - If `isCurrentlyAccepting === true`:
     - Set `formClosed = false`, `formClosedReason = 'none'`.
@@ -91,15 +91,15 @@
     - Check if message === `FULL_HOUSE_CLOSED_MESSAGE` ? `'capacity'` : `'manual'`.
   - Persist `formClosed`, `formClosedAt`, `formClosedReason` to `ctx.db.events.update` if changed.
 
-- [ ] **Step 4: Update `events.autoSync` and `events.syncFormSlots` in `api/src/features/events.ts`**
+- [x] **Step 4: Update `events.autoSync` and `events.syncFormSlots` in `api/src/features/events.ts`**
   - In `events.autoSync`: for each active event with a form link, check form status every 10 minutes (cached via `sync:formCheck:${event.id}`). If changed, add to `result.changed` and bump `DATA_VERSION`.
   - In `events.syncFormSlots`: persist `formClosed` and return updated event.
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
   Run: `npm test -w api -- test/features/formGating.test.ts test/features/events.test.ts`
   Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   ```bash
   git add api/src/features/formGating.ts api/src/features/events.ts api/test/features/formGating.test.ts api/test/features/events.test.ts
   git commit -m "feat(api): implement bidirectional Google Form status sync and admin open precedence"
