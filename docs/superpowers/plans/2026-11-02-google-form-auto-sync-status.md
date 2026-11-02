@@ -119,16 +119,16 @@
 - Produces: Live retro pixel badge `[● FORM OPEN]` vs `[✖ FORM CLOSED]` next to the `FORM ↗` link button.
 - Updates: `useEventAutoSync` checks every 10 minutes (and on tab visibility).
 
-- [ ] **Step 1: Write failing test in `web/src/features/events/EventCard.test.tsx`**
+- [x] **Step 1: Write failing test in `web/src/features/events/EventCard.test.tsx`**
   - Test A: Renders `FORM OPEN` neon green badge with pulsing dot when event has a form and `formClosed` is false/undefined.
   - Test B: Renders `FORM CLOSED` neon red badge with pulsing dot when `formClosed` is true.
   - Test C: Does not render form badges when event has no form link.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
   Run: `npm test -w web -- src/features/events/EventCard.test.tsx`
   Expected: FAIL
 
-- [ ] **Step 3: Implement status badge in `web/src/features/events/EventCard.tsx`**
+- [x] **Step 3: Implement status badge in `web/src/features/events/EventCard.tsx`**
   Next to the `FORM ↗` link button:
   - If `event.formClosed`:
     ```tsx
@@ -153,14 +153,14 @@
     </span>
     ```
 
-- [ ] **Step 4: Update `useEventAutoSync.ts`**
+- [x] **Step 4: Update `useEventAutoSync.ts`**
   Ensure interval runs every 10 minutes and refetches `['events']` when changes occur.
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
   Run: `npm test -w web -- src/features/events/EventCard.test.tsx src/lib/useEventAutoSync.test.tsx`
   Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   ```bash
   git add web/src/features/events/EventCard.tsx web/src/lib/useEventAutoSync.ts web/src/features/events/EventCard.test.tsx web/src/lib/useEventAutoSync.test.tsx
   git commit -m "feat(web): render retro neon FORM OPEN and FORM CLOSED status badges on EventCard"
