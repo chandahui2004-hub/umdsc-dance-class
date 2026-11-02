@@ -239,6 +239,22 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
   const effectiveCurrentTime = isVideoOnly ? videoPlaybackState.currentTime : currentTime;
   const effectiveDuration = isVideoOnly ? videoPlaybackState.duration : duration;
 
+  const handlePlay = () => {
+    if (isVideoOnly && activeVideoRef.current) {
+      activeVideoRef.current.play().catch(() => {});
+    } else {
+      onPlay();
+    }
+  };
+
+  const handlePause = () => {
+    if (isVideoOnly && activeVideoRef.current) {
+      activeVideoRef.current.pause();
+    } else {
+      onPause();
+    }
+  };
+
   // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -270,22 +286,6 @@ export const FullscreenStudio: React.FC<FullscreenStudioProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showLoopsPanel, effectiveIsPlaying, onExitFullscreen, onSetInPoint, onSetOutPoint, onToggleLoop]);
-
-  const handlePlay = () => {
-    if (isVideoOnly && activeVideoRef.current) {
-      activeVideoRef.current.play().catch(() => {});
-    } else {
-      onPlay();
-    }
-  };
-
-  const handlePause = () => {
-    if (isVideoOnly && activeVideoRef.current) {
-      activeVideoRef.current.pause();
-    } else {
-      onPause();
-    }
-  };
 
   const handleSeek = (time: number) => {
     if (isVideoOnly && activeVideoRef.current) {

@@ -510,33 +510,75 @@ export function importEventMembers(
     ctx.cache.remove('mi:' + stale.id);
   }
 
-  // MemberIndex: one write for every dancer in this form
+  // MemberIndex: one write for every dancer in this form, keyed by matricKey
   const existingMembers = ctx.db.memberIndex.find(m => m.active);
-  ctx.db.memberIndex.upsertMany(
-    'id',
-    members.map(m => {
-      const prev = existingMembers.find(em => em.matricKey === m.matricKey);
-      const targetId = m.memberId;
-      const eventIds = Array.from(new Set([...(prev ? prev.eventIds : []), event.id]));
-      const lastEventEnd = prev && prev.lastEventEnd > latest.endDate ? prev.lastEventEnd : latest.endDate;
-      const styleIds = [...m.styleIds];
-      const prevStyles = prev?.eventStyles?.[event.id];
-      if (
-        !prev ||
-        !prev.eventIds.includes(event.id) ||
-        prev.fullName !== m.fullName ||
-        !prevStyles ||
-        prevStyles.join(',') !== styleIds.join(',')
-      ) {
-        ctx.cache.remove('mi:' + m.matricKey);
-        ctx.cache.remove('mi:' + targetId);
+  const now = ctx.now();
+
+  // Deduplicate any pre-existing duplicate active rows for the same matricKey
+  const existingByMatric = new Map<string, typeof existingMembers>();
+  for (const em of existingMembers) {
+    const list = existingByMatric.get(em.matricKey) || [];
+    list.push(em);
+    existingByMatric.set(em.matricKey, list);
+  }
+
+  const rowsToUpsert = members.map(m => {
+    const matching = existingByMatric.get(m.matricKey) || [];
+    const prev = matching[0];
+
+    // Combine eventIds and eventStyles across all duplicate rows if any
+    const allPrevEventIds = matching.flatMap(em => em.eventIds || []);
+    const eventIds = Array.from(new Set([...allPrevEventIds, event.id]));
+
+    const mergedEventStyles: Record<string, string[]> = {};
+    for (const em of matching) {
+      if (em.eventStyles) {
+        for (const [eId, sIds] of Object.entries(em.eventStyles)) {
+          mergedEventStyles[eId] = Array.isArray(sIds) ? sIds : [];
+        }
       }
-      const eventStyles = { ...(prev?.eventStyles || {}), [event.id]: styleIds };
-      return { id: targetId, matricKey: m.matricKey, nameKey: m.nameKey, fullName: m.fullName, eventIds, lastEventEnd, eventStyles };
-    }),
-    'sync',
-    ctx.now()
-  );
+    }
+    mergedEventStyles[event.id] = [...m.styleIds];
+
+    // Deactivate excess duplicate rows in the database
+    if (matching.length > 1) {
+      for (let i = 1; i < matching.length; i++) {
+        const extra = matching[i];
+        ctx.db.memberIndex.deactivate(extra.id, extra.version, 'sync-dedup', now);
+        ctx.cache.remove('mi:' + extra.matricKey);
+        ctx.cache.remove('mi:' + extra.id);
+      }
+    }
+
+    const targetId = prev ? prev.id : m.memberId;
+    const maxPrevEnd = matching.reduce((max, em) => (em.lastEventEnd && em.lastEventEnd > max ? em.lastEventEnd : max), '');
+    const lastEventEnd = maxPrevEnd > latest.endDate ? maxPrevEnd : latest.endDate;
+    const styleIds = [...m.styleIds];
+    const prevStyles = prev?.eventStyles?.[event.id];
+
+    if (
+      !prev ||
+      !prev.eventIds.includes(event.id) ||
+      prev.fullName !== m.fullName ||
+      !prevStyles ||
+      prevStyles.join(',') !== styleIds.join(',')
+    ) {
+      ctx.cache.remove('mi:' + m.matricKey);
+      ctx.cache.remove('mi:' + targetId);
+    }
+
+    return {
+      id: targetId,
+      matricKey: m.matricKey,
+      nameKey: m.nameKey,
+      fullName: m.fullName,
+      eventIds,
+      lastEventEnd,
+      eventStyles: mergedEventStyles
+    };
+  });
+
+  ctx.db.memberIndex.upsertMany('matricKey', rowsToUpsert, 'sync', now);
 
   const activeBody = body.filter(r => r[col('memberId')] && !String(r[col('flags')] || '').split(',').includes(REMOVED_FLAG));
   const memberCount = activeBody.length + added.length;

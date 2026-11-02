@@ -84,7 +84,7 @@ export function peekAdminBootstrap(
 }
 
 /** The dancer's MemberIndex row, from the 10-minute cache when present. */
-function loadDancerIndex(ctx: Ctx, matricKey: string): any {
+export function loadDancerIndex(ctx: Ctx, matricKey: string): any {
   const miKey = 'mi:' + matricKey;
   const miCached = ctx.cache.get(miKey);
   if (miCached) {
@@ -95,12 +95,58 @@ function loadDancerIndex(ctx: Ctx, matricKey: string): any {
     }
   }
 
-  const dancer = ctx.db.memberIndex.find(
+  const matches = ctx.db.memberIndex.find(
     m => (m.id === matricKey || m.id === 'M-' + matricKey || m.matricKey === matricKey) && m.active
-  )[0];
-  if (!dancer) {
+  );
+  if (matches.length === 0) {
     throw new AppError('NOT_FOUND', 'Dancer record not found');
   }
+
+  let dancer = matches[0];
+
+  // If multiple active rows exist for the same dancer, consolidate them
+  if (matches.length > 1) {
+    const allEventIds = Array.from(new Set(matches.flatMap(m => m.eventIds || [])));
+    const mergedEventStyles: Record<string, string[]> = {};
+    for (const m of matches) {
+      if (m.eventStyles) {
+        for (const [eId, sIds] of Object.entries(m.eventStyles)) {
+          mergedEventStyles[eId] = Array.isArray(sIds) ? sIds : [];
+        }
+      }
+    }
+    const maxEnd = matches.reduce((max, m) => (m.lastEventEnd && m.lastEventEnd > max ? m.lastEventEnd : max), '');
+    const primary = matches.find(m => m.id === 'M-' + matricKey) || matches[0];
+    const now = ctx.now();
+
+    for (const extra of matches) {
+      if (extra.id !== primary.id) {
+        try {
+          ctx.db.memberIndex.deactivate(extra.id, extra.version, 'dedup', now);
+          ctx.cache.remove('mi:' + extra.id);
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    try {
+      dancer = ctx.db.memberIndex.update(
+        primary.id,
+        primary.version,
+        {
+          eventIds: allEventIds,
+          eventStyles: mergedEventStyles,
+          lastEventEnd: maxEnd || primary.lastEventEnd
+        } as any,
+        'dedup',
+        now
+      );
+    } catch {
+      dancer = { ...primary, eventIds: allEventIds, eventStyles: mergedEventStyles };
+    }
+  }
+
   safeCachePut(ctx.cache, miKey, JSON.stringify(dancer), 60);
   return dancer;
 }
@@ -113,9 +159,48 @@ export function resolveDancerEventStyles(
   perms: PermMap,
   timer?: Timer
 ): { dancerEvents: EventItem[]; eventStylesMap: Map<string, Set<string>> } {
-  const dancerEventIds: string[] = dancer.eventIds || [];
-  const dancerEvents = ctx.db.events.find(e => e.active && dancerEventIds.includes(e.id));
+  let dancerEventIds: string[] = Array.isArray(dancer.eventIds) ? [...dancer.eventIds] : [];
+  let dancerEvents = ctx.db.events.find(e => e.active && dancerEventIds.includes(e.id));
   timer?.mark('events');
+
+  // Self-healing: if an active event has this dancer enrolled in its Members sheet but is missing from memberIndex, discover it
+  const activeEvents = ctx.db.events.find(e => e.active && e.status !== 'archived');
+  let healed = false;
+  for (const event of activeEvents) {
+    if (!dancerEventIds.includes(event.id)) {
+      try {
+        const stylesInEvent = dancerStylesInEvent(ctx, event, matricKey);
+        if (stylesInEvent.length > 0) {
+          dancerEventIds.push(event.id);
+          dancerEvents.push(event);
+          if (!dancer.eventStyles) dancer.eventStyles = {};
+          dancer.eventStyles[event.id] = stylesInEvent;
+          healed = true;
+        }
+      } catch {
+        // ignore unreadable sheets
+      }
+    }
+  }
+
+  if (healed) {
+    dancer.eventIds = dancerEventIds;
+    try {
+      const freshMi = ctx.db.memberIndex.get(dancer.id);
+      if (freshMi) {
+        ctx.db.memberIndex.update(
+          dancer.id,
+          freshMi.version,
+          { eventIds: dancerEventIds, eventStyles: dancer.eventStyles } as any,
+          'self-heal',
+          ctx.now()
+        );
+        ctx.cache.remove('mi:' + matricKey);
+      }
+    } catch {
+      // ignore
+    }
+  }
 
   const eventStylesMap = new Map<string, Set<string>>();
   const calPerm = perms['calendar.view'];

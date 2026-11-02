@@ -6,7 +6,7 @@ import { loginDirectory } from './adminAccounts';
 import { signToken } from '../security/tokens';
 import { resolvePermissions } from '../logic/permissions';
 import { TokenClaims, PermissionCode, DancerBootstrap } from '@umdsc/shared';
-import { peekAdminBootstrap, peekDancerBootstrap, getWalkInBootstrap } from './bootstrap';
+import { peekAdminBootstrap, peekDancerBootstrap, getWalkInBootstrap, loadDancerIndex } from './bootstrap';
 import { ensureEventSheets } from './eventSheets';
 import { createTimer, logTimings } from '../logic/timing';
 
@@ -93,8 +93,10 @@ export function getAuthRoutes(): Record<string, Route> {
 
         const matricKey = normalizeMatric(matric);
 
-        const dancer = ctx.db.memberIndex.find(m => m.matricKey === matricKey && m.active)[0];
-        if (!dancer) {
+        let dancer: any;
+        try {
+          dancer = loadDancerIndex(ctx, matricKey);
+        } catch {
           throw new AppError(
             'NOT_REGISTERED',
             "Matric number and name don't match a registered dancer. Type your full name as on the registration form."

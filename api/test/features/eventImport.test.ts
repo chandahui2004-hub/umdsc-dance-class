@@ -479,5 +479,31 @@ describe('importEventMembers', () => {
     expect(members.find(m => m.fullName === 'testing1')?.matricKey).toBe('TEST9003');
     expect(members.find(m => m.fullName === 'testing2')?.matricKey).toBe('TEST9004');
   });
+
+  it('sync updates existing memberIndex row keyed by matricKey without creating duplicate rows when existing row has mi_ id', () => {
+    // Existing row with auto-generated id mi_legacy_123
+    ctx.db.memberIndex.insert(
+      {
+        id: 'mi_legacy_123',
+        matricKey: '22001111',
+        nameKey: 'ali',
+        fullName: 'Ali',
+        eventIds: ['evt_old'],
+        eventStyles: { evt_old: ['st_popping'] },
+        lastEventEnd: '2026-10-31',
+        active: true
+      } as any,
+      'test',
+      ctx.now()
+    );
+
+    const { event } = makeEvent([row('Ali', '22001111', 'Popping')]);
+    importEventMembers(ctx, event, { full: true });
+
+    const activeRows = ctx.db.memberIndex.find(m => m.matricKey === '22001111' && m.active);
+    expect(activeRows).toHaveLength(1);
+    expect(activeRows[0].eventIds).toContain('evt_old');
+    expect(activeRows[0].eventIds).toContain(event.id);
+  });
 });
 

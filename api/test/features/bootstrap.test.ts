@@ -481,5 +481,89 @@ describe('Feature: Bootstrap with Caching (features/bootstrap)', () => {
     expect(b2.sessions[0].date).toBe('2026-10-20');
     expect(b2.sessions[0].venue).toBe('Studio New');
   });
+
+  it('consolidates multiple memberIndex rows for the same dancer and returns all events', () => {
+    const event2 = seedEvent(ctx, { name: 'NOV MONTHLY CLASS', styleIds: ['st_popping'], members: [POPPER] });
+
+    // Simulate duplicate rows in memberIndex for 22001111
+    // Clear existing index for 22001111
+    for (const r of ctx.db.memberIndex.find(m => m.matricKey === '22001111')) {
+      ctx.db.memberIndex.deactivate(r.id, r.version, 'test', ctx.now());
+    }
+
+    // Row 1: id mi_row1 with only event 1
+    ctx.db.memberIndex.insert(
+      {
+        id: 'mi_row1',
+        matricKey: '22001111',
+        nameKey: 'popper ali',
+        fullName: 'Popper Ali',
+        eventIds: [event.id],
+        eventStyles: { [event.id]: ['st_popping'] },
+        lastEventEnd: '2026-10-31',
+        active: true
+      } as any,
+      'test',
+      ctx.now()
+    );
+
+    // Row 2: id M-22001111 with only event 2
+    ctx.db.memberIndex.insert(
+      {
+        id: 'M-22001111',
+        matricKey: '22001111',
+        nameKey: 'popper ali',
+        fullName: 'Popper Ali',
+        eventIds: [event2.id],
+        eventStyles: { [event2.id]: ['st_popping'] },
+        lastEventEnd: '2026-11-30',
+        active: true
+      } as any,
+      'test',
+      ctx.now()
+    );
+
+    ctx.cache.remove('mi:22001111');
+    ctx.cache.remove('boot:dancer:22001111:1');
+
+    const res = handleRequest({ action: 'dancer.bootstrap', token: dancerToken }, ctx, secrets);
+    expect(res.ok).toBe(true);
+    const data = (res as any).data;
+
+    // Must return BOTH events
+    const eventIds = data.events.map((e: any) => e.id);
+    expect(eventIds).toContain(event.id);
+    expect(eventIds).toContain(event2.id);
+
+    // Member index should be consolidated to 1 active row with unioned events
+    const activeRows = ctx.db.memberIndex.find(m => m.matricKey === '22001111' && m.active);
+    expect(activeRows.length).toBe(1);
+    expect(activeRows[0].eventIds).toContain(event.id);
+    expect(activeRows[0].eventIds).toContain(event2.id);
+  });
+
+  it('self-heals missing event when dancer is enrolled in event Members sheet but event is missing from memberIndex.eventIds', () => {
+    // Event 3 has Popper Ali in Members sheet
+    const event3 = seedEvent(ctx, { name: 'DEC MONTHLY CLASS', styleIds: ['st_popping'], members: [POPPER] });
+
+    // Ensure memberIndex only has event.id, NOT event3.id
+    const mi = ctx.db.memberIndex.find(m => m.matricKey === '22001111' && m.active)[0];
+    ctx.db.memberIndex.update(mi.id, mi.version, { eventIds: [event.id], eventStyles: { [event.id]: ['st_popping'] } } as any, 'test', ctx.now());
+    ctx.cache.remove('mi:22001111');
+    ctx.cache.remove('boot:dancer:22001111:1');
+
+    const res = handleRequest({ action: 'dancer.bootstrap', token: dancerToken }, ctx, secrets);
+    expect(res.ok).toBe(true);
+    const data = (res as any).data;
+
+    // Event 3 should be discovered and returned
+    const eventIds = data.events.map((e: any) => e.id);
+    expect(eventIds).toContain(event.id);
+    expect(eventIds).toContain(event3.id);
+
+    // Member index should be healed with event 3 persisted
+    const updatedMi = ctx.db.memberIndex.get(mi.id)!;
+    expect(updatedMi.eventIds).toContain(event3.id);
+  });
 });
 

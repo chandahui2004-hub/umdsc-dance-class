@@ -1,8 +1,9 @@
 import { Ctx } from '../ports';
 import { withScriptLock } from '../db/lock';
+import { dancerStylesInEvent, readEventMembers } from './eventMembers';
 
-const PROP_KEY = 'DANCER_ISOLATION_V2';
-const CACHE_KEY = 'mig:di2';
+const PROP_KEY = 'DANCER_ISOLATION_V4';
+const CACHE_KEY = 'mig:di4';
 const CACHE_TTL_SEC = 6 * 3600;
 const ACTOR = 'migration';
 
@@ -10,8 +11,8 @@ const ACTOR = 'migration';
  * Ensures strict dancer isolation for Chan Da Hui and test dancers:
  * 1. Testing1 is remapped to TEST9001.
  * 2. Testing2 is remapped to TEST9002.
- * 3. Matric 23005147 belongs exclusively to Chan Da Hui.
- * 4. Stale cache and index entries are purged.
+ * 3. Matric 23005147 belongs exclusively to Chan Da Hui with all active events consolidated.
+ * 4. Stale duplicate rows and cache entries are purged.
  */
 export function ensureDancerIsolation(ctx: Ctx): boolean {
   if (ctx.cache.get(CACHE_KEY)) return false;
@@ -33,8 +34,9 @@ export function ensureDancerIsolation(ctx: Ctx): boolean {
     const test2OnConflict = allMembers.find(
       m => (/^testing\s*2$/i.test(m.fullName) || m.nameKey === 'testing2') && m.matricKey !== 'TEST9002'
     );
-    const huiRow = allMembers.find(m => m.matricKey === '23005147');
-    const huiNeedsFix = huiRow && huiRow.fullName.toLowerCase() !== 'chan da hui';
+    const huiRows = allMembers.filter(m => m.matricKey === '23005147');
+    const huiRow = huiRows[0];
+    const huiNeedsFix = (huiRows.length > 1) || (huiRow && huiRow.fullName.toLowerCase() !== 'chan da hui');
     const huiMissing = test1OnConflict && !huiRow;
 
     if (!test1OnConflict && !test2OnConflict && !huiNeedsFix && !huiMissing) {
@@ -47,25 +49,83 @@ export function ensureDancerIsolation(ctx: Ctx): boolean {
     let wrote = false;
 
     // Track active event IDs and styles
-    const activeEvents = ctx.db.events.find(e => e.active).map(e => e.id);
+    const activeEventsList = ctx.db.events.find(e => e.active && e.status !== 'archived');
+    const activeEvents = activeEventsList.map(e => e.id);
     const defaultEvents = activeEvents.length > 0 ? activeEvents : ['evt_VbUwUkf6G0', 'evt_HChF4kalQF'];
-    const inheritedEvents = (huiRow?.eventIds && huiRow.eventIds.length > 0)
-      ? huiRow.eventIds
-      : (test1OnConflict?.eventIds && test1OnConflict.eventIds.length > 0 ? test1OnConflict.eventIds : defaultEvents);
-    const inheritedStyles = huiRow?.eventStyles || test1OnConflict?.eventStyles || {};
 
-    // 1. Ensure Chan Da Hui owns matric 23005147
-    if (huiRow) {
-      if (huiRow.fullName.toLowerCase() !== 'chan da hui') {
-        ctx.db.memberIndex.update(
-          huiRow.id,
-          huiRow.version,
-          { fullName: 'Chan Da Hui', nameKey: 'chandahui', active: true },
-          ACTOR,
-          now
-        );
+    // Collect all event IDs and styles across all rows for 23005147
+    const huiEventIds = new Set<string>();
+    for (const r of huiRows) {
+      for (const eId of (r.eventIds || [])) huiEventIds.add(eId);
+    }
+    if (huiEventIds.size === 0) {
+      for (const eId of (test1OnConflict?.eventIds || defaultEvents)) huiEventIds.add(eId);
+    }
+
+    const huiStyles: Record<string, string[]> = {};
+    for (const r of huiRows) {
+      if (r.eventStyles) {
+        for (const [eId, sIds] of Object.entries(r.eventStyles)) {
+          huiStyles[eId] = Array.isArray(sIds) ? sIds : [];
+        }
+      }
+    }
+    if (test1OnConflict?.eventStyles) {
+      for (const [eId, sIds] of Object.entries(test1OnConflict.eventStyles)) {
+        if (!huiStyles[eId]) huiStyles[eId] = Array.isArray(sIds) ? sIds : [];
+      }
+    }
+
+    // Discover any active event where Chan Da Hui is enrolled in Members sheet
+    for (const ev of activeEventsList) {
+      if (!huiEventIds.has(ev.id)) {
+        try {
+          const styles = dancerStylesInEvent(ctx, ev, '23005147');
+          if (styles.length > 0) {
+            huiEventIds.add(ev.id);
+            huiStyles[ev.id] = styles;
+          } else {
+            const mList = readEventMembers(ctx, ev);
+            const found = mList.find(m => m.matricKey === '23005147' || (m.fullName && m.fullName.toUpperCase().includes('CHAN DA HUI')));
+            if (found) {
+              huiEventIds.add(ev.id);
+              huiStyles[ev.id] = found.styleIds && found.styleIds.length > 0 ? found.styleIds : ev.styleIds;
+            }
+          }
+        } catch {
+          // ignore unreadable sheets
+        }
+      }
+    }
+
+    const finalHuiEvents = Array.from(huiEventIds);
+    const primaryHui = huiRows.find(m => m.id === 'M-23005147') || huiRows[0];
+
+    // Deactivate excess duplicate rows for 23005147
+    for (const extra of huiRows) {
+      if (primaryHui && extra.id !== primaryHui.id) {
+        ctx.db.memberIndex.deactivate(extra.id, extra.version, ACTOR, now);
+        ctx.cache.remove('mi:' + extra.id);
         wrote = true;
       }
+    }
+
+    // 1. Ensure Chan Da Hui owns matric 23005147
+    if (primaryHui) {
+      ctx.db.memberIndex.update(
+        primaryHui.id,
+        primaryHui.version,
+        {
+          fullName: 'Chan Da Hui',
+          nameKey: 'chandahui',
+          eventIds: finalHuiEvents,
+          eventStyles: huiStyles,
+          active: true
+        } as any,
+        ACTOR,
+        now
+      );
+      wrote = true;
     } else {
       ctx.db.memberIndex.insert(
         {
@@ -73,8 +133,8 @@ export function ensureDancerIsolation(ctx: Ctx): boolean {
           matricKey: '23005147',
           nameKey: 'chandahui',
           fullName: 'Chan Da Hui',
-          eventIds: inheritedEvents,
-          eventStyles: inheritedStyles,
+          eventIds: finalHuiEvents,
+          eventStyles: huiStyles,
           lastEventEnd: '2026-11-06',
           active: true
         } as any,
@@ -93,8 +153,8 @@ export function ensureDancerIsolation(ctx: Ctx): boolean {
           matricKey: 'TEST9001',
           nameKey: 'testing1',
           fullName: 'TESTING1',
-          eventIds: inheritedEvents,
-          eventStyles: inheritedStyles,
+          eventIds: finalHuiEvents,
+          eventStyles: huiStyles,
           lastEventEnd: '2026-11-06',
           active: true
         } as any,
@@ -116,8 +176,8 @@ export function ensureDancerIsolation(ctx: Ctx): boolean {
           matricKey: 'TEST9002',
           nameKey: 'testing2',
           fullName: 'TESTING2',
-          eventIds: inheritedEvents,
-          eventStyles: inheritedStyles,
+          eventIds: finalHuiEvents,
+          eventStyles: huiStyles,
           lastEventEnd: '2026-11-06',
           active: true
         } as any,
