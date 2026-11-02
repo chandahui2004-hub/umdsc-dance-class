@@ -48,6 +48,18 @@ describe('useEventAutoSync', () => {
     expect(vi.mocked(call)).toHaveBeenCalledTimes(1);
   });
 
+  it('triggers a check when visibility transitions to visible', async () => {
+    setVisibility('hidden');
+    renderHook(() => useEventAutoSync(), { wrapper });
+    await vi.advanceTimersByTimeAsync(4_000);
+    expect(vi.mocked(call)).toHaveBeenCalledTimes(0);
+
+    setVisibility('visible');
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(vi.mocked(call)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(call)).toHaveBeenCalledWith('events.autoSync', {});
+  });
+
   it('refreshes data only when an event changed', async () => {
     const spy = vi.spyOn(client, 'invalidateQueries');
     renderHook(() => useEventAutoSync(), { wrapper });

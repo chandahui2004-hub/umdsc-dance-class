@@ -199,15 +199,36 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
                 <span>RESPONSE SHEET ↗</span>
               </a>
               {Boolean(event.formUrl || event.formId) && (
-                <a
-                  href={event.formUrl || (event.formId ? `https://docs.google.com/forms/d/${event.formId}/edit` : '#')}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 min-h-[36px] bg-[var(--night-1)] text-[var(--neon-gold)] border-2 border-[var(--outline)] hover:border-[var(--neon-gold)] font-display text-[11px] font-bold shadow-[1px_1px_0_var(--outline)]"
-                >
-                  <span>📝</span>
-                  <span>GOOGLE FORM ↗</span>
-                </a>
+                <>
+                  <a
+                    href={event.formUrl || (event.formId ? `https://docs.google.com/forms/d/${event.formId}/edit` : '#')}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 min-h-[36px] bg-[var(--night-1)] text-[var(--neon-gold)] border-2 border-[var(--outline)] hover:border-[var(--neon-gold)] font-display text-[11px] font-bold shadow-[1px_1px_0_var(--outline)]"
+                  >
+                    <span>📝</span>
+                    <span>GOOGLE FORM ↗</span>
+                  </a>
+                  {event.formClosed ? (
+                    <span
+                      data-testid={`form-status-${event.id}`}
+                      className="px-2 py-0.5 border-2 border-[var(--outline)] bg-[var(--night-3)] font-display text-[12px] text-[var(--neon-red)] font-bold shadow-[1px_1px_0_var(--outline)] flex items-center gap-1.5"
+                      title="Google Form is currently closed for registration"
+                    >
+                      <span className="inline-block w-2 h-2 rounded-full bg-[var(--neon-red)] animate-pulse" />
+                      <span>FORM CLOSED</span>
+                    </span>
+                  ) : (
+                    <span
+                      data-testid={`form-status-${event.id}`}
+                      className="px-2 py-0.5 border-2 border-[var(--outline)] bg-[var(--night-3)] font-display text-[12px] text-[#4ade80] font-bold shadow-[1px_1px_0_var(--outline)] flex items-center gap-1.5"
+                      title="Google Form is currently accepting registrations"
+                    >
+                      <span className="inline-block w-2 h-2 rounded-full bg-[#4ade80] animate-pulse" />
+                      <span>FORM OPEN</span>
+                    </span>
+                  )}
+                </>
               )}
             </>
           )}

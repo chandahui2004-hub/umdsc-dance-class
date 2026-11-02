@@ -40,10 +40,19 @@ export function useEventAutoSync(): void {
 
     const first = setTimeout(check, FIRST_CHECK_MS);
     const every = setInterval(check, INTERVAL_MS);
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        check();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
     return () => {
       cancelled = true;
       clearTimeout(first);
       clearInterval(every);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [queryClient]);
 }

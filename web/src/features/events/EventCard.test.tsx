@@ -121,3 +121,80 @@ describe('EventCard Unified Sync Now', () => {
     });
   });
 });
+
+describe('EventCard Google Form status badging', () => {
+  beforeEach(() => {
+    session.set('tok-admin', {
+      sub: 'admin',
+      role: 'admin',
+      name: 'Admin',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      pv: 1,
+      perms: { 'calendar.view': '*', 'sessions.edit': '*', 'members.import': '*', 'attendance.view.all': '*' }
+    });
+    vi.clearAllMocks();
+  });
+
+  it('renders FORM OPEN neon green badge with pulsing dot when event has a form and formClosed is false or undefined', () => {
+    // 1. undefined formClosed
+    const eventWithFormOpenUndefined: EventListItem = {
+      ...dummyEvent,
+      id: 'ev-open-1',
+      formUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSc_xxx/viewform'
+    };
+    const { unmount } = renderWithClient(<EventCard event={eventWithFormOpenUndefined} styles={dummyStyles} />);
+
+    const badge1 = screen.getByTestId('form-status-ev-open-1');
+    expect(badge1).toBeInTheDocument();
+    expect(badge1).toHaveTextContent('FORM OPEN');
+    expect(badge1.className).toContain('text-[#4ade80]');
+    expect(badge1.querySelector('.animate-pulse')).toBeInTheDocument();
+
+    unmount();
+
+    // 2. explicitly false formClosed
+    const eventWithFormOpenFalse: EventListItem = {
+      ...dummyEvent,
+      id: 'ev-open-2',
+      formUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSc_xxx/viewform',
+      formClosed: false
+    };
+    renderWithClient(<EventCard event={eventWithFormOpenFalse} styles={dummyStyles} />);
+
+    const badge2 = screen.getByTestId('form-status-ev-open-2');
+    expect(badge2).toBeInTheDocument();
+    expect(badge2).toHaveTextContent('FORM OPEN');
+    expect(badge2.className).toContain('text-[#4ade80]');
+    expect(badge2.querySelector('.animate-pulse')).toBeInTheDocument();
+  });
+
+  it('renders FORM CLOSED neon red badge with pulsing dot when formClosed is true', () => {
+    const eventWithFormClosed: EventListItem = {
+      ...dummyEvent,
+      id: 'ev-closed',
+      formUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSc_xxx/viewform',
+      formClosed: true
+    };
+    renderWithClient(<EventCard event={eventWithFormClosed} styles={dummyStyles} />);
+
+    const badge = screen.getByTestId('form-status-ev-closed');
+    expect(badge).toBeInTheDocument();
+    expect(badge).toHaveTextContent('FORM CLOSED');
+    expect(badge.className).toContain('text-[var(--neon-red)]');
+    expect(badge.querySelector('.animate-pulse')).toBeInTheDocument();
+  });
+
+  it('does not render form badges when event has no form link', () => {
+    const eventWithoutForm: EventListItem = {
+      ...dummyEvent,
+      id: 'ev-no-form',
+      formUrl: undefined,
+      formId: undefined
+    };
+    renderWithClient(<EventCard event={eventWithoutForm} styles={dummyStyles} />);
+
+    expect(screen.queryByTestId('form-status-ev-no-form')).not.toBeInTheDocument();
+    expect(screen.queryByText(/FORM OPEN/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/FORM CLOSED/i)).not.toBeInTheDocument();
+  });
+});
