@@ -537,10 +537,22 @@ export function syncGoogleFormSlotChoices(
       helpTextToSet = cleanHelp ? `${cleanHelp}\n\n${helpNotice}` : helpNotice;
     }
 
-    try {
-      form.setChoices(validStyleQuestion.id, remainingChoices, helpTextToSet);
-    } catch (err) {
-      console.warn(`[syncGoogleFormSlotChoices] Failed to update choices on form ${form.getId()}:`, err);
+    // Idempotency check: only mutate the live Google Form if choices or help text actually changed.
+    // Repeated mutations to an active form can break or reject submissions by users currently filling it in.
+    const currentChoices = validStyleQuestion.choices || [];
+    const currentHelp = (validStyleQuestion.helpText || '').trim();
+    const targetHelp = (helpTextToSet || '').trim();
+    const choicesMatch =
+      currentChoices.length === remainingChoices.length &&
+      currentChoices.every((c, i) => c === remainingChoices[i]);
+    const helpMatch = currentHelp === targetHelp;
+
+    if (!choicesMatch || !helpMatch) {
+      try {
+        form.setChoices(validStyleQuestion.id, remainingChoices, helpTextToSet);
+      } catch (err) {
+        console.warn(`[syncGoogleFormSlotChoices] Failed to update choices on form ${form.getId()}:`, err);
+      }
     }
   }
 
@@ -557,6 +569,123 @@ export function syncGoogleFormSlotChoices(
   };
 }
 
+/**
+ * Pure read-only status check for events.autoSync:
+ * Checks whether the form is accepting responses without ever mutating choices or questions on the live form.
+ */
 export function checkEventFormStatus(ctx: Ctx, event: EventItem): FormGatingResult {
-  return syncGoogleFormSlotChoices(ctx, event);
+  if (!ctx.form) {
+    return {
+      synced: false,
+      formClosed: Boolean(event.formClosed),
+      formClosedReason: event.formClosedReason || 'none',
+      fullStyleIds: [],
+      availableStyleIds: []
+    };
+  }
+
+  const rawForm = event.formId || event.formUrl || (event.sourceSheetId ? ctx.form.getFormUrl(event.sourceSheetId) : null);
+  const formTarget = extractGoogleFormId(rawForm) || (rawForm && !isResponderFormLink(rawForm) ? rawForm : null);
+  if (!formTarget) {
+    return {
+      synced: false,
+      formClosed: Boolean(event.formClosed),
+      formClosedReason: event.formClosedReason || 'none',
+      fullStyleIds: [],
+      availableStyleIds: []
+    };
+  }
+
+  let form: FormInstancePort | null = null;
+  try {
+    form = ctx.form.openForm(formTarget);
+  } catch (err) {
+    console.warn(`[checkEventFormStatus] Failed to open form ${formTarget}:`, err);
+    return {
+      synced: false,
+      formClosed: Boolean(event.formClosed),
+      formClosedReason: event.formClosedReason || 'none',
+      fullStyleIds: [],
+      availableStyleIds: []
+    };
+  }
+
+  if (!form) {
+    return {
+      synced: false,
+      formClosed: Boolean(event.formClosed),
+      formClosedReason: event.formClosedReason || 'none',
+      fullStyleIds: [],
+      availableStyleIds: []
+    };
+  }
+
+  let isCurrentlyAccepting = true;
+  let currentClosedMsg = '';
+  try {
+    isCurrentlyAccepting = form.isAcceptingResponses();
+    currentClosedMsg = form.getCustomClosedFormMessage() || '';
+  } catch (err) {
+    console.warn(`[checkEventFormStatus] Failed to check accepting state on form ${form.getId()}:`, err);
+    return {
+      synced: false,
+      formClosed: Boolean(event.formClosed),
+      formClosedReason: event.formClosedReason || 'none',
+      fullStyleIds: [],
+      availableStyleIds: []
+    };
+  }
+
+  const overrideKey = `sync:adminOverride:${event.id}`;
+  let formClosed = false;
+  let formClosedReason: 'manual' | 'capacity' | 'none' = 'none';
+
+  if (!isCurrentlyAccepting) {
+    formClosed = true;
+    formClosedReason = currentClosedMsg === FULL_HOUSE_CLOSED_MESSAGE ? 'capacity' : 'manual';
+    ctx.props.set(overrideKey, '');
+    ctx.cache.remove(overrideKey);
+  } else {
+    formClosed = false;
+    formClosedReason = 'none';
+    if (event.formClosed) {
+      // Admin re-opened the form directly in Google Forms
+      ctx.props.set(overrideKey, '1');
+      ctx.cache.put(overrideKey, '1', 21600);
+    }
+  }
+
+  const prevClosed = Boolean(event.formClosed);
+  const prevReason = event.formClosedReason;
+  const statusChanged = prevClosed !== formClosed || prevReason !== formClosedReason;
+
+  if (statusChanged) {
+    const formClosedAt = formClosed ? (event.formClosedAt || ctx.now().toISOString()) : '';
+    try {
+      ctx.db.events.update(event.id, event.version, {
+        formClosed,
+        formClosedAt,
+        formClosedReason
+      }, 'form-sync', ctx.now(), { keepVersion: true });
+      const fresh = ctx.db.events.get(event.id);
+      if (fresh) {
+        event.version = fresh.version;
+        event.formClosed = fresh.formClosed;
+        event.formClosedAt = fresh.formClosedAt;
+        event.formClosedReason = fresh.formClosedReason;
+      }
+      logAudit(ctx, 'form-sync', 'events.formStatusChanged', event.id, JSON.stringify({ formClosed, formClosedReason }));
+    } catch (updateErr) {
+      console.warn(`[checkEventFormStatus] Failed to update event with form status:`, updateErr);
+    }
+  }
+
+  return {
+    synced: true,
+    formId: form.getId(),
+    formClosed,
+    formClosedReason,
+    fullStyleIds: [],
+    availableStyleIds: []
+  };
 }

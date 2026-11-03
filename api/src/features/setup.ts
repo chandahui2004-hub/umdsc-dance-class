@@ -371,7 +371,7 @@ export function getSetupRoutes(): Record<string, Route> {
         );
 
         const subject = `[TEST MODE] [UMDSC Alert] Slot Full: ${styleName} in ${eventName} (${enrolledCount}/${cap} Enrolled)`;
-        const body = `[TEST MODE NOTICE: Recipient override is active. Live notifications to all ${liveRecipients.length} admins/contacts (${liveRecipients.join(', ')}) were suppressed and routed only to ${to} for testing.]\n\nDear Admins and Class Lead,\n\nThis is an automated notification from the UMDSC Dance Class System.\n\nThe enrollment for ${styleName} in ${eventName} has reached or exceeded its target slot capacity:\n- Style: ${styleName}\n- Event: ${eventName}\n- Enrolled Dancers: ${enrolledCount}\n- Slot Capacity: ${cap}\n\nPlease note: The system and Google Form will still continue to accept additional member registrations unless you choose to close the form. This email is sent as an alert for your awareness.\n\nKeep dancing!\nUniversiti Malaya Dance Sport Club (UMDSC)`;
+        const body = `[TEST MODE NOTICE: Recipient override is active. Live notifications to all ${liveRecipients.length} admins/contacts (${liveRecipients.join(', ')}) were suppressed and routed only to ${to} for testing.]\n\nDear Admins and Class Lead,\n\nThis is an automated notification from the UMDSC Dance Class System.\n\nThe enrollment for ${styleName} in ${eventName} has reached or exceeded its target slot capacity:\n- Style: ${styleName}\n- Event: ${eventName}\n- Enrolled Dancers: ${enrolledCount}\n- Slot Capacity: ${cap}\n\nPlease note: For multi-style events, full dance styles are automatically closed on the registration form to prevent over-registration, while remaining styles stay open. If all styles reach capacity, the form is closed. You can re-open the form or expand slot capacities at any time in the admin portal.\n\nKeep dancing!\nUniversiti Malaya Dance Sport Club (UMDSC)`;
         const htmlBody = `<div style="font-family: sans-serif; line-height: 1.6; color: #222;">
   <div style="background-color: #fef9c3; border-left: 4px solid #ca8a04; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #854d0e;">
     <strong>TEST MODE ACTIVE:</strong> Recipient override is active. Live notifications to all <strong>${liveRecipients.length}</strong> admins/contacts (<code>${liveRecipients.join(', ')}</code>) were suppressed and routed only to <strong>${to}</strong> for testing.
@@ -383,7 +383,7 @@ export function getSetupRoutes(): Record<string, Route> {
     <p style="margin: 4px 0;"><strong>Event:</strong> ${eventName}</p>
     <p style="margin: 4px 0;"><strong>Enrolled Count:</strong> <span style="color: #ef4444; font-weight: bold;">${enrolledCount}</span> / ${cap}</p>
   </div>
-  <p style="color: #4b5563;"><strong>Note:</strong> The system and Google Form will still continue to accept additional member registrations unless you choose to close the form. This notification is sent for your awareness.</p>
+  <p style="color: #4b5563;"><strong>Note:</strong> For multi-style events, full dance styles are automatically closed on the registration form to prevent over-registration, while remaining styles stay open. If all styles reach capacity, the form is closed. You can re-open the form or expand slot capacities at any time in the admin portal.</p>
   <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
   <p style="font-size: 12px; color: #888;">Universiti Malaya Dance Sport Club (UMDSC)</p>
 </div>`;

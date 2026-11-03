@@ -397,20 +397,6 @@ export function getEventRoutes(): Record<string, Route> {
           try {
             if (sourceUnchanged(ctx, event)) {
               ctx.cache.remove(pendingKey);
-              // Check if any unnotified style has reached slot capacity
-              const slotCap = event.styleSlots || (event.styleSlotsJson ? JSON.parse(event.styleSlotsJson) : {});
-              const hasUnnotifiedCaps = (event.styleIds || []).some(
-                sid => Number(slotCap[sid]) > 0 && !(event.notifiedFullStyles || []).includes(sid)
-              );
-              if (hasUnnotifiedCaps) {
-                withScriptLock(ctx.lock, () => {
-                  ctx.db.reload();
-                  const fresh = ctx.db.events.get(event.id);
-                  if (fresh && fresh.active && fresh.status === 'active') {
-                    checkAndNotifySlotCapacities(ctx, fresh);
-                  }
-                });
-              }
               result.checked.push(event.id);
               continue;
             }
