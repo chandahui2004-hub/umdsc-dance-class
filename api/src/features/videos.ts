@@ -110,27 +110,42 @@ export function getVideoRoutes(): Record<string, Route> {
     },
 
     'videos.targetFolder': {
-      perm: 'videos.upload',
+      perm: 'signedIn',
       write: false,
-      styleOf: (p: any, ctx) => sessionStyle(ctx, p?.sessionId),
+      styleOf: (p: any, ctx) => sessionStyle(ctx, p?.sessionId) || (p?.styleId ? String(p.styleId).trim() : undefined),
       handler: (ctx, auth, payload: any) => {
         const sessionId = String(payload?.sessionId || '').trim();
-        if (!sessionId) {
-          throw new AppError('VALIDATION', 'sessionId is required');
+        let targetStyleId: string;
+        let targetEventId: string;
+        let session: { date: string; seq: number; styleId: string; eventId: string } | undefined;
+
+        if (sessionId) {
+          const foundSession = ctx.db.sessions.find(s => s.id === sessionId && s.active)[0];
+          if (!foundSession) {
+            throw new AppError('NOT_FOUND', `Session not found: ${sessionId}`);
+          }
+          session = foundSession;
+          targetStyleId = foundSession.styleId;
+          targetEventId = foundSession.eventId;
+        } else {
+          targetEventId = String(payload?.eventId || '').trim();
+          targetStyleId = String(payload?.styleId || '').trim();
+          if (!targetEventId || !targetStyleId) {
+            throw new AppError('VALIDATION', 'sessionId or eventId + styleId is required');
+          }
         }
 
-        const session = ctx.db.sessions.find(s => s.id === sessionId && s.active)[0];
-        if (!session) {
-          throw new AppError('NOT_FOUND', `Session not found: ${sessionId}`);
+        if (
+          auth &&
+          !can(auth.claims.perms, 'videos.upload', targetStyleId) &&
+          !can(auth.claims.perms, 'music.edit', targetStyleId)
+        ) {
+          throw new AppError('FORBIDDEN', 'Permission denied for style: ' + targetStyleId);
         }
 
-        if (auth && !can(auth.claims.perms, 'videos.upload', session.styleId)) {
-          throw new AppError('FORBIDDEN', 'Permission denied for style: ' + session.styleId);
-        }
-
-        const style = ctx.db.styles.find(s => s.id === session.styleId && s.active)[0];
+        const style = ctx.db.styles.find(s => s.id === targetStyleId && s.active)[0];
         if (!style) {
-          throw new AppError('NOT_FOUND', `Style not found: ${session.styleId}`);
+          throw new AppError('NOT_FOUND', `Style not found: ${targetStyleId}`);
         }
 
         if (!style.videoFolderId) {
@@ -140,7 +155,7 @@ export function getVideoRoutes(): Record<string, Route> {
           );
         }
 
-        const event = getEvent(ctx, session.eventId);
+        const event = getEvent(ctx, targetEventId);
         const found = findStyleEventFolder(ctx, style.videoFolderId, event);
 
         return {
@@ -150,7 +165,7 @@ export function getVideoRoutes(): Record<string, Route> {
           // An older folder straight under the style folder: the website files it under the year
           eventFolderInYear: found?.inYear ?? false,
           eventFolderName: event.name,
-          classFolderName: `${session.date} ${style.name} Class ${session.seq}`,
+          classFolderName: session ? `${session.date} ${style.name} Class ${session.seq}` : '',
           musicFolderName: 'Music'
         };
       }

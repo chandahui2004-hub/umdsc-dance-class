@@ -72,8 +72,11 @@ describe('SourcePicker Link tab (YouTube or SoundCloud)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Use link' }));
   }
 
-  it('has a Link tab instead of a YouTube tab', () => {
+  it('shows Music Library as the first active tab and a Link tab instead of YouTube', () => {
     render(<SourcePicker {...props} />);
+    const libraryTab = screen.getByRole('button', { name: 'Music Library' });
+    expect(libraryTab).toBeInTheDocument();
+    expect(libraryTab).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Link' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'YouTube' })).toBeNull();
   });

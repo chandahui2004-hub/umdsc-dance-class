@@ -1,8 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-
 
 if (typeof window !== 'undefined') {
   window.PointerEvent = window.MouseEvent as any;
@@ -51,7 +50,6 @@ vi.mock('../auth/useBootstrap', () => ({
   })
 }));
 
-import { waitFor } from '@testing-library/react';
 import { api } from '../../lib/api';
 import { Studio } from './Studio';
 
@@ -73,16 +71,20 @@ describe('Studio guard against non-array live queries', () => {
       </QueryClientProvider>
     );
 
-    // Wait for the query to resolve with the non-array mock
+    // Wait for the queries to resolve with the non-array mock
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('music.list', {});
+      expect(api.post).toHaveBeenCalledWith('styles.list', {});
+      expect(api.post).toHaveBeenCalledWith('events.list', { includeArchived: true });
       expect(queryClient.getQueryData(['music'])).toEqual({});
+      expect(queryClient.getQueryData(['styles'])).toEqual({});
+      expect(queryClient.getQueryData(['events'])).toEqual({});
     });
 
-    // After live queries return non-arrays, Studio must still display the bootstrap song and not crash
+    // After live queries return non-arrays, Studio must still display the bootstrap song and metadata
     await waitFor(() => {
       expect(screen.getByText(/Hip Hop Routine Song/i)).toBeInTheDocument();
+      expect(screen.getAllByText('OCT').length).toBeGreaterThan(0);
     });
   });
 });
-

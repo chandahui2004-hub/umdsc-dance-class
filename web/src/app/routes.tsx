@@ -22,6 +22,7 @@ import { EventWizard } from '../features/events/EventWizard';
 import { DancerHome } from '../features/calendar/DancerHome';
 import { MePage } from '../features/me/MePage';
 import { StudioPage } from '../features/music-studio/StudioPage';
+import { MusicLibraryPage } from '../features/music-studio/MusicLibraryPage';
 import { useEventAutoSync } from '../lib/useEventAutoSync';
 import { session } from '../lib/session';
 import {
@@ -63,6 +64,7 @@ export const ADMIN_MORE_ITEMS: NavSubItem[] = [
 
 export const DANCER_TABS: TabDef[] = [
   { id: 'calendar', label: 'Home', icon: <CalendarIcon />, path: '/' },
+  { id: 'library', label: 'Library', icon: <MusicIcon />, path: '/library' },
   { id: 'studio', label: 'Studio', icon: <MusicIcon />, path: '/studio' },
   { id: 'me', label: 'Me', icon: <UserIcon />, path: '/me' }
 ];
@@ -71,6 +73,7 @@ export const ADMIN_TABS: TabDef[] = [
   { id: 'calendar', label: 'Calendar', icon: <CalendarIcon />, path: '/admin/calendar' },
   { id: 'attendance', label: 'Attendance', icon: <AttendanceIcon />, path: '/admin/attendance' },
   { id: 'media', label: 'Media', icon: <VideoIcon />, path: '/admin/media' },
+  { id: 'library', label: 'Library', icon: <MusicIcon />, path: '/admin/library' },
   { id: 'members', label: 'Dancers', icon: <UserIcon />, path: '/admin/members' },
   { id: 'more', label: 'More', icon: <MoreIcon />, path: '#more' }
 ];
@@ -93,7 +96,7 @@ export const ShellLayout: React.FC<{
   return <PhoneShell tabs={tabs} moreItems={moreItems} topBar={topBar}>{children}</PhoneShell>;
 };
 
-const AdminRouteGuard: React.FC<{ path: string; children: React.ReactNode }> = ({ path, children }) => {
+export const AdminRouteGuard: React.FC<{ path: string; children: React.ReactNode }> = ({ path, children }) => {
   const currentSession = session.get();
   const perms = currentSession?.claims?.perms;
   if (!canAccessRoute(path, perms)) {
@@ -145,6 +148,8 @@ export const AppRoutes: React.FC = () => {
                 <Route path="calendar" element={<AdminRouteGuard path="/admin/calendar"><ClassesPage /></AdminRouteGuard>} />
                 <Route path="attendance" element={<AdminRouteGuard path="/admin/attendance"><AttendancePage /></AdminRouteGuard>} />
                 <Route path="media" element={<AdminRouteGuard path="/admin/media"><MediaPage /></AdminRouteGuard>} />
+                <Route path="library" element={<AdminRouteGuard path="/admin/library"><MusicLibraryPage /></AdminRouteGuard>} />
+                <Route path="studio" element={<AdminRouteGuard path="/admin/studio"><StudioPage /></AdminRouteGuard>} />
                 <Route path="events" element={<AdminRouteGuard path="/admin/events"><EventsPage /></AdminRouteGuard>} />
                 <Route path="events/new" element={<AdminRouteGuard path="/admin/events/new"><EventWizard /></AdminRouteGuard>} />
                 <Route path="events/:id/edit" element={<AdminRouteGuard path="/admin/events"><EventWizard /></AdminRouteGuard>} />
@@ -170,6 +175,7 @@ export const AppRoutes: React.FC = () => {
             <ShellLayout tabs={DANCER_TABS}>
               <Routes>
                 <Route path="/" element={<DancerHome />} />
+                <Route path="library" element={<MusicLibraryPage />} />
                 <Route path="studio" element={<StudioPage />} />
                 <Route path="me" element={<MePage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />

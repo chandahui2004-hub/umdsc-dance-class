@@ -5,7 +5,7 @@ import { Music, getYouTubeVideoId } from '@umdsc/shared';
 import { logAudit } from '../logic/audit';
 import { getEvent } from './eventMembers';
 import { resolveMusicLink, deriveMusicSource } from './musicLinks';
-import { dancerCanSee, onLiveClass } from './bootstrap';
+import { onLiveClass } from './bootstrap';
 
 export function visibleMusic(
   ctx: Ctx,
@@ -30,13 +30,12 @@ export function visibleMusic(
     musicList = musicList.filter(m => m.styleId === styleId);
   }
 
-  // Dancer scoping: only the event + style classes they registered for
-  if (auth?.claims.role === 'dancer') {
-    const perm = auth.claims.perms['music.view'];
-    if (Array.isArray(perm)) {
-      musicList = musicList.filter(m => perm.includes(m.styleId));
-    }
-    musicList = musicList.filter(dancerCanSee(ctx, auth));
+  // Walk-in QR tokens stay scoped to their walk-in session; registered members share the full Music Library.
+  if (auth?.claims.role === 'dancer' && auth.claims.sub.startsWith('W-')) {
+    const withoutPrefix = auth.claims.sub.replace(/^W-/, '');
+    const walkInSession = ctx.db.sessions.find(s => s.active && withoutPrefix.startsWith(s.id + '-'))[0];
+    if (!walkInSession) return [];
+    musicList = musicList.filter(m => m.sessionId === walkInSession.id);
   }
 
   return musicList;
@@ -49,7 +48,7 @@ const sectionStyle = (ctx: Ctx, id: unknown) =>
 export function getMusicRoutes(): Record<string, Route> {
   return {
     'music.list': {
-      perm: 'music.view',
+      perm: 'signedIn',
       write: false,
       handler: (ctx, auth, payload: any) => {
         return visibleMusic(ctx, auth, payload || {});
@@ -231,21 +230,15 @@ export function getMusicRoutes(): Record<string, Route> {
     },
 
     'sections.list': {
-      perm: 'music.view',
+      perm: 'signedIn',
       write: false,
       handler: (ctx, auth, payload: any) => {
         const musicId = String(payload?.musicId || '').trim();
-        if (musicId) {
-          return ctx.db.sections
-            .find(s => s.musicId === musicId && s.active)
-            .sort((a, b) => a.startSec - b.startSec);
-        }
-
         const ids = new Set(visibleMusic(ctx, auth, {}).map(m => m.id));
         return ctx.db.sections
-          .find(s => ids.has(s.musicId) && s.active)
+          .find(s => s.active && (musicId ? s.musicId === musicId && ids.has(s.musicId) : ids.has(s.musicId)))
           .sort((a, b) => {
-            if (a.musicId !== b.musicId) {
+            if (!musicId && a.musicId !== b.musicId) {
               return a.musicId.localeCompare(b.musicId);
             }
             return a.startSec - b.startSec;

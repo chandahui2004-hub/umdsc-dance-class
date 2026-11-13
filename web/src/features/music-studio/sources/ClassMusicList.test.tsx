@@ -68,5 +68,88 @@ describe('ClassMusicList filters', () => {
     expect(screen.queryByText('Locking Beat')).toBeNull();
     expect(screen.getByText('Popping Groove')).toBeInTheDocument();
   });
-});
 
+  it('filters music using search input and clickable Dance Style category pills', async () => {
+    const { fireEvent } = await import('@testing-library/react');
+    const song1 = song('1', { title: 'Locking Beat', eventId: 'ev1', styleId: 'st1' });
+    const song2 = song('2', { title: 'Popping Groove', eventId: 'ev2', styleId: 'st2' });
+
+    render(
+      <ClassMusicList
+        music={[song1, song2]}
+        styles={styles}
+        events={events}
+        selectedMusicId={null}
+        onSelectMusic={vi.fn()}
+      />
+    );
+
+    const searchInput = screen.getByLabelText('Search music library');
+    fireEvent.change(searchInput, { target: { value: 'November' } });
+    expect(screen.queryByText('Locking Beat')).toBeNull();
+    expect(screen.getByText('Popping Groove')).toBeInTheDocument();
+
+    fireEvent.change(searchInput, { target: { value: '' } });
+    expect(screen.getByText('Locking Beat')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Locking/i }));
+    expect(screen.getByText('Locking Beat')).toBeInTheDocument();
+    expect(screen.queryByText('Popping Groove')).toBeNull();
+    expect((screen.getByLabelText('Filter music by style') as HTMLSelectElement).value).toBe('st1');
+
+    fireEvent.click(screen.getByRole('button', { name: /ALL STYLES/i }));
+    expect(screen.getByText('Locking Beat')).toBeInTheDocument();
+    expect(screen.getByText('Popping Groove')).toBeInTheDocument();
+  });
+
+  it('renders external musicAppLinks without triggering onSelectMusic, and marks spotify-only tracks as LISTEN ONLY', async () => {
+    const { fireEvent, within } = await import('@testing-library/react');
+    const onSelectMusic = vi.fn();
+    const ytSong = song('1', {
+      title: 'Playable YT',
+      sourceType: 'youtube',
+      youtubeId: 'yt-123',
+      spotifyUrl: 'https://open.spotify.com/track/abc123',
+      styleId: 'st1',
+      eventId: 'ev1'
+    });
+    const spotSong = song('2', {
+      title: 'Spotify Only Song',
+      sourceType: 'spotify',
+      youtubeId: '',
+      spotifyUrl: 'https://open.spotify.com/track/spot999',
+      styleId: 'st2',
+      eventId: 'ev2'
+    });
+
+    render(
+      <ClassMusicList
+        music={[ytSong, spotSong]}
+        styles={styles}
+        events={events}
+        selectedMusicId={null}
+        onSelectMusic={onSelectMusic}
+      />
+    );
+
+    const ytCard = screen.getByTestId('class-music-item-1');
+    const spotCard = screen.getByTestId('class-music-item-2');
+
+    const ytLink = within(ytCard).getByRole('link', { name: /Open in YouTube/i });
+    expect(ytLink).toHaveAttribute('href', 'https://www.youtube.com/watch?v=yt-123');
+    fireEvent.click(ytLink);
+    expect(onSelectMusic).not.toHaveBeenCalled();
+
+    fireEvent.click(within(ytCard).getByRole('button', { name: 'SELECT' }));
+    expect(onSelectMusic).toHaveBeenCalledWith(ytSong);
+
+    expect(within(spotCard).getByText('LISTEN ONLY')).toBeInTheDocument();
+    expect(within(spotCard).queryByRole('button', { name: /SELECT|ACTIVE/i })).toBeNull();
+    expect(within(spotCard).getByRole('link', { name: /Open in Spotify/i })).toHaveAttribute(
+      'href',
+      'https://open.spotify.com/track/spot999'
+    );
+    fireEvent.click(spotCard);
+    expect(onSelectMusic).toHaveBeenCalledTimes(1);
+  });
+});

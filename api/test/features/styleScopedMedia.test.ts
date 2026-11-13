@@ -63,6 +63,73 @@ describe('Style-limited media rights', () => {
     expect(code(call('videos.targetFolder', { sessionId: locking.session.id }))).toBe('FORBIDDEN');
   });
 
+  it('upload target without sessionId (general style MP3): allowed for their style, refused for another, works with music.edit', () => {
+    const allowed = call('videos.targetFolder', { eventId: popping.event.id, styleId: 'st_popping' });
+    expect(allowed.ok).toBe(true);
+    if (allowed.ok) {
+      expect(allowed.data).toMatchObject({
+        videoMasterFolderId: 'fld_popping_drive',
+        eventFolderName: 'OCT MONTHLY CLASS',
+        classFolderName: '',
+        musicFolderName: 'Music'
+      });
+    }
+    expect(code(call('videos.targetFolder', { eventId: locking.event.id, styleId: 'st_locking' }))).toBe('FORBIDDEN');
+    expect(code(call('videos.targetFolder', { eventId: popping.event.id }))).toBe('VALIDATION');
+
+    // A caller with only music.edit (without videos.upload) can also resolve targetFolder for their style
+    const musicOnlyLead = signToken(
+      {
+        sub: 'M-22001112',
+        role: 'dancer',
+        name: 'Music Lead',
+        exp: Math.floor(ctx.now().getTime() / 1000) + 3600,
+        pv: 1,
+        perms: { 'music.edit': ['st_popping'] }
+      },
+      secrets.tokenSecret,
+      secrets.hmac
+    );
+    const musicAllowed = handleRequest(
+      { action: 'videos.targetFolder', token: musicOnlyLead, payload: { eventId: popping.event.id, styleId: 'st_popping' } },
+      ctx,
+      secrets
+    );
+    expect(musicAllowed.ok).toBe(true);
+    if (musicAllowed.ok) {
+      expect(musicAllowed.data).toMatchObject({
+        videoMasterFolderId: 'fld_popping_drive',
+        classFolderName: '',
+        musicFolderName: 'Music'
+      });
+    }
+    const musicForbidden = handleRequest(
+      { action: 'videos.targetFolder', token: musicOnlyLead, payload: { eventId: locking.event.id, styleId: 'st_locking' } },
+      ctx,
+      secrets
+    );
+    expect(code(musicForbidden)).toBe('FORBIDDEN');
+
+    // Plain dancer with no media edit/upload permission is refused
+    const plainDancer = signToken(
+      {
+        sub: 'M-22001113',
+        role: 'dancer',
+        name: 'Plain Dancer',
+        exp: Math.floor(ctx.now().getTime() / 1000) + 3600,
+        pv: 1,
+        perms: {}
+      },
+      secrets.tokenSecret,
+      secrets.hmac
+    );
+    expect(code(handleRequest(
+      { action: 'videos.targetFolder', token: plainDancer, payload: { eventId: popping.event.id, styleId: 'st_popping' } },
+      ctx,
+      secrets
+    ))).toBe('FORBIDDEN');
+  });
+
   it('scan: allowed for their style, refused for another', () => {
     expect(code(call('videos.scan', { styleId: 'st_popping', eventId: popping.event.id }))).toBe('ok');
     expect(code(call('videos.scan', { styleId: 'st_locking', eventId: locking.event.id }))).toBe('FORBIDDEN');

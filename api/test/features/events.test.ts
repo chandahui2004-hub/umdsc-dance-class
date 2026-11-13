@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import crypto from 'node:crypto';
 import { handleRequest, registerRoutes } from '../../src/router';
 import { makeCtx } from '../fakes/makeCtx';
@@ -486,6 +486,149 @@ describe('Feature: events (features/events)', () => {
     const byName = new Map((res.ok ? (res.data as any[]) : []).map(e => [e.name, e.folderMissing]));
     expect(byName.get('KEPT')).toBe(false);
     expect(byName.get('LOST')).toBe(true);
+  });
+
+  it('list skips Drive folder checks and returns folderMissing: false for non-admin callers', () => {
+    seedEvent(ctx, { name: 'LOST ACTIVE', folderId: 'fld_deleted' });
+    seedEvent(ctx, { name: 'OLD ARCHIVED', status: 'archived', folderId: 'fld_old_deleted' });
+
+    const dancerToken = signToken(
+      { sub: 'M-22001111', role: 'dancer', name: 'Dancer', exp: Math.floor(ctx.now().getTime() / 1000) + 3600, pv: 1, perms: {} },
+      secrets.tokenSecret,
+      secrets.hmac
+    );
+    const infoSpy = vi.spyOn(ctx.drive, 'info');
+
+    const res = handleRequest({ action: 'events.list', token: dancerToken, payload: { includeArchived: true } }, ctx, secrets);
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      const list = res.data as any[];
+      expect(list.length).toBe(2);
+      expect(list.every(e => e.folderMissing === false)).toBe(true);
+    }
+    expect(infoSpy).not.toHaveBeenCalled();
+  });
+
+  it('list projects only safe EventSummary fields for non-admins and restricts walk-in W- tokens', () => {
+    const activeEv = seedEvent(ctx, {
+      name: 'SAFE PROJECTION EVENT',
+      folderId: 'fld_deleted',
+      videoFolderId: 'fld_vid_1',
+      sourceSheetId: 'ss_source_1',
+      formUrl: 'https://docs.google.com/forms/d/f1/edit',
+      formId: 'f1',
+      sourceLastRowHash: 'hash_secret',
+      lastSyncError: 'sync err',
+      styleIds: ['st_popping'],
+      styleInstructors: { st_popping: ['ins_1'] }
+    });
+    const archivedEv = seedEvent(ctx, {
+      name: 'SAFE ARCHIVED EVENT',
+      status: 'archived',
+      folderId: 'fld_old_deleted',
+      sourceSheetId: 'ss_source_2',
+      styleIds: ['st_hiphop']
+    });
+
+    const walkInSess = ctx.db.sessions.insert(
+      { eventId: activeEv.id, styleId: 'st_popping', seq: 1, date: '2026-10-06', start: '20:00', end: '22:00',
+        instructorId: '', venue: 'Studio A', status: 'scheduled', note: '' },
+      'admin',
+      ctx.now()
+    );
+    const inactiveSess = ctx.db.sessions.insert(
+      { eventId: archivedEv.id, styleId: 'st_hiphop', seq: 1, date: '2026-09-06', start: '20:00', end: '22:00',
+        instructorId: '', venue: 'Studio B', status: 'scheduled', note: '' },
+      'admin',
+      ctx.now()
+    );
+    ctx.db.sessions.deactivate(inactiveSess.id, inactiveSess.version, 'admin', ctx.now());
+
+    const dancerToken = signToken(
+      { sub: 'M-22001111', role: 'dancer', name: 'Dancer', exp: Math.floor(ctx.now().getTime() / 1000) + 3600, pv: 1, perms: {} },
+      secrets.tokenSecret,
+      secrets.hmac
+    );
+
+    const res = handleRequest({ action: 'events.list', token: dancerToken, payload: { includeArchived: true } }, ctx, secrets);
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      const list = res.data as any[];
+      expect(list.length).toBe(2);
+      for (const item of list) {
+        expect(Object.keys(item).sort()).toEqual([
+          'endDate',
+          'folderMissing',
+          'id',
+          'name',
+          'startDate',
+          'status',
+          'styleIds',
+          'type'
+        ]);
+        expect(item.folderMissing).toBe(false);
+        expect(item.sourceSheetId).toBeUndefined();
+        expect(item.membersSpreadsheetId).toBeUndefined();
+        expect(item.folderId).toBeUndefined();
+        expect(item.videoFolderId).toBeUndefined();
+        expect(item.formUrl).toBeUndefined();
+        expect(item.formId).toBeUndefined();
+        expect(item.sourceLastRowHash).toBeUndefined();
+        expect(item.lastSyncError).toBeUndefined();
+        expect(item.styleInstructors).toBeUndefined();
+      }
+    }
+
+    // Admin still receives full EventListItem fields
+    const adminRes = call('events.list', { includeArchived: true });
+    expect(adminRes.ok).toBe(true);
+    if (adminRes.ok) {
+      const adminActive = (adminRes.data as any[]).find(e => e.id === activeEv.id);
+      expect(adminActive.sourceSheetId).toBe('ss_source_1');
+      expect(adminActive.membersSpreadsheetId).toBeTruthy();
+      expect(adminActive.folderId).toBe('fld_deleted');
+      expect(adminActive.videoFolderId).toBe('fld_vid_1');
+      expect(adminActive.formUrl).toBe('https://docs.google.com/forms/d/f1/edit');
+      expect(adminActive.styleInstructors).toEqual({ st_popping: ['ins_1'] });
+      expect(adminActive.folderMissing).toBe(true);
+    }
+
+    // Walk-in W- token only receives its own active session's event with safe fields
+    const walkInToken = signToken(
+      { sub: `W-${walkInSess.id}-alex`, role: 'dancer', name: 'Alex (Walk-In)', exp: Math.floor(ctx.now().getTime() / 1000) + 3600, pv: 1, perms: {} },
+      secrets.tokenSecret,
+      secrets.hmac
+    );
+    const walkInRes = handleRequest({ action: 'events.list', token: walkInToken, payload: { includeArchived: true } }, ctx, secrets);
+    expect(walkInRes.ok).toBe(true);
+    if (walkInRes.ok) {
+      const list = walkInRes.data as any[];
+      expect(list.map(e => e.id)).toEqual([activeEv.id]);
+      expect(Object.keys(list[0]).sort()).toEqual([
+        'endDate',
+        'folderMissing',
+        'id',
+        'name',
+        'startDate',
+        'status',
+        'styleIds',
+        'type'
+      ]);
+      expect(list[0].folderMissing).toBe(false);
+      expect(list[0].sourceSheetId).toBeUndefined();
+    }
+
+    // Invalid or inactive walk-in token receives []
+    for (const badSub of ['W-ses_missing-alex', `W-${inactiveSess.id}-alex`]) {
+      const badToken = signToken(
+        { sub: badSub, role: 'dancer', name: 'Bad Walk-In', exp: Math.floor(ctx.now().getTime() / 1000) + 3600, pv: 1, perms: {} },
+        secrets.tokenSecret,
+        secrets.hmac
+      );
+      const badRes = handleRequest({ action: 'events.list', token: badToken, payload: { includeArchived: true } }, ctx, secrets);
+      expect(badRes.ok).toBe(true);
+      if (badRes.ok) expect(badRes.data).toEqual([]);
+    }
   });
 
   it('rejects create when validateStyleClasses is true and a selected style has no classes', () => {

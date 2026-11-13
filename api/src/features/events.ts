@@ -1,6 +1,6 @@
 import { Route } from '../router';
 import { AppError } from '../errors';
-import { EventItem, EventListItem, EventStatus, EventType } from '@umdsc/shared';
+import { EventItem, EventListItem, EventStatus, EventSummary, EventType } from '@umdsc/shared';
 import { Ctx } from '../ports';
 import { validateEventFields, eventNameKey, classesOutsideRange, todayKL, hashSheet } from '../logic/events';
 import { isDue } from '../logic/retention';
@@ -89,13 +89,36 @@ export function getEventRoutes(): Record<string, Route> {
       write: false,
       handler: (ctx, auth, payload: any) => {
         const includeArchived = Boolean(payload?.includeArchived);
-        const rows: EventListItem[] = ctx.db.events
+        const isAdmin = auth?.claims.role === 'admin';
+        const events = ctx.db.events
           .find(e => e.active && (includeArchived || e.status === 'active'))
-          .sort((a, b) => b.startDate.localeCompare(a.startDate))
-          .map(e => ({
+          .sort((a, b) => b.startDate.localeCompare(a.startDate));
+
+        if (isAdmin) {
+          const rows: EventListItem[] = events.map(e => ({
             ...e,
             folderMissing: e.status === 'active' && Boolean(e.folderId) && !ctx.drive.info(e.folderId).exists
           }));
+          return rows;
+        }
+
+        let visibleEvents = events;
+        if (auth?.claims.sub.startsWith('W-')) {
+          const withoutPrefix = auth.claims.sub.replace(/^W-/, '');
+          const walkInSession = ctx.db.sessions.find(s => s.active && withoutPrefix.startsWith(s.id + '-'))[0];
+          visibleEvents = walkInSession ? events.filter(e => e.id === walkInSession.eventId) : [];
+        }
+
+        const rows: (EventSummary & { folderMissing: false })[] = visibleEvents.map(e => ({
+          id: e.id,
+          name: e.name,
+          type: e.type,
+          startDate: e.startDate,
+          endDate: e.endDate,
+          status: e.status,
+          styleIds: e.styleIds,
+          folderMissing: false
+        }));
         return rows;
       }
     },

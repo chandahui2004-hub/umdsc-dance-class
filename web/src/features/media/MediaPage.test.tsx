@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { MediaPage } from './MediaPage';
 import { session } from '../../lib/session';
 
@@ -49,6 +49,27 @@ const mockMusic = [
   { id: 'm1', eventId: 'ev-oct', styleId: 'st-pop', sessionId: 's1', title: 'Funk Track 1', sourceType: 'youtube', youtubeId: 'yt123', driveFileId: '', active: true, version: 1, updatedBy: 'admin', updatedAt: '' }
 ];
 
+const mockSpotifyMusic = {
+  id: 'm2',
+  eventId: 'ev-oct',
+  styleId: 'st-pop',
+  sessionId: 's1',
+  title: 'Spotify Listen Only Track',
+  sourceType: 'spotify',
+  youtubeId: '',
+  driveFileId: '',
+  spotifyUrl: 'https://open.spotify.com/track/spot1',
+  active: true,
+  version: 1,
+  updatedBy: 'admin',
+  updatedAt: ''
+};
+
+const LocationProbe = () => {
+  const loc = useLocation();
+  return <div data-testid="navigated-location">{`${loc.pathname}${loc.search}`}</div>;
+};
+
 describe('MediaPage permission gating', () => {
   let queryClient: QueryClient;
 
@@ -73,7 +94,10 @@ describe('MediaPage permission gating', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={['/admin/media?style=st-pop']}>
-          <MediaPage />
+          <Routes>
+            <Route path="/admin/media" element={<MediaPage />} />
+            <Route path="/admin/studio" element={<LocationProbe />} />
+          </Routes>
         </MemoryRouter>
       </QueryClientProvider>
     );
@@ -103,6 +127,130 @@ describe('MediaPage permission gating', () => {
     // Music panel and ClassLeadVideoFoldersPanel are hidden because user has no music/folder permissions
     expect(screen.queryByText(/PRACTICE MUSIC/i)).not.toBeInTheDocument();
     expect(screen.queryByTestId('class-lead-video-folders-panel')).not.toBeInTheDocument();
+  });
+
+  it('renders PLAY IN STUDIO on playable music cards, hides it on Spotify listen-only cards, and navigates to /admin/studio?music=m1', async () => {
+    mockPost.mockImplementation(async (action: string) => {
+      if (action === 'styles.list') return { ok: true, data: mockStyles };
+      if (action === 'instructors.list') return { ok: true, data: [] };
+      if (action === 'sessions.list') return { ok: true, data: mockSessions };
+      if (action === 'videos.list') return { ok: true, data: mockVideos };
+      if (action === 'music.list') return { ok: true, data: [...mockMusic, mockSpotifyMusic] };
+      return { ok: true, data: [] };
+    });
+
+    session.set('tok-music-rep', {
+      sub: 'rep',
+      role: 'admin',
+      name: 'Class Rep',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      pv: 1,
+      perms: { 'music.view': '*', 'music.edit': '*' }
+    });
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Funk Track 1')).toBeInTheDocument();
+      expect(screen.getByText('Spotify Listen Only Track')).toBeInTheDocument();
+    });
+
+    const playableCard = screen.getByTestId('music-card-m1');
+    const spotifyCard = screen.getByTestId('music-card-m2');
+
+    expect(within(playableCard).getByRole('button', { name: /▶ PLAY IN STUDIO/i })).toBeInTheDocument();
+    expect(within(playableCard).getByRole('button', { name: /MANAGE SECTIONS/i })).toBeInTheDocument();
+    expect(within(playableCard).getByRole('button', { name: /^DELETE$/i })).toBeInTheDocument();
+
+    expect(within(spotifyCard).queryByRole('button', { name: /PLAY IN STUDIO/i })).not.toBeInTheDocument();
+
+    fireEvent.click(within(playableCard).getByRole('button', { name: /▶ PLAY IN STUDIO/i }));
+    expect(screen.getByTestId('navigated-location')).toHaveTextContent('/admin/studio?music=m1');
+  });
+
+  it('still renders PLAY IN STUDIO when role only has music.view', async () => {
+    session.set('tok-music-viewer', {
+      sub: 'viewer',
+      role: 'admin',
+      name: 'Music Viewer',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      pv: 1,
+      perms: { 'music.view': '*' }
+    });
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Funk Track 1')).toBeInTheDocument();
+    });
+
+    const playableCard = screen.getByTestId('music-card-m1');
+    expect(within(playableCard).getByRole('button', { name: /▶ PLAY IN STUDIO/i })).toBeInTheDocument();
+    expect(within(playableCard).queryByRole('button', { name: /MANAGE SECTIONS/i })).not.toBeInTheDocument();
+    expect(within(playableCard).queryByRole('button', { name: /^DELETE$/i })).not.toBeInTheDocument();
+  });
+
+  it('applies 360px wrapping and truncation classes in the Practice Music header, empty state, and card title row', async () => {
+    mockPost.mockImplementation(async (action: string) => {
+      if (action === 'styles.list') return { ok: true, data: mockStyles };
+      if (action === 'instructors.list') return { ok: true, data: [] };
+      if (action === 'sessions.list') return { ok: true, data: mockSessions };
+      if (action === 'videos.list') return { ok: true, data: mockVideos };
+      if (action === 'music.list') return { ok: true, data: mockMusic };
+      return { ok: true, data: [] };
+    });
+
+    session.set('tok-music-editor', {
+      sub: 'rep',
+      role: 'admin',
+      name: 'Class Rep',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      pv: 1,
+      perms: { 'music.view': '*', 'music.edit': '*' }
+    });
+
+    const { unmount } = renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Funk Track 1')).toBeInTheDocument();
+    });
+
+    const addLinkBtn = screen.getByRole('button', { name: '+ MUSIC LINK' });
+    const headerBtnGroup = addLinkBtn.parentElement!;
+    const headerRow = headerBtnGroup.parentElement!;
+    expect(headerBtnGroup.className).toContain('flex-wrap');
+    expect(headerRow.className).toContain('flex-wrap');
+    expect(headerRow.className).toContain('gap-2');
+
+    const titleHeading = screen.getByRole('heading', { name: 'Funk Track 1' });
+    const titleRow = titleHeading.parentElement!;
+    expect(titleRow.className).toContain('w-full');
+    expect(titleRow.className).toContain('min-w-0');
+    expect(titleHeading.className).toContain('w-full');
+    expect(titleHeading.className).toContain('min-w-0');
+    expect(titleHeading.className).toContain('truncate');
+
+    unmount();
+
+    // Empty music state buttons also wrap on narrow screens
+    queryClient.clear();
+    mockPost.mockImplementation(async (action: string) => {
+      if (action === 'styles.list') return { ok: true, data: mockStyles };
+      if (action === 'instructors.list') return { ok: true, data: [] };
+      if (action === 'sessions.list') return { ok: true, data: mockSessions };
+      if (action === 'videos.list') return { ok: true, data: mockVideos };
+      if (action === 'music.list') return { ok: true, data: [] };
+      return { ok: true, data: [] };
+    });
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'ADD MUSIC LINK' })).toBeInTheDocument();
+    });
+
+    const emptyActionWrapper = screen.getByRole('button', { name: 'ADD MUSIC LINK' }).parentElement!;
+    expect(emptyActionWrapper.className).toContain('flex-wrap');
   });
 });
 

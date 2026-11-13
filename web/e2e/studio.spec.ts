@@ -111,7 +111,7 @@ test.describe('Music Studio (DanceCue & Sources)', () => {
     });
   });
 
-  test('loads Studio page and displays Class Music tab with track list', async ({ page }) => {
+  test('loads Studio page and displays Music Library tab with track list', async ({ page }) => {
     await page.goto('/studio');
 
     // Header and title
@@ -119,7 +119,7 @@ test.describe('Music Studio (DanceCue & Sources)', () => {
     await expect(page.locator('text=Rehearse in motion')).toBeVisible();
 
     // Source picker tabs
-    await expect(page.getByRole('button', { name: 'Class Music' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Music Library' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'My MP3' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Link' })).toBeVisible();
 
@@ -160,7 +160,7 @@ test.describe('Music Studio (DanceCue & Sources)', () => {
     await expect(page.locator('text=Sarah Practice 8-Count')).not.toBeVisible();
   });
 
-  test('switches source modes between Class Music, My MP3, and Link', async ({ page }) => {
+  test('switches source modes between Music Library, My MP3, and Link', async ({ page }) => {
     await page.goto('/studio');
 
     // Switch to My MP3
@@ -172,8 +172,8 @@ test.describe('Music Studio (DanceCue & Sources)', () => {
     await expect(page.getByPlaceholder('Paste a YouTube or SoundCloud link')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Use link' })).toBeVisible();
 
-    // Switch back to Class Music
-    await page.getByRole('button', { name: 'Class Music' }).click();
+    // Switch back to Music Library
+    await page.getByRole('button', { name: 'Music Library' }).click();
     await expect(page.locator('text=Hip Hop Routine Song')).toBeVisible();
   });
 });

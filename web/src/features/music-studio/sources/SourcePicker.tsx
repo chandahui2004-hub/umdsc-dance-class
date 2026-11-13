@@ -63,7 +63,7 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({
         </span>
       </div>
 
-      {/* Tabs: CLASS MUSIC | MY MP3 | LINK (YouTube or SoundCloud) */}
+      {/* Tabs: MUSIC LIBRARY | MY MP3 | LINK (YouTube or SoundCloud) */}
       <div className="mt-4 flex gap-1.5 border-2 border-[var(--outline)] bg-[var(--night-1)] p-1">
         <button
           className={`${tabClass} ${
@@ -78,7 +78,7 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({
             setErrorMessage('');
           }}
         >
-          Class Music
+          Music Library
         </button>
         <button
           className={`${tabClass} ${
@@ -112,7 +112,7 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({
         </button>
       </div>
 
-      {/* Class Music List Mode */}
+      {/* Music Library List Mode */}
       {sourceMode === 'class' && (
         <div className="mt-4">
           <ClassMusicList

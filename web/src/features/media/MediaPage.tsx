@@ -19,7 +19,7 @@ import { SessionEditor } from '../classes/SessionEditor';
 import { EventStep, StyleStep } from '../../components/ui/EventStyleSteps';
 import { session } from '../../lib/session';
 import { can } from '../../lib/permissions';
-import type { ClassSession, DanceStyle, Instructor, Video, Music } from '@umdsc/shared';
+import { canPractise, type ClassSession, type DanceStyle, type Instructor, type Video, type Music } from '@umdsc/shared';
 
 export const MediaPage: React.FC = () => {
   const navigate = useNavigate();
@@ -675,12 +675,12 @@ export const MediaPage: React.FC = () => {
           title={`PRACTICE MUSIC (${filteredMusic.length})`}
           className="px-corners bg-[var(--night-2)] space-y-4"
         >
-          <div className="flex justify-between items-center pb-2 border-b-2 border-[var(--outline)]">
+          <div className="flex flex-wrap justify-between items-center gap-2 pb-2 border-b-2 border-[var(--outline)]">
             <span className="font-display text-xs text-[var(--text-1)]">
               {selectedSession ? `Class #${selectedSession.seq} Tracks` : 'All Tracks'}
             </span>
             {canEditMusic && (
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <PixelButton
                   size="md"
                   variant="secondary"
@@ -708,7 +708,7 @@ export const MediaPage: React.FC = () => {
               description="Add YouTube audio links or upload MP3s for Studio practice."
               action={
                 canEditMusic ? (
-                  <div className="flex justify-center gap-2 pt-1">
+                  <div className="flex flex-wrap justify-center gap-2 pt-1">
                     <PixelButton
                       size="md"
                       variant="secondary"
@@ -733,17 +733,19 @@ export const MediaPage: React.FC = () => {
             <div className="space-y-4">
               {filteredMusic.map((item) => {
                 const sess = sessions.find((s) => s.id === item.sessionId);
+                const playable = canPractise(item);
 
                 return (
                   <div
                     key={item.id}
-                    className="p-3 border-2 border-[var(--outline)] bg-[var(--night-1)] shadow-[2px_2px_0_var(--outline)] space-y-3"
+                    data-testid={`music-card-${item.id}`}
+                    className="min-w-0 p-3 border-2 border-[var(--outline)] bg-[var(--night-1)] shadow-[2px_2px_0_var(--outline)] space-y-3"
                   >
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1">
-                      <h4 className="font-display text-xs text-[var(--text-1)] font-bold truncate">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 w-full min-w-0">
+                      <h4 className="font-display text-xs text-[var(--text-1)] font-bold w-full sm:w-auto sm:flex-1 min-w-0 truncate">
                         {item.title}
                       </h4>
-                      <span className="px-2 py-0.5 border border-[var(--outline)] bg-[var(--neon-gold)] text-[var(--on-neon)] font-mono text-[10px] font-bold">
+                      <span className="shrink-0 px-2 py-0.5 border border-[var(--outline)] bg-[var(--neon-gold)] text-[var(--on-neon)] font-mono text-[10px] font-bold">
                         {item.sourceType.toUpperCase()}
                       </span>
                     </div>
@@ -774,17 +776,28 @@ export const MediaPage: React.FC = () => {
                       </div>
                     ) : null}
 
-                    {(canEditSections || canEditMusic) && (
-                      <div className="flex justify-between items-center gap-2 pt-1 border-t border-[var(--outline)]">
-                        {canEditSections ? (
-                          <PixelButton
-                            size="md"
-                            variant="secondary"
-                            onClick={() => setActiveMusicForSections(item)}
-                          >
-                            MANAGE SECTIONS
-                          </PixelButton>
-                        ) : <span />}
+                    {(playable || canEditSections || canEditMusic) && (
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[var(--outline)]">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {playable && (
+                            <PixelButton
+                              size="md"
+                              variant="primary"
+                              onClick={() => navigate(`/admin/studio?music=${item.id}`)}
+                            >
+                              ▶ PLAY IN STUDIO
+                            </PixelButton>
+                          )}
+                          {canEditSections && (
+                            <PixelButton
+                              size="md"
+                              variant="secondary"
+                              onClick={() => setActiveMusicForSections(item)}
+                            >
+                              MANAGE SECTIONS
+                            </PixelButton>
+                          )}
+                        </div>
                         {canEditMusic && (
                           <PixelButton
                             size="md"

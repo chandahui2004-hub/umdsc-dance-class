@@ -16,7 +16,7 @@ import { streamUrl } from '../../lib/google/driveUrls';
 import { api } from '../../lib/api';
 import { VideoPanel } from './sync/VideoPanel';
 import { FullscreenStudio } from './FullscreenStudio';
-import { canPractise, type MusicItem, type Section, type VideoItem } from '@umdsc/shared';
+import { canPractise, type DanceStyle, type EventSummary, type MusicItem, type Section, type VideoItem } from '@umdsc/shared';
 import './dancecue/dancecue.css';
 
 export const Studio: React.FC = () => {
@@ -61,11 +61,31 @@ export const Studio: React.FC = () => {
     }
   });
 
+  const { data: liveStyles } = useQuery<DanceStyle[]>({
+    queryKey: ['styles'],
+    queryFn: async () => {
+      const res = await api.post<DanceStyle[]>('styles.list', {});
+      return res.data;
+    }
+  });
+
+  const { data: liveEvents } = useQuery<EventSummary[]>({
+    queryKey: ['events'],
+    queryFn: async () => {
+      const res = await api.post<EventSummary[]>('events.list', { includeArchived: true });
+      return res.data;
+    }
+  });
+
   const musicList: MusicItem[] = Array.isArray(liveMusic)
     ? liveMusic
     : (bootstrapData as any)?.music || [];
-  const stylesList = bootstrapData?.styles || [];
-  const eventsList = (bootstrapData as any)?.events || [];
+  const stylesList: DanceStyle[] = Array.isArray(liveStyles)
+    ? liveStyles
+    : bootstrapData?.styles || [];
+  const eventsList: EventSummary[] = Array.isArray(liveEvents)
+    ? liveEvents
+    : (bootstrapData as any)?.events || [];
   const sectionsList: Section[] = Array.isArray(liveSections)
     ? liveSections
     : (bootstrapData as any)?.sections || [];
@@ -361,7 +381,7 @@ export const Studio: React.FC = () => {
             <SourcePicker
               activeSource={player.activeSource}
               activeMusicTitle={activeMusicTitle}
-              classMusic={musicList.filter(canPractise)}
+              classMusic={musicList}
               styles={stylesList}
               events={eventsList}
               selectedMusicId={selectedMusicId}

@@ -41,6 +41,13 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
   const [selectedSessionId, setSelectedSessionId] = useState<string>(
     initialSessionId || (sessions[0]?.id || '')
   );
+  useEffect(() => {
+    if (selectedSessionId && !sessions.some(s => s.id === selectedSessionId)) {
+      setSelectedSessionId(type === 'video' ? (sessions[0]?.id || '') : '');
+    } else if (type === 'video' && !selectedSessionId && sessions.length > 0) {
+      setSelectedSessionId(sessions[0].id);
+    }
+  }, [sessions, selectedSessionId, type]);
   const [files, setFiles] = useState<File[]>([]);
 
   const [isUploading, setIsUploading] = useState<boolean>(false);
@@ -50,7 +57,8 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [notifyDancers, setNotifyDancers] = useState<boolean>(true);
 
-  const isFolderMissing = type === 'video' && !style.videoFolderId;
+  const isFolderMissing = !style.videoFolderId;
+  const hasSessions = sessions.length > 0;
   // Fast (original) vs Smaller (compress). Follows the file sizes until the user picks one.
   const [uploadMode, setUploadMode] = useState<UploadMode>('original');
   const [modeChosenByUser, setModeChosenByUser] = useState(false);
@@ -114,7 +122,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
   };
 
   const handleStartUpload = async () => {
-    if (files.length === 0 || !selectedSessionId || isFolderMissing) return;
+    if (files.length === 0 || (type === 'video' && !selectedSessionId) || isFolderMissing) return;
 
     // 1. Get OAuth access token synchronously inside the user tap event before ANY await
     // This preserves user activation gesture context in Safari on iOS
@@ -150,7 +158,13 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
 
       // 2. Fetch target folder details from API
       setUploadStatus('Resolving Google Drive destination folder...');
-      const target = (await api.post<ClassFolderTarget>('videos.targetFolder', { sessionId: selectedSessionId })).data;
+      const target = (
+        await api.post<ClassFolderTarget>('videos.targetFolder', {
+          sessionId: selectedSessionId,
+          eventId,
+          styleId: style.id
+        })
+      ).data;
       const grantFolder = target.videoMasterFolderId || target.eventFolderId;
       if (!grantFolder) {
         throw new Error(`Class lead video folder link not inserted for ${style.name}. Insert it on the Media page first.`);
@@ -310,7 +324,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
             </div>
           )}
 
-          {sessions.length === 0 ? (
+          {type === 'video' && !hasSessions ? (
             <div className="p-4 bg-[var(--violet-2)] border-2 border-[var(--neon-gold)] space-y-3">
               <h4 className="font-display text-xs text-[var(--text-1)] font-bold">
                 NO CLASSES IN {eventName.toUpperCase()} FOR {style.name.toUpperCase()}
@@ -331,13 +345,22 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
           ) : (
             <>
               {/* Session Selector */}
-              <Field label="Target Class Session" required>
+              <Field
+                id="upload-target-session"
+                label={type === 'mp3' ? 'Target Class Session (Optional for Library)' : 'Target Class Session'}
+                required={type === 'video'}
+              >
                 <select
+                  id="upload-target-session"
                   value={selectedSessionId}
+                  required={type === 'video'}
                   disabled={isUploading}
                   onChange={(e) => setSelectedSessionId(e.target.value)}
                   className="w-full min-h-[44px] px-2 border-2 border-[var(--outline)] font-body text-base bg-[var(--night-1)] text-[var(--text-1)]"
                 >
+                  {type === 'mp3' && (
+                    <option value="">-- General Style / Event Library Track --</option>
+                  )}
                   {sessions.map((s) => (
                     <option key={s.id} value={s.id}>
                       #{s.seq} {s.date} ({s.start} - {s.end}) {s.venue ? `@ ${s.venue}` : ''}
@@ -502,7 +525,13 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({
               size="md"
               variant="primary"
               className="flex-1"
-              disabled={isUploading || files.length === 0 || isFolderMissing || Boolean(accountProblem)}
+              disabled={
+                isUploading ||
+                files.length === 0 ||
+                (type === 'video' && !selectedSessionId) ||
+                isFolderMissing ||
+                Boolean(accountProblem)
+              }
               onClick={handleStartUpload}
             >
               {isUploading

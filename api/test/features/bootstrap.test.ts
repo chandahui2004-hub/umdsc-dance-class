@@ -144,17 +144,36 @@ describe('Feature: Bootstrap with Caching (features/bootstrap)', () => {
       return res.ok ? (res.data as any[]).map(x => x[key]) : [];
     };
 
-    it('show only the styles the dancer registered for, not every style of their event', () => {
+    it('videos.list shows only registered styles while music.list and sections.list return the shared Music Library across styles and events', () => {
       expect(titles('videos.list', dancerToken)).toEqual(['Popping Class 1 Video']);
-      expect(titles('music.list', dancerToken)).toEqual(['Popping Song']);
-      expect(titles('sections.list', dancerToken, 'name')).toEqual(['Popping Intro']);
+      expect(titles('music.list', dancerToken).sort()).toEqual(['Hip Hop Song', 'Popping Song']);
+      expect(titles('sections.list', dancerToken, 'name').sort()).toEqual(['Hip Hop Chorus', 'Popping Intro']);
+
+      // Dancer registered only in another event with no music.view permission / style-limited music.view still gets full Music Library
+      const pastEvent = seedEvent(ctx, { name: 'PAST EVENT', status: 'archived', styleIds: ['st_popping'], members: [] });
+      addIndex('22004444', 'Past Member', [pastEvent.id]);
+      const emptyPermsToken = signToken(
+        { sub: 'M-22004444', role: 'dancer', name: 'Past Member', exp: Math.floor(ctx.now().getTime() / 1000) + 3600, pv: 1, perms: {} },
+        secrets.tokenSecret,
+        secrets.hmac
+      );
+      const scopedPermsToken = signToken(
+        { sub: 'M-22004444', role: 'dancer', name: 'Past Member', exp: Math.floor(ctx.now().getTime() / 1000) + 3600, pv: 1, perms: { 'music.view': ['st_popping'] } },
+        secrets.tokenSecret,
+        secrets.hmac
+      );
+      expect(titles('music.list', emptyPermsToken).sort()).toEqual(['Hip Hop Song', 'Popping Song']);
+      expect(titles('sections.list', emptyPermsToken, 'name').sort()).toEqual(['Hip Hop Chorus', 'Popping Intro']);
+      expect(titles('music.list', scopedPermsToken).sort()).toEqual(['Hip Hop Song', 'Popping Song']);
+      expect(titles('sections.list', scopedPermsToken, 'name').sort()).toEqual(['Hip Hop Chorus', 'Popping Intro']);
     });
 
-    it('show nothing to a dancer with no events', () => {
+    it('videos.list shows nothing to a dancer with no events while music.list and sections.list remain accessible', () => {
       addIndex('22003333', 'New Dancer', []);
       const token = dancerTokenFor('22003333', 'New Dancer');
       expect(titles('videos.list', token)).toEqual([]);
-      expect(titles('music.list', token)).toEqual([]);
+      expect(titles('music.list', token).sort()).toEqual(['Hip Hop Song', 'Popping Song']);
+      expect(titles('sections.list', token, 'name').sort()).toEqual(['Hip Hop Chorus', 'Popping Intro']);
     });
 
     describe('media of a deleted class', () => {
@@ -177,7 +196,7 @@ describe('Feature: Bootstrap with Caching (features/bootstrap)', () => {
 
       it('is hidden from the dancer Studio lists and calendar', () => {
         expect(titles('videos.list', dancerToken)).toEqual(['Popping Class 1 Video']);
-        expect(titles('music.list', dancerToken)).toEqual(['Popping Song']);
+        expect(titles('music.list', dancerToken).sort()).toEqual(['Hip Hop Song', 'Popping Song']);
         const res = handleRequest({ action: 'dancer.bootstrap', token: dancerToken }, ctx, secrets);
         expect(res.ok).toBe(true);
         if (res.ok) {
@@ -199,10 +218,13 @@ describe('Feature: Bootstrap with Caching (features/bootstrap)', () => {
         };
         expect(list('videos.list', {})).not.toContain('Deleted Class Video');
         expect(list('videos.list', { includeOrphans: true })).toContain('Deleted Class Video');
+        expect(list('music.list', {})).not.toContain('Deleted Class Song');
         expect(list('music.list', { includeOrphans: true })).toContain('Deleted Class Song');
         // A dancer cannot ask for them
         const res = handleRequest({ action: 'videos.list', token: dancerToken, payload: { includeOrphans: true } }, ctx, secrets);
         expect(res.ok && (res.data as any[]).map(x => x.title)).toEqual(['Popping Class 1 Video']);
+        const musRes = handleRequest({ action: 'music.list', token: dancerToken, payload: { includeOrphans: true } }, ctx, secrets);
+        expect(musRes.ok && (musRes.data as any[]).map(x => x.title)).not.toContain('Deleted Class Song');
       });
     });
 

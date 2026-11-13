@@ -20,6 +20,8 @@ export const ADMIN_ROUTE_PERMS: Record<string, PermissionCode[]> = {
   '/admin/calendar': ['calendar.view', 'sessions.edit'],
   '/admin/attendance': ['attendance.view.all', 'attendance.edit'],
   '/admin/media': ['videos.view', 'videos.upload', 'videos.edit', 'music.view', 'music.edit'],
+  '/admin/library': ['music.view', 'music.edit', 'videos.view', 'videos.upload', 'videos.edit'],
+  '/admin/studio': ['music.view', 'music.edit', 'videos.view', 'videos.upload', 'videos.edit'],
   '/admin/members': ['members.view', 'members.import'],
   '/admin/events': ['calendar.view', 'sessions.edit'],
   '/admin/events/new': ['calendar.view', 'sessions.edit'],

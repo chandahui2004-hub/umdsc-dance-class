@@ -255,8 +255,9 @@ describe('Feature: Music & Sections (features/music)', () => {
     expect(deactRes.ok).toBe(true);
   });
 
-  it('dancer listing music of a style they are not in → empty', () => {
-    // Add hip hop track
+  it('registered dancer listing music sees tracks from all styles and past/archived events', () => {
+    seedEvent(ctx, { id: 'evt_past', name: 'PAST EVENT', status: 'archived', styleIds: ['st_popping'] } as any);
+
     ctx.db.music.insert(
       {
         styleId: 'st_hiphop',
@@ -270,9 +271,22 @@ describe('Feature: Music & Sections (features/music)', () => {
       'admin1',
       ctx.now()
     );
+    ctx.db.music.insert(
+      {
+        styleId: 'st_popping',
+        eventId: 'evt_past',
+        sessionId: '',
+        title: 'Past Popping Track',
+        sourceType: 'youtube',
+        driveFileId: '',
+        youtubeId: 'vidPast'
+      },
+      'admin1',
+      ctx.now()
+    );
 
-    // Dancer only has permission for st_popping
-    const res = handleRequest(
+    // Dancer only has music.view for st_popping, yet can still browse Hip Hop in the shared Music Library
+    const byStyle = handleRequest(
       {
         action: 'music.list',
         token: dancerToken,
@@ -281,10 +295,36 @@ describe('Feature: Music & Sections (features/music)', () => {
       ctx,
       secrets
     );
+    expect(byStyle.ok).toBe(true);
+    if (byStyle.ok) {
+      expect((byStyle.data as any[]).map(m => m.title)).toEqual(['Hip Hop Beat']);
+    }
 
-    expect(res.ok).toBe(true);
-    if (res.ok) {
-      expect(res.data).toEqual([]);
+    // Even a registered dancer token with empty perms sees all active music across styles and archived events
+    const bareDancerToken = signToken(
+      {
+        sub: 'M-22009999',
+        role: 'dancer',
+        name: 'Past Member',
+        exp: Math.floor(ctx.now().getTime() / 1000) + 3600,
+        pv: 1,
+        perms: {}
+      },
+      secrets.tokenSecret,
+      secrets.hmac
+    );
+    const allRes = handleRequest(
+      {
+        action: 'music.list',
+        token: bareDancerToken,
+        payload: {}
+      },
+      ctx,
+      secrets
+    );
+    expect(allRes.ok).toBe(true);
+    if (allRes.ok) {
+      expect((allRes.data as any[]).map(m => m.title).sort()).toEqual(['Hip Hop Beat', 'Past Popping Track']);
     }
   });
 
@@ -348,27 +388,48 @@ describe('Feature: Music & Sections (features/music)', () => {
     }
   });
 
-  it('sections.list without musicId gives a dancer only sections of music in their events', () => {
-    seedEvent(ctx, { id: 'evt_other', styleIds: ['st_popping'] } as any);
+  it('sections.list gives registered dancers sections across styles and events, while walk-in tokens only see their walk-in session', () => {
+    seedEvent(ctx, { id: 'evt_other', status: 'archived', styleIds: ['st_popping', 'st_hiphop'] } as any);
+
+    const walkInSess = ctx.db.sessions.insert(
+      { eventId: 'evt_test', styleId: 'st_popping', seq: 1, date: '2026-10-06', start: '20:00', end: '22:00', instructorId: '', venue: 'Studio A', status: 'scheduled', note: '' },
+      'admin1',
+      ctx.now()
+    );
+    const otherSess = ctx.db.sessions.insert(
+      { eventId: 'evt_other', styleId: 'st_popping', seq: 1, date: '2026-09-06', start: '20:00', end: '22:00', instructorId: '', venue: 'Studio A', status: 'scheduled', note: '' },
+      'admin1',
+      ctx.now()
+    );
 
     const m1 = ctx.db.music.insert(
-      { styleId: 'st_popping', eventId: 'evt_test', sessionId: '', title: 'My Event Song', sourceType: 'youtube', driveFileId: '', youtubeId: 'vid1' },
+      { styleId: 'st_popping', eventId: 'evt_test', sessionId: walkInSess.id, title: 'Walk-in Class Song', sourceType: 'youtube', driveFileId: '', youtubeId: 'vid1' },
       'admin1',
       ctx.now()
     );
     const m2 = ctx.db.music.insert(
-      { styleId: 'st_popping', eventId: 'evt_other', sessionId: '', title: 'Other Event Song', sourceType: 'youtube', driveFileId: '', youtubeId: 'vid2' },
+      { styleId: 'st_hiphop', eventId: 'evt_other', sessionId: '', title: 'Other Event Hip Hop Song', sourceType: 'youtube', driveFileId: '', youtubeId: 'vid2' },
+      'admin1',
+      ctx.now()
+    );
+    const m3 = ctx.db.music.insert(
+      { styleId: 'st_popping', eventId: 'evt_other', sessionId: otherSess.id, title: 'Other Session Song', sourceType: 'youtube', driveFileId: '', youtubeId: 'vid3' },
       'admin1',
       ctx.now()
     );
 
     const s1 = ctx.db.sections.insert(
-      { musicId: m1.id, name: 'S1 My Event', startSec: 0, endSec: 10, videoId: '', videoStartSec: null },
+      { musicId: m1.id, name: 'S1 Walk-In Class', startSec: 0, endSec: 10, videoId: '', videoStartSec: null },
       'admin1',
       ctx.now()
     );
     const s2 = ctx.db.sections.insert(
-      { musicId: m2.id, name: 'S2 Other Event', startSec: 0, endSec: 10, videoId: '', videoStartSec: null },
+      { musicId: m2.id, name: 'S2 Other Event HH', startSec: 0, endSec: 10, videoId: '', videoStartSec: null },
+      'admin1',
+      ctx.now()
+    );
+    const s3 = ctx.db.sections.insert(
+      { musicId: m3.id, name: 'S3 Other Session', startSec: 0, endSec: 10, videoId: '', videoStartSec: null },
       'admin1',
       ctx.now()
     );
@@ -389,12 +450,75 @@ describe('Feature: Music & Sections (features/music)', () => {
       ctx,
       secrets
     );
-
     expect(res.ok).toBe(true);
     if (res.ok) {
       const list = res.data as any[];
-      expect(list.map(s => s.id)).toEqual([s1.id]);
+      expect(list.map(s => s.id).sort()).toEqual([s1.id, s2.id, s3.id].sort());
     }
+
+    const walkInToken = signToken(
+      {
+        sub: `W-${walkInSess.id}-alex%20tan`,
+        role: 'dancer',
+        name: 'Alex Tan (Walk-In)',
+        exp: Math.floor(ctx.now().getTime() / 1000) + 3600,
+        pv: 1,
+        perms: { 'music.view': ['st_popping'] }
+      },
+      secrets.tokenSecret,
+      secrets.hmac
+    );
+
+    const walkInMusic = handleRequest({ action: 'music.list', token: walkInToken, payload: {} }, ctx, secrets);
+    expect(walkInMusic.ok).toBe(true);
+    if (walkInMusic.ok) {
+      expect((walkInMusic.data as any[]).map(m => m.id)).toEqual([m1.id]);
+    }
+
+    const walkInSections = handleRequest({ action: 'sections.list', token: walkInToken, payload: {} }, ctx, secrets);
+    expect(walkInSections.ok).toBe(true);
+    if (walkInSections.ok) {
+      expect((walkInSections.data as any[]).map(s => s.id)).toEqual([s1.id]);
+    }
+
+    // Passing another musicId explicitly cannot leak sections outside the walk-in session
+    const walkInOtherMusicSections = handleRequest(
+      { action: 'sections.list', token: walkInToken, payload: { musicId: m2.id } },
+      ctx,
+      secrets
+    );
+    expect(walkInOtherMusicSections.ok).toBe(true);
+    if (walkInOtherMusicSections.ok) {
+      expect(walkInOtherMusicSections.data).toEqual([]);
+    }
+
+    const walkInOwnMusicSections = handleRequest(
+      { action: 'sections.list', token: walkInToken, payload: { musicId: m1.id } },
+      ctx,
+      secrets
+    );
+    expect(walkInOwnMusicSections.ok).toBe(true);
+    if (walkInOwnMusicSections.ok) {
+      expect((walkInOwnMusicSections.data as any[]).map(s => s.id)).toEqual([s1.id]);
+    }
+
+    // Walk-in token for an unknown/inactive session gets no music or sections
+    const orphanWalkInToken = signToken(
+      {
+        sub: 'W-ses_missing-alex%20tan',
+        role: 'dancer',
+        name: 'Alex Tan (Walk-In)',
+        exp: Math.floor(ctx.now().getTime() / 1000) + 3600,
+        pv: 1,
+        perms: { 'music.view': ['st_popping'] }
+      },
+      secrets.tokenSecret,
+      secrets.hmac
+    );
+    const orphanMusic = handleRequest({ action: 'music.list', token: orphanWalkInToken, payload: {} }, ctx, secrets);
+    expect(orphanMusic.ok && orphanMusic.data).toEqual([]);
+    const orphanSections = handleRequest({ action: 'sections.list', token: orphanWalkInToken, payload: {} }, ctx, secrets);
+    expect(orphanSections.ok && orphanSections.data).toEqual([]);
   });
 });
 

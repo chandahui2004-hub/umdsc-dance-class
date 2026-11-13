@@ -446,4 +446,215 @@ describe('UploadDialog Gating and Video Compression', () => {
       expect(screen.getByTestId('camera-tip')).toHaveTextContent(/1080p HD at 30 fps/);
     });
   });
+
+  describe('MP3 general Music Library uploads (sessionless)', () => {
+    const renderMp3Dialog = (
+      opts: {
+        style?: DanceStyle;
+        sessions?: ClassSession[];
+        initialSessionId?: string | null;
+        onSuccess?: () => unknown;
+      } = {}
+    ) =>
+      render(
+        <MemoryRouter>
+          <UploadDialog
+            type="mp3"
+            eventId="e1"
+            eventName="OCT"
+            style={opts.style ?? styleWithLink}
+            sessions={opts.sessions ?? []}
+            initialSessionId={opts.initialSessionId}
+            onClose={() => {}}
+            onSuccess={opts.onSuccess ?? (() => {})}
+          />
+        </MemoryRouter>
+      );
+
+    it('renders General Style / Event Library Track option when sessions are empty, rejects .mp4, and accepts .mp3', () => {
+      renderMp3Dialog({ sessions: [] });
+
+      expect(screen.queryByText(/NO CLASSES IN/i)).not.toBeInTheDocument();
+
+      const sessionSelect = screen.getByRole('combobox') as HTMLSelectElement;
+      expect(sessionSelect.value).toBe('');
+      expect(
+        screen.getByRole('option', { name: '-- General Style / Event Library Track --' })
+      ).toHaveValue('');
+
+      const videoFile = new File([new Uint8Array(100)], 'clip.mp4', { type: 'video/mp4' });
+      chooseFile(videoFile);
+      expect(screen.getByRole('alert')).toHaveTextContent(/Only MP3 or audio files can be uploaded for music/i);
+      expect(screen.getByRole('button', { name: 'START UPLOAD' })).toBeDisabled();
+
+      const mp3File = new File([new Uint8Array(100)], 'track.mp3', { type: 'audio/mpeg' });
+      chooseFile(mp3File);
+      expect(screen.queryByText(/Only MP3 or audio files/i)).not.toBeInTheDocument();
+      expect(screen.getByText(/track\.mp3/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'START UPLOAD' })).toBeEnabled();
+    });
+
+    it('uploads a sessionless MP3 to Music Library without calling videos.notifyBatch', async () => {
+      const onSuccess = vi.fn();
+      mockEnsureClassFolder.mockResolvedValue({
+        eventFolderId: 'event_subfolder_id',
+        classFolderId: 'event_subfolder_id',
+        musicFolderId: 'music_subfolder_id'
+      });
+
+      renderMp3Dialog({ sessions: [], onSuccess });
+
+      const mp3File = new File([new Uint8Array(100)], 'track.mp3', { type: 'audio/mpeg' });
+      chooseFile(mp3File);
+      fireEvent.click(screen.getByRole('button', { name: 'START UPLOAD' }));
+
+      await waitFor(() =>
+        expect(mockPost).toHaveBeenCalledWith('music.create', {
+          styleId: 'st1',
+          eventId: 'e1',
+          sessionId: '',
+          title: 'track.mp3',
+          sourceType: 'mp3',
+          driveFileId: 'uploaded_file_id'
+        })
+      );
+
+      expect(mockPost).toHaveBeenCalledWith('videos.targetFolder', {
+        sessionId: '',
+        eventId: 'e1',
+        styleId: 'st1'
+      });
+      expect(mockEnsureClassFolder).toHaveBeenCalledWith(
+        'fake-access-token',
+        expect.objectContaining({
+          videoMasterFolderId: 'folder_locking',
+          eventFolderId: 'event_subfolder_id'
+        }),
+        'mp3'
+      );
+      expect(mockUploadResumable).toHaveBeenCalledWith(
+        expect.objectContaining({
+          parentId: 'music_subfolder_id',
+          name: 'track.mp3'
+        })
+      );
+      expect(mockPost).not.toHaveBeenCalledWith('videos.notifyBatch', expect.anything());
+      await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+    });
+
+    it('allows switching from a scheduled session to General Style / Event Library Track when uploading MP3', async () => {
+      renderMp3Dialog({ sessions });
+
+      const sessionSelect = screen.getByRole('combobox') as HTMLSelectElement;
+      expect(sessionSelect.value).toBe('s1');
+
+      fireEvent.change(sessionSelect, { target: { value: '' } });
+      expect(sessionSelect.value).toBe('');
+
+      const mp3File = new File([new Uint8Array(100)], 'library.mp3', { type: 'audio/mpeg' });
+      chooseFile(mp3File);
+      fireEvent.click(screen.getByRole('button', { name: 'START UPLOAD' }));
+
+      await waitFor(() =>
+        expect(mockPost).toHaveBeenCalledWith('music.create', {
+          styleId: 'st1',
+          eventId: 'e1',
+          sessionId: '',
+          title: 'library.mp3',
+          sourceType: 'mp3',
+          driveFileId: 'uploaded_file_id'
+        })
+      );
+      expect(mockPost).toHaveBeenCalledWith('videos.targetFolder', {
+        sessionId: '',
+        eventId: 'e1',
+        styleId: 'st1'
+      });
+    });
+
+    it('shows missing-video-folder-alert and disables START UPLOAD for MP3 when style has no videoFolderId', () => {
+      renderMp3Dialog({ style: styleWithoutLink, sessions: [] });
+
+      const mp3File = new File([new Uint8Array(100)], 'track.mp3', { type: 'audio/mpeg' });
+      chooseFile(mp3File);
+
+      expect(screen.getByTestId('missing-video-folder-alert')).toBeInTheDocument();
+      expect(screen.getByText(/Class lead video folder link not inserted for Popping/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'START UPLOAD' })).toBeDisabled();
+    });
+
+    it('resets selectedSessionId to "" in mp3 mode when the selected session is removed from sessions', async () => {
+      const { rerender } = renderMp3Dialog({ sessions });
+
+      const sessionSelect = screen.getByRole('combobox') as HTMLSelectElement;
+      expect(sessionSelect.value).toBe('s1');
+
+      rerender(
+        <MemoryRouter>
+          <UploadDialog
+            type="mp3"
+            eventId="e1"
+            eventName="OCT"
+            style={styleWithLink}
+            sessions={[]}
+            onClose={() => {}}
+            onSuccess={() => {}}
+          />
+        </MemoryRouter>
+      );
+
+      await waitFor(() => {
+        expect((screen.getByRole('combobox') as HTMLSelectElement).value).toBe('');
+      });
+
+      const mp3File = new File([new Uint8Array(100)], 'reconciled.mp3', { type: 'audio/mpeg' });
+      chooseFile(mp3File);
+      fireEvent.click(screen.getByRole('button', { name: 'START UPLOAD' }));
+
+      await waitFor(() =>
+        expect(mockPost).toHaveBeenCalledWith('music.create', expect.objectContaining({ sessionId: '' }))
+      );
+    });
+
+    it('selects sessions[0].id and enables START UPLOAD in video mode when sessions populate after mount', async () => {
+      const { rerender } = render(
+        <MemoryRouter>
+          <UploadDialog
+            type="video"
+            eventId="e1"
+            eventName="OCT"
+            style={styleWithLink}
+            sessions={[]}
+            onClose={() => {}}
+            onSuccess={() => {}}
+          />
+        </MemoryRouter>
+      );
+
+      const videoFile = new File([new Uint8Array(100)], 'clip.mp4', { type: 'video/mp4' });
+      chooseFile(videoFile);
+
+      expect(screen.getByText(/NO CLASSES IN OCT FOR LOCKING/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'START UPLOAD' })).toBeDisabled();
+
+      rerender(
+        <MemoryRouter>
+          <UploadDialog
+            type="video"
+            eventId="e1"
+            eventName="OCT"
+            style={styleWithLink}
+            sessions={sessions}
+            onClose={() => {}}
+            onSuccess={() => {}}
+          />
+        </MemoryRouter>
+      );
+
+      await waitFor(() => {
+        expect((screen.getByRole('combobox') as HTMLSelectElement).value).toBe('s1');
+      });
+      expect(screen.getByRole('button', { name: 'START UPLOAD' })).toBeEnabled();
+    });
+  });
 });

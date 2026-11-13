@@ -55,9 +55,22 @@ describe('canAccessRoute and navigation filtering', () => {
     expect(canAccessRoute('/admin/attendance', classRepPerms)).toBe(true);
     expect(canAccessRoute('/admin/calendar', classRepPerms)).toBe(false);
     expect(canAccessRoute('/admin/media', classRepPerms)).toBe(false);
+    expect(canAccessRoute('/admin/library', classRepPerms)).toBe(false);
+    expect(canAccessRoute('/admin/studio', classRepPerms)).toBe(false);
     expect(canAccessRoute('/admin/members', classRepPerms)).toBe(false);
     expect(canAccessRoute('/admin/roles', classRepPerms)).toBe(false);
     expect(canAccessRoute('/admin/settings', classRepPerms)).toBe(false);
+  });
+
+  it('canAccessRoute allows media/music reps and wildcard admins to access /admin/library and /admin/studio', () => {
+    expect(canAccessRoute('/admin/library', { 'music.view': '*' })).toBe(true);
+    expect(canAccessRoute('/admin/studio', { 'music.view': '*' })).toBe(true);
+    expect(canAccessRoute('/admin/library', { 'music.edit': ['st_popping'] })).toBe(true);
+    expect(canAccessRoute('/admin/studio', { 'music.edit': ['st_popping'] })).toBe(true);
+    expect(canAccessRoute('/admin/library', { 'videos.upload': '*' })).toBe(true);
+    expect(canAccessRoute('/admin/studio', { 'videos.upload': '*' })).toBe(true);
+    expect(canAccessRoute('/admin/library', { 'videos.view': '*', 'music.view': '*' })).toBe(true);
+    expect(canAccessRoute('/admin/studio', { 'videos.view': '*', 'music.view': '*' })).toBe(true);
   });
 
   it('getFirstPermittedAdminRoute returns /admin/calendar for superadmin and /admin/attendance for class rep', () => {
@@ -71,6 +84,7 @@ describe('canAccessRoute and navigation filtering', () => {
       { id: 'calendar', label: 'Calendar', icon: null as any, path: '/admin/calendar' },
       { id: 'attendance', label: 'Attendance', icon: null as any, path: '/admin/attendance' },
       { id: 'media', label: 'Media', icon: null as any, path: '/admin/media' },
+      { id: 'library', label: 'Library', icon: null as any, path: '/admin/library' },
       { id: 'more', label: 'More', icon: null as any, path: '#more' }
     ];
 
@@ -81,6 +95,9 @@ describe('canAccessRoute and navigation filtering', () => {
 
     const permittedTabs = filterPermittedTabs(tabs, classRepPerms, moreItems);
     expect(permittedTabs.map((t) => t.id)).toEqual(['attendance']);
+
+    const mediaRepTabs = filterPermittedTabs(tabs, { 'music.view': '*' }, moreItems);
+    expect(mediaRepTabs.map((t) => t.id)).toEqual(['media', 'library']);
 
     const permittedMore = filterPermittedMoreItems(moreItems, classRepPerms);
     expect(permittedMore).toEqual([]);
