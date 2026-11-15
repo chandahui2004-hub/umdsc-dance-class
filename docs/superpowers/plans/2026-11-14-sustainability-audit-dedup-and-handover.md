@@ -63,7 +63,7 @@
     1. Runs `checkEventFormStatus(ctx, event)` gated by `sync:formCheck:<eventId>` (TTL `600`s) for active events (`event.status === 'active'`) with `formId || formUrl`, bumping `DATA_VERSION` if `formClosed` or `formClosedReason` changes.
     2. Gates source sheet polling by `sync:check:<eventId>` (TTL `60`s) so `warmCaches` and `events.autoSync` never double-poll or double-import the same event within 60 seconds.
 
-- [ ] **Step 1: Write failing unit tests in `api/test/features/events.test.ts` and `api/test/features/warmup.test.ts`**
+- [x] **Step 1: Write failing unit tests in `api/test/features/events.test.ts` and `api/test/features/warmup.test.ts`**
 
 Add tests asserting:
 1. In `api/test/features/events.test.ts`: when `events.autoSync` is called with `{ stabilize: true }` on a changed sheet, `sheet.getDisplayValues()` is called only once on the first stabilization check (not twice).
@@ -71,23 +71,23 @@ Add tests asserting:
    - `warmCaches` calls `checkEventFormStatus` when `event.formId` or `event.formUrl` is set and `sync:formCheck:<eventId>` is not cached, sets `sync:formCheck:<eventId>` with TTL `600`, and increments `DATA_VERSION` when form status changes.
    - `warmCaches` skips `sourceUnchanged` / `importEventMembers` when `sync:check:<eventId>` is already present in cache (set by a recent `events.autoSync`), and sets `sync:check:<eventId>` (TTL `60`) when it checks the source sheet.
 
-- [ ] **Step 2: Run Vitest in `api` to verify the new tests fail**
+- [x] **Step 2: Run Vitest in `api` to verify the new tests fail**
 
 Run: `npm test -w api -- test/features/events.test.ts test/features/warmup.test.ts`  
 Expected: FAIL on the new assertions.
 
-- [ ] **Step 3: Implement `checkSourceState` in `api/src/features/eventImport.ts` and update `events.ts` & `warmup.ts`**
+- [x] **Step 3: Implement `checkSourceState` in `api/src/features/eventImport.ts` and update `events.ts` & `warmup.ts`**
 
 1. In `api/src/features/eventImport.ts`: export `checkSourceState(ctx: Ctx, event: EventItem): { unchanged: boolean; currentHash: string; rowCount: number }` and make `sourceUnchanged(ctx, event)` return `checkSourceState(ctx, event).unchanged`.
 2. In `api/src/features/events.ts`: in `'events.autoSync'`, call `const state = checkSourceState(ctx, event);` once; if `state.unchanged`, remove `pendingKey` and continue; if `stabilize`, compare `ctx.cache.get(pendingKey) !== state.currentHash` using `state.currentHash` directly without calling `openSourceTab` / `getDisplayValues()` again.
 3. In `api/src/features/warmup.ts`: for active events (`event.status === 'active'`), run the `sync:formCheck:${event.id}` (TTL `600`) check via `checkEventFormStatus(ctx, event)` and bump `DATA_VERSION` (and refresh `dataVersion`) if `formRes.synced && (formRes.formClosed !== prevClosed || formRes.formClosedReason !== prevReason)`. Gate the `sourceUnchanged` + `importEventMembers` block with `sync:check:${event.id}` (TTL `60`) and use `{ full: false, purgeRemoved: true }` (matching `events.autoSync`) so unchanged sheets never force a full rewrite.
 
-- [ ] **Step 4: Run full `api` test suite and build**
+- [x] **Step 4: Run full `api` test suite and build**
 
 Run: `npm test -w api ; if ($LASTEXITCODE -eq 0) { npm run build -w api }`  
 Expected: All `api` test files pass and `dist/Code.js` builds with exit code `0`.
 
-- [ ] **Step 5: Commit Task 1**
+- [x] **Step 5: Commit Task 1**
 
 ```powershell
 git add api/src/features/eventImport.ts api/src/features/events.ts api/src/features/warmup.ts api/test/features/events.test.ts api/test/features/warmup.test.ts
@@ -117,17 +117,17 @@ git commit -m "perf(api): unify background sync throttling and eliminate double 
   - Shared React Query keys and `staleTime: 60_000` for `['styles']` and `['events', 'all']` across `Studio.tsx` and `MusicLibraryPage.tsx` so switching between `Library` and `Studio` reuses cached metadata without redundant GAS calls.
   - `TabBar.tsx` updated from `text-[9px] sm:text-[11px]` to `text-[10px] sm:text-[11px]`, plus a static source test in `web/src/components/ui/neon.test.tsx` asserting zero occurrences of `text-[8px]` or `text-[9px]` across `web/src/`.
 
-- [ ] **Step 1: Write failing tests in `web/src/components/ui/neon.test.tsx` and `web/src/features/music-studio/Studio.guard.test.tsx`**
+- [x] **Step 1: Write failing tests in `web/src/components/ui/neon.test.tsx` and `web/src/features/music-studio/Studio.guard.test.tsx`**
 
 1. In `web/src/components/ui/neon.test.tsx`: add a test that scans `web/src/**/*.{ts,tsx}` (or checks `TabBar.tsx` and all UI components) to assert no `text-[8px]` or `text-[9px]` classes exist, and that `getYouTubeVideoId('youtube.com/watch?v=dQw4w9WgXcQ')` from `dancecue/utils/youtube` returns `'dQw4w9WgXcQ'`.
 2. In `web/src/features/music-studio/Studio.guard.test.tsx`: assert that `Studio` configures `staleTime` on its `['styles']` and `['events', 'all']` queries so cached data is reused across tab switches.
 
-- [ ] **Step 2: Run Vitest in `web` to verify the new tests fail**
+- [x] **Step 2: Run Vitest in `web` to verify the new tests fail**
 
 Run: `npm test -w web -- src/components/ui/neon.test.tsx src/features/music-studio/Studio.guard.test.tsx`  
 Expected: FAIL (`TabBar.tsx` has `text-[9px]` and `dancecue/utils/youtube.ts` returns `null` for schemeless URLs).
 
-- [ ] **Step 3: Deduplicate `dancecue/utils/youtube.ts`, add `staleTime` to `Studio.tsx` & `MusicLibraryPage.tsx`, and fix `TabBar.tsx` font size**
+- [x] **Step 3: Deduplicate `dancecue/utils/youtube.ts`, add `staleTime` to `Studio.tsx` & `MusicLibraryPage.tsx`, and fix `TabBar.tsx` font size**
 
 1. Replace `web/src/features/music-studio/dancecue/utils/youtube.ts` body with:
    ```ts
@@ -137,12 +137,12 @@ Expected: FAIL (`TabBar.tsx` has `text-[9px]` and `dancecue/utils/youtube.ts` re
 3. In `web/src/features/music-studio/Studio.tsx` and `web/src/features/music-studio/MusicLibraryPage.tsx`: add `staleTime: 60_000` to the `['styles']` and `['events', 'all']` `useQuery` hooks (and `['music', 'library']` in `MusicLibraryPage.tsx` with `staleTime: 30_000`) to prevent redundant refetches when switching between `/library` and `/studio`.
 4. Audit any other files in `web/src/` for unused imports, dead helpers, or duplicate API calls.
 
-- [ ] **Step 4: Run `shared` and `web` unit tests and production build**
+- [x] **Step 4: Run `shared` and `web` unit tests and production build**
 
 Run: `npm test -w shared ; if ($LASTEXITCODE -eq 0) { npm test -w web } ; if ($LASTEXITCODE -eq 0) { npm run build }`  
 Expected: All `shared` and `web` tests pass, and `npm run build` exits `0`.
 
-- [ ] **Step 5: Commit Task 2**
+- [x] **Step 5: Commit Task 2**
 
 ```powershell
 git add web/src/features/music-studio/dancecue/utils/youtube.ts web/src/components/ui/TabBar.tsx web/src/features/music-studio/Studio.tsx web/src/features/music-studio/MusicLibraryPage.tsx web/src/components/ui/neon.test.tsx web/src/features/music-studio/Studio.guard.test.tsx
@@ -166,11 +166,11 @@ git commit -m "refactor(web,shared): deduplicate YouTube parser, add query stale
   - Extended `web/e2e/phone-layout.spec.ts` covering `/library` and `/admin/library` at `360px` and `390px` viewports.
   - `scripts/live-sandbox-verify.mjs` that runs live sustainability & sandbox checks against the deployed GAS API (`?action=health`, `?action=warm`, `bootstrap`, dancer login + `events.list` / `music.list` / `sections.list` cross-style access verification, and if `.admin-token` is present, creates & cleans up a temporary sandbox item in a `try / finally` block).
 
-- [ ] **Step 1: Extend `web/e2e/phone-layout.spec.ts` to include `/library` and `/admin/library`**
+- [x] **Step 1: Extend `web/e2e/phone-layout.spec.ts` to include `/library` and `/admin/library`**
 
 Add `/library` to the dancer phone-layout check list and `/admin/library` to the admin phone-layout check list in `web/e2e/phone-layout.spec.ts`.
 
-- [ ] **Step 2: Run `phone-layout.spec.ts` twice and full Playwright E2E suite (`--grep-invert @internet`)**
+- [x] **Step 2: Run `phone-layout.spec.ts` twice and full Playwright E2E suite (`--grep-invert @internet`)**
 
 Run:
 ```powershell
@@ -178,7 +178,7 @@ cd web ; npx playwright test e2e/phone-layout.spec.ts ; if ($LASTEXITCODE -eq 0)
 ```
 Expected: `phone-layout.spec.ts` passes twice with `0` failures across both desktop and mobile projects; full E2E suite passes with `0` failures. Fix any layout or E2E defects discovered.
 
-- [ ] **Step 3: Create and run `scripts/live-sandbox-verify.mjs` against the live GAS API**
+- [x] **Step 3: Create and run `scripts/live-sandbox-verify.mjs` against the live GAS API**
 
 Write `scripts/live-sandbox-verify.mjs` to test:
 1. `GET <VITE_API_URL>?action=health` -> asserts `ok === true`.
@@ -189,12 +189,12 @@ Write `scripts/live-sandbox-verify.mjs` to test:
    - Runs a self-cleaning sandbox write/delete lifecycle in a `try / finally` block (creates a temporary sandbox music track `[SANDBOX-TEST] Do Not Keep` on an active style, verifies it appears in `music.list`, creates a temporary practice section, verifies it appears in `sections.list`, and deletes both in `finally` while confirming removal from `music.list`).
 5. Prints a structured JSON + human-readable sustainability summary and exits `0`.
 
-- [ ] **Step 4: Execute `node scripts/live-sandbox-verify.mjs` and verify exit code `0`**
+- [x] **Step 4: Execute `node scripts/live-sandbox-verify.mjs` and verify exit code `0`**
 
 Run: `node scripts/live-sandbox-verify.mjs`  
 Expected: All live health, warm-cache, bootstrap, and sandbox checks pass with `0` errors and `100%` cleanup verified.
 
-- [ ] **Step 5: Commit Task 3**
+- [x] **Step 5: Commit Task 3**
 
 ```powershell
 git add web/e2e/phone-layout.spec.ts scripts/live-sandbox-verify.mjs
@@ -240,7 +240,7 @@ git commit -m "test(e2e,scripts): add library phone-layout checks and live GAS s
 **Interfaces:**
 - Produces: Complete, up-to-date English and Chinese handbooks + regenerated `.docx` Word files + updated `docs/HANDOVER.md`, `docs/SETUP-VALUES.md`, `docs/ENABLE-YOUTUBE-SEARCH.md`, `AGENTS.md`, and `GEMINI.md`.
 
-- [ ] **Step 1: Update English Guides (`docs/guides/en/1-class-lead-guide.md` through `5-developer-guide.md` and `docs/guides/README.md`)**
+- [x] **Step 1: Update English Guides (`docs/guides/en/1-class-lead-guide.md` through `5-developer-guide.md` and `docs/guides/README.md`)**
 
 Update all 5 English guides with the latest features added through November 2026:
 1. **`1-class-lead-guide.md`**:
@@ -266,21 +266,21 @@ Update all 5 English guides with the latest features added through November 2026
 5. **`5-developer-guide.md`**:
    - Updated directory structure (`shared/`, `api/`, `web/`, `scripts/`), one-command API deploy (`npm run push -w api`), live sustainability verifier (`node scripts/live-sandbox-verify.mjs`), Word guide generator (`node scripts/build-guide-docx.mjs`), background `warmDancerCaches` trigger (cache warming + 1-min/5-min sheet sync + 10-min Google Form status check), and UI rules (`10px` min font, `44px` tap targets, `360px` phone layout).
 
-- [ ] **Step 2: Update Chinese Guides (`docs/guides/zh/1-class-lead-guide.md` through `5-developer-guide.md`)**
+- [x] **Step 2: Update Chinese Guides (`docs/guides/zh/1-class-lead-guide.md` through `5-developer-guide.md`)**
 
 Mirror every addition from Step 1 into `docs/guides/zh/1-class-lead-guide.md` through `docs/guides/zh/5-developer-guide.md`, keeping English button/menu labels in bold alongside natural Chinese explanations (matching existing `zh/` style).
 
-- [ ] **Step 3: Create `scripts/build-guide-docx.mjs` and regenerate all 10 `.docx` files in `docs/guides/word/`**
+- [x] **Step 3: Create `scripts/build-guide-docx.mjs` and regenerate all 10 `.docx` files in `docs/guides/word/`**
 
 Write a zero-dependency Node script `scripts/build-guide-docx.mjs` (using Node's built-in `zlib` / ZIP packaging or openxml builder matching the existing `.docx` structure in `docs/guides/word/`) that converts `docs/guides/en/*.md` and `docs/guides/zh/*.md` (including embedded images from `docs/guides/images/`) into `docs/guides/word/*-{en,zh}.docx`, and run `node scripts/build-guide-docx.mjs`.
 
-- [ ] **Step 4: Update `docs/HANDOVER.md`, `docs/SETUP-VALUES.md`, `docs/ENABLE-YOUTUBE-SEARCH.md`, `AGENTS.md`, and `GEMINI.md`**
+- [x] **Step 4: Update `docs/HANDOVER.md`, `docs/SETUP-VALUES.md`, `docs/ENABLE-YOUTUBE-SEARCH.md`, `AGENTS.md`, and `GEMINI.md`**
 
 1. Update `docs/HANDOVER.md` so all sections reflect the November 2026 system (Event Wizard + Form Auto-Gating, 1-min/5-min Auto-Sync & Incomplete Row Guard, Class Rep role, Shared Music Library, Hybrid Drive/YouTube Videos, Walk-In QR, Mascot Notifications, `npm run push -w api`, and links to `docs/guides/README.md`).
 2. Update `docs/SETUP-VALUES.md` with the latest GAS deployment version and date.
 3. Update `docs/ENABLE-YOUTUBE-SEARCH.md`, `AGENTS.md`, and `GEMINI.md` to reference the latest spec/plan and `npm run push -w api` deployment command.
 
-- [ ] **Step 5: Verify all markdown links and commit Task 4**
+- [x] **Step 5: Verify all markdown links and commit Task 4**
 
 ```powershell
 node scripts/build-guide-docx.mjs
@@ -299,7 +299,7 @@ git commit -m "docs(handover,guides): update all EN/ZH/Word guides and handover 
 - Modify: `docs/SETUP-VALUES.md` (record final GAS `@version` number after `npm run push -w api`)
 - Modify: `docs/superpowers/plans/2026-11-14-sustainability-audit-dedup-and-handover.md` (mark all task checkboxes `[x]`)
 
-- [ ] **Step 1: Run full monorepo unit tests, build, and Playwright phone-layout & E2E verification**
+- [x] **Step 1: Run full monorepo unit tests, build, and Playwright phone-layout & E2E verification**
 
 Run:
 ```powershell
@@ -307,7 +307,7 @@ npm test -ws --if-present ; if ($LASTEXITCODE -eq 0) { npm run build } ; if ($LA
 ```
 Expected: 100% of `shared`, `api`, and `web` tests pass and both builds exit `0`.
 
-- [ ] **Step 2: Deploy updated backend to Google Apps Script (`npm run push -w api`) and run `scripts/live-sandbox-verify.mjs`**
+- [x] **Step 2: Deploy updated backend to Google Apps Script (`npm run push -w api`) and run `scripts/live-sandbox-verify.mjs`**
 
 Run:
 ```powershell
@@ -315,7 +315,7 @@ npm run push -w api ; if ($LASTEXITCODE -eq 0) { node scripts/live-sandbox-verif
 ```
 Expected: `clasp deploy` prints the new `@<version>` number, and `live-sandbox-verify.mjs` passes all live checks including the new `warm` form-status/throttle behavior.
 
-- [ ] **Step 3: Record final GAS deployment version in `docs/SETUP-VALUES.md`, dispatch Final Whole-Branch Reviewer (`TypeName: 'research'`, `Model: 'pro'`), and push to `origin/main`**
+- [x] **Step 3: Record final GAS deployment version in `docs/SETUP-VALUES.md`, dispatch Final Whole-Branch Reviewer (`TypeName: 'research'`, `Model: 'pro'`), and push to `origin/main`**
 
 ```powershell
 git add docs/SETUP-VALUES.md docs/superpowers/plans/2026-11-14-sustainability-audit-dedup-and-handover.md

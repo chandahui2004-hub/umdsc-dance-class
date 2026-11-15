@@ -41,6 +41,7 @@ These configuration values are **public by design** and are embedded into the cl
 |---|---|
 | **Script ID** | `1f3p4D-1zClfrSUmoa6g5zgw95c-MgTVQ8j0jKv7j1hVE1yNINQ5qw6iL` |
 | **Production Deployment ID** | `AKfycbz3zfWHdcl_3GuDsCf_ysLpH4XDNyklC87L9HuKpUVvhKrF-BU1M-QCf0PjPePAwwxIHA` |
+| **Latest Deployed Version** | `@104` (2026-11-15) |
 | **Production Execution Endpoint (`VITE_API_URL`)** | `https://script.google.com/macros/s/AKfycbz3zfWHdcl_3GuDsCf_ysLpH4XDNyklC87L9HuKpUVvhKrF-BU1M-QCf0PjPePAwwxIHA/exec` |
 | **Deploy Command** | `npm run push -w api` |
 

@@ -65,7 +65,7 @@ describe('NeonSign & PixelPortraitFrame', () => {
 
   it('has zero sub-10px typography classes across web/src/**/*.{ts,tsx}', () => {
     const srcDir = path.resolve(__dirname, '..', '..');
-    const sub10pxPattern = /text-\[[1-9]px\]/;
+    const sub10pxPattern = /text-\[[0-9](\.[0-9]+)?px\]/;
 
     function getFiles(dir: string): string[] {
       const entries = fs.readdirSync(dir, { withFileTypes: true });

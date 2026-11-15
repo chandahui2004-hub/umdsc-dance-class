@@ -10,7 +10,7 @@ import { previewSource, openSourceTab } from './eventSource';
 import { ensureEventFolder, ensureMembersSheet, ensureEventSheets, saveEventFields, eventYear, refileEventYear, renameStyleVideoFolders } from './eventSheets';
 import { getEvent, readEventMembers } from './eventMembers';
 import { importEventMembers, checkSourceState, checkAndNotifySlotCapacities, AUTO_SYNC_SECONDS } from './eventImport';
-import { syncGoogleFormSlotChoices, checkEventFormStatus, syncFormStatusIfDue } from './formGating';
+import { syncGoogleFormSlotChoices, syncFormStatusIfDue } from './formGating';
 import { extractGoogleFormId } from '../logic/googleForm';
 
 export { extractGoogleFormId };
