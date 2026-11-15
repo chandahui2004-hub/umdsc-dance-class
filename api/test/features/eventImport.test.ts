@@ -3,7 +3,7 @@ import { makeCtx } from '../fakes/makeCtx';
 import { FakeDrive } from '../fakes/fakeDrive';
 import { FakeSpreadsheet, FakeSheet } from '../fakes/fakeSheets';
 import { seedEvent, seedSourceSheet } from '../fixtures/events';
-import { importEventMembers, sourceUnchanged } from '../../src/features/eventImport';
+import { importEventMembers, sourceUnchanged, checkSourceState, AUTO_SYNC_SECONDS, FORM_CHECK_SECONDS } from '../../src/features/eventImport';
 import { readEventMembers } from '../../src/features/eventMembers';
 import { EventItem } from '@umdsc/shared';
 
@@ -368,6 +368,21 @@ describe('importEventMembers', () => {
 
     // Even if sourceRowCount was somehow cached at 2, sourceUnchanged sees 2 rows vs 3 memberCount
     expect(sourceUnchanged(ctx, { ...ev, sourceRowCount: 2, sourceLastRowHash: '' })).toBe(false);
+  });
+
+  it('checkSourceState returns unchanged: true when rows and hash match, and returns currentHash and rowCount', () => {
+    const { event } = makeEvent([
+      row('Dancer 1', '24001', 'Popping')
+    ]);
+    const res1 = importEventMembers(ctx, event, { full: true });
+    const ev = fresh(event);
+
+    const state = checkSourceState(ctx, ev);
+    expect(state.unchanged).toBe(true);
+    expect(state.rowCount).toBe(2);
+    expect(state.currentHash).toBe(ev.sourceLastRowHash);
+    expect(AUTO_SYNC_SECONDS).toBe(60);
+    expect(FORM_CHECK_SECONDS).toBe(600);
   });
 
   it('automatically remaps Testing1 and Testing2 on matric 23005147 to unique alphanumeric TEST9001 and TEST9002', () => {

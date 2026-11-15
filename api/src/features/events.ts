@@ -9,8 +9,8 @@ import { logAudit } from '../logic/audit';
 import { previewSource, openSourceTab } from './eventSource';
 import { ensureEventFolder, ensureMembersSheet, ensureEventSheets, saveEventFields, eventYear, refileEventYear, renameStyleVideoFolders } from './eventSheets';
 import { getEvent, readEventMembers } from './eventMembers';
-import { importEventMembers, sourceUnchanged, checkAndNotifySlotCapacities } from './eventImport';
-import { syncGoogleFormSlotChoices, checkEventFormStatus } from './formGating';
+import { importEventMembers, checkSourceState, checkAndNotifySlotCapacities, AUTO_SYNC_SECONDS } from './eventImport';
+import { syncGoogleFormSlotChoices, checkEventFormStatus, syncFormStatusIfDue } from './formGating';
 import { extractGoogleFormId } from '../logic/googleForm';
 
 export { extractGoogleFormId };
@@ -18,7 +18,6 @@ import { withScriptLock } from '../db/lock';
 import { assertSchemaReady } from './reset';
 import { cleanStyleInstructors, firstInstructor, assertClassInstructor } from './styleInstructors';
 
-const AUTO_SYNC_SECONDS = 60;
 const SYNC_NOW_SECONDS = 60;
 
 export const RETENTION_NO_SYNC =
@@ -387,26 +386,9 @@ export function getEventRoutes(): Record<string, Route> {
 
         const today = todayKL(ctx.now());
         for (const event of ctx.db.events.find(e => e.active && e.status === 'active' && !pastRetention(e, today))) {
-          // Check Google Form accepting status every 10 minutes for active events with a form link
-          const hasForm = Boolean(event.formId || event.formUrl);
-          if (hasForm) {
-            const formCheckKey = `sync:formCheck:${event.id}`;
-            if (ctx.cache.get(formCheckKey) === null) {
-              ctx.cache.put(formCheckKey, '1', 600);
-              try {
-                const prevClosed = Boolean(event.formClosed);
-                const prevReason = event.formClosedReason;
-                const formRes = checkEventFormStatus(ctx, event);
-                if (formRes.synced) {
-                  if (formRes.formClosed !== prevClosed || formRes.formClosedReason !== prevReason) {
-                    if (!result.changed.includes(event.id)) {
-                      result.changed.push(event.id);
-                    }
-                  }
-                }
-              } catch (formErr) {
-                console.warn(`[events.autoSync] Form status check failed for ${event.id}:`, formErr);
-              }
+          if (syncFormStatusIfDue(ctx, event)) {
+            if (!result.changed.includes(event.id)) {
+              result.changed.push(event.id);
             }
           }
           const checkKey = `sync:check:${event.id}`;
@@ -418,15 +400,14 @@ export function getEventRoutes(): Record<string, Route> {
 
           const pendingKey = `sync:pendingHash:${event.id}`;
           try {
-            if (sourceUnchanged(ctx, event)) {
+            const { unchanged, currentHash } = checkSourceState(ctx, event);
+            if (unchanged) {
               ctx.cache.remove(pendingKey);
               result.checked.push(event.id);
               continue;
             }
 
             if (stabilize) {
-              const { sheet } = openSourceTab(ctx, event.sourceSheetId, event.sourceTab);
-              const currentHash = hashSheet(sheet.getDisplayValues());
               if (ctx.cache.get(pendingKey) !== currentHash) {
                 ctx.cache.put(pendingKey, currentHash, 600);
                 result.checked.push(event.id);

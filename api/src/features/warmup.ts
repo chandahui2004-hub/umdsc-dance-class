@@ -3,7 +3,10 @@ import { AppError } from '../errors';
 import { withScriptLock } from '../db/lock';
 import { readEventMembers } from './eventMembers';
 import { getDancerChunk } from './bootstrap';
-import { importEventMembers, sourceUnchanged } from './eventImport';
+import { importEventMembers, checkSourceState, AUTO_SYNC_SECONDS } from './eventImport';
+import { syncFormStatusIfDue } from './formGating';
+import { pastRetention } from './events';
+import { todayKL } from '../logic/events';
 import type { EventItem, Member } from '@umdsc/shared';
 
 export interface WarmResult {
@@ -45,26 +48,42 @@ function backfillEventStyles(ctx: Ctx, event: EventItem, members: Member[]): num
  * each event+style chunk at the current data version). One unreadable event never stops the rest.
  */
 export function warmCaches(ctx: Ctx): WarmResult {
-  const dataVersion = Number(ctx.props.get('DATA_VERSION') || 1);
+  let dataVersion = Number(ctx.props.get('DATA_VERSION') || 1);
   const events = ctx.db.events.find(e => e.active && e.status !== 'archived');
   const result: WarmResult = { events: events.length, chunks: 0, backfilled: 0, errors: 0 };
+  const today = todayKL(ctx.now());
 
   for (const event of events) {
     try {
-      if (event.sourceSheetId && !sourceUnchanged(ctx, event)) {
-        try {
-          withScriptLock(ctx.lock, () => {
-            ctx.db.reload();
-            const fresh = ctx.db.events.get(event.id);
-            if (fresh && fresh.active && fresh.status !== 'archived') {
-              const res = importEventMembers(ctx, fresh, { full: true, purgeRemoved: true, force: true });
-              if (res.changed || fresh.memberCount !== res.memberCount) {
-                ctx.props.set('DATA_VERSION', String(Number(ctx.props.get('DATA_VERSION') || 1) + 1));
+      if (event.status === 'active' && !pastRetention(event, today)) {
+        if (syncFormStatusIfDue(ctx, event)) {
+          dataVersion = Number(ctx.props.get('DATA_VERSION') || 1) + 1;
+          ctx.props.set('DATA_VERSION', String(dataVersion));
+        }
+
+        if (event.sourceSheetId) {
+          const checkKey = `sync:check:${event.id}`;
+          if (ctx.cache.get(checkKey) === null) {
+            ctx.cache.put(checkKey, '1', AUTO_SYNC_SECONDS);
+            const { unchanged } = checkSourceState(ctx, event);
+            if (!unchanged) {
+              try {
+                withScriptLock(ctx.lock, () => {
+                  ctx.db.reload();
+                  const fresh = ctx.db.events.get(event.id);
+                  if (fresh && fresh.active && fresh.status === 'active') {
+                    const res = importEventMembers(ctx, fresh, { full: false, purgeRemoved: true });
+                    if (res.changed || fresh.memberCount !== res.memberCount) {
+                      dataVersion = Number(ctx.props.get('DATA_VERSION') || 1) + 1;
+                      ctx.props.set('DATA_VERSION', String(dataVersion));
+                    }
+                  }
+                }, 10000);
+              } catch {
+                // If lock is held, next warm round picks it up
               }
             }
-          }, 10000);
-        } catch {
-          // If lock is held, next warm round picks it up
+          }
         }
       }
 

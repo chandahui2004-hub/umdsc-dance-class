@@ -109,18 +109,28 @@ export function refreshAttendanceFixedColumns(ctx: Ctx, event: EventItem, change
   }
 }
 
-/** One read, no writes: true when nothing in the form changed (any response, not only the newest). */
-export function sourceUnchanged(ctx: Ctx, event: EventItem): boolean {
+export const AUTO_SYNC_SECONDS = 60;
+export const FORM_CHECK_SECONDS = 600;
+
+export function checkSourceState(ctx: Ctx, event: EventItem): { unchanged: boolean; currentHash: string; rowCount: number } {
   const { sheet } = openSourceTab(ctx, event.sourceSheetId, event.sourceTab);
   const data = sheet.getDisplayValues();
-  if (data.length !== event.sourceRowCount || hashSheet(data) !== event.sourceLastRowHash) {
-    return false;
+  const currentHash = hashSheet(data);
+  const rowCount = data.length;
+
+  if (rowCount !== event.sourceRowCount || currentHash !== event.sourceLastRowHash) {
+    return { unchanged: false, currentHash, rowCount };
   }
   // Re-read if source sheet has fewer responses than stored memberCount (e.g. responses were removed)
-  if (data.length > 1 && event.memberCount > 0 && data.length - 1 < event.memberCount) {
-    return false;
+  if (rowCount > 1 && event.memberCount > 0 && rowCount - 1 < event.memberCount) {
+    return { unchanged: false, currentHash, rowCount };
   }
-  return true;
+  return { unchanged: true, currentHash, rowCount };
+}
+
+/** One read, no writes: true when nothing in the form changed (any response, not only the newest). */
+export function sourceUnchanged(ctx: Ctx, event: EventItem): boolean {
+  return checkSourceState(ctx, event).unchanged;
 }
 
 interface GoneRow {

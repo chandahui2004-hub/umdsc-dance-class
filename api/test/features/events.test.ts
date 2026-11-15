@@ -687,4 +687,31 @@ describe('Feature: events (features/events)', () => {
     expect(updated.formClosedReason).toBe('manual');
     expect(Number(ctx.props.get('DATA_VERSION'))).toBeGreaterThan(1);
   });
+
+  it('events.autoSync with stabilize reads getDisplayValues only once on first stabilization check', () => {
+    const res = call('events.create', createPayload());
+    expect(res.ok).toBe(true);
+    const event = res.ok ? (res.data as any).event : null;
+
+    // Append a new response to the source sheet so it differs from event.sourceRowCount
+    const sourceSs = ctx.drive.openSpreadsheet(event.sourceSheetId);
+    const sourceSheet = sourceSs.sheet(event.sourceTab);
+    expect(sourceSheet).toBeTruthy();
+    sourceSheet!.appendRows([
+      ['2026-10-02', 'Charlie', '22003333', '0123456789', 'c@t.com', 'Popping']
+    ]);
+
+    const getDisplayValuesSpy = vi.spyOn(sourceSheet!, 'getDisplayValues');
+
+    const syncRes = call('events.autoSync', { stabilize: true });
+    expect(syncRes.ok).toBe(true);
+    if (syncRes.ok) {
+      expect((syncRes.data as any).checked).toContain(event.id);
+      expect((syncRes.data as any).changed).not.toContain(event.id);
+    }
+
+    // Should read getDisplayValues exactly once before caching sync:pendingHash
+    expect(getDisplayValuesSpy).toHaveBeenCalledTimes(1);
+    expect(ctx.cache.get(`sync:pendingHash:${event.id}`)).toBeTruthy();
+  });
 });

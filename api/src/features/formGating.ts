@@ -1,7 +1,7 @@
 import { Ctx, FormInstancePort } from '../ports';
 import { EventItem, Member } from '@umdsc/shared';
 import { readEventMembers } from './eventMembers';
-import { REMOVED_FLAG } from './eventImport';
+import { REMOVED_FLAG, FORM_CHECK_SECONDS } from './eventImport';
 import { extractGoogleFormId, isResponderFormLink } from '../logic/googleForm';
 import { logAudit } from '../logic/audit';
 
@@ -688,4 +688,31 @@ export function checkEventFormStatus(ctx: Ctx, event: EventItem): FormGatingResu
     fullStyleIds: [],
     availableStyleIds: []
   };
+}
+
+/**
+ * Checks Google Form open/closed status if due (throttled by FORM_CHECK_SECONDS = 600s).
+ * Returns true if formClosed or formClosedReason changed, false otherwise.
+ */
+export function syncFormStatusIfDue(ctx: Ctx, event: EventItem): boolean {
+  const hasForm = Boolean(event.formId || event.formUrl);
+  if (!hasForm) return false;
+
+  const formCheckKey = `sync:formCheck:${event.id}`;
+  if (ctx.cache.get(formCheckKey) !== null) return false;
+
+  ctx.cache.put(formCheckKey, '1', FORM_CHECK_SECONDS);
+  try {
+    const prevClosed = Boolean(event.formClosed);
+    const prevReason = event.formClosedReason;
+    const formRes = checkEventFormStatus(ctx, event);
+    if (formRes.synced) {
+      if (formRes.formClosed !== prevClosed || formRes.formClosedReason !== prevReason) {
+        return true;
+      }
+    }
+  } catch (formErr) {
+    console.warn(`[syncFormStatusIfDue] Form status check failed for ${event.id}:`, formErr);
+  }
+  return false;
 }
