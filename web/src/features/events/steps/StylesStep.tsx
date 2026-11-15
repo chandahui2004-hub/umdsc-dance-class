@@ -267,7 +267,7 @@ export const StylesStep: React.FC<StepProps> = ({ draft, onChange, onNext, onBac
                         GOOGLE FORM OPTION FULL NAME:
                       </label>
                       <span
-                        className="font-mono text-[9px] uppercase font-bold px-1.5 py-0.5 border"
+                        className="font-mono text-[10px] uppercase font-bold px-1.5 py-0.5 border"
                         style={{ borderColor: accentColor, color: accentColor }}
                       >
                         Exact Choice Text

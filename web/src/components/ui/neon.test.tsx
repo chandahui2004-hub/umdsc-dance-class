@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 import { render, screen } from '@testing-library/react';
 import { NeonSign } from './NeonSign';
 import { PixelPortraitFrame } from './PixelPortraitFrame';
+import { getYouTubeVideoId } from '../../features/music-studio/dancecue/utils/youtube';
 
 describe('NeonSign & PixelPortraitFrame', () => {
   it('NeonSign renders text with custom --glow while preserving var(--text-1) text colour', () => {
@@ -49,12 +52,52 @@ describe('NeonSign & PixelPortraitFrame', () => {
   });
 
   it('pixel.css includes color-scheme and neon indicator filter for time and date inputs', async () => {
-    const fs = await import('fs');
-    const path = await import('path');
     const cssPath = path.resolve(__dirname, '../../theme/pixel.css');
     const css = fs.readFileSync(cssPath, 'utf8');
     expect(css).toContain('input[type="time"]');
     expect(css).toContain('color-scheme: dark');
     expect(css).toContain('::-webkit-calendar-picker-indicator');
+  });
+
+  it('getYouTubeVideoId extracts video ID from schemeless URL', () => {
+    expect(getYouTubeVideoId('youtube.com/watch?v=dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
+  });
+
+  it('has zero sub-10px typography classes across web/src/**/*.{ts,tsx}', () => {
+    const srcDir = path.resolve(__dirname, '..', '..');
+    const sub10pxPattern = /text-\[[1-9]px\]/;
+
+    function getFiles(dir: string): string[] {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      const files: string[] = [];
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          files.push(...getFiles(fullPath));
+        } else if (/\.(ts|tsx)$/.test(entry.name)) {
+          files.push(fullPath);
+        }
+      }
+      return files;
+    }
+
+    const files = getFiles(srcDir);
+    const violations: { file: string; line: number; match: string }[] = [];
+
+    for (const file of files) {
+      const content = fs.readFileSync(file, 'utf-8');
+      const lines = content.split('\n');
+      lines.forEach((line, index) => {
+        if (sub10pxPattern.test(line)) {
+          violations.push({
+            file: path.relative(srcDir, file).replace(/\\/g, '/'),
+            line: index + 1,
+            match: line.trim()
+          });
+        }
+      });
+    }
+
+    expect(violations).toEqual([]);
   });
 });

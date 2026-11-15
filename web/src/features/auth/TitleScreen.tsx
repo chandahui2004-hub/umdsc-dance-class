@@ -418,7 +418,7 @@ export const TitleScreen: React.FC = () => {
                               {s.matric || s.matricMasked}
                             </span>
                           </div>
-                          <span className="font-display text-[9px] text-[var(--neon-gold)] bg-[var(--night-2)] px-1.5 py-0.5 border border-[var(--outline)] flex-shrink-0 group-hover:border-[var(--neon-gold)]">
+                          <span className="font-display text-[10px] text-[var(--neon-gold)] bg-[var(--night-2)] px-1.5 py-0.5 border border-[var(--outline)] flex-shrink-0 group-hover:border-[var(--neon-gold)]">
                             1-TAP IN ►
                           </span>
                         </button>

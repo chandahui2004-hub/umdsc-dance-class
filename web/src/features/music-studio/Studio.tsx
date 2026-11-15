@@ -39,6 +39,7 @@ export const Studio: React.FC = () => {
   // Live queries ensure Admin and Dancer always see all added videos, music, and sections in real-time
   const { data: liveVideos } = useQuery<VideoItem[]>({
     queryKey: ['videos'],
+    staleTime: 30_000,
     queryFn: async () => {
       const res = await api.post<VideoItem[]>('videos.list', {});
       return res.data;
@@ -47,6 +48,7 @@ export const Studio: React.FC = () => {
 
   const { data: liveMusic } = useQuery<MusicItem[]>({
     queryKey: ['music'],
+    staleTime: 30_000,
     queryFn: async () => {
       const res = await api.post<MusicItem[]>('music.list', {});
       return res.data;
@@ -55,6 +57,7 @@ export const Studio: React.FC = () => {
 
   const { data: liveSections } = useQuery<Section[]>({
     queryKey: ['sections'],
+    staleTime: 30_000,
     queryFn: async () => {
       const res = await api.post<Section[]>('sections.list', {});
       return res.data;
@@ -63,6 +66,7 @@ export const Studio: React.FC = () => {
 
   const { data: liveStyles } = useQuery<DanceStyle[]>({
     queryKey: ['styles'],
+    staleTime: 60_000,
     queryFn: async () => {
       const res = await api.post<DanceStyle[]>('styles.list', {});
       return res.data;
@@ -71,6 +75,7 @@ export const Studio: React.FC = () => {
 
   const { data: liveEvents } = useQuery<EventSummary[]>({
     queryKey: ['events'],
+    staleTime: 60_000,
     queryFn: async () => {
       const res = await api.post<EventSummary[]>('events.list', { includeArchived: true });
       return res.data;

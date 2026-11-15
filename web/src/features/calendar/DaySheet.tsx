@@ -202,7 +202,7 @@ export const DaySheet: React.FC<DaySheetProps> = ({
                 {formattedTitle}
               </h2>
               {isQuarterMode && (
-                <span className="font-mono text-[9px] px-1.5 py-0.5 bg-[var(--violet-2)] text-[var(--neon-gold)] border border-[var(--outline)] shrink-0">
+                <span className="font-mono text-[10px] px-1.5 py-0.5 bg-[var(--violet-2)] text-[var(--neon-gold)] border border-[var(--outline)] shrink-0">
                   TAP TO EXPAND
                 </span>
               )}
@@ -268,7 +268,7 @@ export const DaySheet: React.FC<DaySheetProps> = ({
                       ) : (
                         <div className="flex flex-col items-center justify-center text-center">
                           <span className="font-display text-[14px]">👤</span>
-                          <span className="font-display text-[8px] text-[var(--text-3)] leading-none mt-0.5">IN</span>
+                          <span className="font-display text-[10px] text-[var(--text-3)] leading-none mt-0.5">IN</span>
                         </div>
                       )}
                     </div>

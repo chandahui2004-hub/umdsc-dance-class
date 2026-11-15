@@ -87,4 +87,50 @@ describe('Studio guard against non-array live queries', () => {
       expect(screen.getAllByText('OCT').length).toBeGreaterThan(0);
     });
   });
+
+  it('Studio preserves queryClient cache without firing duplicate network calls on immediate remount', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false
+        }
+      }
+    });
+
+    vi.mocked(api.post).mockClear();
+
+    const { unmount } = render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/studio']}>
+          <Studio />
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('music.list', {});
+      expect(api.post).toHaveBeenCalledWith('styles.list', {});
+      expect(api.post).toHaveBeenCalledWith('events.list', { includeArchived: true });
+    });
+
+    vi.mocked(api.post).mockClear();
+
+    unmount();
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/studio']}>
+          <Studio />
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    // StaleTime ensures no immediate duplicate network calls fire on remount
+    expect(api.post).not.toHaveBeenCalledWith('styles.list', {});
+    expect(api.post).not.toHaveBeenCalledWith('events.list', { includeArchived: true });
+    expect(api.post).not.toHaveBeenCalledWith('music.list', {});
+    expect(queryClient.getQueryData(['styles'])).toBeDefined();
+    expect(queryClient.getQueryData(['events'])).toBeDefined();
+    expect(queryClient.getQueryData(['music'])).toBeDefined();
+  });
 });

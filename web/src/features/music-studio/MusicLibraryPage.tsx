@@ -41,21 +41,25 @@ export const MusicLibraryPage: React.FC = () => {
     refetch: refetchMusic
   } = useQuery<MusicItem[]>({
     queryKey: ['music'],
+    staleTime: 30_000,
     queryFn: async () => (await api.post<MusicItem[]>('music.list', {})).data
   });
 
   const { data: liveSections } = useQuery<Section[]>({
     queryKey: ['sections'],
+    staleTime: 30_000,
     queryFn: async () => (await api.post<Section[]>('sections.list', {})).data
   });
 
   const { data: liveStyles } = useQuery<DanceStyle[]>({
     queryKey: ['styles'],
+    staleTime: 60_000,
     queryFn: async () => (await api.post<DanceStyle[]>('styles.list', {})).data
   });
 
   const { data: liveEvents } = useQuery<EventSummary[]>({
     queryKey: ['events'],
+    staleTime: 60_000,
     queryFn: async () => (await api.post<EventSummary[]>('events.list', { includeArchived: true })).data
   });
 

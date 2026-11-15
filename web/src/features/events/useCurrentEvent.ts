@@ -37,6 +37,7 @@ function defaultEvent(events: EventListItem[]): EventListItem | null {
 export function useEvents() {
   return useQuery({
     queryKey: ['events'],
+    staleTime: 60_000,
     queryFn: async () => (await call<EventListItem[]>('events.list', { includeArchived: true })).data || []
   });
 }

@@ -873,7 +873,7 @@ export const NotificationWidget: React.FC = () => {
                               {ev.startDate} to {ev.endDate}
                             </p>
                           </div>
-                          <span className="font-display text-[9px] px-1.5 py-0.5 border border-[var(--outline)] bg-[var(--neon-cyan)] text-[var(--on-neon)] uppercase">
+                          <span className="font-display text-[10px] px-1.5 py-0.5 border border-[var(--outline)] bg-[var(--neon-cyan)] text-[var(--on-neon)] uppercase">
                             {ev.type}
                           </span>
                         </div>
@@ -996,7 +996,7 @@ export const NotificationWidget: React.FC = () => {
                                     <h4 className="font-display text-xs font-bold text-[var(--neon-gold)] tracking-wide">
                                       {group.styleName.toUpperCase()}
                                     </h4>
-                                    <span className="font-display text-[9px] px-1.5 py-0.5 border border-[var(--outline)] bg-[var(--night-1)] text-[var(--neon-cyan)]">
+                                    <span className="font-display text-[10px] px-1.5 py-0.5 border border-[var(--outline)] bg-[var(--night-1)] text-[var(--neon-cyan)]">
                                       {group.items.length} {group.items.length === 1 ? 'VIDEO' : 'VIDEOS'}
                                     </span>
                                   </div>
@@ -1033,7 +1033,7 @@ export const NotificationWidget: React.FC = () => {
                                             Drive Video · Ready for Practice
                                           </span>
                                         </div>
-                                        <span className="font-display text-[9px] px-1.5 py-0.5 border border-[var(--outline)] bg-[var(--night-3)] text-[var(--neon-gold)] font-bold flex-shrink-0">
+                                        <span className="font-display text-[10px] px-1.5 py-0.5 border border-[var(--outline)] bg-[var(--night-3)] text-[var(--neon-gold)] font-bold flex-shrink-0">
                                           {styleName.toUpperCase()}
                                         </span>
                                       </div>
@@ -1132,7 +1132,7 @@ export const NotificationWidget: React.FC = () => {
                               {m.sourceType} Audio
                             </span>
                           </div>
-                          <span className="font-display text-[9px] px-2 py-1 border border-[var(--outline)] bg-[var(--neon-cyan)] text-[var(--on-neon)] flex-shrink-0">
+                          <span className="font-display text-[10px] px-2 py-1 border border-[var(--outline)] bg-[var(--neon-cyan)] text-[var(--on-neon)] flex-shrink-0">
                             LISTEN ♫
                           </span>
                         </div>
@@ -1167,7 +1167,7 @@ export const NotificationWidget: React.FC = () => {
                                   {ev.startDate} to {ev.endDate}
                                 </span>
                               </div>
-                              <span className="font-display text-[9px] px-2 py-0.5 border border-[var(--outline)] bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold uppercase">
+                              <span className="font-display text-[10px] px-2 py-0.5 border border-[var(--outline)] bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold uppercase">
                                 {ev.type}
                               </span>
                             </div>
@@ -1233,7 +1233,7 @@ export const NotificationWidget: React.FC = () => {
                               {(d.styleNames || []).map(st => (
                                 <span
                                   key={st}
-                                  className="font-display text-[9px] px-1.5 py-0.5 border border-[var(--outline)] bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold"
+                                  className="font-display text-[10px] px-1.5 py-0.5 border border-[var(--outline)] bg-[var(--neon-gold)] text-[var(--on-neon)] font-bold"
                                 >
                                   {st}
                                 </span>

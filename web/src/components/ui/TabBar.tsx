@@ -88,7 +88,7 @@ export const TabBar: React.FC<TabBarProps> = ({ tabs, moreItems }) => {
                 <div className="w-6 h-6 flex items-center justify-center relative">
                   {tab.icon}
                 </div>
-                <span className="font-display text-[9px] sm:text-[11px] uppercase tracking-tight truncate max-w-full text-center px-0.5 flex items-center gap-0.5">
+                <span className="font-display text-[10px] sm:text-[11px] uppercase tracking-tight truncate max-w-full text-center px-0.5 flex items-center gap-0.5">
                   {tab.label} {isMoreOpen ? '▲' : '▼'}
                 </span>
               </button>
@@ -115,7 +115,7 @@ export const TabBar: React.FC<TabBarProps> = ({ tabs, moreItems }) => {
                   </span>
                 )}
               </div>
-              <span className="font-display text-[9px] sm:text-[11px] uppercase tracking-tight truncate max-w-full text-center px-0.5">
+              <span className="font-display text-[10px] sm:text-[11px] uppercase tracking-tight truncate max-w-full text-center px-0.5">
                 {tab.label}
               </span>
             </NavLink>
