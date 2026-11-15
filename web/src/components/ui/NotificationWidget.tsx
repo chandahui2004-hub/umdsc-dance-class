@@ -660,6 +660,7 @@ export const NotificationWidget: React.FC = () => {
         <button
           type="button"
           data-testid="notification-bell-btn"
+          data-truncate-ok
           aria-label="Open notifications"
           disabled={isBlocked}
           onPointerDown={(e) => {

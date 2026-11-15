@@ -329,6 +329,10 @@ for (const width of [360, 390]) {
         await page.screenshot({ path: path.join(shotsDir, 'me-390px.png') });
       }
 
+      // 5b. /library (dancer)
+      await page.goto('/library');
+      failures.push(...(await checkLayout(page, '/library')));
+
       // 6. /login (logged out)
       await page.evaluate(() => {
         sessionStorage.setItem('__test_role', 'none');
@@ -388,6 +392,14 @@ for (const width of [360, 390]) {
       await page.goto('/admin/events');
       failures.push(...(await checkLayout(page, '/admin/events')));
 
+      // 11. /admin/library (as admin)
+      await page.goto('/admin/library');
+      failures.push(...(await checkLayout(page, '/admin/library')));
+
+      // 12. /admin/studio?music=m-1 (as admin)
+      await page.goto('/admin/studio?music=m-1');
+      failures.push(...(await checkLayout(page, '/admin/studio?music=m-1')));
+
       expect(failures, `Found ${failures.length} layout failures:\n${failures.join('\n')}`).toEqual([]);
     });
 
@@ -400,6 +412,13 @@ for (const width of [360, 390]) {
 
       await page.goto('/admin/styles');
       await page.waitForLoadState('networkidle');
+
+      // Expand first style if collapsed
+      const toggleBtn = page.locator('[data-testid^="toggle-style-"]').first();
+      if (await toggleBtn.isVisible()) {
+        await toggleBtn.click();
+        await page.waitForTimeout(200);
+      }
 
       // Click EDIT button on first style
       const editBtn = page.getByRole('button', { name: 'EDIT' }).first();
