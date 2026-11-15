@@ -247,7 +247,7 @@ export const SettingsPage: React.FC = () => {
     queryKey: ['links.history'],
     queryFn: async () => {
       const res = await api.post<LinkHistoryItem[]>('links.history');
-      return res.data;
+      return Array.isArray(res.data) ? res.data : [];
     }
   });
 

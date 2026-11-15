@@ -8,7 +8,7 @@
  * with 100% guaranteed cleanup inside try/finally blocks.
  *
  * Usage:
- *   node scripts/live-sandbox-verify.mjs [--require-auth] [--json] [--sandbox-event]
+ *   node scripts/live-sandbox-verify.mjs [--require-auth] [--json]
  */
 
 import fs from 'node:fs';
@@ -153,7 +153,6 @@ async function main() {
   const args = process.argv.slice(2);
   const requireAuth = args.includes('--require-auth');
   const jsonOutput = args.includes('--json');
-  const sandboxEvent = args.includes('--sandbox-event');
 
   const report = {
     timestamp: new Date().toISOString(),

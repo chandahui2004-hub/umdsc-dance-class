@@ -103,6 +103,7 @@ export async function mockApi(
     'sessions.list': () => [],
     'events.autoSync': () => ({ checked: [], changed: [], skipped: [], errors: [] }),
     'settings.get': () => ({ clubEmail: 'umdancesportc@gmail.com' }),
+    'links.history': () => [],
     'attendance.get': () => ({ eventId: 'evt-oct', styleId: 'style-hiphop', version: 1, sessions: [], members: [], present: {} }),
     'members.list': () => (adminBootstrap as any).members || [],
     'instructors.list': () => adminBootstrap.instructors

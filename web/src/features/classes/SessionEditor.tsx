@@ -239,6 +239,8 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
           label="Date"
           type="date"
           value={date}
+          min={minDate}
+          max={maxDate}
           onChange={(e) => setDate(e.target.value)}
           disabled={loading}
           helper={minDate && maxDate ? `Inside the event: ${minDate} to ${maxDate}` : undefined}

@@ -198,10 +198,16 @@ test.describe('Admin Master Data & Settings', () => {
     });
 
     await page.goto('/admin/styles');
-    await expect(page.getByRole('heading', { name: /Dance Styles/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Dance Styles', exact: true })).toBeVisible();
+
+    // Expand style accordion to reveal style panel and edit button
+    const toggleBtn = page.locator('[data-testid^="toggle-style-"]').first();
+    await expect(toggleBtn).toBeVisible();
+    await toggleBtn.click();
+    await page.waitForTimeout(200);
 
     // Verify existing style Locking is listed
-    await expect(page.getByRole('heading', { name: 'Locking' })).toBeVisible();
+    await expect(page.getByText('Locking').first()).toBeVisible();
 
     // Click EDIT STYLE
     await page.getByRole('button', { name: /EDIT/i }).first().click();
@@ -437,6 +443,11 @@ test.describe('Style / instructor relationship', () => {
       'styles.update': (p) => ({ ...p, version: 2 })
     });
     await page.goto('/admin/styles');
+    await page.waitForLoadState('networkidle');
+    const toggleBtn = page.locator('[data-testid^="toggle-style-"]').first();
+    await expect(toggleBtn).toBeVisible();
+    await toggleBtn.click();
+    await page.waitForTimeout(200);
     await page.getByRole('button', { name: /EDIT/i }).first().click();
     await expect(page.getByLabel(/Style Name/i)).toBeVisible();
     await expect(page.getByText(/Default Instructor/i)).toHaveCount(0);
@@ -449,6 +460,17 @@ test.describe('Style / instructor relationship', () => {
   test('style cards list active instructors or "No instructors yet"', async ({ page }) => {
     await mockApi(page, { 'styles.list': () => STYLES, 'instructors.list': () => INSTRUCTORS });
     await page.goto('/admin/styles');
+    await page.waitForLoadState('networkidle');
+
+    // Expand all style accordions to reveal instructor details
+    const toggles = page.locator('[data-testid^="toggle-style-"]');
+    await expect(toggles.first()).toBeVisible();
+    const count = await toggles.count();
+    for (let i = 0; i < count; i++) {
+      await toggles.nth(i).click();
+      await page.waitForTimeout(100);
+    }
+
     await expect(page.getByText('Instructors: Carmen, Kelvin')).toBeVisible();
     await expect(page.getByText('Instructors: Kelvin')).toBeVisible();
     await expect(page.getByText('No instructors yet')).toBeVisible();

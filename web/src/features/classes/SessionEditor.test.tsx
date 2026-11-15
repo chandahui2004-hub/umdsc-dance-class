@@ -83,9 +83,9 @@ describe('SessionEditor instructor drop-down', () => {
     );
 
     const dateInput = screen.getByLabelText(/date/i);
-    // Ensure HTML5 constraint attributes are NOT set so Chromium never displays "Value must be 03/11/2026."
-    expect(dateInput.getAttribute('min')).toBeNull();
-    expect(dateInput.getAttribute('max')).toBeNull();
+    // Date bounds are set to guide the user while form noValidate prevents browser constraint popovers
+    expect(dateInput.getAttribute('min')).toBe('2026-11-03');
+    expect(dateInput.getAttribute('max')).toBe('2026-11-03');
 
     const venueInput = screen.getByLabelText(/venue/i);
     fireEvent.change(venueInput, { target: { value: 'New Dance Hall' } });

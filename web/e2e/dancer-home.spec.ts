@@ -190,7 +190,8 @@ test.describe('Dancer Portal: Home, DaySheet & Me Page', () => {
     await mockApi(page, {
       'dancer.bootstrap': () => DANCER_BOOTSTRAP_DATA,
       // Attendance now loads separately, after the calendar.
-      'dancer.attendance': () => DANCER_BOOTSTRAP_DATA.attendance
+      'dancer.attendance': () => DANCER_BOOTSTRAP_DATA.attendance,
+      'sessions.list': () => DANCER_BOOTSTRAP_DATA.sessions
     });
   });
 

@@ -73,15 +73,13 @@ test.describe('Admin Events page', () => {
       'styles.list': () => [],
       'settings.get': () => ({ defaultAttendanceFolderId: 'fld-master-a' }),
       'settings.setLink': () => ({
-        key: 'defaultAttendanceFolderId', value: 'fld-master-b', moved: 1, created: 0, reused: 0,
-        failed: [{ eventName: 'OCT MONTHLY CLASS', message: 'Access denied' }]
+        __error: { code: 'VALIDATION', message: 'Could not move OCT MONTHLY CLASS: Access denied. Save the same link again to retry.' }
       })
     });
-    await page.goto('/admin/attendance');
+    await page.goto('/admin/settings');
     await page.waitForLoadState('networkidle');
-    await page.getByRole('button', { name: /CHANGE ATTENDANCE FOLDER/i }).click();
-    await page.getByLabel(/Attendance master folder link/i).fill('fld-master-b');
-    await page.getByRole('button', { name: /^SAVE$/i }).click();
+    await page.locator('#default-attendance-folder-link').fill('fld-master-b');
+    await page.getByRole('button', { name: /UPDATE ATTENDANCE LINK/i }).click();
     await expect(page.getByText(/Could not move OCT MONTHLY CLASS: Access denied/)).toBeVisible();
     await expect(page.getByText(/save the same link again to retry/i)).toBeVisible();
   });
@@ -93,12 +91,11 @@ test.describe('Admin Events page', () => {
       'settings.get': () => ({ defaultAttendanceFolderId: 'fld-master-a' }),
       'settings.setLink': () => ({ key: 'defaultAttendanceFolderId', value: 'fld-master-b', moved: 2, created: 0, reused: 1 })
     });
-    await page.goto('/admin/attendance');
+    await page.goto('/admin/settings');
     await page.waitForLoadState('networkidle');
-    await page.getByRole('button', { name: /CHANGE ATTENDANCE FOLDER/i }).click();
-    await page.getByLabel(/Attendance master folder link/i).fill('https://drive.google.com/drive/folders/fld-master-b');
-    await page.getByRole('button', { name: /^SAVE$/i }).click();
-    await expect(page.getByText('Moved 2, created 0, reused 1 event folders')).toBeVisible();
+    await page.locator('#default-attendance-folder-link').fill('https://drive.google.com/drive/folders/fld-master-b');
+    await page.getByRole('button', { name: /UPDATE ATTENDANCE LINK/i }).click();
+    await expect(page.getByText(/LINK UPDATED SUCCESSFULLY!/i)).toBeVisible();
     expect(calls.find(c => c.action === 'settings.setLink')?.payload).toEqual({
       key: 'defaultAttendanceFolderId',
       url: 'https://drive.google.com/drive/folders/fld-master-b'

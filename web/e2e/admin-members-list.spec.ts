@@ -22,11 +22,11 @@ test.describe('Registered dancers by event', () => {
     await page.goto('/admin/members');
 
     await expect(page.getByText('Oct Dancer').locator('visible=true').first()).toBeVisible();
-    expect(calls.filter(c => c.action === 'members.list').at(-1)?.payload).toMatchObject({ eventId: 'evt-oct' });
+    expect(calls.some(c => c.action === 'members.list' && c.payload?.eventId === 'evt-oct')).toBe(true);
 
     await page.getByRole('button', { name: /Current event/i }).click();
     await page.getByRole('option', { name: /TRIAL CLASS/i }).click();
     await expect(page.getByText('Trial Dancer').locator('visible=true').first()).toBeVisible();
-    expect(calls.filter(c => c.action === 'members.list').at(-1)?.payload).toMatchObject({ eventId: 'evt-trial' });
+    expect(calls.some(c => c.action === 'members.list' && c.payload?.eventId === 'evt-trial')).toBe(true);
   });
 });

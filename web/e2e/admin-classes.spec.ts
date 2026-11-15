@@ -86,7 +86,14 @@ test.describe('Admin Classes & Calendar', () => {
     await page.getByRole('button', { name: /Thu 08 Oct/ }).click();
     await expect(page.getByRole('button', { name: /Thu 08 Oct/ })).toHaveAttribute('aria-pressed', 'true');
 
-    const card = page.getByTestId('class-card-ses-1');
+    // On mobile (< 640px), DaySheet opens in 1/4 compact mode; tap handle to expand full card
+    const handle = page.getByTestId('day-sheet-handle');
+    if (await handle.isVisible()) {
+      await handle.click();
+      await page.waitForTimeout(200);
+    }
+
+    const card = page.getByTestId('class-card-ses-1').filter({ visible: true });
     await expect(card.getByText('Week 1 Recap.mp4')).toBeVisible();
     await expect(card.getByText('Practice Song')).toBeVisible();
     await expect(card.getByText(/ABSENT|ATTENDED/)).toHaveCount(0);
@@ -108,7 +115,12 @@ test.describe('Admin Classes & Calendar', () => {
     });
     await page.goto('/admin/calendar');
     await page.getByRole('button', { name: /Thu 08 Oct/ }).click();
-    await page.getByTestId('class-card-ses-1').getByRole('button', { name: /EDIT CLASS/ }).click();
+    const handle = page.getByTestId('day-sheet-handle');
+    if (await handle.isVisible()) {
+      await handle.click();
+      await page.waitForTimeout(200);
+    }
+    await page.getByTestId('class-card-ses-1').filter({ visible: true }).getByRole('button', { name: /EDIT CLASS/ }).click();
     const select = page.locator('#instructor-select');
     await expect(select.locator('option')).toHaveText(['Select Instructor...', 'Alex Tan', 'Bella Lim']);
   });
@@ -124,7 +136,12 @@ test.describe('Admin Classes & Calendar', () => {
     });
     await page.goto('/admin/calendar');
     await page.getByRole('button', { name: /Thu 08 Oct/ }).click();
-    await page.getByTestId('class-card-ses-1').getByRole('button', { name: /EDIT CLASS/ }).click();
+    const handle = page.getByTestId('day-sheet-handle');
+    if (await handle.isVisible()) {
+      await handle.click();
+      await page.waitForTimeout(200);
+    }
+    await page.getByTestId('class-card-ses-1').filter({ visible: true }).getByRole('button', { name: /EDIT CLASS/ }).click();
     const select = page.locator('#instructor-select');
     await expect(select.locator('option')).toHaveText(['Select Instructor...', 'Bella Lim', "Alex Tan (not in this event's list)"]);
     await expect(select).toHaveValue('inst-1');
