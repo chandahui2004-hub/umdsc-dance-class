@@ -1,67 +1,88 @@
 # Admin Guide
 
-**For:** club committee members who run the website.
-**Website:** https://umdsc-dance-class.umdancesportc.workers.dev/admin/login
-**Use a laptop or PC.** All admin pages also work on a phone, but setting things up is easier on a big screen.
+**For:** Club executive committee members and system administrators.  
+**Website:** [https://umdsc-dance-class.umdancesportc.workers.dev/admin/login](https://umdsc-dance-class.umdancesportc.workers.dev/admin/login)  
+**Best experience:** Laptop or desktop computer. (All administration tools are mobile-responsive, but initial event setup and Google integration are fastest on a larger screen).  
 
-Admins can do everything class leads can do; see the **Class Lead Guide** for attendance and uploads. This guide covers setting up and managing the club's data.
+Admins can perform all tasks available to class leads; refer to the **Class Lead Guide** for attendance taking and video uploading. This guide covers managing monthly events, Google Form auto-gating, dance styles, instructors, admin accounts, and system-wide settings.
 
 ---
 
-## 1. Log in and find your way
+## 1. Login and navigation layout
 
-Log in at **/admin/login** with your **username** and **password**, then tap **LOGIN**.
+Log in at **/admin/login** with your **Username** and **Password**, then click **LOGIN**.
 
-The left menu has **Calendar, Attendance, Media, Dancers**, and under **More**: **Dance Styles, Instructors, Roles & Permissions, Admin Accounts, System Settings, Events**.
-
-The **EVENT:** picker at the top chooses which event (month) every page shows.
+### Navigation structure
+- Primary navigation tabs:
+  1. **Calendar (`/admin/calendar`):** Monthly class schedules, session editor, and Walk-in codes.
+  2. **Attendance (`/admin/attendance`):** Live attendance taking, Excel export, and Google Sheet links.
+  3. **Media (`/admin/media`):** Drive folder authorization, hybrid video uploads, and music section editor.
+  4. **Library (`/admin/library`):** Shared club music library across all styles with inline preview & Studio launch.
+  5. **Dancers (`/admin/members`):** Registered dancer roster, search, player profile cards, and manual sync.
+  6. **More (`#more`):** Dropdown menu accessing master data and configuration:
+     - **Dance Styles (`/admin/styles`)**
+     - **Instructors (`/admin/instructors`)**
+     - **Roles & Permissions (`/admin/roles`)**
+     - **Admin Accounts (`/admin/admins`)**
+     - **System Settings (`/admin/settings`)**
+     - **Events (`/admin/events`)**
+- **Dynamic permission tab hiding:** When logging in under a scoped account (such as `Class Rep`), unauthorized tabs are automatically filtered out of the navigation bar.
 
 ![Calendar](../images/admin-01-calendar.png)
 
 ---
 
-## 2. Events: one per monthly class, trial class or workshop
+## 2. Events & Google Form slot auto-gating
 
-Each event has its **own Google Form** for registration. Dancers who fill in the form are imported automatically.
+Every monthly class, trial class, or workshop is created as an **Event**.
 
 ![Events](../images/admin-02-events.png)
 
-### Create a new event
+### The Event Creation Wizard (`/admin/events/new`)
 
-**Before you start:**
-- Create the event's **Google Form**, and link it to a **response sheet**.
-- **Share the response sheet with `umdancesportc@gmail.com` as Editor.** The website refuses links it cannot edit.
-- Make sure the form has a question where dancers choose their class(es).
+Before launching a new event:
+1. Create the event's **Google Form** and connect it to a **Google Sheet response spreadsheet**.
+2. **Share both the Google Form and the response sheet with `umdancesportc@gmail.com` as Editor.**
 
-Then click **Events › + NEW EVENT** and go through the 5 steps:
+Navigate to **Events › + NEW EVENT** and proceed through the steps:
 
-1. **FORM LINK:** paste the **Google Form response sheet link**, then choose the **Class choice** column, i.e. the form question where dancers pick their classes.
-2. **DETAILS:** **Event name** (for example `NOV MONTHLY CLASS`), **Event type**, **Start day** and **End day**.
-3. **STYLES:** tick the dance styles taught in this event. If some class answers in the form don't match a style, the wizard lists them under **CLASS ANSWERS THAT MATCH NO STYLE**. Fix them by adding an **alias** to the style (see section 3).
-4. **SCHEDULE:** for each style, use **AUTO-FILL** (day, start time, end time, number of classes) to create all the classes at once, then adjust single dates if needed.
-5. **REVIEW:** check everything, then create the event.
+1. **FORM LINK & RESPONSE SHEET:**
+   - **Google Form Edit URL (`formUrl`):** Paste the edit URL of the Google Form (e.g. `https://docs.google.com/forms/d/.../edit`). This enables the system to automatically close the form when style capacity is reached!
+   - **Response Sheet Link:** Paste the linked Google Sheet URL and select the question column where dancers choose their dance style(s).
+2. **DETAILS & CAPACITY GATING:**
+   - **Event Name:** (e.g. `2026-11 Monthly Classes`).
+   - **Event Type:** `monthly`, `trial`, `workshop`, or `other`.
+   - **Per-Style Slot Limits (`styleSlots`):** Specify the maximum dancer capacity per style (e.g. Locking: 25, Popping: 25, Hip Hop: 30, Latin: 20).
+   - **Form Auto-Gating:** When registrations reach the slot limit, the backend automatically sets the Google Form status to closed, preventing overbooking!
+3. **STYLES & INSTRUCTORS:**
+   - Select dance styles taught in the event.
+   - Assign multiple instructors per style (`instructorIds`) with distinct signature colors.
+   - Map any custom form answer strings to canonical styles using aliases.
+4. **SCHEDULE GENERATION:**
+   - Use **AUTO-FILL** for each style (day of week, start time, end time, venue, number of sessions) to generate all class sessions in bulk.
+5. **REVIEW & CREATE:** Confirm details and create the event.
 
 ![New event wizard](../images/admin-03-new-event.png)
 
-### Look after events
-
-- **SYNC NOW:** imports new form registrations immediately. This also runs automatically.
-- **EDIT:** change the details, styles or schedule.
-- **ARCHIVE:** when a month is over, archive it. Archived events stop syncing and move under **ARCHIVED EVENTS**.
+### Automated synchronization & Incomplete Row Guard
+- **1-Minute Throttled Auto-Sync:** The background engine checks the response sheet every 60 seconds with single-read optimization.
+- **3-Layer Incomplete Sheet Row Guard:** Dancers actively submitting Google Forms sometimes create transient rows with empty fields. The sync engine automatically filters out incomplete rows (missing names, missing matric numbers, or partial timestamps) so corrupt rows never enter the database or crash attendance grids.
+- **10-Minute Form Status Sync:** A bidirectional check runs every 10 minutes. If an administrator manually reopens or closes the Google Form in Google Forms, the system syncs the status automatically without requiring manual intervention.
+- **Manual Sync (`SYNC NOW`):** Force an immediate sync from the Events page whenever immediate updates are required.
 
 ---
 
 ## 3. Dance styles
 
-**More › Dance Styles.** Each style (Hip Hop, Popping, Locking, Latin…) has:
+Navigate to **More › Dance Styles (`/admin/styles`)**.
 
-| Field | Meaning |
+| Field | Description |
 |---|---|
-| **Style Name** | Shown everywhere |
-| **Aliases (comma-separated)** | Other ways dancers write it in the form, for example `hiphop, hip-hop`. Used to match form answers to the style. |
-| **Color Swatch** | The style's colour on calendars |
-| **Default Day / Start Time / End Time / Default Instructor / Default Venue** | Used when creating classes |
-| **Attendance Folder Link / Video Folder Link** | Optional Drive folders for this style |
+| **Style Name** | Primary display name (e.g. *Popping*, *Locking*, *Hip Hop*, *Latin*). |
+| **Aliases** | Comma-separated alternative names used in Google Forms (e.g. `hiphop, hip-hop, urban`). |
+| **Color Swatch** | Primary theme color displayed on calendars and class tags. |
+| **Defaults** | Default day of week, start/end time, default instructor, and default studio venue. |
+| **Attendance & Video Folders** | Optional master Google Drive folder links for attendance sheets and video archives. |
 
 ![Dance styles](../images/admin-04-styles.png)
 ![Style form](../images/admin-05-style-form.png)
@@ -70,90 +91,117 @@ Then click **Events › + NEW EVENT** and go through the 5 steps:
 
 ## 4. Instructors
 
-**More › Instructors › + NEW INSTRUCTOR.** Enter **Full Name**, **Contact (Phone / WhatsApp)** and **Instructor Signature Color**. Add a photo with **+ UPLOAD PICTURE** (recommended size 1080 × 1350, portrait), or **+ LINK URL** for a photo already online. Several photos can be kept; the **ACTIVE** one is shown to dancers.
+Navigate to **More › Instructors (`/admin/instructors`)**.
+
+- Click **+ NEW INSTRUCTOR** to register instructors.
+- Provide **Full Name**, **Contact / WhatsApp**, and an **Instructor Signature Color** used on class schedules.
+- Add profile pictures via **+ UPLOAD PICTURE** (recommended 1080 × 1350 portrait) or **+ LINK URL**. You can store multiple photos; the one designated **ACTIVE** is presented on dancer cards.
 
 ![Instructors](../images/admin-06-instructors.png)
 ![Instructor form](../images/admin-07-instructor-form.png)
 
 ---
 
-## 5. Classes (calendar)
+## 5. Classes & Session Editor
 
-**Calendar** shows all classes of the chosen event. Filter by **dance style** or **instructor**.
-- Click a class to edit its **date**, **venue**, **instructor** (or a **replacement**), and a **note**. Its status can be set to **scheduled**, **replacement** or **cancelled**.
-- Add an extra class by choosing the **event** and **style** for the new class.
+Open **Calendar (`/admin/calendar`)** to view all class sessions for the active event.
+
+- Filter sessions by **Dance Style** or **Instructor**.
+- Click any class session to open the **Session Editor**:
+  - Update **Date**, **Time Range**, **Venue**, **Instructor** (or designate a replacement instructor), and internal notes.
+  - Class status can be set to `scheduled`, `replacement`, or `cancelled`.
+  - **Walk-In Class Code:** View or regenerate the unique 7-character guest pass code (e.g. `LCK-7X9`) and copy it with **COPY CODE**.
 
 ---
 
-## 6. Dancers
+## 6. Dancers & Player Profile Cards
 
-**Dancers** lists everyone registered for the chosen event: **matric number, full name, contact, email, gender**, and their classes. Use **Search name, matric, phone…** to find someone.
+Open **Dancers (`/admin/members`)** to view all registered dancers.
 
 ![Dancers](../images/admin-08-dancers.png)
 
-> Dancer details come from the Google Form. To fix a name, correct it in the **form response sheet**, then **SYNC NOW**.
+### Player Profile Cards
+Clicking any dancer opens their comprehensive **Player Profile Card**:
+- Displays their student ID (matric), phone contact with direct **WHATSAPP** link, email with direct **MAILTO** link, gender, nationality, registration timestamp, registered styles, and system flags.
+- **EDIT DANCER DETAILS (`canImport`):** If a dancer entered an incorrect matric number, misspelt their name, or updated their phone number, clicking **EDIT DANCER** updates their details and automatically updates their rows across active Google Form response sheets!
+- **Converting Walk-Ins:** When a guest attends via a Walk-In pass, admins can click their profile and link their attendance to a formal matric number upon registration.
 
 ---
 
-## 7. Media: class lead video folders
+## 7. Media & Hybrid Video Management
 
-**Media › CLASS LEAD VIDEO DRIVE FOLDERS.** Each dance style uploads its videos into its **class lead's own Google Drive folder**.
+Navigate to **Media (`/admin/media`)**.
 
 ![Media](../images/admin-09-media.png)
 
-For each style:
-- **+ INSERT LINK / CHANGE LINK:** paste the class lead's folder link. The folder must be **shared with `umdancesportc@gmail.com` as Editor**.
-- **REMOVE LINK:** disconnect the folder. Uploads are blocked for that style until a new link is inserted. Videos already in Drive are not touched.
-- **AUTHORIZE:** links the folder to a **Google account**. Uploads for that style then **must** use that account, and use its storage. Before tapping AUTHORIZE, use **SWITCH ACCOUNT** to choose the **class lead's** Gmail. The row then shows **Uploads as** *that Gmail*.
-
-The same page is used for uploading videos and music; see the Class Lead Guide.
+- **Class Lead Video Drive Folders:** Expand to manage upload folder links for each dance style. Each folder must be shared with `umdancesportc@gmail.com` as Editor.
+- **Authorize Account:** Click **AUTHORIZE** while signed in as the class lead's Google account to bind uploads to that account.
+- **Consolidated Batch Email Alerts:** When multiple class recap videos are uploaded in one batch, the system triggers `videos.notifyBatch`, delivering a single elegant notification email to dancers rather than individual emails per file.
 
 ---
 
-## 8. Roles & permissions
+## 8. Roles & dynamic permissions
 
-**More › Roles & Permissions.** A **role** is a set of permissions. Two are built in: **Admin** (everything) and **Dancer** (calendar, own attendance, videos, music).
+Navigate to **More › Roles & Permissions (`/admin/roles`)**.
 
 ![Roles](../images/admin-10-roles.png)
 
-### The Class Lead role (create it once)
+### Built-in roles
+1. **Admin (`admin`):** Full system control across all features and master settings.
+2. **Class Rep (`class_rep`):** Pre-configured system role for class leaders. Grants `attendance.view.all`, `attendance.edit`, and `export.download`.
+3. **Dancer (`dancer`):** Read access to calendar, videos, shared music library, and personal attendance history.
 
-1. **+ NEW ROLE:** **Role Name** `Class Lead`, **Login Type `Admin`**, then **SAVE ROLE**.
-   > It must be **Admin** login type. Dancer-type accounts cannot open the Attendance or Media pages.
-2. **MANAGE PERMISSIONS** and tick:
-   `calendar.view`, `attendance.view.all`, `attendance.edit`, `export.download`, `members.view`, `videos.view`, `videos.upload`, `videos.edit`, `music.view`, `music.edit`, `sections.edit`, and **`styles.edit`**. The last one lets class leads AUTHORIZE their own folder; it also lets them edit dance styles.
-3. Click **SAVE PERMISSIONS**.
-
-Never give `settings.edit`, `admins.manage` or `roles.manage` to class leads.
-
-> When you change a role's permissions, everyone with that role is asked to log in again.
+### Style-Scoped Assignments (`assignedStyleIds`)
+In **Roles & Permissions**, clicking a role opens the **Member Roles Panel**:
+- Assign specific dancers or club leaders to a role.
+- Scoping by dance style: You can restrict their role to specific styles (e.g. *Locking only*). Their administrative interface automatically restricts attendance rosters and media controls to those assigned styles.
 
 ---
 
 ## 9. Admin accounts
 
-**More › Admin Accounts › + NEW ADMIN.** Create an account for each admin and each class lead: **Username**, **Display Name**, **Initial Password**, **Assigned Role**. Send the username and password **privately**, for example in a direct message, never in a group.
+Navigate to **More › Admin Accounts (`/admin/admins`)**.
 
-- **Forgotten password:** **RESET PASSWORD** on their account, enter a **New Password**, then **UPDATE PASSWORD**.
-- **Someone leaves:** **DEACTIVATE** their account.
+- Click **+ NEW ADMIN** to create accounts for committee members and class leads:
+  - Enter **Username**, **Display Name**, **Initial Password**, and select their **Assigned Role**.
+- **Password Reset:** Click **RESET PASSWORD** to assign a new temporary password.
+- **Deactivation:** When an executive member steps down, click **DEACTIVATE** to immediately revoke access without deleting audit history.
 
 ![Admin accounts](../images/admin-12-admin-accounts.png)
 ![New admin account](../images/admin-13-new-admin-account.png)
 
-> The full step-by-step for a new class lead (account, Google sign-in list, folder) is in the **Admin Handover Guide**, section 4.
+---
+
+## 10. System settings & mascot notifications
+
+Navigate to **More › System Settings (`/admin/settings`)**.
+
+![Settings](../images/admin-14-settings.png)
+
+1. **Default Attendance Master Folder (`UPDATE ATTENDANCE LINK`):**
+   - The root Google Drive folder where monthly attendance spreadsheets are created.
+2. **Default Video Master Folder (`UPDATE VIDEO LINK`):**
+   - The root fallback archive for video folders.
+3. **Admin Email Manager (`adminNotificationEmails`):**
+   - Add or remove committee member email addresses that receive automated system alerts (e.g. when a dance style reaches slot capacity and its Google Form closes).
+4. **Data Retention Settings (3 Years):**
+   - Automatically archives data older than the club's 3-year compliance window.
+5. **Reset Test Data:**
+   - Sandboxed reset utility for clearing mock test records prior to academic year launch.
+
+### 8-Bit Mascot Notification Center
+Located in the lower corner of the screen, the animated pixel mascot provides immediate ambient awareness:
+- Click or tap the mascot to open the **Notification Drawer**.
+- **New Dancers Tab:** Lists recently registered members across active events.
+- **Slot Progress Tab:** Real-time visual progress bars showing registration counts versus slot capacity for each dance style.
+- **System Audit Tab:** Real-time log of administrative actions (`memberRoles.assign`, `members.edit`, settings updates).
+- Draggable and persistent across phone and desktop viewports.
 
 ---
 
-## 10. System settings
+## 11. Shared Music Library (`/admin/library`) & Studio (`/admin/studio`)
 
-**More › System Settings.**
-
-| Setting | Meaning |
-|---|---|
-| **Database Folder** | The Google Drive folder that holds the website's database (a Google Sheet). Do not delete it. |
-| **Default Attendance Folder** | Where attendance sheets are created. Also shown on the **Attendance** page. |
-| **Link Update History** | Who changed which folder link, and when. |
-| **Data Retention (3 years)** | Old data is cleared after 3 years. |
-| **Reset Test Data** | ⚠️ Only for before the real launch: it deletes test data. You must type a confirmation. |
-
-![Settings](../images/admin-14-settings.png)
+Admins have full access to the **Shared Music Library**:
+- Browse and search all music uploaded across all events and styles.
+- Preview MP3 audio inline.
+- Click **▶ PLAY IN STUDIO** to jump directly into `/admin/studio` with the track loaded for choreography rehearsals.

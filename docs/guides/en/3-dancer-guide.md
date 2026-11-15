@@ -1,84 +1,120 @@
 # Dancer Guide
 
-**For:** UM Dancesport Club dancers.
-**Website:** https://umdsc-dance-class.umdancesportc.workers.dev
+**For:** University of Malaya Dancesport Club (UMDSC) dancers and members.  
+**Website:** [https://umdsc-dance-class.umdancesportc.workers.dev](https://umdsc-dance-class.umdancesportc.workers.dev)  
+**Devices:** Mobile phones and computers.  
 
-Use it to see your class schedule, watch class recap videos, practise with the class music, and check your attendance.
+Use the website to check your class schedule, watch class choreography recaps, practice music in the interactive Studio, explore the club-wide Shared Music Library, and track your attendance.
 
-> 💻 **Tip:** The calendar works well on a phone. For the **Studio** (practising with music and video), a **laptop or PC** is much easier: a bigger screen, a keyboard, and voice commands work best in Chrome.
+> 💻 **Device Tip:** The calendar and profile are optimized for mobile phones. For the **Music Studio** (practising with looping music and video), a **laptop or PC** with Google Chrome offers the best experience with full keyboard shortcuts and hands-free voice cue commands.
 
 ---
 
-## 1. Log in
+## 1. Logging in
 
-1. Open the website.
-2. Enter your **Matric Number**, for example `22001234`.
-3. Enter your **Full Name** exactly as you wrote it on the **registration form**. Every word of your name is needed, but capital letters and the order of the words don't matter.
-4. Tap **ENTER**.
+Navigate to the homepage: [https://umdsc-dance-class.umdancesportc.workers.dev](https://umdsc-dance-class.umdancesportc.workers.dev)
 
 ![Dancer login](../images/dancer-01-login.png)
 
-**Can't log in?** You will see *"Matric number and name don't match a registered dancer."* Check that:
-- you registered for this month's class through the club's Google Form, and
-- your name matches the form, including every word, for example *binti*/*bin* parts are optional but other words are not.
+### Fast login & smart autocomplete
+1. **Registered Members:**
+   - **Full Name or Student ID (Matric):** Start typing your name or matric number (e.g. `22001234`).
+   - **Smart Autocomplete:** As you type, the system provides instant suggestions matching registered club dancers.
+   - **Matric Privacy Protection:** When searching by name, student matric numbers are partially masked (e.g. `2200****`) to safeguard member privacy.
+   - Click your name and tap **ENTER** to sign in.
+2. **1-Tap Quick Resume:**
+   - On returning visits from the same device, your profile card is remembered. A single tap on your card resumes your session instantly without retyping credentials.
+3. **Guest / Walk-In Pass (`⚡ WALK-IN PASS`):**
+   - If you did not sign up through the monthly Google Form and are attending as a guest, switch to the **⚡ WALK-IN PASS** tab.
+   - Enter the 7-character **Walk-In Class Code** provided by your class lead (e.g. `LCK-7X9`) and your name.
+   - You receive immediate guest access to that class session's recap videos and practice tracks!
 
-Still stuck? Contact your class lead or the club admin.
-
-**Make it an app:** in Safari tap **Share › Add to Home Screen**; in Chrome tap **⋮ › Add to Home screen**.
+### Install to your phone's home screen
+- **iPhone (Safari):** Tap **Share** (square with up arrow) › **Add to Home Screen**.
+- **Android (Chrome):** Tap **⋮** (three dots) › **Add to Home screen** or **Install App**.
 
 ---
 
-## 2. Your calendar
+## 2. Your calendar (`Home`)
 
-**Home** shows a calendar of your classes. Each coloured mark is one of your dance styles.
+The **Home (`/`)** screen displays a personalized calendar of your registered classes.
 
 ![Calendar](../images/dancer-02-calendar.png)
 
-Tap a **day with a class** to see the details: time, venue, instructor, and that class's **recap videos** and **music**.
+- Each coloured indicator represents a dance style (e.g., Popping, Locking, Hip Hop, Latin).
+- Tap any **scheduled class day** to open the class detail drawer:
+  - Time, venue, instructor details, and any special announcements or replacement instructor notes.
+  - Links to that day's **recap videos** and **music**.
+  - Walk-in pass codes for friends attending as guests.
 
 ![Class day](../images/dancer-03-class-day.png)
 
-If you're in more than one event (for example a monthly class and a workshop), choose it with **EVENT:** at the top.
+---
+
+## 3. Shared Music Library (`/library`)
+
+Tap **Library** in the bottom navigation bar to open the **Shared Music Library**.
+
+- **All-Access Catalog:** All registered club dancers can access the complete music library across **all dance styles** (Hip Hop, Popping, Locking, Latin, etc.), including songs from styles you did not register for!
+- **Style Category Filter:** Tap style filter pills to instantly see songs curated for specific dance genres.
+- **Search:** Search across song titles and artist names in real time.
+- **Inline Audio Preview:** Tap the play icon next to any MP3 track to listen to an instant preview directly on the page.
+- **External Links:** Direct buttons to open tracks on **Spotify**, **YouTube**, **SoundCloud**, or download original MP3s.
+- **Studio Shortcut (`▶ PLAY IN STUDIO`):** Tap the cyan button to load any song directly into the **Music Studio** for choreography practice!
 
 ---
 
-## 3. Studio: practise with music and video 💻
+## 4. Music Studio (`/studio`) 💻
 
-Open **Studio** from the menu.
+Open **Studio** from the navigation bar.
 
 ![Studio](../images/dancer-04-studio.png)
 
-1. **Choose music** under **Choose music source**:
-   - **CLASS MUSIC:** the songs your class lead added. Filter by event and dance style.
-   - **MY MP3:** play a music file from your own device.
-   - **LINK:** paste a YouTube or SoundCloud link.
-2. **Play controls:** **Play**, **-5s / +5s**, **Loop**, and speed (**1x**; slow it down to learn steps).
-3. **Loops:** the class lead's **Class Sections** (for example *Chorus part A*) appear in **Markers**. Tap one to loop it. Tap **Add Loop** to make your own.
-4. **SYNCED CLASS VIDEO:** choose the class recap video to play in time with the music, or **LOCAL VIDEO** to use a video from your device. **SET START HERE** lines the video up with the music.
-5. **FULLSCREEN:** big video with the controls on top. Tap **EXIT** to leave.
+### Choosing your practice audio
+1. **Music Library Tab:** Browse or search club tracks by dance style and load them with one tap.
+2. **My MP3 Tab:** Load local `.mp3` or `.wav` audio files directly from your computer or phone.
+3. **Link Tab:** Paste links from **YouTube**, **Spotify**, **SoundCloud**, or **Google Drive**.
+
+### Practice controls
+- **Playback & Scrubbing:** Play, pause, jump `-5s` or `+5s`.
+- **Speed & Pitch Control:** Slow playback down (e.g. `0.75x`, `0.85x`) to break down fast choreography, or speed it up (`1.1x`, `1.25x`) for challenge drills.
+- **Loop Markers (`IN` / `OUT`):**
+  - Instructor choreography sections (e.g. *Chorus routine*, *Floorwork combo*) appear automatically.
+  - Set custom loops: Click **IN** at your desired start time and **OUT** at the end time to loop any section continuously.
+- **Synced Class Video:** Select your class recap video to play simultaneously alongside the music track. Use **SET START HERE** to synchronize video movement to the beat.
+- **Fullscreen Mode:** Tap **FULLSCREEN** for a distraction-free, mirror-friendly rehearsal view with floating playback controls.
 
 ![Fullscreen practice](../images/dancer-05-studio-fullscreen.png)
 
-### Voice Cue (hands-free)
-
-Under **Voice Cue**, press the microphone and say commands like **"Play"**, **"Pause"**, **"Loop chorus"**, **"Back 5 seconds"** or **"Restart"**. Voice control works best in **Chrome on a laptop/PC**. If your browser doesn't support it, use the buttons shown instead.
+### Voice Cue (hands-free control)
+Click the microphone button under **Voice Cue** in Chrome to control playback completely hands-free while dancing:
+- *"Play"* / *"Pause"*
+- *"Loop"* / *"Restart"*
+- *"Back 5 seconds"* / *"Forward 10 seconds"*
+- *"Slower"* / *"Normal speed"*
 
 ---
 
-## 4. Me: your attendance
+## 5. Me & profile self-service (`/me`)
 
-Open **Me** to see your **matric number**, **registered events** and **total attendance**.
+Tap **Me** in the navigation bar to manage your member account.
 
 ![Me page](../images/dancer-06-me.png)
 
-Tap **LOG OUT** when you're using a shared computer.
+- **Attendance Hearts Bar:** Visual hearts showing your attendance record across all registered classes this month.
+- **Member Status:** Shows whether you are holding an **ACTIVE DANCER** pass or a temporary **WALK-IN PASS**.
+- **Edit Profile (`EDIT INFO`):**
+  - Dancers can update their **Full Name** and **Matric Number** at any time.
+  - When saved, your changes automatically update your member profile and synchronize directly back to your active registration rows in the club's Google Form response sheets!
+- **Log Out:** Tap **LOG OUT** when using a public rehearsal laptop.
 
 ---
 
-## Questions
+## 6. 8-Bit Mascot Notification Center
 
-| Problem | What to do |
-|---|---|
-| A video won't play | Try again on Wi-Fi. Some iPhone videos open in the Google Drive player instead. |
-| My attendance looks wrong | Tell your class lead; they can correct it. |
-| The website looks old after an update | Close the tab and open it again. |
+Keep an eye on the animated retro pixel mascot in the bottom corner of your screen!
+- The mascot dances, rests, and alerts you when new updates arrive.
+- Tap the mascot to open your **Dancer Notification Drawer**:
+  - **My Classes:** Instant access to your recent class recap videos and audio tracks.
+  - **Upcoming:** Reminder countdowns for your next scheduled dance classes.
+  - **Practice:** Recently added songs in the Shared Music Library.

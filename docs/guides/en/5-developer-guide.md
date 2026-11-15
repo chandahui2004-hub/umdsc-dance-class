@@ -1,127 +1,170 @@
-# Developer & Source Code Guide
+# Developer & Technical Architecture Guide
 
-**For:** whoever maintains or changes the code in the future.
+**For:** Software engineers and technical maintainers responsible for maintaining, enhancing, or auditing the UMDSC Dance Class System.  
 
-| | |
+| Resource | Value / Reference |
 |---|---|
-| **Source code (GitHub)** | https://github.com/chandahui2004-hub/umdsc-dance-class |
-| **Download the code** | `git clone https://github.com/chandahui2004-hub/umdsc-dance-class.git` |
-| **Live website** | https://umdsc-dance-class.umdancesportc.workers.dev |
-| **Setup values** (IDs, deployment ID, URLs) | [`docs/SETUP-VALUES.md`](../../SETUP-VALUES.md) |
-| **Branch that goes live** | `main`. Every push to `main` republishes the website. |
+| **Source Code Repository** | [https://github.com/chandahui2004-hub/umdsc-dance-class](https://github.com/chandahui2004-hub/umdsc-dance-class) |
+| **Clone Command** | `git clone https://github.com/chandahui2004-hub/umdsc-dance-class.git` |
+| **Production Website** | [https://umdsc-dance-class.umdancesportc.workers.dev](https://umdsc-dance-class.umdancesportc.workers.dev) |
+| **System IDs & Deployment Values** | [`docs/SETUP-VALUES.md`](../../SETUP-VALUES.md) |
+| **Production Branch** | `main` (Pushing to `main` triggers automated Cloudflare Workers deployment) |
 
-> 🔒 The repository is **public**. Never commit passwords, the `.admin-token` file, `.clasprc.json`, or Apps Script property values. These are already listed in `.gitignore`.
-
----
-
-## 1. How it fits together
-
-```
-Dancer / admin browser
-   │  (website: React app, hosted on Cloudflare Workers static assets)
-   ▼
-Google Apps Script web app  ──►  Google Sheet database (club Drive)
-   (the API: logins, data)       Google Drive folders (attendance sheets)
-   ▲
-Browser → Google Drive directly, for video uploads (Google sign-in, drive.file scope)
-```
-
-- **`web/`:** the website. React 19, TypeScript, Vite, Tailwind CSS v4.
-- **`api/`:** the server. TypeScript, bundled with esbuild into `api/dist/Code.js`, deployed to Google Apps Script with **clasp**.
-- **`shared/`:** types and helpers used by both.
-- **`docs/`:** these guides (`docs/guides/`), setup values, and the design history (`docs/superpowers/specs` and `plans`: why things were built the way they are).
-- **`scripts/`:** helper scripts, for example `call.mjs` to call the API from a terminal.
+> 🔒 **Security Rules:** The repository is public. **Never commit secrets:** Google account passwords, `TOKEN_SECRET`, `SETUP_CODE`, `.admin-token`, `.clasprc.json`, or Apps Script script properties. These files are barred by `.gitignore`.
 
 ---
 
-## 2. Run it on your computer
+## 1. Monorepo architecture
 
-Needs **Node.js 24** and **Git**.
+The project is structured as an npm workspaces monorepo:
 
+```
+umdsc-dance-class/
+├── api/          # Backend API running on Google Apps Script
+│   ├── src/      # TypeScript source (controllers, db, auth, warmup, formGating)
+│   ├── test/     # Vitest unit test suite (database, access, import, lock)
+│   ├── build.mjs # esbuild bundle script -> api/dist/Code.js
+│   └── package.json
+├── web/          # Frontend SPA running on Cloudflare Workers
+│   ├── src/      # React 19, TypeScript, Tailwind CSS v4, pixel art UI
+│   ├── e2e/      # Playwright browser test suite (phone layout, adaptive UI)
+│   ├── vite.config.ts
+│   └── package.json
+├── shared/       # Shared business logic and type definitions (@umdsc/shared)
+│   ├── src/      # Shared interfaces, permissions, time helpers, validators
+│   └── package.json
+├── scripts/      # Operational and automated verification scripts
+│   ├── live-sandbox-verify.mjs  # Live GAS sandbox test & self-cleaning verifier
+│   ├── build-guide-docx.mjs     # Zero-dependency docx guide builder
+│   ├── call.mjs                 # CLI API invocation helper
+│   └── loadtest.mjs             # Concurrency and load testing suite
+└── docs/         # Specifications, plans, handover, and guides
+```
+
+### Request & data lifecycle
+```
+Dancer / Admin Browser (React 19 SPA on Cloudflare Workers)
+         │
+         │  HTTPS JSON API (POST /?action=...)
+         ▼
+Google Apps Script Web App (api/dist/Code.js)
+         ├── Auth & JWT validation (HMAC SHA-256 with TOKEN_SECRET)
+         ├── Optimistic Concurrency & ScriptLock (withScriptLock)
+         ├── Database Tables in Google Sheets (UMDSC_System spreadsheet)
+         └── Google Forms Auto-Gating & Response Sheet Auto-Sync
+         ▲
+Direct Resumable Upload (Browser -> Google Drive API v3 using GIS OAuth token)
+```
+
+---
+
+## 2. Local development environment
+
+### Prerequisites
+- **Node.js:** v24.x or higher
+- **Git:** Standard git client
+- **Google Clasp:** Globally or locally via `npx @google/clasp`
+
+### Setup steps
 ```bash
 git clone https://github.com/chandahui2004-hub/umdsc-dance-class.git
-cd umdsc-dance-class
+cd "UMDSC Dance Class System"
 npm install
-npm run dev          # website at http://localhost:5173
+npm run dev          # Starts local Vite dev server at http://localhost:5173
 ```
 
-On Windows you can also double-click **`START_UMDSC.bat`**.
+On Windows, developers can also execute `START_UMDSC.bat`.
 
-The local website talks to the **live** server (`VITE_API_URL` in `web/.env.local` / `web/.env.production`), so be careful: changes made locally change real data.
-
-To test on a phone on the same Wi-Fi, run `npm run dev -w web -- --host` and open the "Network" address it prints.
+> ⚠️ **Live Server Interaction:** Local frontend development connects directly to the live Google Apps Script backend (`VITE_API_URL` in `web/.env.production`). Do not delete or overwrite real production records during testing.
 
 ---
 
-## 3. Tests: run them before every publish
+## 3. Testing & verification suite
+
+Run the complete verification pipeline before publishing code changes:
 
 ```bash
-npm test                                         # unit tests (shared + api + web)
-npm run build                                    # type-check and build everything
-cd web && npx playwright test --grep-invert @internet   # browser tests (phone + desktop)
-```
+# 1. Monorepo unit tests across all packages
+npm test -ws --if-present
 
-`web/e2e/phone-layout.spec.ts` checks that nothing is cut off at phone widths. Keep it passing.
+# 2. Production build check (type-checking + esbuild + Vite)
+npm run build
+
+# 3. Mobile viewport layout tests (prevents horizontal cut-offs at 360px & 390px)
+cd web ; npx playwright test e2e/phone-layout.spec.ts
+
+# 4. Offline / isolated browser e2e tests
+cd web ; npx playwright test --grep-invert "@internet"
+
+# 5. Live GAS sandbox verification & clean teardown
+node scripts/live-sandbox-verify.mjs
+
+# 6. Word documentation compilation & OOXML verification
+node scripts/build-guide-docx.mjs
+```
 
 ---
 
-## 4. Publish the website
+## 4. Deploying the frontend (Cloudflare Workers)
+
+Frontend deployments are fully automated via Cloudflare continuous integration:
 
 ```bash
+git checkout main
+git merge <feature-branch>
 git push origin main
 ```
 
-Cloudflare (Workers & Pages › **umdsc-dance-class**) builds it with `npm run build` and deploys `web/dist`, using **`wrangler.jsonc`** in the repo root. It's live in about 1–2 minutes. Check **Deployments** in the Cloudflare dashboard if it isn't.
+Cloudflare Workers detects the commit, runs `npm run build -w web`, and serves the static assets in `web/dist` per `wrangler.jsonc`. Deployment is complete within 60–90 seconds.
 
-Website settings are in **`web/.env.production`**: the API URL, the Google OAuth client ID, the API key and the app ID. These are browser keys and are public by design. They are locked to the website's address in Google Cloud (API key › Website restrictions; OAuth client › Authorized JavaScript origins). **If the website address ever changes, add the new address in both places.**
+### Environment variables (`web/.env.production`)
+- `VITE_API_URL`: Points to the Apps Script Web App execution endpoint.
+- `VITE_GOOGLE_CLIENT_ID`: Google OAuth 2.0 Web Client ID for Drive Picker.
+- `VITE_GOOGLE_API_KEY`: Google API Key restricted to Drive API v3 and designated HTTP referrers.
+- `VITE_GOOGLE_APP_ID`: Google Cloud Project Number (used by Google Picker).
 
 ---
 
-## 5. Deploy the server (Apps Script)
+## 5. Deploying the backend API (Google Apps Script)
 
-Only needed when something in `api/` or `shared/` changes.
+Whenever files in `api/` or `shared/` are updated, deploy the backend:
 
 ```bash
-cd api
-npx clasp login          # once, sign in as umdancesportc@gmail.com
-npm run push             # build + upload the code
-npx clasp update-deployment <DEPLOYMENT_ID>   # make it live; ID is in docs/SETUP-VALUES.md
+# In the api/ directory:
+npm run push -w api
 ```
 
-`update-deployment` keeps the **same URL**, so the website needs no change. Record the new version number in `docs/SETUP-VALUES.md`. Check it works by opening `<API URL>?action=health`, which should answer `{"ok":true,...}`.
+The script `npm run push -w api` automatically:
+1. Compiles TypeScript via `esbuild` into `api/dist/Code.js`.
+2. Pushes the code to Google Apps Script (`clasp push -f`).
+3. Deploys the code directly to the immutable production deployment ID:  
+   `AKfycbz3zfWHdcl_3GuDsCf_ysLpH4XDNyklC87L9HuKpUVvhKrF-BU1M-QCf0PjPePAwwxIHA`.
 
-**Apps Script › Project Settings › Script properties** (values are secret; never copy them into GitHub):
+> 💡 **Immutable Endpoint:** Because the deployment ID remains static, the production API URL never changes, eliminating frontend configuration drift.
 
-| Property | Meaning |
-|---|---|
-| `SYSTEM_SPREADSHEET_ID` | The database Google Sheet |
-| `TOKEN_SECRET` | Signs login sessions. Changing it logs everyone out. |
-| `SETUP_CODE` | One-time code for first setup |
-| `CLUB_EMAIL` | The club Gmail |
-| `DATA_VERSION`, `PERM_VERSION` | Managed automatically |
-
-**Speed-up trigger:** run `installWarmTrigger` once from the Apps Script editor. It keeps the dancers' first load fast by warming the caches every 5 minutes.
-
----
-
-## 6. Where the data lives
-
-- **Database:** one Google Sheet. Each tab is a table: Settings, Events, DanceStyles, Instructors, ClassSessions, MemberIndex, AttendanceSheets, Admins, Roles, RolePermissions, MemberRoles, Videos, Music, Sections, LinkHistory and AuditLog. Its folder is shown in System Settings › Database Folder. **Don't edit the sheet by hand** unless you know the code; columns are matched by header name.
-- **Registrations:** each event's Google Form response sheet. It is read-only for the system.
-- **Attendance:** Google Sheets created per event in the attendance folder.
-- **Videos:** each class lead's Drive folder › event › class.
+### Backend background jobs & triggers
+- **`warmDancerCaches` time-driven trigger:** Run `installWarmTrigger` once in the Apps Script project editor. It executes every 1–5 minutes:
+  - Warms memory caches for active events and dancer bootstrap chunks.
+  - Throttles response sheet synchronization (`AUTO_SYNC_SECONDS = 60`) with single-read optimizations.
+  - Enforces the **3-Layer Incomplete Sheet Row Guard**, safely ignoring half-filled form rows.
+  - Checks Google Form status every 10 minutes (`syncFormStatusIfDue`), auto-closing forms whose styles have reached capacity (`styleSlots`) and auto-syncing manual closures.
+  - Automatically increments `DATA_VERSION` in Script Properties so clients invalidate stale React Query data.
 
 ---
 
-## 7. Making changes
+## 6. UI & sustainability guidelines
 
-1. Read the matching design doc in `docs/superpowers/specs/` first.
-2. Make the change with tests (`*.test.ts(x)` next to the code; browser tests in `web/e2e/`).
-3. Run section 3's commands. Deploy the server (section 5) **before** pushing website code that needs it.
-4. `git push origin main` (section 4).
+The codebase adheres to strict frontend design and performance standards:
 
-Useful facts:
-- Times use Malaysia time (`Asia/Kuala_Lumpur`).
-- Permission codes are listed in `shared/src/types.ts` (`PERMISSIONS`).
-- Video upload and compression: `web/src/features/media/UploadDialog.tsx` and `web/src/lib/media/videoCompressor.ts`. Videos up to 150 MB upload as the original by default.
-- Phone layout: `web/src/app/PhoneShell.tsx`. Every page must work at 360 px wide.
+1. **8-Bit Retro Neon Aesthetic:**
+   - Visual identity uses custom pixel art icons (`web/src/components/ui/pixelIcons.tsx`), neon glow borders (`--neon-cyan`, `--neon-pink`, `--neon-gold`, `--neon-orange`), and dark theme backdrops (`--night-1`, `--violet-1`).
+   - Do NOT apply generic corporate design skills (`taste-skill`, `minimalist-skill`, `brutalist-skill`); respect the retro gaming aesthetic.
+2. **Accessible Typography:**
+   - **No fonts smaller than 10px:** Every text element across `web/src/` must be `>= 10px` (`text-[10px]` or larger) to ensure effortless readability on high-DPI smartphone displays.
+3. **Touch Targets:**
+   - All interactive controls, inputs, and buttons must satisfy a minimum tap target of `44px` (`min-h-[44px]`).
+4. **Zero Horizontal Overflow:**
+   - Layouts must remain responsive with zero horizontal scrolling on narrow viewports down to `360px` and `390px`.
+5. **State Management & React Query:**
+   - Centralize React Query cache keys and invalidations through `web/src/lib/queryClient.ts`.
+   - Never write duplicate API parsing helpers; utilize canonical helpers from `@umdsc/shared`.

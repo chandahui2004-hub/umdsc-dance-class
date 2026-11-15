@@ -1,127 +1,170 @@
-# 开发者与源代码指南
+# 开发者与源码维护指南 (Developer Guide)
 
-**适用对象：**将来负责维护或修改程序的人。
+**适用对象：**未来负责维护、迭代开发或代码审计的软件工程师与技术维护人员。  
 
-| | |
+| 资源配置项 | 配置地址 / 说明 |
 |---|---|
-| **源代码（GitHub）** | https://github.com/chandahui2004-hub/umdsc-dance-class |
-| **下载源代码** | `git clone https://github.com/chandahui2004-hub/umdsc-dance-class.git` |
-| **正式网站** | https://umdsc-dance-class.umdancesportc.workers.dev |
-| **设置值**（各种 ID、部署 ID、网址） | [`docs/SETUP-VALUES.md`](../../SETUP-VALUES.md) |
-| **正式上线的分支** | `main`。每次推送到 `main`，网站都会自动重新发布。 |
+| **源码仓库 (GitHub)** | [https://github.com/chandahui2004-hub/umdsc-dance-class](https://github.com/chandahui2004-hub/umdsc-dance-class) |
+| **代码克隆指令** | `git clone https://github.com/chandahui2004-hub/umdsc-dance-class.git` |
+| **线上生产网站** | [https://umdsc-dance-class.umdancesportc.workers.dev](https://umdsc-dance-class.umdancesportc.workers.dev) |
+| **配置值与部署 ID** | [`docs/SETUP-VALUES.md`](../../SETUP-VALUES.md) |
+| **主发布分支** | `main`（推送到 `main` 分支会自动触发 Cloudflare Workers 生产部署） |
 
-> 🔒 仓库是**公开的**。绝对不要提交密码、`.admin-token` 文件、`.clasprc.json` 或 Apps Script 属性的值。这些已经列在 `.gitignore` 里。
-
----
-
-## 1. 系统架构
-
-```
-舞者 / 管理员的浏览器
-   │  （网站：React 应用，托管在 Cloudflare Workers 静态资源）
-   ▼
-Google Apps Script 网页应用  ──►  Google Sheet 数据库（社团 Drive）
-   （API：登录、资料）              Google Drive 文件夹（点名表）
-   ▲
-浏览器 → 直接上传视频到 Google Drive（Google 登录，drive.file 权限）
-```
-
-- **`web/`**：网站。React 19、TypeScript、Vite、Tailwind CSS v4。
-- **`api/`**：服务器。TypeScript，用 esbuild 打包成 `api/dist/Code.js`，再用 **clasp** 部署到 Google Apps Script。
-- **`shared/`**：网站和服务器共用的类型和工具。
-- **`docs/`**：这些指南（`docs/guides/`）、设置值，以及设计历史（`docs/superpowers/specs` 和 `plans`：为什么这样设计）。
-- **`scripts/`**：辅助脚本，例如 `call.mjs`，可以从终端调用 API。
+> 🔒 **安全禁令：** 本代码库为完全开源公有仓库。**严禁提交任何敏感密钥：** 包括社团 Gmail 密码、`TOKEN_SECRET`、`SETUP_CODE`、`.admin-token`、`.clasprc.json` 或 Apps Script 脚本属性。`.gitignore` 已对这些文件进行排除。
 
 ---
 
-## 2. 在自己的电脑上运行
+## 1. 代码库 Monorepo 架构
 
-需要 **Node.js 24** 和 **Git**。
+项目采用 npm workspaces 进行多包组织与管理：
 
+```
+umdsc-dance-class/
+├── api/          # 运行在 Google Apps Script 上的后端 API 服务
+│   ├── src/      # TypeScript 源码（控制器、DB 抽象层、身份验证、预热、表单联动）
+│   ├── test/     # Vitest 单元测试集（数据库事务、权限树、响应解析、脚本锁）
+│   ├── build.mjs # esbuild 单文件打包脚本 -> api/dist/Code.js
+│   └── package.json
+├── web/          # 部署在 Cloudflare Workers 上的前端单页应用 (SPA)
+│   ├── src/      # React 19, TypeScript, Tailwind CSS v4, 8-Bit 像素霓虹 UI
+│   ├── e2e/      # Playwright 浏览器端到端测试（窄屏自适应布局、核心流转）
+│   ├── vite.config.ts
+│   └── package.json
+├── shared/       # 前后端共享业务逻辑与类型定义 (@umdsc/shared)
+│   ├── src/      # 共享数据契约、权限常量字典、时间解析库、校验器
+│   └── package.json
+├── scripts/      # 自动化辅助与可持续性验证脚本
+│   ├── live-sandbox-verify.mjs  # 线上 GAS 沙箱自我清理与回归测试套件
+│   ├── build-guide-docx.mjs     # 零依赖 OOXML Word 指南编译器
+│   ├── call.mjs                 # 终端调用线上/本地 API 调试脚本
+│   └── loadtest.mjs             # 并发压力测试工具
+└── docs/         # 架构设计规约 (specs)、执行计划 (plans)、交接文档与中英指南
+```
+
+### 数据流与执行时序
+```
+舞者 / 管理员浏览器 (React 19 SPA 运行在 Cloudflare Workers)
+         │
+         │  HTTPS JSON API (POST /?action=...)
+         ▼
+Google Apps Script 线上服务端 (api/dist/Code.js)
+         ├── 鉴权与 JWT 签名核验 (基于 TOKEN_SECRET 的 HMAC SHA-256)
+         ├── 乐观并发控制与防重锁 (withScriptLock)
+         ├── Google Sheets 关系型表格存储 (UMDSC_System 表格)
+         └── Google Forms 满额自动关停与表单响应 60s 节流拉取
+         ▲
+断点续传直传链路 (前端直接调用 Google Drive API v3，采用 GIS OAuth 凭证)
+```
+
+---
+
+## 2. 本地开发环境搭建
+
+### 环境要求
+- **Node.js:** v24.x 或更高版本
+- **Git:** 任意标准 Git 客户端
+- **Google Clasp:** 可通过 `npx @google/clasp` 免安装执行
+
+### 初始化步骤
 ```bash
 git clone https://github.com/chandahui2004-hub/umdsc-dance-class.git
-cd umdsc-dance-class
+cd "UMDSC Dance Class System"
 npm install
-npm run dev          # 网站在 http://localhost:5173
+npm run dev          # 启动本地 Vite 调试服务器，访问 http://localhost:5173
 ```
 
-Windows 上也可以双击 **`START_UMDSC.bat`**。
+Windows 环境下亦可直接双击运行根目录的 **`START_UMDSC.bat`**。
 
-本地网站连接的是**正式**服务器（`web/.env.local` / `web/.env.production` 里的 `VITE_API_URL`），所以要小心：在本地做的修改会改到真实资料。
-
-要在同一个 Wi-Fi 的手机上测试，运行 `npm run dev -w web -- --host`，再打开它显示的 “Network” 网址。
+> ⚠️ **线上环境联动提示：** 本地前端启动后默认直连线上 Google Apps Script 后端（即 `web/.env.production` 中配置的 `VITE_API_URL`）。在本地测试时切勿随意修改或删除生产真实数据。
 
 ---
 
-## 3. 测试：每次发布前都要运行
+## 3. 测试与验证流水线 (Verification Suite)
+
+在推送任何代码前，请依次执行以下自动化检验指令：
 
 ```bash
-npm test                                         # 单元测试（shared + api + web）
-npm run build                                    # 类型检查并构建全部
-cd web && npx playwright test --grep-invert @internet   # 浏览器测试（手机 + 桌面）
-```
+# 1. 运行所有模块的单元测试 (shared + api + web)
+npm test -ws --if-present
 
-`web/e2e/phone-layout.spec.ts` 检查手机宽度下没有内容被截断，请保持它通过。
+# 2. 全局静态检查与编译构建
+npm run build
+
+# 3. 手机端视口布局测试（确保 360px 与 390px 绝无横向溢出）
+cd web ; npx playwright test e2e/phone-layout.spec.ts
+
+# 4. 离线/沙箱端到端回归测试
+cd web ; npx playwright test --grep-invert "@internet"
+
+# 5. 线上 GAS 沙箱完整生命周期测试与自动清理
+node scripts/live-sandbox-verify.mjs
+
+# 6. Word 操作指南二进制生成与 OOXML XML 校验
+node scripts/build-guide-docx.mjs
+```
 
 ---
 
-## 4. 发布网站
+## 4. 前端发布部署 (Cloudflare Workers)
+
+前端构建采用 Cloudflare CI 全自动化流程：
 
 ```bash
+git checkout main
+git merge <feature-branch>
 git push origin main
 ```
 
-Cloudflare（Workers & Pages › **umdsc-dance-class**）会用 `npm run build` 构建，并按仓库根目录的 **`wrangler.jsonc`** 部署 `web/dist`。大约 1–2 分钟后上线。如果没有更新，查看 Cloudflare 控制台的 **Deployments**。
+Cloudflare Workers 检测到 `main` 分支更新后，会自动执行 `npm run build -w web`，并依据根目录 `wrangler.jsonc` 规范发布 `web/dist` 中的静态资产。整个过程通常在 60–90 秒内完成。
 
-网站设置在 **`web/.env.production`**：API 网址、Google OAuth client ID、API key 和 app ID。这些是浏览器用的公开密钥，本来就会公开；它们在 Google Cloud 里已限制只能从网站网址使用（API key › Website restrictions；OAuth client › Authorized JavaScript origins）。**如果网站网址改变，要在这两个地方都加上新网址。**
+### 环境变量与公共配置 (`web/.env.production`)
+- `VITE_API_URL`: 生产后端 Google Apps Script 执行入口。
+- `VITE_GOOGLE_CLIENT_ID`: Google 云端硬盘授权的 Web 客户端 ID。
+- `VITE_GOOGLE_API_KEY`: 绑定了特定域名白名单与 Drive API v3 的 Google API 密钥。
+- `VITE_GOOGLE_APP_ID`: Google Cloud 项目数字编号（Google Picker 所需）。
 
 ---
 
-## 5. 部署服务器（Apps Script）
+## 5. 后端 API 部署 (Google Apps Script)
 
-只有修改了 `api/` 或 `shared/` 才需要。
+当修改了 `api/` 或 `shared/` 目录中的代码时，需执行后端部署：
 
 ```bash
-cd api
-npx clasp login          # 只需一次，用 umdancesportc@gmail.com 登录
-npm run push             # 构建并上传程序
-npx clasp update-deployment <DEPLOYMENT_ID>   # 正式上线；ID 在 docs/SETUP-VALUES.md
+# 在 api/ 目录或通过工作区命令执行：
+npm run push -w api
 ```
 
-`update-deployment` 会保持**同一个网址**，所以网站不用改。把新的版本号记录到 `docs/SETUP-VALUES.md`。打开 `<API 网址>?action=health` 检查，应该显示 `{"ok":true,...}`。
+`npm run push -w api` 指令会自动串联：
+1. 调用 `esbuild` 将 TypeScript 打包为单文件 `api/dist/Code.js`。
+2. 调用 `clasp push -f` 覆盖 Apps Script 线上代码。
+3. 调用 `clasp deploy` 更新固定部署 ID：  
+   `AKfycbz3zfWHdcl_3GuDsCf_ysLpH4XDNyklC87L9HuKpUVvhKrF-BU1M-QCf0PjPePAwwxIHA`。
 
-**Apps Script › Project Settings › Script properties**（值是机密，绝对不要复制到 GitHub）：
+> 💡 **固定部署入口保障：** 由于部署 ID 固定不变，前端配置的后端 URL 永远无需修改，彻底避免配置漂移。
 
-| 属性 | 意思 |
-|---|---|
-| `SYSTEM_SPREADSHEET_ID` | 数据库 Google Sheet |
-| `TOKEN_SECRET` | 用来签署登录会话。更改后所有人都会被登出。 |
-| `SETUP_CODE` | 首次设置用的一次性代码 |
-| `CLUB_EMAIL` | 社团 Gmail |
-| `DATA_VERSION`、`PERM_VERSION` | 系统自动管理 |
-
-**加速触发器：**在 Apps Script 编辑器里运行一次 `installWarmTrigger`。它每 5 分钟预热一次缓存，让舞者第一次打开网站时更快。
-
----
-
-## 6. 资料存放在哪里
-
-- **数据库：**一个 Google Sheet。每个分页是一张表：Settings、Events、DanceStyles、Instructors、ClassSessions、MemberIndex、AttendanceSheets、Admins、Roles、RolePermissions、MemberRoles、Videos、Music、Sections、LinkHistory 和 AuditLog。文件夹在 System Settings › Database Folder。**除非你了解程序，否则不要手动修改这个表格**，栏位是按标题名称对应的。
-- **报名资料：**每个活动的 Google 报名回复表格，系统只会读取。
-- **点名：**每个活动在点名文件夹里建立的 Google Sheets。
-- **视频：**各课程负责人的 Drive 文件夹 › 活动 › 课程。
+### 后台定时巡检与预热任务
+- **`warmDancerCaches` 定时触发器：** 在 Apps Script 控制台中运行一次 `installWarmTrigger`，将自动建立每 1–5 分钟执行的守护定时器：
+  - 自动预热活跃活动的舞者数据缓存。
+  - 遵循 `AUTO_SYNC_SECONDS = 60` 节流拉取 Google 表单的新增报名。
+  - 严格执行 **3 层残缺数据守卫**，过滤掉学员正在提交中的不完整行。
+  - 运行 `syncFormStatusIfDue`，每 10 分钟双向巡检一次表单状态，满额时自动关闭表单并推送告警邮件。
+  - 数据发生实质变更时自动递增 Script Properties 中的 `DATA_VERSION`，触发前端 React Query 缓存刷新。
 
 ---
 
-## 7. 修改程序
+## 6. UI 设计与可持续开发规范
 
-1. 先阅读 `docs/superpowers/specs/` 里相关的设计文件。
-2. 修改时一起写测试（`*.test.ts(x)` 放在程序旁边；浏览器测试在 `web/e2e/`）。
-3. 运行第 3 节的命令。如果网站的新程序需要新的服务器功能，**先**部署服务器（第 5 节），再推送网站。
-4. `git push origin main`（第 4 节）。
+代码库严格遵循以下前端技术与无障碍规范：
 
-实用资料：
-- 时间使用马来西亚时间（`Asia/Kuala_Lumpur`）。
-- 权限代码列在 `shared/src/types.ts`（`PERMISSIONS`）。
-- 视频上传和压缩：`web/src/features/media/UploadDialog.tsx` 和 `web/src/lib/media/videoCompressor.ts`。150 MB 以下的视频默认上传原片。
-- 手机版面：`web/src/app/PhoneShell.tsx`。每个页面都必须在 360 px 宽度下能正常使用。
+1. **8-Bit 像素霓虹美学：**
+   - 采用自定义像素图标库 (`web/src/components/ui/pixelIcons.tsx`)、荧光色边框 (`--neon-cyan`, `--neon-pink`, `--neon-gold`, `--neon-orange`) 与暗夜底色 (`--night-1`, `--violet-1`)。
+   - **禁止**应用通用极简或现代 SaaS 风格插件（如 `taste-skill`、`minimalist-skill`、`brutalist-skill`），必须保持纯正的 8 位复古电玩风格。
+2. **文字可读性底线：**
+   - **全站严禁低于 10px 的微小字体：** `web/src/` 中所有文本元素字号必须 `>= 10px`（`text-[10px]` 或更大），确保在手机视网膜屏幕上轻松辨识。
+3. **触控热区规范：**
+   - 所有的按钮、表单输入框与可交互控件，最小触控高度不得低于 `44px` (`min-h-[44px]`)。
+4. **零横向滚动保证：**
+   - 界面在 `360px` 与 `390px` 窄屏手机宽度下必须完全自适应，严禁产生横向滚动条或布局错位。
+5. **数据缓存与状态收敛：**
+   - React Query 缓存键统一收敛在 `web/src/lib/queryClient.ts` 中管理。
+   - 数据格式处理优先复用 `@umdsc/shared`，杜绝重复实现解析逻辑。

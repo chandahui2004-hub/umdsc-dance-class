@@ -1,110 +1,111 @@
-# Admin Handover Guide
+# Admin Handover & Operations Guide
 
-**For:** the outgoing admin and the new admin, when the website changes hands (for example each new committee term).
-**Read with:** the **Admin Guide** (daily use) and the **Developer Guide** (if anything needs changing in the code).
+**For:** Outgoing and incoming club executive committees when system stewardship changes hands (e.g. at annual committee transitions).  
+**Companion guides:**  
+- [Admin Guide](2-admin-guide.md) (day-to-day administrative operations)  
+- [Class Lead Guide](1-class-lead-guide.md) (attendance taking and media uploads)  
+- [Developer Guide](5-developer-guide.md) (source code and deployment instructions)  
 
-> 🔒 **Never write passwords in this guide, in GitHub, or in a group chat.** The GitHub repository is **public**. Hand passwords over in person or in a private message, and change them afterwards.
+> 🔒 **Security Imperative:** The GitHub repository is public. **Never commit passwords, Google account credentials, `TOKEN_SECRET`, `.admin-token`, or personal phone numbers into this repository or in group chats.** Always transmit credentials in person or through end-to-end encrypted direct messages, and rotate them immediately after handover.
 
 ---
 
-## 1. What runs the website
+## 1. System architecture summary
 
-| Part | What it is | Where it lives | Signed in with |
+| Component | Technology | Location / Hosting | Admin Credentials |
 |---|---|---|---|
-| **Website** (what people see) | Pages hosted on Cloudflare | https://umdsc-dance-class.umdancesportc.workers.dev | Cloudflare account (club Gmail) |
-| **Server** (logins, saving data) | Google Apps Script web app | script.google.com, project of the club account | **umdancesportc@gmail.com** |
-| **Database** | A Google Sheet in the club's Drive | System Settings › **Database Folder** | **umdancesportc@gmail.com** |
-| **Google sign-in + Drive access** | Google Cloud project **umdsc-class** | console.cloud.google.com | **umdancesportc@gmail.com** |
-| **Source code** | GitHub repository | https://github.com/chandahui2004-hub/umdsc-dance-class | GitHub account of the owner |
-| **Class videos** | Each class lead's own Google Drive folder | Linked on the Media page | Each class lead |
+| **Website Frontend** | React 19, TypeScript, Vite, Tailwind CSS v4 | Cloudflare Workers Static Assets (`https://umdsc-dance-class.umdancesportc.workers.dev`) | Cloudflare Account (`umdancesportc@gmail.com`) |
+| **Backend API** | Google Apps Script (TypeScript bundled to `Code.js`) | Apps Script Web App Deployment ID `AKfycbz3zfWHdcl_3GuDsCf_ysLpH4XDNyklC87L9HuKpUVvhKrF-BU1M-QCf0PjPePAwwxIHA` | `umdancesportc@gmail.com` |
+| **Database** | Google Sheets (`UMDSC_System` multi-tab spreadsheet) | Google Drive root folder `UMDSC_System` | Owned by `umdancesportc@gmail.com` |
+| **Registration Engine** | Google Forms & Response Sheets with Slot Auto-Gating | Created per monthly event; linked via Event Wizard | Form & Sheet shared with `umdancesportc@gmail.com` as **Editor** |
+| **Video Storage** | Hybrid Google Drive & YouTube Unlisted | Individual Class Lead Drive Folders + YouTube Studio | Class Lead personal Google accounts |
+| **Music Library** | Shared Music Library & Audio Streamer | Drive files & YouTube/Spotify/SoundCloud streams | Managed in System Media & Music Library |
+| **Source Code** | Git monorepo (`web/`, `api/`, `shared/`, `scripts/`) | [https://github.com/chandahui2004-hub/umdsc-dance-class](https://github.com/chandahui2004-hub/umdsc-dance-class) | GitHub repository maintainers |
 
-Almost everything belongs to the **club Gmail, `umdancesportc@gmail.com`**. Whoever controls that account controls the system.
+Primary ownership of all operational assets resides with the **club Google account, `umdancesportc@gmail.com`**. Securing and transferring this account guarantees continuous control of the club platform.
 
 ---
 
 ## 2. Handover checklist
 
-### Outgoing admin
-- [ ] Hand over the **club Gmail password** privately. Make sure 2-Step Verification uses a phone or backup codes the new admin can access.
-- [ ] Create a website account for the new admin: **Admin Accounts › + NEW ADMIN**, role **Admin**.
-- [ ] Give the new admin access to the **source code** on GitHub, using one of these:
-  - **Recommended:** transfer the repository to a GitHub account the club controls: Repository › **Settings › General › Transfer ownership**.
-  - Or add them as a collaborator: Repository › **Settings › Collaborators › Add people**.
-- [ ] Make sure the new admin can sign in to **Cloudflare** (dash.cloudflare.com) with the club Gmail.
-- [ ] Walk through the **Admin Guide** together, and do one class's attendance and one upload together.
+### Outgoing Executive Committee
+- [ ] **Transfer Club Gmail Credentials:** Hand over the password for `umdancesportc@gmail.com` privately. Update 2-Step Verification phone numbers and generate new emergency backup codes for the incoming committee.
+- [ ] **Create New Admin Accounts:** In **Admin Accounts › + NEW ADMIN**, create individual administrator accounts for incoming executive members under the **Admin** role.
+- [ ] **Transfer GitHub Access:** Add incoming technical directors as repository collaborators or transfer ownership under **GitHub › Repository Settings › Collaborators**.
+- [ ] **Transfer Cloudflare Access:** Ensure the new tech leads can sign in to Cloudflare dashboard under `umdancesportc@gmail.com`.
+- [ ] **System Settings Walkthrough:** Guide the new committee through **System Settings**, including **Admin Notification Emails** and folder links.
+- [ ] **Live Class Rehearsal:** Run a mock attendance session and video upload with the new team.
 
-### New admin
-- [ ] Log in to the website with **your own** admin account.
-- [ ] **Change the club Gmail password**, and update its 2-Step Verification.
-- [ ] **DEACTIVATE** the old admin's website account, unless they stay to help.
-- [ ] Check every class lead still has an account, a folder link and an upload account (section 4).
-- [ ] Review the **Google sign-in list** (section 4, step C): remove people who left.
+### Incoming Executive Committee
+- [ ] **Rotate Club Gmail Password:** Immediately change the password for `umdancesportc@gmail.com` and update recovery emails.
+- [ ] **Update Admin Notification Emails:** In **System Settings › ADMIN NOTIFICATION EMAILS**, add the incoming committee's emails to receive real-time capacity and auto-gating alerts.
+- [ ] **Deactivate Departed Accounts:** In **Admin Accounts**, click **DEACTIVATE** for outgoing committee members who no longer require administrative privileges.
+- [ ] **Verify Class Rep Onboarding:** Confirm every dance style has an appointed Class Rep with assigned dance styles (`assignedStyleIds`).
+- [ ] **Audit Google Cloud Test Users:** Open Google Cloud Console (`umdsc-class`) › Google Auth Platform › Audience, and verify the OAuth test user list matches active class leads.
 
 ---
 
-## 3. Regular tasks
+## 3. Recurring operational schedule
 
-| When | Task | Where |
+| Cadence | Operational Task | Location | Notes |
+|---|---|---|---|
+| **Monthly** | Create new Event via Event Wizard | Events › **+ NEW EVENT** | Enter Google Form edit URL (`formUrl`) for slot auto-gating and response sheet link. |
+| **Monthly** | Monitor style slot limits & registrations | Events & Notification Mascot | Form auto-closes when capacity is reached; 1-min throttled sync runs automatically. |
+| **Monthly** | Archive previous month's event | Events › **ARCHIVE** | Freezes data and stops background sync jobs. |
+| **Weekly** | Supervise class attendance | Attendance | Verify class leads submitted ticks; export Excel for club records. |
+| **Per Term** | Onboard or rotate Class Reps | Roles & Admin Accounts | Seed accounts with built-in `Class Rep` role scoped to their styles. |
+| **Annually** | Audit Google Drive storage quota | Google Drive | Verify video folders are kept within free tier limits. |
+
+---
+
+## 4. Onboarding a new Class Rep (step-by-step)
+
+Steps A–C are performed by an administrator; steps D–F are completed by the Class Rep.
+
+### Step A: Verify the Class Rep system role
+In **Roles & Permissions**, confirm the built-in system role **Class Rep (`role_class_rep`)** exists. It comes pre-configured with `attendance.view.all`, `attendance.edit`, and `export.download`.
+
+### Step B: Create their administrative account
+1. Open **Admin Accounts › + NEW ADMIN**.
+2. **Username:** e.g. `locking.rep`.
+3. **Display Name:** e.g. `Locking Class Rep`.
+4. **Assigned Role:** Select **Class Rep**.
+5. **Assigned Dance Styles (`assignedStyleIds`):** In the **Member Roles Panel** in Roles, scope their access to their assigned style (e.g. *Locking*). Unrelated administrative tabs will automatically be hidden from their view.
+6. Provide their temporary credentials in a private message.
+
+### Step C: Add their Gmail to Google Cloud OAuth test users
+Because Google sign-in is operated in project verification test mode:
+1. Open [https://console.cloud.google.com](https://console.cloud.google.com) signed in as `umdancesportc@gmail.com`.
+2. Select project **umdsc-class**.
+3. Navigate to **Google Auth Platform › Audience**.
+4. Under **Test users**, click **+ Add users**, enter the Class Rep's personal Gmail address, and click **Save**.
+
+### Step D: The Class Rep creates their video folder
+1. In their personal Google Drive, the Class Rep creates a folder (e.g. `Locking Recap Videos 2026`).
+2. They click **Share**, set `umdancesportc@gmail.com` as **Editor**, and leave general access **Restricted**.
+3. They copy the folder URL and send it to the admin.
+
+### Step E: Administrator registers the folder link
+In **Media › CLASS LEAD VIDEO DRIVE FOLDERS › ▼ EXPAND**, find their dance style row, click **+ INSERT LINK**, paste the URL, and save.
+
+### Step F: The Class Rep authorizes their folder 💻
+On a computer browser:
+1. The Class Rep logs in to the website.
+2. Opens **Media**, taps **SWITCH ACCOUNT**, and selects their personal Gmail.
+3. On their dance style row, taps **AUTHORIZE**, picks their folder in the Google Picker window, and clicks **Select**.
+4. The row updates to **✓ AUTHORIZED** with **Uploads as** *their Gmail*.
+
+---
+
+## 5. Troubleshooting & operational solutions
+
+| Symptom | Probable Cause | Action / Resolution |
 |---|---|---|
-| Every month | Create the new **event** with its Google Form | Events › + NEW EVENT |
-| Every month | **ARCHIVE** last month's event when it's over | Events |
-| When needed | Check new registrations have arrived (**SYNC NOW**) | Events |
-| When needed | Add or change instructors, styles and classes | Admin Guide sections 3–5 |
-| Each term | Add or remove class leads | Section 4 below |
-| Each term | Check the class leads' Google storage isn't full | Each lead's Google account |
-
----
-
-## 4. Add a new class lead (step by step)
-
-Do steps A–C yourself; steps D–F need the class lead.
-
-**A. Make sure the Class Lead role exists (once only)**
-Roles & Permissions. If there's no **Class Lead** role, create it as in the **Admin Guide, section 8**: **Login Type Admin**, plus the listed permissions, including `styles.edit`.
-
-**B. Create their website account**
-1. **Admin Accounts › + NEW ADMIN.**
-2. **Username:** for example `locking.lead`. **Display Name:** for example `Locking Class Lead`. **Initial Password:** a strong temporary password. **Assigned Role:** **Class Lead**.
-3. Send the username and password to them **privately**.
-
-**C. Add their Gmail to the Google sign-in list**
-The website's Google sign-in is in Google's "Testing" mode, so **only listed Gmail accounts can sign in**.
-1. Go to https://console.cloud.google.com, signed in as **umdancesportc@gmail.com**. Check the project at the top is **umdsc-class**.
-2. Search **Google Auth Platform**, then open **Audience**.
-3. Under **Test users**, click **+ Add users**, enter the class lead's Gmail, then **Save**. Up to 100 people can be listed.
-
-**D. The class lead creates and shares a Drive folder**
-1. In **their** Google Drive: **New › Folder**, for example `Locking Class Videos`.
-2. **Share** it with `umdancesportc@gmail.com` as **Editor**. Under **General access**, keep it **Restricted**, not "Anyone with the link".
-3. They send you the folder link.
-
-**E. Insert the folder link**
-**Media › CLASS LEAD VIDEO DRIVE FOLDERS › ▼ EXPAND**. On their style's row, click **+ INSERT LINK**, paste the link, then **SAVE**.
-
-**F. The class lead authorizes the folder 💻**
-The class lead, on a computer, logs in with their website account, opens **Media**, taps **SWITCH ACCOUNT** to choose **their own Gmail**, then taps **AUTHORIZE** on their style and selects the folder. The row shows **✓ AUTHORIZED** and **Uploads as** *their Gmail*.
-
-✅ Done. They can now take attendance and upload; give them the **Class Lead Guide**.
-
-### When a class lead leaves
-1. **Admin Accounts:** **DEACTIVATE** their account.
-2. **Media:** **REMOVE LINK** for their style, or **CHANGE LINK** to the new lead's folder.
-3. **Google Cloud › Audience › Test users:** remove their Gmail.
-4. Ask them **not to delete** the old video folder until the new lead has copied anything worth keeping.
-
----
-
-## 5. Common problems
-
-| Problem | Cause and fix |
-|---|---|
-| A dancer can't log in | The name must match the registration form, every word. Check them on the **Dancers** page. If they're missing, check the form response sheet, then **SYNC NOW**. |
-| "Access blocked" / Google refuses sign-in when uploading | Their Gmail isn't on the **Test users** list (4C). |
-| "…uploads with X, but you're signed in as Y" | They're signed in with the wrong Google account: **SWITCH ACCOUNT**. |
-| "…has no upload account yet" | Do step **4F** (AUTHORIZE). |
-| "Class lead video folder link not inserted" | Do step **4E**. |
-| A deleted video is still in Drive | The website could only remove it from the website, because another account owns the file. Delete it in Drive by hand. |
-| "Session expired due to permission update" | Someone changed a role's permissions. Log in again. |
-| New events don't import dancers | The response sheet isn't shared with umdancesportc@gmail.com as Editor, or the event is archived. |
-| The website looks out of date | Close the tab and open it again. |
-| Something is broken in the code | See the **Developer Guide**. |
+| **Google Form shows "No longer accepting responses" prematurely** | Style slot limit reached in the system | Check **Events › Edit Event › Per-Style Slot Limits**. If additional venue capacity is available, increase the slot limit. The system will automatically reopen the form. |
+| **New form responses do not appear in the website roster** | Transient row caught by Incomplete Sheet Row Guard, or 60s throttle | Ensure the dancer completed all required form fields (Full Name, Matric). Incomplete rows are safely ignored to prevent database corruption. Wait 60 seconds or click **SYNC NOW** in Events. |
+| **"Access blocked / Sign-in with Google disabled" during video upload** | Class Rep's Gmail not registered in Google Cloud | Add the user's Gmail to the **Test users** list in Google Cloud Console under project `umdsc-class` (Section 4C). |
+| **"Uploads with X, but you are signed in as Y"** | Active Google session mismatch | Tap **SWITCH ACCOUNT** in the top navigation bar and select Google account X. |
+| **Class Rep sees unauthorized administrative tabs or cannot see attendance** | Permissions not refreshed or role misconfigured | Ensure their account is assigned to the built-in **Class Rep** role and assigned to the correct style in **Roles & Permissions**. Have them log out and log back in. |
+| **Dancer cannot find songs for other styles in the library** | Incorrect route or filter applied | The **Shared Music Library (`/library`)** grants universal access across all styles. Check the Dance Style filter pills at the top to ensure "All" is selected. |
+| **Video upload stalls or fails at 99%** | Phone went to sleep during upload | Keep the browser tab active and screen awake. Use **📦 SMALLER: COMPRESS FIRST** for files over 150 MB. |
+| **Dancer self-service edit fails with "Matric already belongs to another dancer"** | Duplicate student ID entered | The system enforces unique matric keys. Verify student identity and update directly via **Dancers › EDIT DANCER** if necessary. |
