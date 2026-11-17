@@ -31,11 +31,13 @@ The monthly operations cycle follows a standardized 5-step operational rhythm:
 4. **Per-Style Slot Limits (`styleSlots`):** Define venue capacity per dance style (e.g. Locking: 25, Popping: 25, Hip Hop: 30, Latin: 20).
 5. **Auto-Fill Class Schedule:** Generate all weekly class sessions in bulk (e.g. Locking Fridays 8:00–10:00 PM).
 
-### Step 2: Automated Registration & Incomplete Sheet Row Guard
+### Step 2: Automated Registration, Incomplete Row Guard, Reopening Slots & Direct Dancer CRUD
 1. Link the event's Google Sheet response spreadsheet in the Event Wizard.
 2. The background engine checks the response sheet every 60 seconds (`AUTO_SYNC_SECONDS = 60`) with single-read optimizations.
 3. **3-Layer Incomplete Sheet Row Guard:** Transient or half-filled rows created while dancers are actively submitting Google Forms are automatically ignored, preventing database corruption.
-4. **10-Minute Form Status Sync:** Every 10 minutes, the backend verifies Google Form open/close state, auto-closing forms whose styles reach capacity and syncing manual edits.
+4. **10-Minute Form Status Sync & `REOPEN / + SLOTS`:** Every 10 minutes, the backend verifies Google Form open/close state, auto-closing forms whose styles reach capacity. On `/admin/events`, when any style is full or `FORM CLOSED`, admins can click **`REOPEN / + SLOTS`** and enter `+N` add-on slots (`events.reopenFormSlots`) to expand capacity (`Math.max(limit, enrolled) + addOn`), restore form choices, and reopen the Google Form immediately.
+5. **Direct Dancer & Class Management (`/admin/members`):** Admins can click **`+ ADD DANCER`** to enroll dancers straight into the Google Form response sheet (including admin overrides into full classes while keeping the Google Form closed), or open a dancer's **`EDIT DETAILS`** sheet to add/change/drop dance classes or **`REMOVE FROM EVENT`**.
+6. **Automatic Attendance & Database Cleanup:** Dropping/changing classes or removing a dancer automatically purges them from the dropped style's `Attendance` sheet (even if they had prior `/` ticks) and updates `MemberIndex` (deactivating their sign-in entry when 0 active events remain).
 
 ### Step 3: Google Drive Folder Sharing & Class Rep Setup
 1. Appoint a **Class Rep** for each dance style under **More › Admin Accounts** and assign their styles (`assignedStyleIds`).

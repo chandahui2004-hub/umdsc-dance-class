@@ -841,6 +841,8 @@ describe('Feature: events (features/events)', () => {
       expect(zeroRes.ok).toBe(false);
       const negRes = call('events.reopenFormSlots', { id: ev.id, addOnSlots: { st_popping: -2 } });
       expect(negRes.ok).toBe(false);
+      const boolRes = call('events.reopenFormSlots', { id: ev.id, addOnSlots: { st_popping: true } });
+      expect(boolRes.ok).toBe(false);
       const badStyleRes = call('events.reopenFormSlots', { id: ev.id, addOnSlots: { st_hiphop: 3 } });
       expect(badStyleRes.ok).toBe(false);
 

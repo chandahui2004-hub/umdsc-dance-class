@@ -448,16 +448,22 @@ export function getMemberRoutes(): Record<string, Route> {
               saveEventFields(ctx, event.id, { classIndex: classCol }, actor);
             }
 
-            // Preserve merged profile fields from newer duplicate submissions before clearing them
-            for (const [key, field] of EDITABLE) {
-              if (payload[key] !== undefined) continue;
-              const colIdx = map[field];
-              if (colIdx === null || colIdx === undefined) continue;
-              const curCell = (primary.row[colIdx] ?? '').trim();
-              const fallbackVal = String(member[key] ?? '').trim();
-              if (!curCell && fallbackVal) {
-                if (field === 'matric' || field === 'contact') sheet.setPlainTextColumns([colIdx + 1]);
-                sheet.setValues(primary.i + 1, colIdx + 1, [[fallbackVal]]);
+            // Preserve newest non-empty profile fields across duplicate submissions before clearing extras
+            if (responseRows.length > 1) {
+              const newestToOldest = [...responseRows].reverse();
+              for (const [key, field] of EDITABLE) {
+                if (payload[key] !== undefined) continue;
+                const colIdx = map[field];
+                if (colIdx === null || colIdx === undefined) continue;
+                const newestRow = newestToOldest.find(({ row }) => (row[colIdx] ?? '').trim() !== '');
+                const preferredVal = newestRow
+                  ? (newestRow.row[colIdx] ?? '').trim()
+                  : String(member[key] ?? '').trim();
+                const curCell = (primary.row[colIdx] ?? '').trim();
+                if (preferredVal && preferredVal !== curCell) {
+                  if (field === 'matric' || field === 'contact') sheet.setPlainTextColumns([colIdx + 1]);
+                  sheet.setValues(primary.i + 1, colIdx + 1, [[preferredVal]]);
+                }
               }
             }
 

@@ -387,11 +387,13 @@ export const PixelUnlockIcon: React.FC<PixelIconProps> = ({ className = 'w-5 h-5
     <rect x="6" y="2" width="7" height="2" />
     <rect x="5" y="3" width="2" height="6" />
     <rect x="12" y="3" width="2" height="3" />
-    {/* Solid Lock Body */}
-    <rect x="4" y="9" width="12" height="9" />
-    {/* Hollow Keyhole */}
-    <rect x="8" y="11" width="4" height="2" fill="var(--night-2, #0d0f18)" />
-    <rect x="9" y="13" width="2" height="3" fill="var(--night-2, #0d0f18)" />
+    {/* Lock Body constructed around transparent keyhole cutout */}
+    <rect x="4" y="9" width="12" height="2" />
+    <rect x="4" y="11" width="4" height="2" />
+    <rect x="12" y="11" width="4" height="2" />
+    <rect x="4" y="13" width="5" height="3" />
+    <rect x="11" y="13" width="5" height="3" />
+    <rect x="4" y="16" width="12" height="2" />
   </svg>
 );
 
@@ -430,16 +432,18 @@ export const PixelTrashIcon: React.FC<PixelIconProps> = ({ className = 'w-5 h-5'
     style={size ? { width: size, height: size } : undefined}
     aria-hidden="true"
   >
-    {/* Top Handle */}
-    <rect x="7" y="2" width="6" height="2" />
-    <rect x="8" y="3" width="4" height="1" fill="var(--night-2, #0d0f18)" />
+    {/* Top Handle with transparent opening */}
+    <rect x="7" y="2" width="6" height="1" />
+    <rect x="7" y="3" width="1" height="1" />
+    <rect x="12" y="3" width="1" height="1" />
     {/* Lid Bar */}
     <rect x="3" y="4" width="14" height="2" />
-    {/* Bin Body */}
-    <rect x="4" y="7" width="12" height="11" />
-    {/* Hollow Vertical Ridges */}
-    <rect x="6" y="9" width="2" height="7" fill="var(--night-2, #0d0f18)" />
-    <rect x="9" y="9" width="2" height="7" fill="var(--night-2, #0d0f18)" />
-    <rect x="12" y="9" width="2" height="7" fill="var(--night-2, #0d0f18)" />
+    {/* Bin Body constructed around transparent vertical ridges */}
+    <rect x="4" y="7" width="12" height="2" />
+    <rect x="4" y="9" width="2" height="7" />
+    <rect x="8" y="9" width="1" height="7" />
+    <rect x="11" y="9" width="1" height="7" />
+    <rect x="14" y="9" width="2" height="7" />
+    <rect x="4" y="16" width="12" height="2" />
   </svg>
 );

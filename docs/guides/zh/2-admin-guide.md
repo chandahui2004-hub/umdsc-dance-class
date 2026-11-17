@@ -18,7 +18,7 @@
   2. **Attendance (`/admin/attendance`)：** 实时点名、Excel 格式导出与 Google Sheets 直达链接。
   3. **Media (`/admin/media`)：** 云端硬盘文件夹授权绑定、视频原画/压缩混合上传与音乐小节管理。
   4. **Library (`/admin/library`)：** 全社团共享音乐库，支持试听与一键启动练习室。
-  5. **Dancers (`/admin/members`)：** 注册舞者花名册、学号/姓名搜索、玩家属性卡与手动同步。
+  5. **Dancers (`/admin/members`)：** 注册舞者花名册、学号/姓名搜索、玩家属性卡、直接增删改舞者/舞种与手动同步。
   6. **More (`#more`)：** 展开查看全局基础数据及系统后台：
      - **Dance Styles (`/admin/styles`)：** 舞种管理
      - **Instructors (`/admin/instructors`)：** 导师名录
@@ -70,6 +70,12 @@
 - **10 分钟双向表单状态巡检：** 每 10 分钟自动检查一次表单开闭状态。若管理员在 Google Forms 后台手动重新开放或提前关闭表单，系统能自动同步状态。
 - **手动立即同步 (`SYNC NOW`)：** 在 Events 页面随时可点击强制执行同步。
 
+### 重新开放已满舞种或已关闭的 Google 表单 (`REOPEN / + SLOTS`)
+- 当活动中任一舞种报名满额或 Google 表单已关停（`FORM CLOSED`）时，进行中的活动卡片会显示 **`REOPEN / + SLOTS`** 按钮。
+- 点击 **`REOPEN / + SLOTS`** 打开 **REOPEN & ADD SLOTS** 弹窗，为您希望重新开放的舞种输入新增扩招名额 **`+N`（至少 `1`）**。
+- 系统会将该舞种的最新名额上限计算为 `Math.max(当前名额上限, 当前实际人数) + 新增名额`，清除满额标记、为新上限重新布防满额告警、在 Google 表单中恢复对应舞种选项，并立即重新开启 Google 表单接收报名。
+- **手动超额录入说明：** 管理员在 `/admin/members` 手动加人或调班进入已满舞种时，系统绝不会自动重开公开 Google 表单；如需恢复对外报名，请使用本页面的 **`REOPEN / + SLOTS`** 按钮。
+
 ---
 
 ## 3. 舞种配置 (Dance Styles)
@@ -120,11 +126,20 @@
 
 ![舞者名册](../images/admin-08-dancers.png)
 
-### 舞者属性卡片详情
-点击任一舞者即可展开其专属**属性卡片**：
-- 展示真实学号、带有直接唤醒功能的 **WHATSAPP** 电话链接、**MAILTO** 邮箱链接、性别、国籍、注册时间戳、已报舞种及系统标记。
-- **编辑舞者资料 (`EDIT DANCER`)：** 当学员学号填错、姓名有拼写误差或更换电话时，管理员点击 **EDIT DANCER** 修改，系统会自动反向更新其在 Google 表单响应表格中的对应行数据！
-- **转正临时嘉宾：** 当试课舞者凭 Walk-in 通行码上课后，管理员可在此为其补录正式学号并关联档案。
+### 舞者花名册与直接增删改管理 (`/admin/members`)
+拥有 `members.import` 权限的管理员可直接在网页后台完成舞者与所报舞种的增删改操作，无需手动翻找 Google Sheets：
+
+1. **直接新增舞者 (`+ ADD DANCER`)：**
+   - 点击工具栏上的 **`+ ADD DANCER`**，选择目标活动并填写 **Full Name**、**Matric Number**、联系方式及选报的 **Dance Classes**。
+   - **已满舞种管理员超额特批：** 若某舞种已达报名上限（显示 `FULL — ADMIN OVERRIDE (FORM STAYS CLOSED)`），管理员仍可从后台直接录入该舞者；系统会将其写入该活动的 Google 表单响应表、立即同步点名册与 `MemberIndex`、发送确认邮件（若填写了邮箱），同时保持公开 Google 表单及该满额舞种选项继续**关闭**。
+2. **属性卡片、修改资料与增减/更换舞种 (`DETAILS` / `INFO` → `EDIT DETAILS`)：**
+   - 电脑端点击 **DETAILS**、手机端点击 **INFO** 可展开舞者的**属性卡片**，查看学号、**WHATSAPP** 直连、**MAILTO** 邮箱、性别、国籍、报名时间戳、已报舞种及系统标记。
+   - 点击 **`EDIT DETAILS`** 可修改个人资料，或直接勾选/取消 **Dance Classes** 来**新增、更换或退选舞种**，点击 **`SAVE TO FORM SHEET`** 保存。系统会更新 Google 表单响应表的主记录并自动清理该舞者多余的旧重复提交行，防止已退选的舞种在下次同步时被重新合并回来。
+3. **从活动中移除舞者 (`REMOVE FROM EVENT`)：**
+   - 在 **`EDIT DETAILS`** 底部点击 **`REMOVE FROM EVENT`** → **`CONFIRM REMOVE`**，即可将退课舞者从该活动的 Google 表单响应表中清除并立即触发同步。
+4. **点名表与数据库自动清理机制：**
+   - 每当舞者更换/退选舞种或被移出活动时，同步引擎会自动将其从原舞种的 `Attendance` 点名表中清除（**即使之前已有 `/` 出勤打卡记录也会一并清理**），并同步更新 `MemberIndex`。若该舞者已无任何其他进行中的活动，系统会自动停用其 `MemberIndex` 登录档案（`active: false`）。
+5. **转正临时嘉宾：** 当试课舞者凭 Walk-in 通行码上课后，管理员可在此为其补录正式学号并关联档案。
 
 ---
 

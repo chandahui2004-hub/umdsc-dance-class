@@ -55,6 +55,9 @@ function parseAddOnSlots(event: EventItem, rawAddOns: unknown): Record<string, n
       throw new AppError('VALIDATION', `Style ${styleId} is not in ${event.name}`);
     }
     if (rawVal === '' || rawVal === null || rawVal === undefined) continue;
+    if (typeof rawVal === 'boolean') {
+      throw new AppError('VALIDATION', 'Add-on slots must be a positive integer');
+    }
     const num = Number(rawVal);
     if (!Number.isFinite(num) || num < 0 || !Number.isInteger(num)) {
       throw new AppError('VALIDATION', 'Add-on slots must be a positive number');

@@ -4,6 +4,7 @@ import path from 'path';
 import { render, screen } from '@testing-library/react';
 import { NeonSign } from './NeonSign';
 import { PixelPortraitFrame } from './PixelPortraitFrame';
+import { PixelTrashIcon, PixelUnlockIcon } from './pixelIcons';
 import { getYouTubeVideoId } from '../../features/music-studio/dancecue/utils/youtube';
 
 describe('NeonSign & PixelPortraitFrame', () => {
@@ -99,5 +100,17 @@ describe('NeonSign & PixelPortraitFrame', () => {
     }
 
     expect(violations).toEqual([]);
+  });
+
+  it('PixelUnlockIcon and PixelTrashIcon use true transparent cutouts without opaque fill rects', () => {
+    const { container } = render(
+      <>
+        <PixelUnlockIcon />
+        <PixelTrashIcon />
+      </>
+    );
+    const rects = Array.from(container.querySelectorAll('svg rect'));
+    expect(rects.length).toBeGreaterThan(0);
+    expect(rects.every((r) => !r.getAttribute('fill'))).toBe(true);
   });
 });

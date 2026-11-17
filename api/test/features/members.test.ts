@@ -647,6 +647,33 @@ describe('Feature: Members (features/members)', () => {
         expect(aliceAfter.fullName).toBe('Alice Tan Updated');
       });
 
+      it('preserves newest non-empty unedited fields when consolidating duplicate response rows', () => {
+        // Alice submits a 2nd response with a newer phone number and blank email
+        sourceTab(multiSourceId).appendRows([
+          ['2026-10-05 12:00:00', 'Alice Tan', '22001111', '0199998888', '', 'Hip Hop']
+        ]);
+        importEventMembers(ctx, ctx.db.events.get(multiEvent.id)!, { full: true });
+
+        const res = call('members.edit', {
+          eventId: multiEvent.id,
+          memberId: 'M-22001111',
+          styleIds: ['st_hiphop']
+        });
+        expect(res.ok, JSON.stringify(res)).toBe(true);
+
+        const nonEmptyDataRows = sourceTab(multiSourceId)
+          .getDisplayValues()
+          .slice(1)
+          .filter(r => r.some(c => c.trim() !== ''));
+        expect(nonEmptyDataRows).toHaveLength(1);
+        expect(nonEmptyDataRows[0][3]).toBe('0199998888');
+        expect(nonEmptyDataRows[0][4]).toBe('alice@test.com');
+
+        const aliceAfter = readEventMembers(ctx, ctx.db.events.get(multiEvent.id)!)[0];
+        expect(aliceAfter.contact).toBe('0199998888');
+        expect(aliceAfter.email).toBe('alice@test.com');
+      });
+
       it('removes the dancer completely when styleIds is passed as []', () => {
         const res = call('members.edit', {
           eventId: multiEvent.id,

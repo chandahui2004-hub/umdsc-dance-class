@@ -18,7 +18,7 @@ Log in at **/admin/login** with your **Username** and **Password**, then click *
   2. **Attendance (`/admin/attendance`):** Live attendance taking, Excel export, and Google Sheet links.
   3. **Media (`/admin/media`):** Drive folder authorization, hybrid video uploads, and music section editor.
   4. **Library (`/admin/library`):** Shared club music library across all styles with inline preview & Studio launch.
-  5. **Dancers (`/admin/members`):** Registered dancer roster, search, player profile cards, and manual sync.
+  5. **Dancers (`/admin/members`):** Registered dancer roster, search, player profile cards, direct dancer/class CRUD (`+ ADD DANCER`, class switching, removal), and manual sync.
   6. **More (`#more`):** Dropdown menu accessing master data and configuration:
      - **Dance Styles (`/admin/styles`)**
      - **Instructors (`/admin/instructors`)**
@@ -70,6 +70,12 @@ Navigate to **Events › + NEW EVENT** and proceed through the steps:
 - **10-Minute Form Status Sync:** A bidirectional check runs every 10 minutes. If an administrator manually reopens or closes the Google Form in Google Forms, the system syncs the status automatically without requiring manual intervention.
 - **Manual Sync (`SYNC NOW`):** Force an immediate sync from the Events page whenever immediate updates are required.
 
+### Reopening Full Classes & Closed Google Forms (`REOPEN / + SLOTS`)
+- Whenever any dance style on an active event reaches capacity or the Google Form is closed (`FORM CLOSED`), the event card displays a **`REOPEN / + SLOTS`** button.
+- Clicking **`REOPEN / + SLOTS`** opens the **REOPEN & ADD SLOTS** modal where you enter **`+N` Add-On Slots** (`>= 1`) for the class(es) you want to reopen.
+- The system calculates each reopened class's new slot limit as `Math.max(currentSlotLimit, currentEnrolledCount) + addOnSlots`, re-arms capacity alerts for the new limit, restores the class choice on the Google Form, and reopens the Google Form immediately.
+- **Note on manual overrides:** Manually adding or switching a dancer into a full class on `/admin/members` never reopens the Google Form automatically — use **`REOPEN / + SLOTS`** whenever you want public registrations to resume.
+
 ---
 
 ## 3. Dance styles
@@ -120,11 +126,21 @@ Open **Dancers (`/admin/members`)** to view all registered dancers.
 
 ![Dancers](../images/admin-08-dancers.png)
 
-### Player Profile Cards
-Clicking any dancer opens their comprehensive **Player Profile Card**:
-- Displays their student ID (matric), phone contact with direct **WHATSAPP** link, email with direct **MAILTO** link, gender, nationality, registration timestamp, registered styles, and system flags.
-- **EDIT DANCER DETAILS (`canImport`):** If a dancer entered an incorrect matric number, misspelt their name, or updated their phone number, clicking **EDIT DANCER** updates their details and automatically updates their rows across active Google Form response sheets!
-- **Converting Walk-Ins:** When a guest attends via a Walk-In pass, admins can click their profile and link their attendance to a formal matric number upon registration.
+### Direct Dancer & Class Enrollment Management (`/admin/members`)
+Admins (`members.import` permission) can manage dancer registrations and class enrollments directly on the website without manually editing Google Sheets:
+
+1. **Adding a New Dancer (`+ ADD DANCER`):**
+   - Click **`+ ADD DANCER`** in the toolbar to register a dancer into any active event.
+   - Enter their **Full Name**, **Matric Number**, optional contact details, and tick one or more **Dance Classes**.
+   - **Admin Slot Override:** If a class has already reached capacity (`FULL — ADMIN OVERRIDE (FORM STAYS CLOSED)`), admins can still enroll the dancer on the website; the system writes their row to the Google Form response sheet, syncs attendance and `MemberIndex`, sends their confirmation email (if an email was entered), and keeps the public Google Form / full class option **closed**.
+2. **Player Profile Cards & Editing (`DETAILS` / `INFO` → `EDIT DETAILS`):**
+   - Clicking **DETAILS** (desktop) or **INFO** (phone) opens the dancer's **Player Profile Card**, showing their matric number, direct **WHATSAPP** and **MAILTO** links, gender, nationality, registration timestamp, enrolled classes, and system flags.
+   - Click **`EDIT DETAILS`** to correct personal details **or add, change, and drop Dance Classes** via the class checkboxes, then click **`SAVE TO FORM SHEET`**. Saving updates the primary row in the Google Form response sheet and clears any older duplicate submission rows so dropped classes are never re-added on future syncs.
+3. **Removing a Dancer (`REMOVE FROM EVENT`):**
+   - Inside **`EDIT DETAILS`**, click **`REMOVE FROM EVENT`** → **`CONFIRM REMOVE`** to remove a dancer who quit an event. This clears all of their response rows in that event's Google Form response sheet and triggers an immediate sync.
+4. **Automatic Attendance & Database Cleanup:**
+   - Whenever a dancer changes or drops a class, or is removed from an event, the sync engine automatically purges them from the dropped style's `Attendance` sheet (**even if they had prior `/` attendance ticks**) and removes the dropped event/style from `MemberIndex`. When 0 active events remain for that dancer, their `MemberIndex` sign-in profile is automatically deactivated (`active: false`).
+5. **Converting Walk-Ins:** When a guest attends via a Walk-In pass, admins can register or link them with a formal matric number upon enrollment.
 
 ---
 
