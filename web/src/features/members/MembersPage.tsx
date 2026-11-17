@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { call, errorMessage } from '../../lib/api';
 import { useBootstrap } from '../auth/useBootstrap';
 import { Panel } from '../../components/ui/Panel';
@@ -8,16 +8,23 @@ import { Sheet } from '../../components/ui/Sheet';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { EventStep, StyleStep } from '../../components/ui/EventStyleSteps';
+import { PixelPlusUserIcon } from '../../components/ui/pixelIcons';
 import { exportToCsv } from '../../lib/csv';
 import type { Member } from '@umdsc/shared';
 import { useCurrentEvent } from '../events/useCurrentEvent';
 import { session } from '../../lib/session';
 import { can } from '../../lib/permissions';
 import { EditDancerDialog } from './EditDancerDialog';
+import { AddDancerDialog } from './AddDancerDialog';
 
-type AugmentedMember = Member & { eventNames?: string[]; eventIds?: string[] };
+type AugmentedMember = Member & {
+  eventNames?: string[];
+  eventIds?: string[];
+  eventStylesMap?: Record<string, string[]>;
+};
 
 export const MembersPage: React.FC = () => {
+  const queryClient = useQueryClient();
   const { data: bootstrap } = useBootstrap('admin');
   const { events, current: event, isAll } = useCurrentEvent();
   const eventId = event?.id || '';
@@ -26,6 +33,7 @@ export const MembersPage: React.FC = () => {
   const [selectedMember, setSelectedMember] = useState<AugmentedMember | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [editing, setEditing] = useState<AugmentedMember | null>(null);
+  const [addingDancer, setAddingDancer] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const canImport = can(session.get()?.claims.perms, 'members.import');
   const canExport = can(session.get()?.claims.perms, 'export.download') || canImport;
@@ -66,7 +74,8 @@ export const MembersPage: React.FC = () => {
               styleNames: Array.from(new Set(m.styleNames || [])),
               styleIds: Array.from(new Set(m.styleIds || [])),
               eventNames: evName ? [evName] : [],
-              eventIds: [evId]
+              eventIds: [evId],
+              eventStylesMap: { [evId]: Array.from(new Set(m.styleIds || [])) }
             });
           } else {
             const combinedStyles = Array.from(new Set([...(existing.styleNames || []), ...(m.styleNames || [])]));
@@ -74,12 +83,17 @@ export const MembersPage: React.FC = () => {
             const combinedEvents = Array.from(
               new Set([...(existing.eventNames || []), evName].filter(Boolean))
             ) as string[];
+            const existingMap = existing.eventStylesMap || {};
             dedupedMap.set(key, {
               ...existing,
               styleNames: combinedStyles,
               styleIds: combinedStyleIds,
               eventNames: combinedEvents,
               eventIds: Array.from(new Set([...(existing.eventIds || []), evId])),
+              eventStylesMap: {
+                ...existingMap,
+                [evId]: Array.from(new Set([...(existingMap[evId] || []), ...(m.styleIds || [])]))
+              },
               flags: Array.from(new Set([...(existing.flags || []), ...(m.flags || [])]))
             });
           }
@@ -92,7 +106,11 @@ export const MembersPage: React.FC = () => {
       const res = await call<Member[]>('members.list', { eventId });
       return (res.data || [])
         .filter((m) => !(m.flags || []).includes('removed-from-form') && !(m.flags || []).includes('removed'))
-        .map((m) => ({ ...m, eventIds: [eventId] }));
+        .map((m) => ({
+          ...m,
+          eventIds: [eventId],
+          eventStylesMap: { [eventId]: Array.from(new Set(m.styleIds || [])) }
+        }));
     }
   });
 
@@ -376,6 +394,178 @@ export const MembersPage: React.FC = () => {
     </div>
   );
 
+  const handleDancerMutated = async () => {
+    setAddingDancer(false);
+    setEditing(null);
+    setSelectedMember(null);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['members'] }),
+      queryClient.invalidateQueries({ queryKey: ['events'] }),
+      queryClient.invalidateQueries({ queryKey: ['attendance'] })
+    ]);
+    await refetch();
+  };
+
+  const renderAddDancerButton = () =>
+    canImport && openEventIds.length > 0 ? (
+      <PixelButton
+        variant="primary"
+        size="sm"
+        onClick={() => setAddingDancer(true)}
+        className="flex items-center gap-1.5"
+      >
+        <PixelPlusUserIcon className="w-4 h-4" />
+        <span>+ ADD DANCER</span>
+      </PixelButton>
+    ) : null;
+
+  const renderDialogs = () => (
+    <>
+      {editing && (
+        <EditDancerDialog
+          member={editing}
+          eventIds={editableEventIds(editing)}
+          events={events}
+          styles={bootstrap?.styles || []}
+          onClose={() => setEditing(null)}
+          onSaved={() => void handleDancerMutated()}
+        />
+      )}
+
+      {addingDancer && (
+        <AddDancerDialog
+          events={events}
+          styles={bootstrap?.styles || []}
+          defaultEventId={!isAll && event && event.status !== 'archived' ? event.id : undefined}
+          onClose={() => setAddingDancer(false)}
+          onSaved={() => void handleDancerMutated()}
+        />
+      )}
+
+      {/* Member Details Bottom Sheet */}
+      <Sheet
+        isOpen={!!selectedMember}
+        onClose={() => setSelectedMember(null)}
+        title={selectedMember?.fullName || 'DANCER DETAILS'}
+      >
+        {selectedMember && (
+          <div className="space-y-4 font-body text-[16px]">
+            {canImport && editableEventIds(selectedMember).length > 0 && (
+              <PixelButton
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setEditing(selectedMember);
+                  setSelectedMember(null);
+                }}
+              >
+                EDIT DETAILS
+              </PixelButton>
+            )}
+            <div className="grid grid-cols-2 gap-3 bg-[var(--night-1)] p-3 border-2 border-[var(--outline)] px-panel">
+              <div>
+                <span className="block font-display text-[12px] text-[var(--text-2)]">
+                  MATRIC NUMBER
+                </span>
+                <span className="font-mono font-bold text-[18px] text-[var(--text-1)]">
+                  {selectedMember.matricRaw}
+                </span>
+              </div>
+              <div>
+                <span className="block font-display text-[12px] text-[var(--text-2)]">
+                  GENDER / NATIONALITY
+                </span>
+                <span className="font-body font-bold text-[var(--text-1)]">
+                  {selectedMember.gender || '-'} · {selectedMember.nationality || '-'}
+                </span>
+              </div>
+            </div>
+
+            {selectedMember.eventNames && selectedMember.eventNames.length > 0 && (
+              <div>
+                <span className="block font-display text-[12px] text-[var(--text-1)] mb-2">
+                  REGISTERED EVENTS
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {selectedMember.eventNames.map((ev) => (
+                    <span
+                      key={ev}
+                      className="px-2 py-1 text-[12px] font-display bg-[var(--night-1)] text-[var(--neon-gold)] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)]"
+                    >
+                      {ev}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <span className="block font-display text-[12px] text-[var(--text-1)]">
+                COMMUNICATION
+              </span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <a
+                  href={formatWhatsAppUrl(selectedMember.contact)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-center min-h-[48px] bg-[var(--neon-green)] text-[var(--on-neon)] border-2 border-[var(--outline)] font-display text-[12px] font-bold shadow-[2px_2px_0_var(--outline)]"
+                >
+                  WHATSAPP ({selectedMember.contact})
+                </a>
+                <a
+                  href={`mailto:${selectedMember.email}`}
+                  className="flex items-center justify-center min-h-[48px] bg-[var(--neon-cyan)] text-[var(--on-neon)] border-2 border-[var(--outline)] font-display text-[12px] font-bold shadow-[2px_2px_0_var(--outline)]"
+                >
+                  SEND EMAIL
+                </a>
+              </div>
+            </div>
+
+            <div>
+              <span className="block font-display text-[12px] text-[var(--text-1)] mb-2">
+                REGISTERED DANCE CLASSES
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {selectedMember.styleNames?.map((sName) => (
+                  <div
+                    key={sName}
+                    className="p-2 border-2 border-[var(--outline)] bg-[var(--night-3)] shadow-[2px_2px_0_var(--outline)]"
+                  >
+                    <span className="font-display text-[12px] text-[var(--neon-cyan)] font-bold">
+                      {sName}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-[var(--night-1)] p-3 border-2 border-[var(--outline)] text-[12px] text-[var(--text-2)] space-y-1">
+              <div>
+                <strong>Registration Timestamp:</strong> {selectedMember.sourceTimestamp || 'N/A'}
+              </div>
+              {selectedMember.flags && selectedMember.flags.length > 0 && (
+                <div className="text-[var(--neon-red)] font-bold">
+                  <strong>System Flags:</strong> {selectedMember.flags.join(', ')}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2">
+              <PixelButton
+                variant="secondary"
+                size="lg"
+                onClick={() => setSelectedMember(null)}
+                className="w-full"
+              >
+                CLOSE
+              </PixelButton>
+            </div>
+          </div>
+        )}
+      </Sheet>
+    </>
+  );
+
   if (isFullscreen) {
     return (
       <div className="fixed inset-0 z-50 bg-[var(--night-1)] p-3 md:p-6 flex flex-col gap-3">
@@ -397,6 +587,7 @@ export const MembersPage: React.FC = () => {
               placeholder="Search dancer..."
               className="min-h-[44px] px-3 bg-[var(--night-1)] border-2 border-[var(--outline)] font-body text-[16px] text-[var(--text-1)] px-well placeholder:text-[var(--text-3)]"
             />
+            {renderAddDancerButton()}
             {canExport && (
               <PixelButton
                 variant="secondary"
@@ -421,128 +612,7 @@ export const MembersPage: React.FC = () => {
           {renderRosterList()}
         </div>
 
-        {/* Member Details Bottom Sheet */}
-        <Sheet
-          isOpen={!!selectedMember}
-          onClose={() => setSelectedMember(null)}
-          title={selectedMember?.fullName || 'DANCER DETAILS'}
-        >
-          {selectedMember && (
-            <div className="space-y-4 font-body text-[16px]">
-              {canImport && selectedMember && editableEventIds(selectedMember).length > 0 && (
-                <PixelButton
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    setEditing(selectedMember);
-                    setSelectedMember(null);
-                  }}
-                >
-                  EDIT DETAILS
-                </PixelButton>
-              )}
-              <div className="grid grid-cols-2 gap-3 bg-[var(--night-1)] p-3 border-2 border-[var(--outline)] px-panel">
-                <div>
-                  <span className="block font-display text-[12px] text-[var(--text-2)]">
-                    MATRIC NUMBER
-                  </span>
-                  <span className="font-mono font-bold text-[18px] text-[var(--text-1)]">
-                    {selectedMember.matricRaw}
-                  </span>
-                </div>
-                <div>
-                  <span className="block font-display text-[12px] text-[var(--text-2)]">
-                    GENDER / NATIONALITY
-                  </span>
-                  <span className="font-body font-bold text-[var(--text-1)]">
-                    {selectedMember.gender || '-'} · {selectedMember.nationality || '-'}
-                  </span>
-                </div>
-              </div>
-
-              {selectedMember.eventNames && selectedMember.eventNames.length > 0 && (
-                <div>
-                  <span className="block font-display text-[12px] text-[var(--text-1)] mb-2">
-                    REGISTERED EVENTS
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedMember.eventNames.map((ev) => (
-                      <span
-                        key={ev}
-                        className="px-2 py-1 text-[12px] font-display bg-[var(--night-1)] text-[var(--neon-gold)] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)]"
-                      >
-                        {ev}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <span className="block font-display text-[12px] text-[var(--text-1)]">
-                  COMMUNICATION
-                </span>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  <a
-                    href={formatWhatsAppUrl(selectedMember.contact)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-center min-h-[48px] bg-[var(--neon-green)] text-[var(--on-neon)] border-2 border-[var(--outline)] font-display text-[12px] font-bold shadow-[2px_2px_0_var(--outline)]"
-                  >
-                    WHATSAPP ({selectedMember.contact})
-                  </a>
-                  <a
-                    href={`mailto:${selectedMember.email}`}
-                    className="flex items-center justify-center min-h-[48px] bg-[var(--neon-cyan)] text-[var(--on-neon)] border-2 border-[var(--outline)] font-display text-[12px] font-bold shadow-[2px_2px_0_var(--outline)]"
-                  >
-                    SEND EMAIL
-                  </a>
-                </div>
-              </div>
-
-              <div>
-                <span className="block font-display text-[12px] text-[var(--text-1)] mb-2">
-                  REGISTERED DANCE CLASSES
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {selectedMember.styleNames?.map((sName) => (
-                    <div
-                      key={sName}
-                      className="p-2 border-2 border-[var(--outline)] bg-[var(--night-3)] shadow-[2px_2px_0_var(--outline)]"
-                    >
-                      <span className="font-display text-[12px] text-[var(--neon-cyan)] font-bold">
-                        {sName}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <PixelButton
-                  variant="secondary"
-                  size="lg"
-                  onClick={() => setSelectedMember(null)}
-                  className="w-full"
-                >
-                  CLOSE
-                </PixelButton>
-              </div>
-            </div>
-          )}
-        </Sheet>
-
-        {editing && (
-          <EditDancerDialog
-            member={editing}
-            eventIds={editableEventIds(editing)}
-            onClose={() => setEditing(null)}
-            onSaved={() => {
-              setEditing(null);
-              void refetch();
-            }}
-          />
-        )}
+        {renderDialogs()}
       </div>
     );
   }
@@ -570,6 +640,7 @@ export const MembersPage: React.FC = () => {
           allOption={`ALL CLASSES (${members.length})`}
         />
         <div className="flex gap-2 flex-wrap" role="toolbar" aria-label="Dancer list tools">
+          {renderAddDancerButton()}
           <PixelButton
             variant="secondary"
             size="sm"
@@ -662,143 +733,7 @@ export const MembersPage: React.FC = () => {
         renderRosterList()
       )}
 
-      {editing && (
-        <EditDancerDialog
-          member={editing}
-          eventIds={editableEventIds(editing)}
-          onClose={() => setEditing(null)}
-          onSaved={() => {
-            setEditing(null);
-            void refetch();
-          }}
-        />
-      )}
-
-      {/* Member Details Bottom Sheet */}
-      <Sheet
-        isOpen={!!selectedMember}
-        onClose={() => setSelectedMember(null)}
-        title={selectedMember?.fullName || 'DANCER DETAILS'}
-      >
-        {selectedMember && (
-          <div className="space-y-4 font-body text-[16px]">
-              {canImport && selectedMember && editableEventIds(selectedMember).length > 0 && (
-                <PixelButton
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    setEditing(selectedMember);
-                    setSelectedMember(null);
-                  }}
-                >
-                  EDIT DETAILS
-                </PixelButton>
-              )}
-            <div className="grid grid-cols-2 gap-3 bg-[var(--night-1)] p-3 border-2 border-[var(--outline)] px-panel">
-              <div>
-                <span className="block font-display text-[12px] text-[var(--text-2)]">
-                  MATRIC NUMBER
-                </span>
-                <span className="font-mono font-bold text-[18px] text-[var(--text-1)]">
-                  {selectedMember.matricRaw}
-                </span>
-              </div>
-              <div>
-                <span className="block font-display text-[12px] text-[var(--text-2)]">
-                  GENDER / NATIONALITY
-                </span>
-                <span className="font-body font-bold text-[var(--text-1)]">
-                  {selectedMember.gender || '-'} · {selectedMember.nationality || '-'}
-                </span>
-              </div>
-            </div>
-
-            {/* Events Enrolled */}
-            {selectedMember.eventNames && selectedMember.eventNames.length > 0 && (
-              <div>
-                <span className="block font-display text-[12px] text-[var(--text-1)] mb-2">
-                  REGISTERED EVENTS
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {selectedMember.eventNames.map((ev) => (
-                    <span
-                      key={ev}
-                      className="px-2 py-1 text-[12px] font-display bg-[var(--night-1)] text-[var(--neon-gold)] border-2 border-[var(--outline)] shadow-[2px_2px_0_var(--outline)]"
-                    >
-                      {ev}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Contact Actions */}
-            <div className="space-y-2">
-              <span className="block font-display text-[12px] text-[var(--text-1)]">
-                COMMUNICATION
-              </span>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <a
-                  href={formatWhatsAppUrl(selectedMember.contact)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-center min-h-[48px] bg-[var(--neon-green)] text-[var(--on-neon)] border-2 border-[var(--outline)] font-display text-[12px] font-bold shadow-[2px_2px_0_var(--outline)]"
-                >
-                  WHATSAPP ({selectedMember.contact})
-                </a>
-                <a
-                  href={`mailto:${selectedMember.email}`}
-                  className="flex items-center justify-center min-h-[48px] bg-[var(--neon-cyan)] text-[var(--on-neon)] border-2 border-[var(--outline)] font-display text-[12px] font-bold shadow-[2px_2px_0_var(--outline)]"
-                >
-                  SEND EMAIL
-                </a>
-              </div>
-            </div>
-
-            {/* Registered Classes */}
-            <div>
-              <span className="block font-display text-[12px] text-[var(--text-1)] mb-2">
-                REGISTERED DANCE CLASSES
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {selectedMember.styleNames?.map((sName) => (
-                  <div
-                    key={sName}
-                    className="p-2 border-2 border-[var(--outline)] bg-[var(--night-3)] shadow-[2px_2px_0_var(--outline)]"
-                  >
-                    <span className="font-display text-[12px] text-[var(--neon-cyan)] font-bold">
-                      {sName}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Extra Registration Metadata */}
-            <div className="bg-[var(--night-1)] p-3 border-2 border-[var(--outline)] text-[12px] text-[var(--text-2)] space-y-1">
-              <div>
-                <strong>Registration Timestamp:</strong> {selectedMember.sourceTimestamp || 'N/A'}
-              </div>
-              {selectedMember.flags && selectedMember.flags.length > 0 && (
-                <div className="text-[var(--neon-red)] font-bold">
-                  <strong>System Flags:</strong> {selectedMember.flags.join(', ')}
-                </div>
-              )}
-            </div>
-
-            <div className="pt-2">
-              <PixelButton
-                variant="secondary"
-                size="lg"
-                onClick={() => setSelectedMember(null)}
-                className="w-full"
-              >
-                CLOSE
-              </PixelButton>
-            </div>
-          </div>
-        )}
-      </Sheet>
+      {renderDialogs()}
     </div>
   );
 };

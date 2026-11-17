@@ -4,9 +4,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { DanceStyle, EventListItem } from '@umdsc/shared';
 import { call, errorMessage } from '../../lib/api';
 import { PixelButton } from '../../components/ui/PixelButton';
+import { PixelUnlockIcon } from '../../components/ui/pixelIcons';
 import { useCurrentEvent } from './useCurrentEvent';
 import { session } from '../../lib/session';
 import { can, canAccessRoute } from '../../lib/permissions';
+import { ReopenSlotsDialog } from './ReopenSlotsDialog';
+import { isEventStyleFull, parseEventStyleSlots } from './eventSlots';
 
 const TYPE_LABEL: Record<string, string> = {
   monthly: 'Monthly class',
@@ -95,6 +98,7 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [reopenTargetStyleId, setReopenTargetStyleId] = useState<string | null | undefined>(undefined);
 
   const deleteEvent = useMutation({
     mutationFn: async () => {
@@ -112,19 +116,11 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
     onError: (err) => setDeleteError(errorMessage(err))
   });
 
-  let styleSlots: Record<string, number> = {};
-  if (event.styleSlots && typeof event.styleSlots === 'object') {
-    styleSlots = event.styleSlots;
-  } else if (event.styleSlotsJson) {
-    try {
-      styleSlots = JSON.parse(event.styleSlotsJson);
-    } catch {
-      styleSlots = {};
-    }
-  }
-
+  const styleSlots = parseEventStyleSlots(event);
   const totalSlots = Object.values(styleSlots).reduce((acc, v) => acc + (Number(v) || 0), 0);
   const singleStyle = event.styleIds.length === 1;
+  const anyStyleFull = event.styleIds.some((id) => isEventStyleFull(event, id));
+  const showReopenBtn = !archived && canManageEvent && (Boolean(event.formClosed) || anyStyleFull);
   const hasActions = Boolean(canOpenAttendance || canEditEvent || canManageEvent);
 
   return (
@@ -162,7 +158,7 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
         {event.styleIds.map(id => {
           const style = styles.find(s => s.id === id);
           const slots = styleSlots[id];
-          const isFull = event.notifiedFullStyles?.includes(id);
+          const isFull = isEventStyleFull(event, id);
           const avail = slots !== undefined && singleStyle ? Math.max(0, slots - event.memberCount) : undefined;
           return (
             <span
@@ -236,6 +232,18 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
             <span>🔄</span>
             <span>SYNCED: {formatKL(event.lastSyncAt)}</span>
           </span>
+          {showReopenBtn && (
+            <PixelButton
+              size="sm"
+              variant="primary"
+              data-testid={`reopen-slots-btn-${event.id}`}
+              onClick={() => setReopenTargetStyleId(null)}
+              className="inline-flex items-center gap-1.5"
+            >
+              <PixelUnlockIcon className="w-4 h-4" />
+              <span>REOPEN / + SLOTS</span>
+            </PixelButton>
+          )}
         </div>
         {event.lastSyncError && (
           <p role="alert" className="font-bold text-sm text-[var(--neon-red)]">
@@ -383,6 +391,23 @@ export const EventCard: React.FC<{ event: EventListItem; styles: DanceStyle[] }>
             </div>
           </div>
         </div>
+      )}
+
+      {reopenTargetStyleId !== undefined && (
+        <ReopenSlotsDialog
+          event={event}
+          styles={styles}
+          initialStyleId={reopenTargetStyleId || undefined}
+          onClose={() => setReopenTargetStyleId(undefined)}
+          onReopened={async (msg) => {
+            setReopenTargetStyleId(undefined);
+            setNote(msg);
+            await Promise.all([
+              refresh(),
+              queryClient.invalidateQueries({ queryKey: ['members'] })
+            ]);
+          }}
+        />
       )}
     </div>
   );

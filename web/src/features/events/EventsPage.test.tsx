@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { EventsPage } from './EventsPage';
 import { session } from '../../lib/session';
-import type { EventListItem } from '@umdsc/shared';
+import type { DanceStyle, EventListItem } from '@umdsc/shared';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -112,8 +112,9 @@ const mockEvents: EventListItem[] = [
   }
 ];
 
+let activeMockEvents: EventListItem[] = mockEvents;
 vi.mock('./useCurrentEvent', () => ({
-  useEvents: () => ({ data: mockEvents, isLoading: false }),
+  useEvents: () => ({ data: activeMockEvents, isLoading: false }),
   useCurrentEvent: () => ({
     setCurrentId: vi.fn()
   })
@@ -134,6 +135,7 @@ function renderPage() {
 
 describe('EventsPage Collapsible Accordions and Year-Based Archive', () => {
   beforeEach(() => {
+    activeMockEvents = mockEvents;
     session.set('tok-admin', {
       sub: 'admin',
       role: 'admin',
@@ -235,5 +237,147 @@ describe('EventsPage Collapsible Accordions and Year-Based Archive', () => {
     expect(screen.queryByRole('button', { name: /^ARCHIVE$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^DELETE$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /RESPONSE SHEET/i })).not.toBeInTheDocument();
+  });
+
+  it('shows REOPEN / + SLOTS button on full or closed active events, opens ReopenSlotsDialog, and submits addOnSlots', async () => {
+    const mockStyles: Partial<DanceStyle>[] = [
+      { id: 'st_house', name: 'House', colorKey: 'teal', active: true },
+      { id: 'st_hiphop', name: 'Hip Hop', colorKey: 'orange', active: true }
+    ];
+    activeMockEvents = [
+      {
+        ...mockEvents[0],
+        formUrl: 'https://docs.google.com/forms/d/f1/viewform',
+        formClosed: true,
+        styleSlots: { st_house: 30 },
+        notifiedFullStyles: ['st_house'],
+        memberCount: 30
+      },
+      {
+        ...mockEvents[1],
+        styleSlots: { st_hiphop: 40 },
+        notifiedFullStyles: [],
+        memberCount: 20
+      }
+    ];
+
+    mockCall.mockImplementation((action: string) => {
+      if (action === 'styles.list') return Promise.resolve({ data: mockStyles });
+      if (action === 'events.reopenFormSlots') {
+        return Promise.resolve({ data: { styleSlots: { st_house: 40 }, formResult: { formClosed: false } } });
+      }
+      return Promise.resolve({ data: [] });
+    });
+
+    renderPage();
+
+    fireEvent.click(screen.getByTestId('toggle-event-ev-active-1'));
+    fireEvent.click(screen.getByTestId('toggle-event-ev-active-2'));
+
+    const reopenBtn = await screen.findByTestId('reopen-slots-btn-ev-active-1');
+    expect(reopenBtn).toHaveTextContent(/REOPEN \/ \+ SLOTS/i);
+    expect(reopenBtn.querySelector('svg')).toBeInTheDocument();
+    expect(screen.queryByTestId('reopen-slots-btn-ev-active-2')).not.toBeInTheDocument();
+
+    fireEvent.click(reopenBtn);
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/REOPEN & ADD SLOTS: Active Class Alpha/i)).toBeInTheDocument();
+    expect(within(dialog).getByText(/30 SLOTS/i)).toBeInTheDocument();
+    expect(within(dialog).getByText(/FULL/i)).toBeInTheDocument();
+
+    const addonInput = within(dialog).getByLabelText(/Add-on slots for House/i) as HTMLInputElement;
+    expect(addonInput.value).toBe('5');
+    expect(within(dialog).getByText(/New limit:.*35 slots \(reopens form\)/i)).toBeInTheDocument();
+
+    fireEvent.change(addonInput, { target: { value: '0' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: /REOPEN FORM & ADD SLOTS/i }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+      /Enter at least \+1 add-on slot for at least one class to reopen/i
+    );
+    expect(mockCall).not.toHaveBeenCalledWith('events.reopenFormSlots', expect.anything());
+
+    fireEvent.change(addonInput, { target: { value: '10' } });
+    expect(within(dialog).getByText(/New limit:.*40 slots \(reopens form\)/i)).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: /REOPEN FORM & ADD SLOTS/i }));
+
+    await waitFor(() =>
+      expect(mockCall).toHaveBeenCalledWith('events.reopenFormSlots', {
+        id: 'ev-active-1',
+        addOnSlots: { st_house: 10 }
+      })
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Reopened Google Form \(\+10 slots added\)/i)).toBeInTheDocument();
+    });
+  });
+
+  it('hides REOPEN / + SLOTS on archived events and for users without members.import', () => {
+    activeMockEvents = [
+      {
+        ...mockEvents[0],
+        formClosed: true,
+        styleSlots: { st_house: 30 },
+        notifiedFullStyles: ['st_house'],
+        memberCount: 30
+      },
+      {
+        ...mockEvents[2],
+        formClosed: true,
+        styleSlots: { st_popping: 15 },
+        notifiedFullStyles: ['st_popping'],
+        memberCount: 15
+      }
+    ];
+
+    session.set('tok-viewer', {
+      sub: 'viewer',
+      role: 'admin',
+      name: 'Viewer',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      pv: 1,
+      perms: { 'calendar.view': '*' }
+    });
+
+    const { unmount } = renderPage();
+    fireEvent.click(screen.getByTestId('toggle-event-ev-active-1'));
+    expect(screen.queryByTestId('reopen-slots-btn-ev-active-1')).not.toBeInTheDocument();
+    unmount();
+
+    session.set('tok-admin', {
+      sub: 'admin',
+      role: 'admin',
+      name: 'Admin',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      pv: 1,
+      perms: { 'calendar.view': '*', 'sessions.edit': '*', 'members.import': '*', 'attendance.view.all': '*' }
+    });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /ARCHIVED EVENTS/i }));
+    fireEvent.click(screen.getByRole('button', { name: /2026 ARCHIVED EVENTS/i }));
+    fireEvent.click(screen.getByTestId('toggle-event-ev-archived-2026'));
+    expect(screen.queryByTestId('reopen-slots-btn-ev-archived-2026')).not.toBeInTheDocument();
+  });
+
+  it('shows REOPEN / + SLOTS for a single-style active event at slot capacity even before formClosed is flagged', async () => {
+    const mockStyles: Partial<DanceStyle>[] = [{ id: 'st_house', name: 'House', colorKey: 'teal', active: true }];
+    activeMockEvents = [
+      {
+        ...mockEvents[0],
+        formClosed: false,
+        styleSlots: { st_house: 30 },
+        notifiedFullStyles: [],
+        memberCount: 30
+      }
+    ];
+    mockCall.mockImplementation((action: string) => {
+      if (action === 'styles.list') return Promise.resolve({ data: mockStyles });
+      return Promise.resolve({ data: [] });
+    });
+
+    renderPage();
+    fireEvent.click(screen.getByTestId('toggle-event-ev-active-1'));
+    expect(await screen.findByTestId('reopen-slots-btn-ev-active-1')).toBeInTheDocument();
   });
 });

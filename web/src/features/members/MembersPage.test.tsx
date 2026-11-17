@@ -199,7 +199,7 @@ describe('MembersPage Component', () => {
       );
     });
 
-    it('hides EXPORT CSV when the user only has members.view (no export.download or members.import)', async () => {
+    it('hides EXPORT CSV and + ADD DANCER when the user only has members.view (no export.download or members.import)', async () => {
       localStorage.setItem(
         'umdsc:session',
         JSON.stringify({
@@ -210,7 +210,219 @@ describe('MembersPage Component', () => {
       renderPage();
       await waitFor(() => expect(screen.getAllByText('Deepa S').length).toBeGreaterThan(0));
       expect(screen.queryByRole('button', { name: /EXPORT CSV/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /\+ ADD DANCER/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /^EDIT$/i })).not.toBeInTheDocument();
+    });
+
+    it('adds a new dancer with selected dance classes via + ADD DANCER and shows admin override badge on full classes', async () => {
+      mockUseCurrentEventState = {
+        events: [
+          {
+            id: 'evt1',
+            name: 'OCT CLASS',
+            status: 'active',
+            styleIds: ['st_popping', 'st_hiphop'],
+            styleSlots: { st_popping: 20, st_hiphop: 25 },
+            notifiedFullStyles: ['st_popping'],
+            memberCount: 20
+          },
+          { id: 'evt2', name: 'NOV CLASS', status: 'active', styleIds: ['st_hiphop'] }
+        ] as any,
+        current: null,
+        setCurrentId: vi.fn(),
+        isAll: true
+      };
+      mockCall.mockImplementation((action: string, payload: any) => {
+        if (action === 'members.list' && payload?.eventId === 'evt1') {
+          return Promise.resolve({
+            data: [{ memberId: 'M-26006146', matricKey: '26006146', matricRaw: '26006146', fullName: 'Deepa S', styleIds: ['st_popping'], styleNames: ['Popping'], contact: '011', email: 'd@test.com', gender: '', nationality: '', flags: [] }]
+          });
+        }
+        if (action === 'members.add') return Promise.resolve({ data: { memberId: 'M-24009999' } });
+        return Promise.resolve({ data: [] });
+      });
+
+      renderPage();
+      await waitFor(() => expect(screen.getAllByText('Deepa S').length).toBeGreaterThan(0));
+
+      const addBtn = screen.getByRole('button', { name: /\+ ADD DANCER/i });
+      expect(addBtn.querySelector('svg')).toBeInTheDocument();
+      fireEvent.click(addBtn);
+
+      const dialog = await screen.findByRole('dialog');
+      expect(within(dialog).getByText(/ADD NEW DANCER/i)).toBeInTheDocument();
+      expect(within(dialog).getByText(/FULL — ADMIN OVERRIDE \(FORM STAYS CLOSED\)/i)).toBeInTheDocument();
+
+      fireEvent.change(within(dialog).getByLabelText(/Full name/i), { target: { value: 'Zoe Lim' } });
+      fireEvent.change(within(dialog).getByLabelText(/Matric number/i), { target: { value: '24009999' } });
+      fireEvent.change(within(dialog).getByLabelText(/Phone number/i), { target: { value: '0123334444' } });
+      fireEvent.change(within(dialog).getByLabelText(/Email/i), { target: { value: 'zoe@um.edu.my' } });
+
+      // Submitting before choosing a dance class triggers validation
+      fireEvent.click(within(dialog).getByRole('button', { name: /ADD DANCER/i }));
+      expect(await within(dialog).findByRole('alert')).toHaveTextContent(/Select at least one dance class/i);
+      expect(mockCall).not.toHaveBeenCalledWith('members.add', expect.anything());
+
+      // Select full Popping class (admin override) + Hip Hop
+      fireEvent.click(within(dialog).getByLabelText(/Popping/i));
+      fireEvent.click(within(dialog).getByLabelText(/Hip Hop/i));
+      fireEvent.click(within(dialog).getByRole('button', { name: /ADD DANCER/i }));
+
+      await waitFor(() =>
+        expect(mockCall).toHaveBeenCalledWith('members.add', {
+          eventId: 'evt1',
+          fullName: 'Zoe Lim',
+          matricRaw: '24009999',
+          contact: '0123334444',
+          email: 'zoe@um.edu.my',
+          gender: '',
+          nationality: '',
+          styleIds: ['st_popping', 'st_hiphop']
+        })
+      );
+    });
+
+    it('updates a dancer\'s enrolled dance classes via EditDancerDialog and validates empty selection', async () => {
+      mockUseCurrentEventState = {
+        events: [
+          {
+            id: 'evt1',
+            name: 'OCT CLASS',
+            status: 'active',
+            styleIds: ['st_popping', 'st_hiphop']
+          }
+        ] as any,
+        current: { id: 'evt1', name: 'OCT CLASS', status: 'active', styleIds: ['st_popping', 'st_hiphop'] },
+        setCurrentId: vi.fn(),
+        isAll: false
+      };
+      mockCall.mockImplementation((action: string) => {
+        if (action === 'members.list') {
+          return Promise.resolve({
+            data: [
+              {
+                memberId: 'M-26006146',
+                matricKey: '26006146',
+                matricRaw: '26006146',
+                fullName: 'Deepa S',
+                styleIds: ['st_popping'],
+                styleNames: ['Popping'],
+                contact: '011',
+                email: 'd@test.com',
+                gender: '',
+                nationality: '',
+                flags: []
+              }
+            ]
+          });
+        }
+        if (action === 'members.edit') return Promise.resolve({ data: { memberId: 'M-26006146' } });
+        return Promise.resolve({ data: [] });
+      });
+
+      renderPage();
+      await waitFor(() => expect(screen.getAllByText('Deepa S').length).toBeGreaterThan(0));
+      fireEvent.click(within(screen.getByRole('table')).getByRole('button', { name: 'DETAILS' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'EDIT DETAILS' }));
+
+      const dialog = await screen.findByRole('dialog');
+      const poppingBox = within(dialog).getByLabelText(/Popping/i) as HTMLInputElement;
+      const hiphopBox = within(dialog).getByLabelText(/Hip Hop/i) as HTMLInputElement;
+      expect(poppingBox.checked).toBe(true);
+      expect(hiphopBox.checked).toBe(false);
+
+      // Uncheck all classes -> shows validation asking to pick a class or use REMOVE FROM EVENT
+      fireEvent.click(poppingBox);
+      fireEvent.click(within(dialog).getByRole('button', { name: 'SAVE TO FORM SHEET' }));
+      expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+        /Select at least one dance class, or use REMOVE FROM EVENT below to remove this dancer\./i
+      );
+
+      // Switch to Hip Hop only and save
+      fireEvent.click(hiphopBox);
+      fireEvent.click(within(dialog).getByRole('button', { name: 'SAVE TO FORM SHEET' }));
+
+      await waitFor(() =>
+        expect(mockCall).toHaveBeenCalledWith('members.edit', {
+          eventId: 'evt1',
+          memberId: 'M-26006146',
+          styleIds: ['st_hiphop']
+        })
+      );
+    });
+
+    it('removes a dancer from an event via REMOVE FROM EVENT confirmation in EditDancerDialog', async () => {
+      mockCall.mockImplementation((action: string, payload: any) => {
+        if (action === 'members.list' && payload?.eventId === 'evt1') {
+          return Promise.resolve({
+            data: [{ memberId: 'M-26006146', matricKey: '26006146', matricRaw: '26006146', fullName: 'Deepa S', styleIds: ['st_popping'], styleNames: ['Popping'], contact: '011', email: 'd@test.com', gender: '', nationality: '', flags: [] }]
+          });
+        }
+        if (action === 'members.remove') return Promise.resolve({ data: { memberId: 'M-26006146', removed: true } });
+        return Promise.resolve({ data: [] });
+      });
+
+      renderPage();
+      await waitFor(() => expect(screen.getAllByText('Deepa S').length).toBeGreaterThan(0));
+      fireEvent.click(within(screen.getByRole('table')).getByRole('button', { name: 'DETAILS' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'EDIT DETAILS' }));
+
+      const removeBtn = await screen.findByRole('button', { name: /REMOVE FROM EVENT/i });
+      expect(removeBtn.querySelector('svg')).toBeInTheDocument();
+      fireEvent.click(removeBtn);
+
+      const confirmBox = await screen.findByTestId('confirm-remove-dancer');
+      expect(confirmBox).toHaveTextContent(/Deepa S/);
+      fireEvent.click(within(confirmBox).getByRole('button', { name: /CONFIRM REMOVE/i }));
+
+      await waitFor(() =>
+        expect(mockCall).toHaveBeenCalledWith('members.remove', {
+          eventId: 'evt1',
+          memberId: 'M-26006146'
+        })
+      );
+    });
+
+    it('switches target event in AddDancerDialog and pre-selects single style for the chosen event', async () => {
+      mockCall.mockImplementation((action: string, payload: any) => {
+        if (action === 'members.list' && payload?.eventId === 'evt1') {
+          return Promise.resolve({
+            data: [{ memberId: 'M-26006146', matricKey: '26006146', matricRaw: '26006146', fullName: 'Deepa S', styleIds: ['st_popping'], styleNames: ['Popping'], contact: '011', email: 'd@test.com', gender: '', nationality: '', flags: [] }]
+          });
+        }
+        if (action === 'members.add') return Promise.resolve({ data: { memberId: 'M-25001234' } });
+        return Promise.resolve({ data: [] });
+      });
+
+      renderPage();
+      await waitFor(() => expect(screen.getAllByText('Deepa S').length).toBeGreaterThan(0));
+
+      fireEvent.click(screen.getByRole('button', { name: /\+ ADD DANCER/i }));
+      const dialog = await screen.findByRole('dialog');
+
+      const eventSelect = within(dialog).getByLabelText(/Target event/i) as HTMLSelectElement;
+      expect(eventSelect.value).toBe('evt1');
+      fireEvent.change(eventSelect, { target: { value: 'evt2' } });
+
+      const hiphopCheckbox = within(dialog).getByLabelText(/Hip Hop/i) as HTMLInputElement;
+      expect(hiphopCheckbox.checked).toBe(true);
+
+      fireEvent.change(within(dialog).getByLabelText(/Full name/i), { target: { value: 'Kai Wen' } });
+      fireEvent.change(within(dialog).getByLabelText(/Matric number/i), { target: { value: '25001234' } });
+      fireEvent.click(within(dialog).getByRole('button', { name: /ADD DANCER/i }));
+
+      await waitFor(() =>
+        expect(mockCall).toHaveBeenCalledWith('members.add', {
+          eventId: 'evt2',
+          fullName: 'Kai Wen',
+          matricRaw: '25001234',
+          contact: '',
+          email: '',
+          gender: '',
+          nationality: '',
+          styleIds: ['st_hiphop']
+        })
+      );
     });
   });
 });
