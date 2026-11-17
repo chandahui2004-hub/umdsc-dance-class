@@ -62,11 +62,11 @@
   - Updated `attendance.get` & `attendance.mark` in `api/src/features/attendance.ts`: filters `grid.members` and `grid.present` against active enrolled `styleMembers` for `styleId`, caches empty grids when `grid.members.length === 0`, and restricts `attendance.mark` to active enrolled `styleMembers`.
   - Updated `dropEventFromIndex(ctx, event, matricKey)` and `importEventMembers` in `api/src/features/eventImport.ts`: when `eventIds` becomes empty after removing `event.id`, sets `active: false` (`ctx.db.memberIndex.update(..., { eventIds: [], eventStyles: {}, active: false } as any, ...)`) and clears `'mi:' + matricKey` and `'mi:' + entry.id`; also sweeps any active `MemberIndex` entries that still contain `event.id` in `entry.eventIds` when `matricKey` is no longer in `inForm` (and `!hasIncompleteRows`).
 
-- [ ] **Step 1: Write failing unit tests in `api/test/features/eventImport.test.ts` and `api/test/features/attendance.test.ts`**
-- [ ] **Step 2: Run Vitest in `api` to verify the new tests fail**
-- [ ] **Step 3: Implement per-style Attendance row purge in `eventSheets.ts`, active style filtering in `attendance.ts`, and `MemberIndex` zero-event deactivation in `eventImport.ts`**
-- [ ] **Step 4: Run full `api` test suite and build (`npm test -w api ; if ($LASTEXITCODE -eq 0) { npm run build -w api }`)**
-- [ ] **Step 5: Commit Task 1**
+- [x] **Step 1: Write failing unit tests in `api/test/features/eventImport.test.ts` and `api/test/features/attendance.test.ts`**
+- [x] **Step 2: Run Vitest in `api` to verify the new tests fail**
+- [x] **Step 3: Implement per-style Attendance row purge in `eventSheets.ts`, active style filtering in `attendance.ts`, and `MemberIndex` zero-event deactivation in `eventImport.ts`**
+- [x] **Step 4: Run full `api` test suite and build (`npm test -w api ; if ($LASTEXITCODE -eq 0) { npm run build -w api }`)**
+- [x] **Step 5: Commit Task 1**
 
 ---
 
@@ -91,11 +91,11 @@
   - `suppressFormReopen` support in `importEventMembers` / `checkAndNotifySlotCapacities` / `syncGoogleFormSlotChoices`: guarantees that an admin website override (`enrolledCount >= cap`) never sets `sync:adminOverride:<eventId>` and never re-opens a closed Google Form or restores a full style choice.
   - `events.reopenFormSlots` (`perm: 'members.import'`, `write: true`, `bumpsData: true`) in `api/src/features/events.ts`: accepts `{ id: string, addOnSlots: Record<string, number> }`, updates `styleSlots[styleId] = Math.max(currentCap, enrolledCount) + addOn` for each style with `addOn >= 1`, removes reopened styles from `notifiedFullStyles`, clears `formClosed` / re-opens the Google Form (`form.setAcceptingResponses(true)`), and runs `syncGoogleFormSlotChoices`.
 
-- [ ] **Step 1: Write failing unit tests in `api/test/features/members.test.ts` and `api/test/features/events.test.ts`**
-- [ ] **Step 2: Run Vitest in `api` to verify the new tests fail**
-- [ ] **Step 3: Implement `members.add`, `members.edit` (`styleIds`), `members.remove`, `suppressFormReopen`, and `events.reopenFormSlots`**
-- [ ] **Step 4: Run full `api` test suite and build (`npm test -w api ; if ($LASTEXITCODE -eq 0) { npm run build -w api }`)**
-- [ ] **Step 5: Commit Task 2**
+- [x] **Step 1: Write failing unit tests in `api/test/features/members.test.ts` and `api/test/features/events.test.ts`**
+- [x] **Step 2: Run Vitest in `api` to verify the new tests fail**
+- [x] **Step 3: Implement `members.add`, `members.edit` (`styleIds`), `members.remove`, `suppressFormReopen`, and `events.reopenFormSlots`**
+- [x] **Step 4: Run full `api` test suite and build (`npm test -w api ; if ($LASTEXITCODE -eq 0) { npm run build -w api }`)**
+- [x] **Step 5: Commit Task 2**
 
 ---
 
@@ -122,11 +122,11 @@
   - Updated `MembersPage.tsx`: adds `+ ADD DANCER` button (with `<PixelPlusUserIcon />`) in the toolbar, passes event/style metadata to `AddDancerDialog` and `EditDancerDialog`, and invalidates `['members']`, `['events']`, and `['attendance']` on save/add/remove.
   - `ReopenSlotsDialog.tsx` & updated `EventCard.tsx`: adds `REOPEN / + SLOTS` button (with `<PixelUnlockIcon />`) on `EventCard.tsx` whenever any style is full or `event.formClosed` is true; dialog requires entering `+N` Add-On Slots (`>= 1`), previews the new slot limit (`Math.max(limit, enrolled) + addOn`), and calls `events.reopenFormSlots`.
 
-- [ ] **Step 1: Write failing component tests in `web/src/features/members/MembersPage.test.tsx` and `web/src/features/events/EventsPage.test.tsx`**
-- [ ] **Step 2: Run Vitest in `web` to verify the new tests fail**
-- [ ] **Step 3: Implement 8-bit icons in `pixelIcons.tsx`, `AddDancerDialog.tsx`, `EditDancerDialog.tsx`, `MembersPage.tsx`, `ReopenSlotsDialog.tsx`, and `EventCard.tsx`**
-- [ ] **Step 4: Run full `web` unit test suite (including `neon.test.tsx` >=10px check) and `npm run build`**
-- [ ] **Step 5: Commit Task 3**
+- [x] **Step 1: Write failing component tests in `web/src/features/members/MembersPage.test.tsx` and `web/src/features/events/EventsPage.test.tsx`**
+- [x] **Step 2: Run Vitest in `web` to verify the new tests fail**
+- [x] **Step 3: Implement 8-bit icons in `pixelIcons.tsx`, `AddDancerDialog.tsx`, `EditDancerDialog.tsx`, `MembersPage.tsx`, `ReopenSlotsDialog.tsx`, and `EventCard.tsx`**
+- [x] **Step 4: Run full `web` unit test suite (including `neon.test.tsx` >=10px check) and `npm run build`**
+- [x] **Step 5: Commit Task 3**
 
 ---
 
@@ -144,7 +144,7 @@
 - Modify: `docs/SETUP-VALUES.md`
 - Regenerate: `docs/guides/word/*-{en,zh}.docx` via `node scripts/build-guide-docx.mjs`
 
-- [ ] **Step 1: Add Playwright E2E tests in `web/e2e/admin-members-list.spec.ts` (Add Dancer, Change/Drop Class, Remove Dancer) and `web/e2e/admin-events.spec.ts` (`REOPEN / + SLOTS`) and run `phone-layout.spec.ts` + E2E specs**
-- [ ] **Step 2: Update `docs/guides/en/2-admin-guide.md`, `docs/guides/zh/2-admin-guide.md`, and `docs/HANDOVER.md` to document `+ ADD DANCER`, class add/change/drop, `REMOVE FROM EVENT`, automatic attendance/database cleanup, and `REOPEN / + SLOTS`, then run `node scripts/build-guide-docx.mjs`**
-- [ ] **Step 3: Run full monorepo unit tests (`npm test -ws --if-present`) and builds (`npm run build`, `npm run build -w api`), deploy to GAS (`npm run push -w api`), and run `node scripts/live-sandbox-verify.mjs`**
-- [ ] **Step 4: Record final GAS `@version` in `docs/SETUP-VALUES.md`, dispatch Final Whole-Branch Reviewer (`TypeName: 'research'`, `Model: 'pro'`), clean up `.superpowers/sdd/`, and `git push origin main`**
+- [x] **Step 1: Add Playwright E2E tests in `web/e2e/admin-members-list.spec.ts` (Add Dancer, Change/Drop Class, Remove Dancer) and `web/e2e/admin-events.spec.ts` (`REOPEN / + SLOTS`) and run `phone-layout.spec.ts` + E2E specs**
+- [x] **Step 2: Update `docs/guides/en/2-admin-guide.md`, `docs/guides/zh/2-admin-guide.md`, and `docs/HANDOVER.md` to document `+ ADD DANCER`, class add/change/drop, `REMOVE FROM EVENT`, automatic attendance/database cleanup, and `REOPEN / + SLOTS`, then run `node scripts/build-guide-docx.mjs`**
+- [x] **Step 3: Run full monorepo unit tests (`npm test -ws --if-present`) and builds (`npm run build`, `npm run build -w api`), deploy to GAS (`npm run push -w api`), and run `node scripts/live-sandbox-verify.mjs`**
+- [x] **Step 4: Record final GAS `@version` in `docs/SETUP-VALUES.md`, dispatch Final Whole-Branch Reviewer (`TypeName: 'research'`, `Model: 'pro'`), clean up `.superpowers/sdd/`, and `git push origin main`**
