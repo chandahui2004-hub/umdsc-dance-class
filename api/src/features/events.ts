@@ -11,7 +11,8 @@ import { ensureEventFolder, ensureMembersSheet, ensureEventSheets, saveEventFiel
 import { getEvent, readEventMembers } from './eventMembers';
 import { importEventMembers, checkSourceState, checkAndNotifySlotCapacities, AUTO_SYNC_SECONDS } from './eventImport';
 import { syncGoogleFormSlotChoices, syncFormStatusIfDue } from './formGating';
-import { extractGoogleFormId } from '../logic/googleForm';
+import { extractGoogleFormId, isResponderFormLink } from '../logic/googleForm';
+import { isActiveMember, isMemberEnrolledInStyle } from '../logic/styleMatcher';
 
 export { extractGoogleFormId };
 import { withScriptLock } from '../db/lock';
@@ -31,6 +32,61 @@ export function pastRetention(event: EventItem, today: string): boolean {
 function errorText(err: unknown): string {
   if (err instanceof AppError) return err.message.replace(/^[A-Z_]+: /, '');
   return err instanceof Error ? err.message : String(err);
+}
+
+function parseJsonFallback<T>(direct: T | undefined, rawJson: string | undefined, fallback: T): T {
+  if (direct !== undefined) return direct;
+  if (!rawJson) return fallback;
+  try {
+    return JSON.parse(rawJson) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function parseAddOnSlots(event: EventItem, rawAddOns: unknown): Record<string, number> {
+  if (!rawAddOns || typeof rawAddOns !== 'object' || Array.isArray(rawAddOns)) {
+    throw new AppError('VALIDATION', 'Enter at least +1 add-on slot to reopen');
+  }
+  const addOns: Record<string, number> = {};
+  let hasPositiveAddOn = false;
+  for (const [styleId, rawVal] of Object.entries(rawAddOns as Record<string, unknown>)) {
+    if (!event.styleIds.includes(styleId)) {
+      throw new AppError('VALIDATION', `Style ${styleId} is not in ${event.name}`);
+    }
+    if (rawVal === '' || rawVal === null || rawVal === undefined) continue;
+    const num = Number(rawVal);
+    if (!Number.isFinite(num) || num < 0 || !Number.isInteger(num)) {
+      throw new AppError('VALIDATION', 'Add-on slots must be a positive number');
+    }
+    if (num >= 1) {
+      addOns[styleId] = num;
+      hasPositiveAddOn = true;
+    }
+  }
+  if (!hasPositiveAddOn) {
+    throw new AppError('VALIDATION', 'Enter at least +1 add-on slot to reopen');
+  }
+  return addOns;
+}
+
+function reopenLinkedForm(ctx: Ctx, event: EventItem): void {
+  if (!ctx.form || (!event.formId && !event.formUrl && !event.sourceSheetId)) return;
+  const rawForm = event.formId || event.formUrl || (event.sourceSheetId ? ctx.form.getFormUrl(event.sourceSheetId) : null);
+  const canEditForm = !isResponderFormLink(event.formUrl) || Boolean(extractGoogleFormId(event.formId));
+  const formTarget = canEditForm
+    ? extractGoogleFormId(rawForm) || (rawForm && !isResponderFormLink(rawForm) ? rawForm : null)
+    : null;
+  if (!formTarget) return;
+  try {
+    const form = ctx.form.openForm(formTarget);
+    if (form) {
+      form.setAcceptingResponses(true);
+      form.setCustomClosedFormMessage('');
+    }
+  } catch (err) {
+    console.warn(`[events.reopenFormSlots] Failed to reopen form ${formTarget}:`, err);
+  }
 }
 
 function statusRoute(status: EventStatus): Route {
@@ -354,7 +410,15 @@ export function getEventRoutes(): Record<string, Route> {
         const members = ctx.db.memberIndex.find(m => m.active && m.eventIds.includes(event.id));
         for (const m of members) {
           const nextEventIds = m.eventIds.filter(eId => eId !== event.id);
-          ctx.db.memberIndex.update(m.id, m.version, { eventIds: nextEventIds }, actor, ctx.now());
+          const nextEventStyles = { ...(m.eventStyles || {}) };
+          delete nextEventStyles[event.id];
+          const patch =
+            nextEventIds.length === 0
+              ? { eventIds: [], eventStyles: {}, active: false }
+              : { eventIds: nextEventIds, eventStyles: nextEventStyles };
+          ctx.db.memberIndex.update(m.id, m.version, patch as any, actor, ctx.now());
+          ctx.cache.remove('mi:' + m.matricKey);
+          ctx.cache.remove('mi:' + m.id);
         }
 
         // 5. Deactivate associated videos and music records
@@ -510,6 +574,76 @@ export function getEventRoutes(): Record<string, Route> {
         return {
           ...result,
           event: ctx.db.events.get(event.id)
+        };
+      }
+    },
+
+    'events.reopenFormSlots': {
+      perm: 'members.import',
+      write: true,
+      bumpsData: true,
+      handler: (ctx, auth, payload: any) => {
+        const event = getEvent(ctx, String(payload?.id || ''));
+        if (event.status === 'archived') {
+          throw new AppError('VALIDATION', 'Archived events cannot be edited');
+        }
+        const addOns = parseAddOnSlots(event, payload?.addOnSlots);
+        const members = event.membersSpreadsheetId ? readEventMembers(ctx, event) : [];
+        const activeMembers = members.filter(isActiveMember);
+        const allStyles = ctx.db.styles.find(s => s.active || event.styleIds.includes(s.id));
+
+        const styleSlots = { ...parseJsonFallback<Record<string, number>>(event.styleSlots, event.styleSlotsJson, {}) };
+        const notifiedSet = new Set<string>(
+          parseJsonFallback<string[]>(event.notifiedFullStyles, event.notifiedFullStylesJson, [])
+        );
+
+        for (const [styleId, addOn] of Object.entries(addOns)) {
+          const enrolledCount =
+            event.styleIds.length === 1
+              ? activeMembers.length
+              : activeMembers.filter(m => isMemberEnrolledInStyle(m, styleId, allStyles)).length;
+          const currentCap = Number(styleSlots[styleId]) || 0;
+          styleSlots[styleId] = Math.max(currentCap, enrolledCount) + addOn;
+          notifiedSet.delete(styleId);
+        }
+
+        const nextNotified = Array.from(notifiedSet);
+        const actor = auth?.claims.sub || 'system';
+        saveEventFields(
+          ctx,
+          event.id,
+          {
+            styleSlots,
+            styleSlotsJson: JSON.stringify(styleSlots),
+            notifiedFullStyles: nextNotified,
+            notifiedFullStylesJson: JSON.stringify(nextNotified),
+            formClosed: false,
+            formClosedAt: '',
+            formClosedReason: 'none'
+          },
+          actor
+        );
+
+        const overrideKey = `sync:adminOverride:${event.id}`;
+        ctx.props.set(overrideKey, '');
+        ctx.cache.remove(overrideKey);
+        ctx.cache.remove(`sync:formCheck:${event.id}`);
+
+        reopenLinkedForm(ctx, event);
+
+        const updatedEvent = ctx.db.events.get(event.id) || event;
+        const formResult = syncGoogleFormSlotChoices(ctx, updatedEvent, members);
+        logAudit(
+          ctx,
+          actor,
+          'events.reopenFormSlots',
+          event.id,
+          JSON.stringify({ addOnSlots: addOns, styleSlots, formClosed: formResult.formClosed })
+        );
+        return {
+          event: ctx.db.events.get(event.id),
+          styleSlots,
+          formResult
         };
       }
     },

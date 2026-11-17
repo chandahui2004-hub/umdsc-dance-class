@@ -323,7 +323,7 @@ export function sendRegistrationConfirmationEmail(ctx: Ctx, event: EventItem, me
 export function importEventMembers(
   ctx: Ctx,
   event: EventItem,
-  opts: { full: boolean; purgeRemoved?: boolean; force?: boolean }
+  opts: { full: boolean; purgeRemoved?: boolean; force?: boolean; suppressFormReopen?: boolean }
 ): ImportResult {
   const { tab, sheet: source } = openSourceTab(ctx, event.sourceSheetId, event.sourceTab);
   const data = source.getDisplayValues();
@@ -614,7 +614,12 @@ export function importEventMembers(
   const memberCount = activeBody.length + added.length;
 
   // Check slot capacity per style and send alert email once when capacity is reached
-  const { newlyNotified, notifiedFullStyles: notifiedList } = checkAndNotifySlotCapacities(ctx, event, members);
+  const { newlyNotified, notifiedFullStyles: notifiedList } = checkAndNotifySlotCapacities(
+    ctx,
+    event,
+    members,
+    { suppressFormReopen: opts.suppressFormReopen }
+  );
 
   saveEventFields(ctx, event.id, {
     sourceTab: tab,
@@ -647,7 +652,8 @@ export function cleanEmail(raw: string | undefined | null): string {
 export function checkAndNotifySlotCapacities(
   ctx: Ctx,
   event: EventItem,
-  providedMembers?: Member[]
+  providedMembers?: Member[],
+  opts?: { suppressFormReopen?: boolean }
 ): { newlyNotified: boolean; notifiedFullStyles: string[] } {
   const slotCapacity = event.styleSlots || (event.styleSlotsJson ? JSON.parse(event.styleSlotsJson) : {});
   const alreadyNotified = new Set<string>(
@@ -769,7 +775,7 @@ export function checkAndNotifySlotCapacities(
 
   // Automatically update choices or close form when capacity is reached or re-armed
   try {
-    syncGoogleFormSlotChoices(ctx, event, members);
+    syncGoogleFormSlotChoices(ctx, event, members, opts);
   } catch (err) {
     console.warn(`[checkAndNotifySlotCapacities] Google Form slot sync failed for event ${event.id}:`, err);
   }

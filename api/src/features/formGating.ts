@@ -37,7 +37,8 @@ export interface FormGatingResult {
 export function syncGoogleFormSlotChoices(
   ctx: Ctx,
   event: EventItem,
-  providedMembers?: Member[]
+  providedMembers?: Member[],
+  opts?: { suppressFormReopen?: boolean }
 ): FormGatingResult {
   if (!ctx.form) {
     return {
@@ -299,7 +300,11 @@ export function syncGoogleFormSlotChoices(
     (styleIds.length > 1 && availableStyleIds.length === 0 && fullStyleIds.length > 0);
 
   const overrideKey = `sync:adminOverride:${event.id}`;
-  const hadAdminOverride = ctx.props.get(overrideKey) === '1' || ctx.cache.get(overrideKey) === '1' || Boolean(event.formClosed && isCurrentlyAccepting);
+  const hadAdminOverride = opts?.suppressFormReopen
+    ? false
+    : ctx.props.get(overrideKey) === '1' ||
+      ctx.cache.get(overrideKey) === '1' ||
+      Boolean(event.formClosed && isCurrentlyAccepting);
   
   let formClosed = false;
   let formClosedManually = false;
@@ -308,6 +313,8 @@ export function syncGoogleFormSlotChoices(
   if (isCurrentlyAccepting) {
     if (isFullHouse && !hadAdminOverride) {
       // Reached full house for the first time without admin re-opening
+      ctx.props.set(overrideKey, '');
+      ctx.cache.remove(overrideKey);
       try {
         form.setAcceptingResponses(false);
         form.setCustomClosedFormMessage(FULL_HOUSE_CLOSED_MESSAGE);

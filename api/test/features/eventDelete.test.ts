@@ -107,4 +107,50 @@ describe('Permanent Event Deletion (events.delete)', () => {
       routes['events.delete'].handler(ctx, { claims: { sub: 'admin1' } }, {});
     }).toThrow('id is required');
   });
+
+  it('deactivates MemberIndex, clears eventStyles, and evicts cache when deleted event was the dancer only event', () => {
+    const routes = getEventRoutes();
+    const sourceId = seedSourceSheet(ctx, [HEADERS]);
+    const event = seedEvent(ctx, {
+      name: 'ONLY EVENT TO DELETE',
+      sourceSheetId: sourceId,
+      styleIds: ['st_hiphop']
+    });
+    const onlyMember = ctx.db.memberIndex.insert({
+      matricKey: '23009999',
+      nameKey: 'solo dancer',
+      fullName: 'Solo Dancer',
+      eventIds: [event.id],
+      lastEventEnd: '2026-10-31',
+      eventStyles: { [event.id]: ['st_hiphop'] }
+    }, 'system', ctx.now());
+    const multiMember = ctx.db.memberIndex.insert({
+      matricKey: '23008888',
+      nameKey: 'multi dancer',
+      fullName: 'Multi Dancer',
+      eventIds: [event.id, 'other_evt'],
+      lastEventEnd: '2026-10-31',
+      eventStyles: { [event.id]: ['st_hiphop'], other_evt: ['st_popping'] }
+    }, 'system', ctx.now());
+
+    ctx.cache.put('mi:23009999', 'cached', 600);
+    ctx.cache.put('mi:' + onlyMember.id, 'cached', 600);
+    ctx.cache.put('mi:23008888', 'cached', 600);
+
+    const res = routes['events.delete'].handler(ctx, { claims: { sub: 'admin1' } }, { id: event.id });
+    expect(res.success).toBe(true);
+
+    const soloAfter = ctx.db.memberIndex.get(onlyMember.id)!;
+    expect(soloAfter.active).toBe(false);
+    expect(soloAfter.eventIds).toEqual([]);
+    expect(soloAfter.eventStyles).toEqual({});
+    expect(ctx.cache.get('mi:23009999')).toBeNull();
+    expect(ctx.cache.get('mi:' + onlyMember.id)).toBeNull();
+
+    const multiAfter = ctx.db.memberIndex.get(multiMember.id)!;
+    expect(multiAfter.active).toBe(true);
+    expect(multiAfter.eventIds).toEqual(['other_evt']);
+    expect(multiAfter.eventStyles).toEqual({ other_evt: ['st_popping'] });
+    expect(ctx.cache.get('mi:23008888')).toBeNull();
+  });
 });

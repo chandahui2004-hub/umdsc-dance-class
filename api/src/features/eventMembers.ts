@@ -2,6 +2,7 @@ import { EventItem, Member } from '@umdsc/shared';
 import { Ctx } from '../ports';
 import { AppError } from '../errors';
 import { safeCachePut } from '../logic/cache';
+import { isActiveMember } from '../logic/styleMatcher';
 
 export function getEvent(ctx: Ctx, eventId: string): EventItem {
   const event = eventId ? ctx.db.events.find(e => e.id === eventId && e.active)[0] : undefined;
@@ -92,7 +93,7 @@ export function readEventMembers(ctx: Ctx, event: EventItem): Member[] {
 
 /** Style ids a dancer registered for in one event (empty if not in it). */
 export function dancerStylesInEvent(ctx: Ctx, event: EventItem, matricKey: string): string[] {
-  const member = readEventMembers(ctx, event).find(m => m.matricKey === matricKey);
+  const member = readEventMembers(ctx, event).filter(isActiveMember).find(m => m.matricKey === matricKey);
   if (!member) return [];
   return Array.from(new Set([...(member.styleIds || []), ...(member.styleNames || [])]));
 }

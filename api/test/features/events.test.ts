@@ -714,4 +714,142 @@ describe('Feature: events (features/events)', () => {
     expect(getDisplayValuesSpy).toHaveBeenCalledTimes(1);
     expect(ctx.cache.get(`sync:pendingHash:${event.id}`)).toBeTruthy();
   });
+
+  describe('events.reopenFormSlots', () => {
+    it('adds +N slots over max(currentCap, enrolledCount), clears notifiedFullStyles, restores choices, and reopens closed Google Form', () => {
+      const formId = 'reopen_single_form';
+      const form = ctx.form.createForm(formId);
+      form.addQuestion({ id: 'q_name', title: 'Full Name', choices: [], helpText: '' });
+
+      // 21 enrolled dancers against a limit of 20 (over-enrolled via admin override)
+      const twentyOneRows = Array.from({ length: 21 }, (_, idx) => [
+        '2026-10-01',
+        `Dancer ${idx + 1}`,
+        `2300${String(idx + 1).padStart(4, '0')}`,
+        '0123456789',
+        `d${idx + 1}@t.com`,
+        'Popping'
+      ]);
+      const srcId = seedSourceSheet(ctx, [HEADERS, ...twentyOneRows]);
+      ctx.form.setLinkedForm(srcId, `https://docs.google.com/forms/d/${formId}/edit`);
+
+      const created = call('events.create', createPayload({
+        name: 'FULL POPPING EVENT',
+        sheetUrl: `https://docs.google.com/spreadsheets/d/${srcId}/edit`,
+        formUrl: `https://docs.google.com/forms/d/${formId}/edit`,
+        styleIds: ['st_popping'],
+        styleSlots: { st_popping: 20 },
+        sessions: []
+      }));
+      expect(created.ok).toBe(true);
+      const ev = (created.data as any).event;
+
+      expect(ctx.db.events.get(ev.id)!.formClosed).toBe(true);
+      expect(ctx.db.events.get(ev.id)!.notifiedFullStyles).toContain('st_popping');
+      expect(form.isAcceptingResponses()).toBe(false);
+
+      const reopenRes = call('events.reopenFormSlots', {
+        id: ev.id,
+        addOnSlots: { st_popping: 5 }
+      });
+
+      expect(reopenRes.ok, JSON.stringify(reopenRes)).toBe(true);
+      if (reopenRes.ok) {
+        const data = reopenRes.data as any;
+        expect(data.styleSlots.st_popping).toBe(26);
+        expect(data.event.styleSlots.st_popping).toBe(26);
+        expect(data.event.notifiedFullStyles).not.toContain('st_popping');
+        expect(data.event.formClosed).toBe(false);
+        expect(data.event.formClosedReason).toBe('none');
+        expect(data.formResult.formClosed).toBe(false);
+      }
+
+      expect(form.isAcceptingResponses()).toBe(true);
+      expect(form.getCustomClosedFormMessage()).toBe('');
+    });
+
+    it('reopens only the requested style in a multi-style full-house event and restores its choice while keeping other full styles closed', () => {
+      const formId = 'reopen_multi_form';
+      const form = ctx.form.createForm(formId);
+      form.addQuestion({
+        id: 'q_cls',
+        title: 'Classes',
+        choices: ['Popping', 'Hip Hop'],
+        helpText: ''
+      });
+
+      const srcId = seedSourceSheet(ctx, [
+        HEADERS,
+        ['2026-10-01', 'Ali', '22001111', '0123456789', 'a@t.com', 'Popping'],
+        ['2026-10-01', 'Bala', '22002222', '0123456789', 'b@t.com', 'Popping'],
+        ['2026-10-01', 'Chong', '22003333', '0123456789', 'c@t.com', 'Popping'],
+        ['2026-10-01', 'Devi', '22004444', '0123456789', 'd@t.com', 'Hip Hop'],
+        ['2026-10-01', 'Evan', '22005555', '0123456789', 'e@t.com', 'Hip Hop']
+      ]);
+      ctx.form.setLinkedForm(srcId, `https://docs.google.com/forms/d/${formId}/edit`);
+
+      const created = call('events.create', createPayload({
+        name: 'FULL MULTI EVENT',
+        sheetUrl: `https://docs.google.com/spreadsheets/d/${srcId}/edit`,
+        formUrl: `https://docs.google.com/forms/d/${formId}/edit`,
+        styleIds: ['st_popping', 'st_hiphop'],
+        styleSlots: { st_popping: 2, st_hiphop: 2 },
+        sessions: []
+      }));
+      expect(created.ok).toBe(true);
+      const ev = (created.data as any).event;
+      expect(form.isAcceptingResponses()).toBe(false);
+
+      // Reopen only Popping (+5 -> max(2, 3) + 5 = 8); leave Hip Hop at 2 (2/2 full)
+      const reopenRes = call('events.reopenFormSlots', {
+        id: ev.id,
+        addOnSlots: { st_popping: 5, st_hiphop: 0 }
+      });
+
+      expect(reopenRes.ok, JSON.stringify(reopenRes)).toBe(true);
+      const refreshed = ctx.db.events.get(ev.id)!;
+      expect(refreshed.styleSlots).toEqual({ st_popping: 8, st_hiphop: 2 });
+      expect(refreshed.notifiedFullStyles).toEqual(['st_hiphop']);
+      expect(refreshed.formClosed).toBe(false);
+      expect(form.isAcceptingResponses()).toBe(true);
+      expect(form.getStyleQuestion()!.choices).toEqual(['Popping']);
+      expect(form.getStyleQuestion()!.helpText).toContain('Hip Hop');
+    });
+
+    it('reopens even a manually closed form and rejects invalid addOnSlots', () => {
+      const formId = 'reopen_manual_form';
+      const form = ctx.form.createForm(formId);
+      form.addQuestion({ id: 'q_cls', title: 'Classes', choices: ['Popping'], helpText: '' });
+
+      const created = call('events.create', createPayload({
+        name: 'MANUAL CLOSED EVENT',
+        formUrl: `https://docs.google.com/forms/d/${formId}/edit`,
+        styleIds: ['st_popping'],
+        styleSlots: { st_popping: 5 },
+        sessions: []
+      }));
+      const ev = (created.data as any).event;
+      form.setAcceptingResponses(false);
+      form.setCustomClosedFormMessage('Paused manually');
+      ctx.db.events.update(ev.id, ctx.db.events.get(ev.id)!.version, {
+        formClosed: true,
+        formClosedReason: 'manual'
+      }, 'test', ctx.now());
+
+      // Invalid payloads rejected
+      const zeroRes = call('events.reopenFormSlots', { id: ev.id, addOnSlots: { st_popping: 0 } });
+      expect(zeroRes.ok).toBe(false);
+      const negRes = call('events.reopenFormSlots', { id: ev.id, addOnSlots: { st_popping: -2 } });
+      expect(negRes.ok).toBe(false);
+      const badStyleRes = call('events.reopenFormSlots', { id: ev.id, addOnSlots: { st_hiphop: 3 } });
+      expect(badStyleRes.ok).toBe(false);
+
+      // Valid reopen succeeds (1 enrolled, 5 cap -> max(5, 1) + 3 = 8)
+      const okRes = call('events.reopenFormSlots', { id: ev.id, addOnSlots: { st_popping: 3 } });
+      expect(okRes.ok, JSON.stringify(okRes)).toBe(true);
+      expect(ctx.db.events.get(ev.id)!.styleSlots?.st_popping).toBe(8);
+      expect(ctx.db.events.get(ev.id)!.formClosed).toBe(false);
+      expect(form.isAcceptingResponses()).toBe(true);
+    });
+  });
 });
