@@ -1,3 +1,20 @@
+/** True when the member has not been flagged as removed from the event or form. */
+export function isActiveMember(member: { flags?: string[] }): boolean {
+  const flags = member.flags || [];
+  return !flags.includes('removed') && !flags.includes('removed-from-form');
+}
+
+/** Filters an event's members down to active dancers enrolled in the given style. */
+export function activeStyleMembers<
+  T extends { styleIds?: string[]; styleNames?: string[]; flags?: string[] }
+>(
+  members: T[],
+  targetStyleIdOrName: string,
+  styles: { id: string; name: string; aliases?: string[] }[] = []
+): T[] {
+  return members.filter(m => isActiveMember(m) && isMemberEnrolledInStyle(m, targetStyleIdOrName, styles));
+}
+
 export function isMemberEnrolledInStyle(
   member: { styleIds?: string[]; styleNames?: string[] },
   targetStyleIdOrName: string,

@@ -177,7 +177,7 @@ describe('Feature: event auto-sync and sync now', () => {
       expect(attendanceRow(e.id, 'M-22001111')).toBeNull();
     });
 
-    it('empties a leftover attendance row of someone not on the dancer list, unless it has ticks', () => {
+    it('empties a leftover attendance row of someone not on the dancer list, even if it has ticks', () => {
       const e = createEvent('OCT');
       addTicks(e.id, 'ses_1', []);
       const sheet = attendance(e.id);
@@ -189,7 +189,7 @@ describe('Feature: event auto-sync and sync now', () => {
       call('events.sync', { id: e.id });
 
       expect(attendanceRow(e.id, 'M-29999999')).toBeNull();
-      expect(attendanceRow(e.id, 'M-28888888')).toMatchObject({ ses_1: '/' });
+      expect(attendanceRow(e.id, 'M-28888888')).toBeNull();
       expect(attendanceRow(e.id, 'M-22001111')).not.toBeNull();
     });
 
@@ -220,7 +220,7 @@ describe('Feature: event auto-sync and sync now', () => {
       call('events.sync', { id: e.id });
 
       expect(memberIds(e.id)).toEqual(['M-22001111', 'M-22005555']);
-      expect(attendanceRow(e.id, 'M-22001111')).toMatchObject({ ses_1: 'TRUE' });
+      expect(attendanceRow(e.id, 'M-22001111')).toBeNull();
       expect(attendanceRow(e.id, 'M-22005555')).toMatchObject({ ses_1: '' });
     });
 
@@ -249,7 +249,7 @@ describe('Feature: event auto-sync and sync now', () => {
       call('events.sync', { id: e.id });
 
       expect(memberIds(e.id)).toEqual(['M-22001111', 'M-22003333']);
-      expect(attendanceRow(e.id, 'M-22001111')).toMatchObject({ ses_1: 'TRUE' });
+      expect(attendanceRow(e.id, 'M-22001111')).toBeNull();
       expect(attendanceRow(e.id, 'M-22003333')).toMatchObject({ ses_1: '' });
     });
   });
@@ -284,7 +284,7 @@ describe('Feature: event auto-sync and sync now', () => {
       expect(attendanceRow(e.id, 'M-22001112')).toMatchObject({ ses_1: 'TRUE' });
     });
 
-    it('a matric changed and changed back leaves both sign-ins working', () => {
+    it('a matric changed and changed back reactivates the original sign-in and deactivates the unused one', () => {
       const e = createEvent('OCT');
       call('members.edit', { eventId: e.id, memberId: 'M-22001111', matricRaw: '22001112' });
       const back = call('members.edit', { eventId: e.id, memberId: 'M-22001112', matricRaw: '22001111' });
@@ -292,7 +292,9 @@ describe('Feature: event auto-sync and sync now', () => {
       expect(back.ok).toBe(true);
       expect(memberIds(e.id)).toEqual(['M-22001111']);
       expect(indexEvents('22001111')).toContain(e.id);
-      expect(ctx.db.memberIndex.find(m => m.matricKey === '22001112')[0].active).toBe(true);
+      const unusedMi = ctx.db.memberIndex.find(m => m.matricKey === '22001112')[0];
+      expect(unusedMi.active).toBe(false);
+      expect(unusedMi.eventIds).toEqual([]);
     });
 
     it('refuses a matric that already belongs to another dancer in the event, writing nothing', () => {

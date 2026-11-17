@@ -193,8 +193,8 @@ describe('Feature: Attendance (features/attendance)', () => {
     if (!res.ok) expect(res.error.code).toBe('VALIDATION');
   });
 
-  it('a dancer still on the sheet who switched style can be ticked, and the rest of the batch saves', () => {
-    // Popper Two re-submitted the form for Locking only; their Popping row stays (earlier classes)
+  it('a dancer who switched style is rejected by attendance.mark and excluded from attendance.get for the old style', () => {
+    // Popper Two re-submitted the form for Locking only; they are no longer enrolled in Popping
     const membersSheet = ctx.drive.openSpreadsheet(event.membersSpreadsheetId).sheet('Members')!;
     const rows = membersSheet.getDisplayValues();
     const styleCol = rows[0].indexOf('styleIds');
@@ -202,18 +202,30 @@ describe('Feature: Attendance (features/attendance)', () => {
     membersSheet.setValues(twoRow + 1, styleCol + 1, [['st_locking']]);
     membersChanged(ctx, event);
 
-    const res = call('attendance.mark', {
+    const rejected = call('attendance.mark', {
       eventId: event.id, styleId: 'st_popping',
       marks: [
         { opId: 'op_one', sessionId: poppingSession1.id, memberId: 'M-22001111', present: true },
         { opId: 'op_two', sessionId: poppingSession1.id, memberId: 'M-22002222', present: true }
       ]
     });
+    expect(rejected.ok).toBe(false);
+    if (!rejected.ok) expect(rejected.error.code).toBe('VALIDATION');
 
-    expect(res.ok && (res.data as any).applied).toEqual(['op_one', 'op_two']);
+    const okRes = call('attendance.mark', {
+      eventId: event.id, styleId: 'st_popping',
+      marks: [{ opId: 'op_one', sessionId: poppingSession1.id, memberId: 'M-22001111', present: true }]
+    });
+    expect(okRes.ok && (okRes.data as any).applied).toEqual(['op_one']);
+
     const grid = call('attendance.get', { eventId: event.id, styleId: 'st_popping' });
-    expect(grid.ok && (grid.data as any).present['M-22001111']).toEqual([poppingSession1.id]);
-    expect(grid.ok && (grid.data as any).present['M-22002222']).toEqual([poppingSession1.id]);
+    expect(grid.ok).toBe(true);
+    if (grid.ok) {
+      const data = grid.data as any;
+      expect(data.members.map((m: any) => m.memberId)).toEqual(['M-22001111']);
+      expect(data.present['M-22001111']).toEqual([poppingSession1.id]);
+      expect(data.present['M-22002222']).toBeUndefined();
+    }
   });
 
   it('attendance.ensureSheets builds the event sheets inside the event folder', () => {
@@ -265,6 +277,89 @@ describe('Feature: Attendance (features/attendance)', () => {
       expect(grid.members.length).toBe(1);
       expect(grid.members[0].fullName).toBe('Hiphop Dancer');
     }
+  });
+
+  it('attendance.get excludes dropped or removed-from-form dancers even with stale ticked rows, appends unsynced enrolled dancers, and caches empty grids', () => {
+    // Mark Popper One present in session 1 and Popper Two present in session 1
+    expect(
+      call('attendance.mark', {
+        eventId: event.id,
+        styleId: 'st_popping',
+        marks: [
+          { opId: 'op_p1', sessionId: poppingSession1.id, memberId: 'M-22001111', present: true },
+          { opId: 'op_p2', sessionId: poppingSession1.id, memberId: 'M-22002222', present: true }
+        ]
+      }).ok
+    ).toBe(true);
+
+    // Popper Two is flagged removed-from-form and Popper Three is added to Members (not yet on Attendance sheet)
+    const membersSheet = ctx.drive.openSpreadsheet(event.membersSpreadsheetId).sheet('Members')!;
+    const rows = membersSheet.getDisplayValues();
+    const flagsCol = rows[0].indexOf('flags');
+    const twoRow = rows.findIndex(r => r.includes('M-22002222'));
+    membersSheet.setValues(twoRow + 1, flagsCol + 1, [['removed-from-form']]);
+    const newRow = rows[0].map(col => ({
+      memberId: 'M-22003333',
+      fullName: 'Popper Three',
+      matricRaw: '22003333',
+      matricKey: '22003333',
+      nameKey: 'popper three',
+      styleIds: 'st_popping',
+      styleNames: 'Popping'
+    } as any)[col] ?? '');
+    membersSheet.appendRows([newRow]);
+    membersChanged(ctx, event);
+
+    const gridRes = call('attendance.get', { eventId: event.id, styleId: 'st_popping' });
+    expect(gridRes.ok).toBe(true);
+    if (gridRes.ok) {
+      const grid = gridRes.data as any;
+      expect(grid.members.map((m: any) => m.memberId)).toEqual(['M-22001111', 'M-22003333']);
+      expect(grid.present['M-22001111']).toEqual([poppingSession1.id]);
+      expect(grid.present['M-22002222']).toBeUndefined();
+      expect(grid.present['M-22003333']).toEqual([]);
+    }
+
+    // Also verify empty grid caching when all dancers are removed and sheets synced
+    const master = ctx.drive.createFolder('root', 'Attendance');
+    ctx.db.settings.insert({ key: 'defaultAttendanceFolderId', value: master }, 'system', ctx.now());
+    const oneRow = membersSheet.getDisplayValues().findIndex(r => r.includes('M-22001111'));
+    const threeRow = membersSheet.getDisplayValues().findIndex(r => r.includes('M-22003333'));
+    membersSheet.setValues(oneRow + 1, flagsCol + 1, [['removed']]);
+    membersSheet.setValues(threeRow + 1, flagsCol + 1, [['removed']]);
+    membersChanged(ctx, event);
+    expect(call('attendance.ensureSheets', { eventId: event.id }).ok).toBe(true);
+
+    const emptyRes = call('attendance.get', { eventId: event.id, styleId: 'st_popping' });
+    expect(emptyRes.ok).toBe(true);
+    if (emptyRes.ok) {
+      const grid = emptyRes.data as any;
+      expect(grid.members).toEqual([]);
+      const cached = ctx.cache.get(`att:${event.id}:st_popping:${grid.version}`);
+      expect(cached).toBeTruthy();
+      expect(JSON.parse(cached!).members).toEqual([]);
+
+      // Subsequent attendance.get serves the cached empty grid
+      const cachedRes = call('attendance.get', { eventId: event.id, styleId: 'st_popping' });
+      expect(cachedRes.ok && (cachedRes.data as any).members).toEqual([]);
+    }
+  });
+
+  it('attendance.mark rejects a dancer flagged removed-from-form even if an old row exists on the Attendance sheet', () => {
+    const membersSheet = ctx.drive.openSpreadsheet(event.membersSpreadsheetId).sheet('Members')!;
+    const rows = membersSheet.getDisplayValues();
+    const flagsCol = rows[0].indexOf('flags');
+    const twoRow = rows.findIndex(r => r.includes('M-22002222'));
+    membersSheet.setValues(twoRow + 1, flagsCol + 1, [['removed-from-form']]);
+    membersChanged(ctx, event);
+
+    const res = call('attendance.mark', {
+      eventId: event.id,
+      styleId: 'st_popping',
+      marks: [{ opId: 'op_removed', sessionId: poppingSession1.id, memberId: 'M-22002222', present: true }]
+    });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error.code).toBe('VALIDATION');
   });
 });
 

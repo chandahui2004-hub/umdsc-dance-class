@@ -11,6 +11,7 @@ import { membersChanged, readEventMembers } from './eventMembers';
 import { ensureEventFolder, ensureMembersSheet, ensureEventSheets, saveEventFields } from './eventSheets';
 import { syncGoogleFormSlotChoices } from './formGating';
 import { normalizeMatric } from '../logic/normalize';
+import { isActiveMember } from '../logic/styleMatcher';
 
 export interface ImportResult {
   changed: boolean;
@@ -253,16 +254,24 @@ function moveAttendanceRows(ctx: Ctx, event: EventItem, corrections: Map<string,
 }
 
 /**
- * The old matric no longer belongs to this event, so signing in with it stops showing the event.
- * The entry itself stays active: the same matric may register again (or be the real one after all).
+ * Removes an event from a dancer's MemberIndex entry. If no events remain for that dancer,
+ * deactivates the entry so she is no longer treated as an active member.
  */
 function dropEventFromIndex(ctx: Ctx, event: EventItem, matricKey: string): void {
-  const entry = ctx.db.memberIndex.find(m => m.matricKey === matricKey && m.active)[0];
-  if (entry && entry.eventIds.includes(event.id)) {
-    const eventIds = entry.eventIds.filter(id => id !== event.id);
-    const eventStyles = { ...(entry.eventStyles || {}) };
-    delete eventStyles[event.id];
-    ctx.db.memberIndex.update(entry.id, entry.version, { eventIds, eventStyles }, 'sync', ctx.now());
+  if (!matricKey) return;
+  const entries = ctx.db.memberIndex.find(m => m.matricKey === matricKey && m.active);
+  for (const entry of entries) {
+    if (entry.eventIds.includes(event.id)) {
+      const eventIds = entry.eventIds.filter(id => id !== event.id);
+      const eventStyles = { ...(entry.eventStyles || {}) };
+      delete eventStyles[event.id];
+      const patch =
+        eventIds.length === 0
+          ? { eventIds: [], eventStyles: {}, active: false }
+          : { eventIds, eventStyles };
+      ctx.db.memberIndex.update(entry.id, entry.version, patch as any, 'sync', ctx.now());
+    }
+    ctx.cache.remove('mi:' + entry.id);
   }
   ctx.cache.remove('mi:' + matricKey);
 }
@@ -391,7 +400,7 @@ export function importEventMembers(
   if (correctionsHeld) corrections.clear();
   const placed = new Set<string>();
 
-  if (opts.purgeRemoved && !hasIncompleteRows) {
+  if (!hasIncompleteRows && !correctionsHeld) {
     for (const g of gone) {
       if (!corrections.has(g.memberId)) {
         dropEventFromIndex(ctx, event, g.matricKey);
@@ -511,6 +520,7 @@ export function importEventMembers(
   for (const off of ctx.db.memberIndex.find(m => !m.active && inForm.has(m.matricKey))) {
     ctx.db.memberIndex.update(off.id, off.version, { active: true } as any, 'sync', ctx.now());
     ctx.cache.remove('mi:' + off.matricKey);
+    ctx.cache.remove('mi:' + off.id);
   }
 
   // Purge any stale split member index entries for 23005147 (e.g. M-23005147-testing1)
@@ -588,7 +598,17 @@ export function importEventMembers(
     };
   });
 
-  ctx.db.memberIndex.upsertMany('matricKey', rowsToUpsert, 'sync', now);
+  if (rowsToUpsert.length > 0) {
+    ctx.db.memberIndex.upsertMany('matricKey', rowsToUpsert, 'sync', now);
+  }
+
+  if (!hasIncompleteRows && !correctionsHeld) {
+    for (const entry of ctx.db.memberIndex.find(
+      m => m.active && (m.eventIds || []).includes(event.id) && !inForm.has(m.matricKey)
+    )) {
+      dropEventFromIndex(ctx, event, entry.matricKey);
+    }
+  }
 
   const activeBody = body.filter(r => r[col('memberId')] && !String(r[col('flags')] || '').split(',').includes(REMOVED_FLAG));
   const memberCount = activeBody.length + added.length;
@@ -636,9 +656,7 @@ export function checkAndNotifySlotCapacities(
   let newlyNotified = false;
 
   const members = providedMembers || (event.membersSpreadsheetId ? readEventMembers(ctx, event) : []);
-  const activeMembers = members.filter(
-    m => !(m.flags || []).includes('removed') && !(m.flags || []).includes(REMOVED_FLAG)
-  );
+  const activeMembers = members.filter(isActiveMember);
 
   // Recipients:
   // 1. Club system email

@@ -4,7 +4,7 @@ import { AppError } from '../errors';
 import { MEMBERS_COLUMNS } from '../db/schema';
 import { buildLayout, planSync, sessionLabel } from '../logic/attendanceGrid';
 import { readEventMembers } from './eventMembers';
-import { isMemberEnrolledInStyle } from '../logic/styleMatcher';
+import { activeStyleMembers } from '../logic/styleMatcher';
 import { todayKL } from '../logic/events';
 import { bumpAttendanceVersion } from '../logic/attendanceVersion';
 
@@ -264,7 +264,7 @@ export function ensureEventSheets(ctx: Ctx, event: EventItem): { styleId: string
     const sessions = ctx.db.sessions
       .find(s => s.eventId === current.id && targetStyleIds.has(s.styleId) && s.active)
       .sort((a, b) => a.date.localeCompare(b.date) || a.seq - b.seq);
-    const styleMembers = members.filter(m => isMemberEnrolledInStyle(m, styleId, allStyles));
+    const styleMembers = activeStyleMembers(members, styleId, allStyles);
 
     const rec = ctx.db.attendanceSheets.find(
       a => a.eventId === current.id && targetStyleIds.has(a.styleId) && a.active
@@ -277,20 +277,21 @@ export function ensureEventSheets(ctx: Ctx, event: EventItem): { styleId: string
         const keyRow = [...(data[0] || [])];
         const idCol = keyRow.indexOf('memberId');
 
-        // A row for someone not on the dancer list at all, with no class ticked, is a leftover (e.g. a
-        // matric that was corrected); it is emptied. A row with any tick always stays.
+        // Any row whose memberId is no longer actively enrolled in this style is cleared,
+        // even if it has prior attendance ticks or all dancers left the style/event.
         let emptied = false;
-        if (idCol >= 0 && members.length > 0) {
-          const listed = new Set(members.map(m => m.memberId));
-          const classCols = keyRow.map((key, c) => (key.startsWith('ses_') ? c : -1)).filter(c => c >= 0);
+        if (idCol >= 0) {
+          const enrolledInStyle = new Set(styleMembers.map(m => m.memberId));
+          const blankRow = keyRow.map(() => '');
           data.forEach((row, i) => {
-            if (i < 2 || !row[idCol] || listed.has(row[idCol]) || classCols.some(c => row[c])) return;
-            sheet.setValues(i + 1, 1, [keyRow.map(() => '')]);
+            const mId = String(row[idCol] || '').trim();
+            if (i < 2 || !mId || enrolledInStyle.has(mId)) return;
+            sheet.setValues(i + 1, 1, [blankRow]);
             row[idCol] = '';
             emptied = true;
           });
         }
-        const existingIds = idCol === -1 ? [] : data.slice(2).map(r => r[idCol]).filter(Boolean);
+        const existingIds = idCol === -1 ? [] : data.slice(2).map(r => String(r[idCol] || '').trim()).filter(Boolean);
         const { appendColumns, appendRows } = planSync(keyRow, existingIds, styleMembers, sessions);
 
         if (appendColumns.length > 0) {
@@ -313,7 +314,10 @@ export function ensureEventSheets(ctx: Ctx, event: EventItem): { styleId: string
           );
         }
         if (emptied || appendColumns.length > 0 || appendRows.length > 0) {
-          bumpAttendanceVersion(ctx, current.id, rec.styleId);
+          bumpAttendanceVersion(ctx, current.id, styleId);
+          if (rec.styleId !== styleId) {
+            bumpAttendanceVersion(ctx, current.id, rec.styleId);
+          }
         }
       }
       result.push({ styleId, spreadsheetId: rec.spreadsheetId });

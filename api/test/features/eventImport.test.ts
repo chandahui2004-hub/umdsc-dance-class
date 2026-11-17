@@ -1,11 +1,21 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import crypto from 'node:crypto';
 import { makeCtx } from '../fakes/makeCtx';
 import { FakeDrive } from '../fakes/fakeDrive';
 import { FakeSpreadsheet, FakeSheet } from '../fakes/fakeSheets';
 import { seedEvent, seedSourceSheet } from '../fixtures/events';
 import { importEventMembers, sourceUnchanged, checkSourceState, AUTO_SYNC_SECONDS, FORM_CHECK_SECONDS } from '../../src/features/eventImport';
 import { readEventMembers } from '../../src/features/eventMembers';
+import { handleRequest } from '../../src/router';
+import { signToken, Hmac } from '../../src/security/tokens';
 import { EventItem } from '@umdsc/shared';
+
+const nodeHmac: Hmac = (key: string, message: string) =>
+  new Uint8Array(crypto.createHmac('sha256', key).update(message).digest());
+const secrets = {
+  tokenSecret: 'test_secret_key_123456789012345678901234567890',
+  hmac: nodeHmac
+};
 
 const HEADERS = ['Timestamp', 'Full Name', 'Matric Number', 'Contact Number', 'Email', 'Classes'];
 const row = (name: string, matric: string, classes: string) =>
@@ -519,6 +529,191 @@ describe('importEventMembers', () => {
     expect(activeRows).toHaveLength(1);
     expect(activeRows[0].eventIds).toContain('evt_old');
     expect(activeRows[0].eventIds).toContain(event.id);
+  });
+
+  it('clears dropped style row (even with ticks) from Attendance sheet, updates MemberIndex.eventStyles, and excludes from attendance.get', () => {
+    const { event, sourceId } = makeEvent([
+      row('Ali', '22001111', 'Popping'),
+      row('Bala', '22002222', 'Popping')
+    ]);
+    const session = ctx.db.sessions.insert(
+      {
+        eventId: event.id,
+        styleId: 'st_popping',
+        seq: 1,
+        date: '2026-10-06',
+        start: '20:00',
+        end: '22:00',
+        instructorId: '',
+        venue: '',
+        status: 'scheduled',
+        note: ''
+      },
+      'admin',
+      ctx.now()
+    );
+    importEventMembers(ctx, fresh(event), { full: true });
+
+    // Tick Ali present in Popping
+    const popSheet = attendanceSheet(event, 'st_popping');
+    const popData = popSheet.getDisplayValues();
+    const sesCol = popData[0].indexOf(session.id);
+    const aliRow = popData.findIndex(r => r[0] === 'M-22001111');
+    popSheet.setValues(aliRow + 1, sesCol + 1, [['/']]);
+
+    // Populate attendance.get cache for Popping before the style switch
+    const adminToken = signToken(
+      {
+        sub: 'admin',
+        role: 'admin',
+        name: 'Admin',
+        exp: Math.floor(ctx.now().getTime() / 1000) + 3600,
+        pv: 1,
+        perms: { 'attendance.view.all': '*' }
+      },
+      secrets.tokenSecret,
+      secrets.hmac
+    );
+    const beforeGrid = handleRequest(
+      { action: 'attendance.get', token: adminToken, payload: { eventId: event.id, styleId: 'st_popping' } },
+      ctx,
+      secrets
+    );
+    expect(beforeGrid.ok && (beforeGrid.data as any).members.map((m: any) => m.memberId)).toEqual(['M-22001111', 'M-22002222']);
+
+    // Ali switches from Popping to Hip Hop in the response sheet
+    source(sourceId).setValues(2, 6, [['Hip Hop']]);
+    importEventMembers(ctx, fresh(event), { full: true, purgeRemoved: true });
+
+    // Popping Attendance sheet row for Ali is cleared (despite the '/' tick)
+    const popRows = popSheet.getDisplayValues().slice(2).filter(r => r[0]);
+    expect(popRows.map(r => r[0])).toEqual(['M-22002222']);
+
+    // Hip Hop Attendance sheet now includes Ali
+    const hhRows = attendanceSheet(event, 'st_hiphop').getDisplayValues().slice(2).filter(r => r[0]);
+    expect(hhRows.map(r => r[0])).toEqual(['M-22001111']);
+
+    // attendance.get for Popping no longer returns Ali
+    const afterGrid = handleRequest(
+      { action: 'attendance.get', token: adminToken, payload: { eventId: event.id, styleId: 'st_popping' } },
+      ctx,
+      secrets
+    );
+    expect(afterGrid.ok).toBe(true);
+    if (afterGrid.ok) {
+      expect((afterGrid.data as any).members.map((m: any) => m.memberId)).toEqual(['M-22002222']);
+      expect((afterGrid.data as any).present['M-22001111']).toBeUndefined();
+    }
+
+    // MemberIndex.eventStyles[event.id] only lists st_hiphop
+    const mi = ctx.db.memberIndex.find(m => m.matricKey === '22001111' && m.active)[0];
+    expect(mi.eventStyles?.[event.id]).toEqual(['st_hiphop']);
+  });
+
+  it('clears last/only dancer (even with ticks) from Members and Attendance sheets and deactivates MemberIndex when 0 events remain', () => {
+    const { event, sourceId } = makeEvent([row('Ali', '22001111', 'Popping')]);
+    const session = ctx.db.sessions.insert(
+      {
+        eventId: event.id,
+        styleId: 'st_popping',
+        seq: 1,
+        date: '2026-10-06',
+        start: '20:00',
+        end: '22:00',
+        instructorId: '',
+        venue: '',
+        status: 'scheduled',
+        note: ''
+      },
+      'admin',
+      ctx.now()
+    );
+    importEventMembers(ctx, fresh(event), { full: true });
+
+    // Tick Ali present in Popping
+    const popSheet = attendanceSheet(event, 'st_popping');
+    const sesCol = popSheet.getDisplayValues()[0].indexOf(session.id);
+    popSheet.setValues(3, sesCol + 1, [['/']]);
+
+    const miBefore = ctx.db.memberIndex.find(m => m.matricKey === '22001111' && m.active)[0];
+    ctx.cache.put('mi:22001111', JSON.stringify(miBefore), 600);
+    ctx.cache.put('mi:' + miBefore.id, JSON.stringify(miBefore), 600);
+
+    // Delete Ali (the only dancer) from the source response sheet
+    const src = source(sourceId);
+    src.rows = [src.rows[0]];
+    importEventMembers(ctx, fresh(event), { full: true, purgeRemoved: true });
+
+    // Members sheet and Attendance sheet are both empty of Ali
+    expect(readEventMembers(ctx, fresh(event))).toEqual([]);
+    const remainingAttRows = popSheet.getDisplayValues().slice(2).filter(r => r[0]);
+    expect(remainingAttRows).toEqual([]);
+
+    // MemberIndex entry is deactivated with 0 events and caches evicted
+    const miAfter = ctx.db.memberIndex.get(miBefore.id)!;
+    expect(miAfter.active).toBe(false);
+    expect(miAfter.eventIds).toEqual([]);
+    expect(miAfter.eventStyles).toEqual({});
+    expect(ctx.cache.get('mi:22001111')).toBeNull();
+    expect(ctx.cache.get('mi:' + miBefore.id)).toBeNull();
+  });
+
+  it('removes only the dropped event from MemberIndex when dancer remains enrolled in another event', () => {
+    const { event: event1 } = makeEvent([row('Ali', '22001111', 'Popping')], { name: 'EVENT ONE' });
+    const { event: event2, sourceId: source2 } = makeEvent([row('Ali', '22001111', 'Hip Hop')], { name: 'EVENT TWO' });
+    importEventMembers(ctx, fresh(event1), { full: true });
+    importEventMembers(ctx, fresh(event2), { full: true });
+
+    // Remove Ali from Event 2 (without purgeRemoved, verifying MemberIndex still cleans up)
+    const src2 = source(source2);
+    src2.rows = [src2.rows[0]];
+    importEventMembers(ctx, fresh(event2), { full: true });
+
+    // Event 2's Hip Hop attendance sheet is cleared of Ali
+    const hhRows2 = attendanceSheet(event2, 'st_hiphop').getDisplayValues().slice(2).filter(r => r[0]);
+    expect(hhRows2).toEqual([]);
+
+    // Event 1's Popping attendance sheet still has Ali
+    const popRows1 = attendanceSheet(event1, 'st_popping').getDisplayValues().slice(2).filter(r => r[0]);
+    expect(popRows1.map(r => r[0])).toEqual(['M-22001111']);
+
+    // MemberIndex stays active with only Event 1 intact
+    const mi = ctx.db.memberIndex.find(m => m.matricKey === '22001111' && m.active)[0];
+    expect(mi).toBeDefined();
+    expect(mi.active).toBe(true);
+    expect(mi.eventIds).toEqual([event1.id]);
+    expect(mi.eventStyles?.[event1.id]).toEqual(['st_popping']);
+    expect(mi.eventStyles?.[event2.id]).toBeUndefined();
+  });
+
+  it('sweeps stale MemberIndex entries still referencing an event when no longer in source sheet', () => {
+    const { event, sourceId } = makeEvent([row('Ali', '22001111', 'Popping')]);
+    importEventMembers(ctx, fresh(event), { full: true });
+
+    // Inject a stale active MemberIndex entry referencing event.id even though not in Members or source sheet
+    const stale = ctx.db.memberIndex.insert(
+      {
+        matricKey: '22009999',
+        nameKey: 'ghost',
+        fullName: 'Ghost Dancer',
+        eventIds: [event.id],
+        eventStyles: { [event.id]: ['st_popping'] },
+        lastEventEnd: '2026-10-31',
+        active: true
+      } as any,
+      'test',
+      ctx.now()
+    );
+    ctx.cache.put('mi:22009999', JSON.stringify(stale), 600);
+
+    // Sync runs after a new dancer joins
+    source(sourceId).appendRows([row('Bala', '22002222', 'Popping')]);
+    importEventMembers(ctx, fresh(event), { full: false });
+
+    const staleAfter = ctx.db.memberIndex.get(stale.id)!;
+    expect(staleAfter.active).toBe(false);
+    expect(staleAfter.eventIds).toEqual([]);
+    expect(ctx.cache.get('mi:22009999')).toBeNull();
   });
 });
 

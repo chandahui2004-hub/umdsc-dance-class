@@ -4,9 +4,9 @@ import { Ctx } from '../ports';
 import { AttendanceGrid, ClassSession } from '@umdsc/shared';
 import { sessionLabel, locateCell } from '../logic/attendanceGrid';
 import { onSessionChanged } from './sessions';
-import { getEvent, readEventMembers } from './eventMembers';
+import { getEvent, membersChanged, readEventMembers } from './eventMembers';
 import { ensureEventSheets } from './eventSheets';
-import { isMemberEnrolledInStyle } from '../logic/styleMatcher';
+import { activeStyleMembers } from '../logic/styleMatcher';
 import { safeCachePut } from '../logic/cache';
 import { attendanceVersionKey as versionKey, bumpAttendanceVersion } from '../logic/attendanceVersion';
 
@@ -62,7 +62,7 @@ export function getAttendanceRoutes(): Record<string, Route> {
         if (cached) {
           try {
             const parsed = JSON.parse(cached);
-            if (parsed && Array.isArray(parsed.members) && parsed.members.length > 0) {
+            if (parsed && Array.isArray(parsed.members)) {
               return parsed;
             }
           } catch {
@@ -70,6 +70,7 @@ export function getAttendanceRoutes(): Record<string, Route> {
           }
         }
 
+        const ev = getEvent(ctx, eventId);
         const allStyles = ctx.db.styles.find(s => s.active);
         const matchedStyle = allStyles.find(
           s => s.id.toLowerCase() === styleId.toLowerCase() || s.name.toLowerCase() === styleId.toLowerCase()
@@ -83,7 +84,8 @@ export function getAttendanceRoutes(): Record<string, Route> {
           .find(s => s.eventId === eventId && targetStyleIds.has(s.styleId) && s.active)
           .sort((a, b) => a.date.localeCompare(b.date) || a.seq - b.seq);
 
-        const grid: AttendanceGrid = { eventId, styleId, version: curVer, sessions, members: [], present: {} };
+        const activeEnrolled = activeStyleMembers(readEventMembers(ctx, ev), styleId, allStyles);
+        const enrolledIds = new Set(activeEnrolled.map(m => m.memberId));
 
         let rec = ctx.db.attendanceSheets.find(
           s => s.eventId === eventId && targetStyleIds.has(s.styleId) && s.active
@@ -91,7 +93,7 @@ export function getAttendanceRoutes(): Record<string, Route> {
 
         if (!rec) {
           try {
-            ensureEventSheets(ctx, getEvent(ctx, eventId));
+            ensureEventSheets(ctx, ev);
             rec = ctx.db.attendanceSheets.find(
               s => s.eventId === eventId && targetStyleIds.has(s.styleId) && s.active
             )[0];
@@ -99,6 +101,10 @@ export function getAttendanceRoutes(): Record<string, Route> {
             // Master folder not set or Drive mock, continue to member fallback
           }
         }
+
+        const version = Number(ctx.cache.get(versionKey(eventId, styleId)) || curVer);
+        const grid: AttendanceGrid = { eventId, styleId, version, sessions, members: [], present: {} };
+        const seenIds = new Set<string>();
 
         if (rec) {
           grid.spreadsheetId = rec.spreadsheetId;
@@ -115,41 +121,30 @@ export function getAttendanceRoutes(): Record<string, Route> {
 
             for (let r = 2; r < data.length; r++) {
               const row = data[r];
-              const mId = (row[memberIdColIdx] || '').trim();
-              const fullName = (row[fullNameColIdx] || '').trim();
-              const matric = (row[matricColIdx] || '').trim();
-              if (!mId || (!fullName && !matric)) continue;
+              const mId = memberIdColIdx >= 0 ? (row[memberIdColIdx] || '').trim() : '';
+              const fullName = fullNameColIdx >= 0 ? (row[fullNameColIdx] || '').trim() : '';
+              const matric = matricColIdx >= 0 ? (row[matricColIdx] || '').trim() : '';
+              if (!mId || (!fullName && !matric) || !enrolledIds.has(mId)) continue;
+              seenIds.add(mId);
               grid.members.push({ memberId: mId, fullName, matric });
               grid.present[mId] = sessionCols.filter(sc => row[sc.colIdx] === '/').map(sc => sc.id);
             }
           }
         }
 
-        // Fallback: If sheet has no members or couldn't be loaded, read enrolled event members
-        if (grid.members.length === 0) {
-          try {
-            const ev = getEvent(ctx, eventId);
-            const enrolled = readEventMembers(ctx, ev).filter(m =>
-              isMemberEnrolledInStyle(m, styleId, allStyles)
-            );
-            for (const m of enrolled) {
-              grid.members.push({
-                memberId: m.memberId,
-                fullName: m.fullName,
-                matric: m.matricRaw || m.matricKey
-              });
-              if (!grid.present[m.memberId]) {
-                grid.present[m.memberId] = [];
-              }
-            }
-          } catch {
-            // Ignore fallback errors
-          }
+        // Ensure all active enrolled dancers for this style appear (e.g. sheet hadn't synced yet)
+        for (const m of activeEnrolled) {
+          if (seenIds.has(m.memberId)) continue;
+          seenIds.add(m.memberId);
+          grid.members.push({
+            memberId: m.memberId,
+            fullName: m.fullName,
+            matric: m.matricRaw || m.matricKey
+          });
+          grid.present[m.memberId] = [];
         }
 
-        if (grid.members.length > 0) {
-          safeCachePut(ctx.cache, gridKey(eventId, styleId, curVer), JSON.stringify(grid), 60);
-        }
+        safeCachePut(ctx.cache, gridKey(eventId, styleId, version), JSON.stringify(grid), 60);
         return grid;
       }
     },
@@ -201,16 +196,10 @@ export function getAttendanceRoutes(): Record<string, Route> {
         const memberIdColIdx = keyRow.indexOf('memberId');
         const applied: string[] = [];
 
-        // Who the page shows: dancers registered in the style, and anyone already on its sheet
-        // (e.g. moved to another style after attending here). One refusal fails the whole batch.
-        const enrolledMembers = readEventMembers(ctx, event).filter(m =>
-          isMemberEnrolledInStyle(m, styleId, allStyles)
-        );
+        // Only dancers actively enrolled in this style may be ticked. One refusal fails the whole batch.
+        const enrolledMembers = activeStyleMembers(readEventMembers(ctx, event), styleId, allStyles);
         const enrolledById = new Map(enrolledMembers.map(m => [m.memberId, m]));
-        const validMemberIds = new Set([
-          ...enrolledMembers.map(m => m.memberId),
-          ...data.slice(2).map((r: string[]) => r[memberIdColIdx]).filter(Boolean)
-        ]);
+        const validMemberIds = new Set(enrolledMembers.map(m => m.memberId));
         for (const m of marks) {
           if (!validMemberIds.has(m.memberId)) {
             throw new AppError('VALIDATION', `Member ${m.memberId} is not registered in style ${styleId}`);
@@ -284,7 +273,9 @@ export function getAttendanceRoutes(): Record<string, Route> {
         if (!eventId) {
           throw new AppError('VALIDATION', 'eventId is required');
         }
-        return { sheets: ensureEventSheets(ctx, getEvent(ctx, eventId)) };
+        const ev = getEvent(ctx, eventId);
+        membersChanged(ctx, ev);
+        return { sheets: ensureEventSheets(ctx, ev) };
       }
     },
 
